@@ -14,11 +14,16 @@ import (
 	"lreat/core/event"
 	"lreat/core/habit"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
 // Def describes one action.
 type Def struct {
+	// Key is the act's name in the ontology, take/timber@wood: what it is
+	// in terms of what it does with what and where. It is what habit
+	// slots are keyed by. Name is what it is called.
+	Key   string
 	Name  string
 	Ticks int
 	// Available reports whether the agent can start the action now.
@@ -51,32 +56,78 @@ type Def struct {
 	With func(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent
 }
 
-// Count is the size of the catalog. It is checked at init so that a table
-// indexed by catalog position can be a fixed array everywhere.
-const Count = 28
+// Count is the size of the catalog, set once it is assembled.
+var Count int
 
-// Catalog lists every action in a fixed order. Order matters for
-// determinism, and position is what per-agent habit tables are indexed by.
-// It is assembled in init rather than declared, because some actions reach
-// back into the catalog when they run (study broadens reach, teaching
-// passes it on) and a declaration would make that a cycle.
+// Catalog lists every action in a fixed order: the order of their keys,
+// which is what per-agent habit tables are indexed by. It is what the
+// ontology entails, each act bound to its mechanics below. It is assembled
+// in init rather than declared, because some actions reach back into the
+// catalog when they run (study broadens reach, teaching passes it on) and a
+// declaration would make that a cycle.
 var Catalog []*Def
 
+// mechanics binds each act the ontology entails to the code that carries it
+// out. An act the ontology entails and nothing here carries is a catalog
+// that cannot be assembled, and says so at start.
+var mechanics = map[string]*Def{
+	"take/berries@wood":                 Forage,
+	"take/game@wood":                    Hunt,
+	"take/timber@wood":                  GatherWood,
+	"take/fish@water":                   Fish,
+	"take/stone@outcrop":                Quarry,
+	"take/grain@field":                  Farm,
+	"tend/clear@open":                   Clear,
+	"tend/water@field":                  Irrigate,
+	"tend/plant@open":                   PlantTrees,
+	"make/timber>tool@bench":            Craft,
+	"make/stone+timber>tool@forge":      Smelt,
+	"make/provision+timber>meal@hearth": Cook,
+	"raise/timber>dwelling@open":        BuildShelter,
+	"raise/timber+stone>granary@open":   BuildGranary,
+	"raise/timber+stone>tavern@open":    BuildTavern,
+	"raise/stone>road@ground":           Pave,
+	"consume/provision":                 Eat,
+	"dwell/rest":                        Rest,
+	"dwell/meet@tavern>neighbour":       Socialize,
+	"dwell/guard@market":                Guard,
+	"exchange/provision>coin@market":    Sell,
+	"exchange/coin>provision@market":    Buy,
+	"transfer/provision>neighbour":      Give,
+	"transfer/material>requester":       Fulfil,
+	"transfer/provision<holder":         Steal,
+	"pass/practice>pupil":               Teach,
+	"pass/practice>self":                Study,
+	"strike/person>wrongdoer":           Retaliate,
+	"move@dwelling":                     MoveHouse,
+}
+
 func init() {
-	Catalog = []*Def{
-		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
-		Guard, Socialize, Craft, Teach, Study, Pave,
-		Steal, Give, Fulfil, Retaliate,
-		Fish, Hunt, Irrigate, PlantTrees,
-		Cook, Quarry, BuildGranary, Smelt,
-		BuildTavern, MoveHouse,
+	for _, in := range ontology.Instantiate() {
+		d := mechanics[in.Key]
+		if d == nil {
+			panic("action: nothing carries out " + in.Key)
+		}
+		if d.Key != "" {
+			panic("action: " + d.Name + " bound twice, to " + d.Key + " and " + in.Key)
+		}
+		d.Key = in.Key
+		Catalog = append(Catalog, d)
 	}
-	if len(Catalog) != Count {
-		panic("action: Catalog length does not match Count")
-	}
+	Count = len(Catalog)
 	if Count > habit.MaxActions {
 		panic("action: Catalog exceeds habit.MaxActions")
 	}
+}
+
+// ByKey returns the action with that key, or nil.
+func ByKey(key string) *Def {
+	for _, d := range Catalog {
+		if d.Key == key {
+			return d
+		}
+	}
+	return nil
 }
 
 // ByName returns the action with that name, or nil.
@@ -331,20 +382,18 @@ func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	return best, found
 }
 
-// farmSite is where a farmer goes to work: the next strip to break if the
-// holding is still short of what the household eats, otherwise the richest
-// strip they hold. Someone with no field at all takes the nearest open
-// ground near home that will bear a crop - a man with no land takes what he
-// can get, even the strip behind his neighbour's house; it is only in adding
-// to a holding that a farmer leaves the neighbourhood its ground.
-func farmSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+// fieldSite is where a farmer goes to make ground into field: the next
+// strip to break if the holding is still short of what the household
+// eats, otherwise nothing. Someone with no field at all takes the nearest
+// open ground near home that will bear a crop - a man with no land takes
+// what he can get, even the strip behind his neighbour's house; it is only
+// in adding to a holding that a farmer leaves the neighbourhood its ground.
+func fieldSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField {
 		if len(a.Parcel) < fieldTiles {
-			if p, ok := newGround(a, w); ok {
-				return p, true
-			}
+			return newGround(a, w)
 		}
-		return worked(a, w)
+		return entity.Pos{}, false
 	}
 	anchor := a.Pos
 	if a.HasHome {
@@ -369,22 +418,30 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 	return true
 }
 
-var Farm = &Def{
-	Name: "farm", Ticks: 4, Available: always, Target: farmSite,
+// Clear is the half of farming that makes ground into a field: the first
+// strip of a holding claimed and broken, or the next one added beside it
+// while the household still eats more than it holds. Nothing comes off it
+// yet. It is its own act so that a holding is a thing an agent has, lacks,
+// or is still adding to.
+var Clear = &Def{
+	Name: "clear field", Ticks: 4, Target: fieldSite,
+	Available: func(a *entity.Agent, _ *world.World) bool {
+		return !a.HasField || len(a.Parcel) < fieldTiles
+	},
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		fertility := w.Grid.At(target).Fertility
-		if a.Holds(target) {
-			fertility = bearing(a, w)
-		}
+		// Instrumental: a strip is worth what its first harvest will be.
 		return need.Levels{
-			need.Physiological: foodValue(a) * farmYield(a, w, fertility),
+			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.At(target).Fertility) * 0.5,
 			need.Esteem:        0.02,
 		}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t := w.Grid.At(a.Pos)
-		switch {
-		case !a.HasField:
+		if a.HasField {
+			if !breakGround(a, w) {
+				return
+			}
+		} else {
 			if !t.Buildable() {
 				return // claimed by someone else first
 			}
@@ -392,13 +449,27 @@ var Farm = &Def{
 			t.Owner = a.ID
 			a.Field, a.HasField = a.Pos, true
 			a.Parcel = []entity.Pos{a.Pos}
-			w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
-		case !a.Holds(a.Pos):
-			// Standing on the edge of the holding with more land to break:
-			// this harvest comes off ground that was grass this morning.
-			if !breakGround(a, w) {
-				return
-			}
+		}
+		a.AddSkill(entity.Farming, 0.005)
+		a.Needs.Add(need.Esteem, 0.02)
+		w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
+	},
+}
+
+// Farm is the harvest: the household's holding, worked and worn.
+var Farm = &Def{
+	Name: "farm", Ticks: 4,
+	Available: func(a *entity.Agent, _ *world.World) bool { return a.HasField },
+	Target:    worked,
+	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
+		return need.Levels{
+			need.Physiological: foodValue(a) * farmYield(a, w, bearing(a, w)),
+			need.Esteem:        0.02,
+		}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		if !a.Holds(a.Pos) {
+			return // the strip went to someone else while we walked
 		}
 		yield := farmYield(a, w, bearing(a, w))
 		// A tool makes the work go further, and wears with it.

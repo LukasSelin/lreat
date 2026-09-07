@@ -76,6 +76,10 @@ func init() {
 		habit.Food: -0.3, habit.Chill: -0.5, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.3,
 	})
 	Farm.Skilled = uses(entity.Farming)
+	// Clearing is the same moment as farming: it is what farming was before
+	// there was a field.
+	seed(Clear, reachEveryday, Farm.Prior)
+	Clear.Skilled = uses(entity.Farming)
 	// Wood is measured against the cost of a house, so "enough wood" reads
 	// as +1 exactly when a shelter can be built. Gathering belongs to the
 	// unsheltered moment more than to the empty-handed one; building to the

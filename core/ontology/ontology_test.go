@@ -14,8 +14,7 @@ import (
 )
 
 // golden maps every instance the trees should entail to the hand-written
-// action it stands in for. Farming is two acts here, clearing and
-// harvesting, and both stand in for the one there.
+// action it stands in for.
 var golden = map[string]string{
 	"take/berries@wood":                 "forage",
 	"take/game@wood":                    "hunt",
@@ -23,7 +22,7 @@ var golden = map[string]string{
 	"take/fish@water":                   "fish",
 	"take/stone@outcrop":                "quarry",
 	"take/grain@field":                  "farm",
-	"tend/clear@open":                   "farm",
+	"tend/clear@open":                   "clear field",
 	"tend/water@field":                  "irrigate",
 	"tend/plant@open":                   "plant trees",
 	"make/timber>tool@bench":            "craft",
@@ -156,9 +155,6 @@ func TestReachAndTicksAgree(t *testing.T) {
 	for _, in := range ontology.Instantiate() {
 		name := golden[in.Key]
 		d := action.ByName(name)
-		if in.Key == "tend/clear@open" {
-			continue // the split half; ticks are its own
-		}
 		if in.Ticks != d.Ticks {
 			t.Errorf("%s ticks %d, %s has %d", in.Key, in.Ticks, name, d.Ticks)
 		}

@@ -20,14 +20,25 @@ func held(t *testing.T, w *world.World, a *entity.Agent) []entity.Pos {
 	return a.Parcel
 }
 
+// till is a season of a farmer working the land: breaking the next strip
+// while the holding is short of what the household eats, and harvesting
+// what they hold otherwise. Clearing and farming are two acts, but one
+// livelihood.
+func till(w *world.World, a *entity.Agent) bool {
+	if run(w, a, Clear) {
+		return true
+	}
+	return run(w, a, Farm)
+}
+
 // A house is one tile. A holding is not: a family eats far more ground than
 // it sleeps on, so a farmer goes on breaking strips beside the ones they have
 // until the holding is as much land as the household lives off.
 func TestAHoldingGrowsToWhatAFamilyEats(t *testing.T) {
 	w, a := shore(t)
 	for i := 0; i < 3*fieldTiles; i++ {
-		if !run(w, a, Farm) {
-			t.Fatalf("farming should be possible on open ground (harvest %d)", i)
+		if !till(w, a) {
+			t.Fatalf("farming should be possible on open ground (season %d)", i)
 		}
 	}
 	holding := held(t, w, a)
@@ -57,7 +68,7 @@ func TestAHoldingGrowsToWhatAFamilyEats(t *testing.T) {
 func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 	w, a := shore(t)
 	for i := 0; i < 3*fieldTiles; i++ {
-		run(w, a, Farm)
+		till(w, a)
 	}
 	holding := held(t, w, a)
 	before := make([]float64, len(holding))
@@ -88,15 +99,15 @@ func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 // laid along.
 func TestAHoldingDoesNotPloughUpTheNeighbourhood(t *testing.T) {
 	w, a := shore(t)
-	if !run(w, a, Farm) {
-		t.Fatal("farming should be possible on open ground")
+	if !run(w, a, Clear) {
+		t.Fatal("clearing should be possible on open ground")
 	}
 	// Somebody builds two tiles from the farmer's first furrow: the holding
 	// has to grow the other way.
 	neighbour := w.Grid.At(entity.Pos{X: a.Field.X - 2, Y: a.Field.Y})
 	neighbour.Structure, neighbour.Owner = world.House, 99
 	for i := 0; i < 3*fieldTiles; i++ {
-		run(w, a, Farm)
+		till(w, a)
 	}
 	holding := held(t, w, a)
 	if len(holding) != fieldTiles {

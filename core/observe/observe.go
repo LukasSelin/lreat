@@ -231,7 +231,7 @@ func habits(w *world.World) (spread, mean, gated float64) {
 			}
 		}
 	}
-	mean /= n * action.Count
+	mean /= n * float64(action.Count)
 	if gatedN > 0 {
 		gated /= gatedN
 	}
@@ -250,7 +250,7 @@ func habits(w *world.World) (spread, mean, gated float64) {
 			spread += habit.Norm(d)
 		}
 	}
-	spread /= n * action.Count
+	spread /= n * float64(action.Count)
 	return spread, mean, gated
 }
 
