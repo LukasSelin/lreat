@@ -181,3 +181,20 @@ func (g *Grid) HasNeighbor(p entity.Pos, ok func(*Tile) bool) bool {
 	}
 	return false
 }
+
+// Roofed reports whether a tile is a building somebody stands inside: a
+// house, the market, a granary. A road is not - a way beside a door is what
+// a door is for.
+func (t *Tile) Roofed() bool {
+	return t.Structure == House || t.Structure == Market || t.Structure == Granary
+}
+
+// RoomToBuild reports whether p is open ground with open ground all round
+// it: no building on any of the eight tiles that touch it. Roofs raised
+// wherever there was a gap grew into one solid block with no way through
+// it, which is a settlement nobody can lay a road in. Kept a tile apart,
+// every house keeps its own sides clear, and the gaps between neighbours
+// line up into the lanes a road is later laid along.
+func (g *Grid) RoomToBuild(p entity.Pos) bool {
+	return g.In(p) && g.At(p).Buildable() && !g.HasNeighbor(p, (*Tile).Roofed)
+}
