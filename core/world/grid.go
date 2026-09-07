@@ -10,6 +10,7 @@ const (
 	Forest
 	Water
 	Field
+	Rock // an outcrop: stone to cut, nothing to grow
 )
 
 // Structure is what has been built on a tile.
@@ -20,6 +21,7 @@ const (
 	House
 	Market
 	Road
+	Granary // keeps the market's food from spoiling
 )
 
 // Tile is one cell of the world. Fertility comes from the river and is worn

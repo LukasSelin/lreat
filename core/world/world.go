@@ -44,6 +44,7 @@ type Modifiers struct {
 	FishYield       float64
 	HuntYield       float64
 	Regrowth        float64 // how fast forest, wild food, and fish come back
+	Keeping         float64 // how much of the market's food spoils, as a share of the usual
 }
 
 // DefaultModifiers is the pre-technology baseline.
@@ -57,6 +58,7 @@ func DefaultModifiers() Modifiers {
 		FishYield:       1,
 		HuntYield:       1,
 		Regrowth:        1,
+		Keeping:         1,
 	}
 }
 
@@ -138,7 +140,7 @@ func NewSized(seed uint64, width, height int) *World {
 		Mods:  DefaultModifiers(),
 		Rules: DefaultRules(),
 		Market: MarketState{
-			Price: [entity.GoodCount]float64{1, 0.5, 3},
+			Price: [entity.GoodCount]float64{1, 0.5, 3, 1.5, 2},
 		},
 		Log:    event.NewLog(50_000),
 		techs:  map[Tech]bool{},

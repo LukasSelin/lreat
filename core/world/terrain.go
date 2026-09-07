@@ -48,6 +48,21 @@ func (w *World) GenerateTerrain(width, height int) {
 		}
 	}
 
+	// Outcrops: a few small patches of bare rock on the grass, away from the
+	// water, for stone once the settlement knows how to cut it.
+	for i := 0; i < width*height/700; i++ {
+		p := entity.Pos{X: w.RNG.IntN(width), Y: w.RNG.IntN(height)}
+		for s := 0; s < 10; s++ {
+			if g.In(p) {
+				if t := g.At(p); t.Terrain == Grass {
+					t.Terrain = Rock
+				}
+			}
+			p.X += w.RNG.IntN(3) - 1
+			p.Y += w.RNG.IntN(3) - 1
+		}
+	}
+
 	// Fertility: breadth-first distance from water, eight-connected.
 	dist := make([]int, len(g.Tiles))
 	queue := make([]int, 0, len(g.Tiles))

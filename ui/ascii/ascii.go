@@ -24,6 +24,8 @@ const (
 	House
 	Market
 	Road
+	Rock
+	Granary
 	AgentFood
 	AgentBuild
 	AgentTrade
@@ -83,6 +85,8 @@ func tileCell(t *world.Tile) Cell {
 		return Cell{Ch: 'M', Color: Market}
 	case world.Road:
 		return Cell{Ch: '+', Color: Road}
+	case world.Granary:
+		return Cell{Ch: 'G', Color: Granary}
 	}
 	switch t.Terrain {
 	case world.Water:
@@ -94,6 +98,8 @@ func tileCell(t *world.Tile) Cell {
 		return Cell{Ch: 't', Color: ForestPoor}
 	case world.Field:
 		return Cell{Ch: '"', Color: Field}
+	case world.Rock:
+		return Cell{Ch: '^', Color: Rock}
 	}
 	return Cell{Ch: '.', Color: Grass}
 }
@@ -101,9 +107,9 @@ func tileCell(t *world.Tile) Cell {
 // AgentColor maps an action to the color of the agent doing it.
 func AgentColor(action string) Color {
 	switch action {
-	case "farm", "forage", "eat", "buy food", "fish", "hunt":
+	case "farm", "forage", "eat", "buy food", "fish", "hunt", "cook":
 		return AgentFood
-	case "gather wood", "build shelter", "craft", "irrigate", "plant trees":
+	case "gather wood", "build shelter", "craft", "irrigate", "plant trees", "quarry", "build granary", "smelt":
 		return AgentBuild
 	case "sell":
 		return AgentTrade

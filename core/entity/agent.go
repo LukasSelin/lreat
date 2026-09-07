@@ -56,10 +56,12 @@ const (
 	Food Good = iota
 	Wood
 	Tools
+	Stone
+	Meals // cooked food: keeps, and feeds more
 	GoodCount
 )
 
-var goodNames = [GoodCount]string{"food", "wood", "tools"}
+var goodNames = [GoodCount]string{"food", "wood", "tools", "stone", "meals"}
 
 func (g Good) String() string { return goodNames[g] }
 

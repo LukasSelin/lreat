@@ -246,7 +246,7 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 		Situation: s,
 		Before: habit.Ledger{
 			Needs: a.Needs, Urgency: need.Urgencies(a.Needs),
-			Food: a.Inventory[entity.Food], Shelter: a.Shelter,
+			Food: action.Edible(a), Shelter: a.Shelter,
 		},
 		Started: w.Tick,
 		Route:   r.Path(a.Pos, target),

@@ -206,6 +206,30 @@ Study starts nearer to reach (0.6, from 0.4). Recognition settlements otherwise 
 
 **What the runs show.** Over 6000 ticks: seed 3 learns fishing at tick 200, before it has learned to farm; seeds 2, 7, and 16 farm first and turn to the river between ticks 1500 and 2100, once the forest they live off is thin, with hundreds to fifteen hundred fishing acts following. Trapping arrives with fishing wherever tools are held. Irrigation and forestry did not fire on these seeds: with wear at 0.006 the fields near the market stay above the 0.45 that counts as poor, and forest reseeding more than replaces what is cleared, so the founding forest is never down by four tenths. Both remain reachable by pioneers through study and teaching, and are used that way (fifty to a hundred irrigations and several hundred plantings per run), but as discoveries they wait for a scarcer world or a larger settlement. On the 24-seed sweep the package leaves survival at 21 of 24 with no extinctions and a median population of 127 to 144.
 
+## Making and keeping
+
+The longer chain that turns what the land gives into things that last. `core/action/making.go`.
+
+**Two new goods.** Stone, cut from rock outcrops the map now carries, goes into houses (a stone in the walls makes a house half again as good) and granaries. Meals are cooked food: they keep (spoiling at a third of the rate) and feed more (0.5 a unit against 0.35 raw), and a hungry agent eats them first. Tools now make a field go further, a quarter more per harvest, and wear with the work.
+
+| act | belongs to the moment | takes | gives |
+|---|---|---|---|
+| cook | a full larder, wood to spare beyond a house's worth, no hunger | two units of food and a fifth of a unit of wood | two meals |
+| quarry | the unsheltered with a tool in hand and stone near | tool wear | stone, building skill |
+| build granary | standing to win, stone and wood to spare, a settlement one means to stay in | three stone and two wood, beside the market | the market's food spoils half as fast, for everyone |
+| smelt | a skilled crafter with stone and fuel | a stone and a unit of wood | twice a crafting's tools |
+
+| tech | pressure | knowledge | opens | effect |
+|---|---|---|---|---|
+| pottery | food piling up at the market | 30 | cook | market spoilage ×0.7 |
+| quarrying | masonry known and rock near the market | 40 | quarry | build efficiency ×1.2 |
+| masonry | (existing) | | build granary | |
+| metallurgy | (existing) | | smelt | |
+
+**What the runs show.** Pottery arrives between ticks 1100 and 1900, quarrying with masonry soon after; a settlement cooks and quarries a few hundred times over a run, one in four builds a granary, and smelting stays rare because metallurgy waits on five tools at the market. On 96 seeds the package holds survival at 82 against 86 for the code before it, with the median population 144 against 147.
+
+**What broke, and the lesson about measuring.** The first version cost survival badly, and finding out why took most of the work. Cooking burned half a unit of wood per meal, four meals to a house, and pottery came early enough that whole settlements learned to cook and stopped building. But no 24-seed sweep could show that, because a child inherits its habits with random drift on every coordinate of every catalog action, so a bigger catalog draws more from the world's random stream at every birth and every trajectory after the first birth is rerolled. Variants that changed nothing behavioural moved the 24-seed sweep by three survivors and halved its median. The comparisons that settled it were 96 seeds each: 86 survivors before the package, 68 with it, 84 with cooking removed, 82 with cooking made a hearth batch on spare wood. Anything that grows the catalog has to be judged on that scale.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
@@ -251,6 +275,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 8 | Robustness: 48-seed sweeps; shelter read as a lack | done |
 | 9 | Harvests: producing acts judged by all they fed; industrious farm prior; children inherit half their parents' skills | done |
 | 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
+| 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

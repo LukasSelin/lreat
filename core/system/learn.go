@@ -29,7 +29,7 @@ func Learn(a *entity.Agent, w *world.World, p *entity.Plan) {
 		return // a plan made outside the builder carries no lesson
 	}
 	action.Imprint(a)
-	after := habit.Ledger{Needs: a.Needs, Food: a.Inventory[entity.Food], Shelter: a.Shelter}
+	after := habit.Ledger{Needs: a.Needs, Food: action.Edible(a), Shelter: a.Shelter}
 	r := habit.Reward(p.Before, after, a.Personality)
 	adv := habit.Advantage(r, expectation(a, p.Index))
 	a.Baseline += habit.BaselineRate * (r - a.Baseline)
