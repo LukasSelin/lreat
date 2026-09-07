@@ -9,6 +9,7 @@ import (
 	"lreat/core/need"
 	"lreat/core/observe"
 	"lreat/core/world"
+	"lreat/ui/ascii"
 )
 
 // The panel should show the population's condition next to its needs.
@@ -41,5 +42,31 @@ func TestPanelShowsHealth(t *testing.T) {
 	}
 	if !strings.Contains(text.String(), "0.42") {
 		t.Fatal("panel does not show the mean health value")
+	}
+}
+
+// What everyone is doing is shown as history, not as this tick's answer:
+// a column stands for several ticks, so a band lasts long enough to read.
+func TestActivityGraphKeepsHistory(t *testing.T) {
+	v := &view{}
+	s := observe.Snapshot{Population: 4, Activity: []observe.Activity{{Action: "farm", Agents: 3}}}
+	for i := 0; i < graphTicks-1; i++ {
+		v.record(&s)
+	}
+	if len(v.hist) != 0 {
+		t.Fatalf("a column appeared before %d ticks were in it", graphTicks)
+	}
+	v.record(&s)
+	if len(v.hist) != 1 {
+		t.Fatalf("want one column after %d ticks, have %d", graphTicks, len(v.hist))
+	}
+	if got := v.hist[0][ascii.GroupOf("farm")]; got != 0.75 {
+		t.Fatalf("three of four farming is a share of 0.75, have %.2f", got)
+	}
+	for i := 0; i < graphWidth*graphTicks*2; i++ {
+		v.record(&s)
+	}
+	if len(v.hist) != graphWidth {
+		t.Fatalf("history is not bounded by the panel: %d columns", len(v.hist))
 	}
 }
