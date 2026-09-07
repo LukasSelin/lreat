@@ -71,6 +71,19 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	// alone in naming the warmth, outranked studying for the curious and
 	// getting even for the wronged.
 	s[habit.Chill] = need.Clamp(w.Climate.Chill())
+	// Exposure is the cold this particular body is actually in: the weather
+	// times what it is not sheltered from. It is the same product the world
+	// charges a body for standing out in the winter, and it is here because
+	// a prior is linear and so cannot say "cold and unroofed" with the
+	// weather and the roof as separate coordinates - it can only say "cold"
+	// and "unroofed" and add them. The difference matters. Told only that
+	// it is cold, a settlement sends everybody to the woods in February,
+	// the people who already have roofs included, and stops farming to do
+	// it; told what each body is actually suffering, the roofed keep to
+	// their fields and the ones out in it go for timber. One is a season
+	// the settlement endures together, the other is the season sorting out
+	// who needs to do something about it.
+	s[habit.Exposure] = need.Clamp(w.Climate.Chill() * (1 - a.Shelter))
 	// The moral coordinates are one-sided, as the belief layer defines them:
 	// a norm of 0 is holding nothing, caution of 0 is having learned of no
 	// reprisal, safety of 0 is nobody keeping order. Read that way an
