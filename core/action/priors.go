@@ -162,15 +162,9 @@ func init() {
 		habit.Hunger: 1, habit.Food: -1, habit.Order: -0.3,
 		habit.Honesty: -1, habit.Caution: -0.7, habit.Near: 0.6, habit.Rapport: -0.4,
 	})
-	Steal.With = func(a *entity.Agent, w *world.World, _ entity.Pos) *entity.Agent {
-		return nearestWith(a, w, reachRadius, hasSpareFood)
-	}
 	seed(Give, reachEveryday, habit.Signature{
 		habit.Hunger: -0.4, habit.Lonely: 0.3, habit.Food: 0.7, habit.Charity: 1, habit.Near: 0.5, habit.Rapport: 0.5,
 	})
-	Give.With = func(a *entity.Agent, w *world.World, _ entity.Pos) *entity.Agent {
-		return nearestWith(a, w, reachRadius, inNeed)
-	}
 	seed(Fulfil, reachEveryday, habit.Signature{
 		habit.Unproven: 0.5, habit.Wealth: -0.5, habit.Industry: 0.5, habit.Near: 0.4, habit.Rapport: 0.4, habit.Skill: 0.5,
 	})

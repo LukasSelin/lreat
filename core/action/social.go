@@ -60,37 +60,7 @@ func hasSpareFood(o *entity.Agent) bool { return o.Inventory[entity.Food] >= 1 }
 // Steal is the option that makes conscience mean something. It is fast, it
 // works, and the only thing standing against it is what the agent believes
 // about itself and what it thinks the neighbors will make of it.
-var Steal = &Def{
-	Name: "steal", Ticks: 1,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Food] < 1 && nearestWith(a, w, reachRadius, hasSpareFood) != nil
-	},
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		if v := nearestWith(a, w, reachRadius, hasSpareFood); v != nil {
-			return v.Pos, true
-		}
-		return entity.Pos{}, false
-	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: foodValue(a) * 1.5}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		v := nearestWith(a, w, 2, hasSpareFood)
-		if v == nil {
-			return
-		}
-		v.Inventory[entity.Food]--
-		a.Inventory[entity.Food]++
-		// The victim always knows. Bystanders may or may not care.
-		v.Judge(a.ID, -0.6, w.Tick)
-		if b := v.Look(a.ID); b != nil {
-			b.Strength = belief.Clamp(b.Strength - 0.3)
-		}
-		witness(a, w, "steal")
-		remorse(a, "steal")
-		w.Emit(event.Stolen, a.ID, v.ID, "%s stole food from %s", a.Name, v.Name)
-	},
-}
+var Steal = handing("transfer/provision<holder")
 
 func inNeed(o *entity.Agent) bool {
 	return o.Needs[need.Physiological] < 0.4 && o.Inventory[entity.Food] < 1
@@ -98,36 +68,7 @@ func inNeed(o *entity.Agent) bool {
 
 // Give costs the giver and helps the receiver. Nothing in the need model
 // rewards it much; the charitable do it because their conscience pays them.
-var Give = &Def{
-	Name: "give", Ticks: 1,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Food] >= 2 && nearestWith(a, w, reachRadius, inNeed) != nil
-	},
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		if o := nearestWith(a, w, reachRadius, inNeed); o != nil {
-			return o.Pos, true
-		}
-		return entity.Pos{}, false
-	},
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Belonging: 0.08, need.Esteem: 0.05}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		o := nearestWith(a, w, 2, inNeed)
-		if o == nil {
-			return
-		}
-		a.Inventory[entity.Food]--
-		o.Inventory[entity.Food]++
-		o.Judge(a.ID, 0.4, w.Tick)
-		o.AddBond(a.ID, 0.15)
-		a.AddBond(o.ID, 0.1)
-		a.Needs.Add(need.Belonging, 0.08)
-		a.Needs.Add(need.Esteem, 0.05)
-		witness(a, w, "give")
-		w.Emit(event.Given, a.ID, o.ID, "%s gave food to %s", a.Name, o.Name)
-	},
-}
+var Give = handing("transfer/provision>needy")
 
 // rewardValue converts a fee into need satisfaction. Money is worth what it
 // can buy, so the same wage means a great deal to the hungry and little to

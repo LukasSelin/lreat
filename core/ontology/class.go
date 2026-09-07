@@ -233,6 +233,8 @@ var (
 	Neighbour = Role{"neighbour", habit.Signature{habit.Lonely: 0.5, habit.Company: 0.5, habit.Rapport: 0.5}}
 	// Requester has asked for something the actor can supply.
 	Requester = Role{"requester", habit.Signature{habit.Unproven: 0.5, habit.Wealth: -0.5, habit.Industry: 0.5, habit.Skill: 0.5}}
+	// Needy has none of something and feels the lack.
+	Needy = Role{"needy", habit.Signature{habit.Lonely: 0.3, habit.Rapport: 0.5}}
 	// Holder has more of something than they need.
 	Holder = Role{"holder", habit.Signature{habit.Hunger: 1, habit.Food: -1, habit.Rapport: -0.4}}
 	// Pupil reaches less far in some practice than the actor. Teaching is
