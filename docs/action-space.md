@@ -477,7 +477,7 @@ A tick is a day. `core/clock` is the only place that says so, and every duration
 |---|---|---|
 | the day's economy - hunger, spoilage, regrowth rates, what an act yields, what a step costs | untouched | the day is what the land renews by and what people take by. The balance between them is the one thing a calendar must not touch, and it is what every number in this document was tuned against. |
 | stand ages - `TimberAge`, `BrushAge`, `CropAge` | kept their length in days, restated in years | an age says what a stand may hold and a rate says how fast it fills toward it; they are a pair, and moving one without the other is a silent retuning of the land. |
-| a life - `Maturity`, `Prime`, `Lifespan` | restated in years, so 3.6x more days | a life is a span of years, not of ticks. The proportions between the three are what the settlement was tuned on and are unchanged. |
+| a life - `Maturity`, `Prime`, `Lifespan` | restated in years, and then made human | a life is a span of years, not of ticks. The calendar is what made a fifteen-year childhood affordable at all; see the section below. |
 | chances read once a day against a life or a calendar - `Frailty`, `BirthChance`, `leftToFall` | divided by the same 3.6 | a daily chance over a span 3.6 times longer fires 3.6 times as often. `Frailty` is now written as a risk over the length of the decline rather than a bare number, so it cannot drift out of step again. |
 | intervals - `ErodeEvery`, `marketEvery` | said in seasons and years | an age of weather is a season and the market moves once a year; both were bare tick counts that happened to mean something under the old year. |
 
@@ -490,7 +490,27 @@ A tick is a day. `core/clock` is the only place that says so, and every duration
 
 Better, and worth understanding rather than pocketing. Nothing was made more generous. What changed is that a settlement now gets 3.6 times as many days to work in per turn of the year, against a winter that is 3.6 times longer to sit through and stand ages that did not move - and it comes out ahead, which says the old year was not a hardship so much as a season nobody could organise around. The gate numbers say where it went: the share of fertile adults who clear all three birth gates at once went from 0.136 to 0.214, and births need all three at once.
 
-**The one compression that stays.** An agent is grown at five and old at fifty-two. That is not a human childhood, and it is deliberate: what sets it is the need for a run somebody will sit through to turn a settlement over three or four times, because the claim this whole tree is here to test - that what a population believes outlives the people who first believed it - cannot be seen inside one lifetime. Making the childhood human would take a quarter of the population out of the workforce and is a demographic change, not a calendrical one; it belongs to its own sweep.
+## A human childhood
+
+A life was five years to grow up, twenty-eight to the end of bearing and fifty-two to the end - the proportions the settlement had been tuned on, carried over from a world where a life had to be counted in ticks to fit a run inside it. A settlement whose children are grown before they can walk to the next field has no dependants in it. `Maturity`, `Prime` and `Lifespan` are fifteen, forty and sixty-five now. `core/entity/age.go`.
+
+The calendar is what made this affordable, and it is worth saying why: what a run has to cover is a number of generations, and a generation is a span of years, so lengthening the year is what buys a childhood. Under the hundred-tick year, fifteen years of childhood was 1500 ticks and a life 6500, and there was no run length at which a settlement turned over three times and a child took fifteen years to grow.
+
+**What it cost, and what the cost turned out to be.** Twenty-four seeds, sixty years, twenty founders:
+
+| | lasted | extinct | median | mean | fed | all three gates |
+|---|---|---|---|---|---|---|
+| grown at five | 24/24 | 0 | 218 | 212 | 0.55 | 0.214 |
+| grown at fifteen | 22/24 | 0 | 92 | 104 | 0.57 | 0.313 |
+| grown at fifteen, bearing to match | 23/24 | 0 | 163 | 185 | 0.56 | 0.287 |
+
+The middle row is the one to read carefully, because it is not what it looks like. The population halved and *every per-capita number went up*: fed 0.55 to 0.57, safe 0.41 to 0.56, belonging 0.73 to 0.84, and the share of fertile adults clearing all three birth gates at once from 0.214 to 0.313. A settlement in that row is not struggling. It is healthier than the one before it and there is less of it, which means the loss was never hardship - it was arithmetic.
+
+The age structure says where it went. Reading one settlement at sixty years: 116 alive, of whom 73 are children, 32 are of bearing age and 11 are elders. Half the population and better is now under fifteen, none of it bears, all of it eats, and each of them works at half a body growing into the rest. Fewer bearers per head, and a fifteen-year wait before a birth becomes a worker, compounds a great deal slower than a five-year one.
+
+**So the childhood sets the fertility.** A settlement that waits fifteen years for a birth to become a worker, and feeds it the whole way, needs the fertility a pre-modern people actually had. `BirthChance` was three fifths of a chance a year, which after the three birth gates comes to four or five children over a fertile life; it is one a year now, which comes to seven or eight, and that is the top of the human range rather than a number chosen to reach a population. The third row is that change, and it recovers most of the difference without touching anything else.
+
+What is left of the gap is the childhood itself, and it should be left there. A quarter of a settlement being children is the fact; a settlement that cannot feed its children not growing is the mechanism working, not a regression.
 
 ## The turning year
 

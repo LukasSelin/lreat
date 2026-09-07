@@ -19,10 +19,18 @@ const (
 	// BirthChance is the daily probability that a thriving agent has a
 	// child. It is written against the year because what has to stay fixed
 	// as the calendar changes is how many children a fertile life brings,
-	// not how many a day does: about three chances in five a year, over the
-	// twenty-three fertile years, for a parent whose lower three tiers are
-	// all met at once - which is rare.
-	BirthChance = 0.6 / clock.Year
+	// not how many a day does: one chance a year, over the twenty-five
+	// fertile years, for a parent whose lower three tiers are all met at
+	// once - which happens about three tenths of the time, so a fertile life
+	// that runs its course brings seven or eight children.
+	//
+	// That is a human number and it is set by the childhood. A settlement
+	// that waits fifteen years for a birth to become a worker, and feeds it
+	// the whole way, needs the fertility a pre-modern people actually had;
+	// at three fifths of this, which is what the five-year childhood was
+	// tuned with, the same settlements came out at a median of 92 against
+	// 163. See docs/action-space.md.
+	BirthChance = 1.0 / clock.Year
 	// MaxPopulation caps growth so runs stay bounded.
 	MaxPopulation = 400
 	// InheritedSkill is the share of a parent's skills a child is born with,

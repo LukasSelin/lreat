@@ -60,10 +60,13 @@ store within a season because a season was shorter than an errand. Seasons that
 nobody can act inside are weather, not seasons. A season is ninety days now, so
 it holds a journey, a harvest, and the storing of one.
 
-The one place the calendar is deliberately compressed is a life. Five years to
-grow up and fifty-two to a lifetime is not a human childhood; it is what lets a
-run somebody will sit through turn a settlement over three or four times, which
-is the only way to see whether what one generation believed outlived it.
+A life is human, and the calendar is what made it affordable. A childhood is
+fifteen years, the bearing years run to forty, and a body that is kept has given
+out by sixty-five. Under the old hundred-tick year a life had to be counted in
+ticks and came out at five, twenty-eight and fifty-two — a settlement whose
+children were grown before they could walk to the next field. What a run has to
+cover is a number of generations, and a generation is a span of years, so
+lengthening the year is what buys a childhood.
 
 ## How choosing works
 
