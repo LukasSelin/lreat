@@ -83,11 +83,11 @@ var instances = func() map[string]ontology.Instance {
 const Derived = true
 
 // mechanics binds an act the ontology entails to the code that carries it
-// out. Takings are not listed: one verb carries them all, from what the
-// lode and the ground say (see take.go), and these five are only named
-// here because the rest of the package refers to them. An act the
-// ontology entails and nothing carries is a catalog that cannot be
-// assembled, and says so at start.
+// out. Takings and makings are not listed: one verb carries each, from
+// what the lode and the ground say (see take.go) or the recipe (see
+// make.go), and those named here are named only because the rest of the
+// package refers to them. An act the ontology entails and nothing carries
+// is a catalog that cannot be assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
 	"take/game@wood":                    Hunt,
@@ -123,8 +123,13 @@ var mechanics = map[string]*Def{
 func init() {
 	for _, in := range ontology.Instantiate() {
 		d := mechanics[in.Key]
-		if d == nil && in.Schema.Verb == ontology.Take {
-			d = taking(in)
+		if d == nil {
+			switch in.Schema.Verb {
+			case ontology.Take:
+				d = taking(in)
+			case ontology.Make:
+				d = making(in)
+			}
 		}
 		if d == nil {
 			panic("action: nothing carries out " + in.Key)
@@ -829,24 +834,7 @@ func craftQuality(a *entity.Agent, w *world.World) float64 {
 	return (0.3 + a.Skills[entity.Crafting]) * w.Mods.CraftQuality
 }
 
-var Craft = &Def{
-	Name: "craft", Ticks: 3, Target: bench,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Wood] >= 1 && hasPlace(bench)(a, w)
-	},
-	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
-		q := craftQuality(a, w)
-		return need.Levels{need.Esteem: 0.15 * q, need.Safety: 0.03 * q}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		q := craftQuality(a, w)
-		a.Inventory[entity.Wood]--
-		a.Inventory[entity.Tools] += q
-		a.Reputation += 0.05 * q
-		a.AddSkill(entity.Crafting, 0.015)
-		a.Needs.Add(need.Esteem, 0.15*q)
-	},
-}
+var Craft = product("make/timber>tool@bench")
 
 var Teach = &Def{
 	Name: "teach", Ticks: 3, Target: towardCompany,
