@@ -16,20 +16,30 @@ const (
 	// physiological tier.
 	StarvationTicks = 60
 	// BirthChance is the per-tick probability that a thriving agent has a child.
-	BirthChance = 0.0015
+	BirthChance = 0.006
 	// MaxPopulation caps growth so runs stay bounded.
 	MaxPopulation = 400
 )
 
 // Population handles deaths and births. Births need the three lower tiers
 // met, which is why a city that cannot feed and protect its people does not
-// grow no matter how much food is in the market.
+// grow no matter how much food is in the market. They also need a parent in
+// the years between growing up and declining, so a settlement's ability to
+// replace itself depends on how many of its people are that age.
 func Population(w *world.World) {
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
 		if a.Starving > StarvationTicks {
 			w.Deaths++
 			w.Emit(event.Died, a.ID, 0, "%s starved", a.Name)
+			continue
+		}
+		// Old age is a rising risk, not an appointment, and a body already
+		// worn down by hunger and bad housing gives out sooner than a kept
+		// one of the same years.
+		age := a.Age(w.Tick)
+		if w.RNG.Float64() < entity.Frailty(age)*(1.5-need.Clamp(a.Health)) {
+			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, age)
 			continue
 		}
 		alive = append(alive, a)
@@ -42,6 +52,9 @@ func Population(w *world.World) {
 		if len(w.Agents) >= MaxPopulation {
 			break
 		}
+		if !entity.Fertile(a.Age(w.Tick)) {
+			continue
+		}
 		if a.Needs[need.Physiological] < 0.7 || a.Needs[need.Safety] < 0.6 || a.Needs[need.Belonging] < 0.6 {
 			continue
 		}
@@ -49,6 +62,7 @@ func Population(w *world.World) {
 			continue
 		}
 		child := w.SpawnAt(fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
+		child.Born = w.Tick
 		child.Inventory[entity.Food] = 1
 		child.Shelter = a.Shelter * 0.8
 		child.Vitality = w.InheritVitality(a.Vitality)

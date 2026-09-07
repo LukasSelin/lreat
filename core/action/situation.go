@@ -61,7 +61,7 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 // Situation completes shared for candidate d done at target.
 func Situation(a *entity.Agent, w *world.World, d *Def, target entity.Pos, shared habit.Signature) habit.Signature {
 	s := shared
-	cost := w.Grid.TravelCost(a.Pos, target) / a.Vigor()
+	cost := w.Grid.TravelCost(a.Pos, target) / a.Vigor(w.Tick)
 	s[habit.Near] = 1 - 2*need.Clamp(cost/nearKnee)
 	if d.With != nil {
 		if o := d.With(a, w, target); o != nil {

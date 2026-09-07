@@ -104,42 +104,58 @@ func TestCautionDetersTheft(t *testing.T) {
 	}
 }
 
-// TestFeudsFormInALivingSettlement runs a settlement with no player and checks
+// TestFeudsFormInALivingSettlement runs settlements with no player and checks
 // that the retaliation loop closes on its own: wrongs are answered, some
 // answers are answered in turn, and the answering teaches people caution.
+//
+// It runs several seeds because one is a coin toss. Whether a particular pair
+// falls out badly enough to keep a grudge turns on who happened to be standing
+// where when a theft went down, and about half of settlements get through four
+// thousand ticks without one hardening. The claim being made is that the loop
+// closes in a living settlement, not that it closes in every settlement, so
+// the test asks the question it means to ask.
 func TestFeudsFormInALivingSettlement(t *testing.T) {
-	w := valueWorld(1)
-	for i := 0; i < 20; i++ {
-		w.Spawn("a", w.RandomPersonality())
-	}
-	var stolen, avenged int
-	for i := 0; i < 4000; i++ {
-		Step(w)
-		for _, e := range w.Log.Since(w.Tick) {
-			switch e.Kind {
-			case event.Stolen:
-				stolen++
-			case event.Avenged:
-				avenged++
+	var stolen, avenged, feuds int
+	var mostCaution float64
+	for seed := uint64(1); seed <= 6; seed++ {
+		w := valueWorld(seed)
+		for i := 0; i < 20; i++ {
+			w.Spawn("a", w.RandomPersonality())
+		}
+		for i := 0; i < 4000; i++ {
+			Step(w)
+			for _, e := range w.Log.Since(w.Tick) {
+				switch e.Kind {
+				case event.Stolen:
+					stolen++
+				case event.Avenged:
+					avenged++
+				}
 			}
 		}
+		s := observe.Take(w)
+		var caution float64
+		for _, a := range w.Agents {
+			caution += a.Caution
+		}
+		if len(w.Agents) > 0 {
+			caution /= float64(len(w.Agents))
+		}
+		if caution > mostCaution {
+			mostCaution = caution
+		}
+		feuds += s.Feuds
+		t.Logf("seed %d: pop %d, stolen %d, avenged %d, feuds %d, friendships %d, mean caution %.2f",
+			seed, s.Population, stolen, avenged, s.Feuds, s.Friendships, caution)
 	}
-	s := observe.Take(w)
-	var caution float64
-	for _, a := range w.Agents {
-		caution += a.Caution
-	}
-	caution /= float64(len(w.Agents))
-	t.Logf("stolen %d, avenged %d, feuds %d, friendships %d, mean caution %.2f",
-		stolen, avenged, s.Feuds, s.Friendships, caution)
 
 	if avenged == 0 {
 		t.Fatal("nobody ever got even")
 	}
-	if s.Feuds == 0 {
-		t.Fatal("retaliation never hardened into a feud")
+	if feuds == 0 {
+		t.Fatal("retaliation never hardened into a feud in any settlement")
 	}
-	if caution == 0 {
+	if mostCaution == 0 {
 		t.Fatal("reprisals taught nobody anything")
 	}
 }

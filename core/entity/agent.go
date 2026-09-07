@@ -216,19 +216,22 @@ type Agent struct {
 const ordinaryBody = 1
 
 // Endurance is how well the agent's frame carries effort: a larger store to
-// spend walking out of. It is the body it was born with, condition aside.
-func (a *Agent) Endurance() float64 {
-	if a.Vitality <= 0 {
-		return ordinaryBody
+// spend walking out of. It is the body it was born with, grown into or given
+// back with age, condition aside.
+func (a *Agent) Endurance(tick int) float64 {
+	v := a.Vitality
+	if v <= 0 {
+		v = ordinaryBody
 	}
-	return a.Vitality
+	return v * AgeFactor(a.Age(tick))
 }
 
-// Vigor is the pace the agent can actually keep, its frame discounted by the
-// condition that frame is currently in. A hale agent covers hard ground
-// faster; a worn-down one labours over the same tile.
-func (a *Agent) Vigor() float64 {
-	return a.Endurance() * (0.6 + 0.4*need.Clamp(a.Health))
+// Vigor is the pace the agent can actually keep: its frame at this age,
+// discounted by the condition that frame is currently in. A hale adult covers
+// hard ground faster; a child, an elder, or a worn-down agent labours over the
+// same tile.
+func (a *Agent) Vigor(tick int) float64 {
+	return a.Endurance(tick) * (0.6 + 0.4*need.Clamp(a.Health))
 }
 
 // AddBond strengthens (or creates) the bond to another agent.

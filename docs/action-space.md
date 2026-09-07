@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: all six phases implemented. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered.
+Status: all six phases implemented, and recognition is **not yet the default**. It is complete behind `world.Rules.Fit = true`, or `-fit` on the headless runner, with its own determinism, learning, and one-generation liveness tests. It was the default for one commit. Merging with master brought aging, and a settlement choosing by fit does not replace itself: it lives at subsistence, never reaches the safety a birth needs, and with everyone born at the start dying of old age by about tick 4500 it is extinct by tick 5000 on seed 7. The value rule survives the same run through births. Aging also costs the recognition economy its slack: on the social seed it posted no requests at all within the first generation, where before aging it posted and filled over two hundred in a long run. Until recognition has children it stays behind the flag. The open problem and the levers are in the phase 6 section below.
 
 ## Why
 
@@ -171,6 +171,6 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 3 | `action.Shared`, `action.Situation`, `action.Candidates`, `action.Rank`, `action.Imprint`; priors and `Reach0` for all 17 actions; canonical-moment ranking tests | done |
 | 4 | `system.Recognise` sampling in `Decide`, `system.Learn` at every plan end in `Act`, `system.Commit` as the one plan builder (used by `sim.Intend`), headless `-fit` and `-temp`; fit-mode determinism and liveness tests | done |
 | 5 | `action.Broaden`, `action.Pass`, `Discovery.Opens` and `world.ReachFloor`, `action.Inherit` at birth; `HabitSpread`, `GatedReach`, `ChoiceEntropy`, `Deaths` in snapshot, headless, TUI; moral coordinates one-sided | done |
-| 6 | `DefaultRules` is recognition; headless `-value`; value-rule tests run through `valueWorld`; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
+| 6 | Recognition complete behind the flag (`DefaultRules` reverted to value after the aging merge, see status); headless `-fit`; value-rule tests run through `valueWorld`, recognition twins run one generation; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

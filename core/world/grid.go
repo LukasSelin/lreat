@@ -19,6 +19,7 @@ const (
 	None Structure = iota
 	House
 	Market
+	Road
 )
 
 // Tile is one cell of the world. Fertility comes from the river; Wood is the
@@ -31,15 +32,30 @@ type Tile struct {
 	Wood      float64
 }
 
-// Buildable reports whether a tile is open ground nobody has claimed.
+// Buildable reports whether a tile is open ground nobody has claimed. A road
+// is not buildable: once a way is laid, it stays a way.
 func (t *Tile) Buildable() bool {
 	return t.Terrain == Grass && t.Structure == None && t.Owner == 0
+}
+
+// Pavable reports whether a road may be laid on this tile. Roads go over open
+// ground and through woods, which they clear, but they do not cross water,
+// take another building's place, or run over land somebody has claimed.
+func (t *Tile) Pavable() bool {
+	return t.Terrain != Water && t.Structure == None && t.Owner == 0
 }
 
 // Grid is the world map, row-major.
 type Grid struct {
 	W, H  int
 	Tiles []Tile
+
+	// frontier and scratch are the working memory route searches run on,
+	// kept here so that pathing every agent on every tick allocates nothing.
+	// scratch serves searches whose answer is read out before the next one
+	// starts. Like the rest of a World, both assume a single goroutine.
+	frontier []routeNode
+	scratch  Routes
 }
 
 // NewGrid returns an all-grass grid.

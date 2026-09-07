@@ -49,6 +49,11 @@ type Snapshot struct {
 	// a settlement that is wearing its people down shows here long before it
 	// shows in the death log.
 	MeanHealth float64
+	// MeanAge and Elders describe the shape of the generations: a settlement
+	// of the old is one that has stopped replacing itself, whatever its
+	// headcount says today.
+	MeanAge    int
+	Elders     int        // agents past their prime
 	Activity   []Activity // most common first
 	WealthGini float64
 	Knowledge  float64
@@ -80,9 +85,9 @@ type Snapshot struct {
 	ChoiceEntropy float64
 	Deaths        int
 
-	Houses, Fields, Forest int
-	Map                    *MapView
-	Notable                []event.Event // this tick's events other than routine completions
+	Houses, Fields, Forest, Roads int
+	Map                           *MapView
+	Notable                       []event.Event // this tick's events other than routine completions
 }
 
 // Take builds a Snapshot. It must run on the simulation goroutine.
@@ -98,6 +103,7 @@ func Take(w *world.World) Snapshot {
 		Houses:     w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.House }),
 		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Field }),
 		Forest:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest }),
+		Roads:      w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road }),
 
 		OpenRequests: len(w.Requests),
 		Deaths:       w.Deaths,
@@ -136,6 +142,11 @@ func Take(w *world.World) Snapshot {
 			s.MeanNorms[n] += a.Norms[n]
 		}
 		s.MeanHealth += a.Health
+		age := a.Age(w.Tick)
+		s.MeanAge += age
+		if age >= entity.Prime {
+			s.Elders++
+		}
 		mark := Mark{Pos: a.Pos}
 		if a.Plan != nil {
 			counts[a.Plan.Action]++
@@ -172,6 +183,7 @@ func Take(w *world.World) Snapshot {
 		s.MeanNeeds[t] /= float64(len(w.Agents))
 	}
 	s.MeanHealth /= float64(len(w.Agents))
+	s.MeanAge /= len(w.Agents)
 	for n := range s.MeanNorms {
 		s.MeanNorms[n] /= float64(len(w.Agents))
 	}

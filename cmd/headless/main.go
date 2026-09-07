@@ -27,22 +27,29 @@ func main() {
 	agents := flag.Int("agents", 20, "starting population")
 	every := flag.Int("every", 250, "report interval in ticks")
 	showMap := flag.Bool("map", false, "print the map at each report")
-	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
+	fit := flag.Bool("fit", false, "agents choose by recognition instead of by expected value")
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of recognition; 0 always takes the best fit")
+	pave := flag.Int("pave", 0, "lay streets through the settlement every N ticks (0 never)")
 	flag.Parse()
 
 	w := world.New(*seed)
-	w.Rules.Fit = !*value
+	w.Rules.Fit = *fit
 	w.Rules.Temperature = *temp
 	for i := 0; i < *agents; i++ {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
 
-	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s | %5s %5s %6s | %4s %4s | %4s %4s | %5s %5s %5s | %s\n",
-		"tick", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "gini", "price", "knowl", "hous", "fild", "frnd", "feud", "reach", "sprd", "open", "doing")
+	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s | %4s %4s | %5s %5s %5s | %s\n",
+		"tick", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "frnd", "feud", "reach", "sprd", "open", "doing")
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
+		// Roads are a material the settlement can have. Wanting one is not yet
+		// anybody's decision to make, so the operator spawns them on a timer
+		// and the table shows what changes.
+		if *pave > 0 && w.Tick%*pave == 0 {
+			w.PaveStreets()
+		}
 		if w.Tick%*every == 0 || w.Tick == *ticks {
 			s := observe.Take(w)
 			report(s)
@@ -73,8 +80,8 @@ func report(s observe.Snapshot) {
 		doing = append(doing, fmt.Sprintf("%s:%d", a.Action, a.Agents))
 	}
 	n := s.MeanNeeds
-	fmt.Printf("%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f | %5.2f %5.2f %6.1f | %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %s\n",
-		s.Tick, s.Population, s.Deaths, n[0], n[1], n[2], n[3], n[4], s.MeanHealth,
-		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Fields, s.Friendships, s.Feuds,
+	fmt.Printf("%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %s\n",
+		s.Tick, s.Population, s.Deaths, n[0], n[1], n[2], n[3], n[4], s.MeanHealth, s.MeanAge, s.Elders,
+		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Friendships, s.Feuds,
 		s.GatedReach, s.HabitSpread, s.ChoiceEntropy, strings.Join(doing, " "))
 }
