@@ -43,6 +43,10 @@ type Snapshot struct {
 	Tick       int
 	Population int
 	MeanNeeds  need.Levels
+	// MeanHealth is the population's average condition. It moves slowly, so
+	// a settlement that is wearing its people down shows here long before it
+	// shows in the death log.
+	MeanHealth float64
 	Activity   []Activity // most common first
 	WealthGini float64
 	Knowledge  float64
@@ -114,6 +118,7 @@ func Take(w *world.World) Snapshot {
 		for n := range s.MeanNorms {
 			s.MeanNorms[n] += a.Norms[n]
 		}
+		s.MeanHealth += a.Health
 		mark := Mark{Pos: a.Pos}
 		if a.Plan != nil {
 			counts[a.Plan.Action]++
@@ -149,6 +154,7 @@ func Take(w *world.World) Snapshot {
 	for t := range s.MeanNeeds {
 		s.MeanNeeds[t] /= float64(len(w.Agents))
 	}
+	s.MeanHealth /= float64(len(w.Agents))
 	for n := range s.MeanNorms {
 		s.MeanNorms[n] /= float64(len(w.Agents))
 	}
