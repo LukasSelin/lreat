@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 26
+const Count = 28
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -69,6 +69,7 @@ func init() {
 		Steal, Give, Fulfil, Retaliate,
 		Fish, Hunt, Irrigate, PlantTrees,
 		Cook, Quarry, BuildGranary, Smelt,
+		BuildTavern, MoveHouse,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -103,16 +104,7 @@ const searchRadius = 40
 
 func always(*entity.Agent, *world.World) bool { return true }
 
-func hasCompany(_ *entity.Agent, w *world.World) bool { return len(w.Agents) > 1 }
-
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
-
-func atHome(a *entity.Agent, _ *world.World) (entity.Pos, bool) {
-	if a.HasHome {
-		return a.Home, true
-	}
-	return a.Pos, true
-}
 
 func atMarket(_ *entity.Agent, w *world.World) (entity.Pos, bool) { return w.MarketPos, true }
 
@@ -534,7 +526,7 @@ var Buy = &Def{
 }
 
 var Guard = &Def{
-	Name: "guard", Ticks: 3, Available: hasCompany, Target: atMarket,
+	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		return need.Levels{
 			need.Safety:    0.12 * (1 - w.Safety),
@@ -552,16 +544,6 @@ var Guard = &Def{
 
 // companionRadius is how close two agents must be to interact.
 const companionRadius = 3
-
-// towardCompany heads for the person the agent would most like to see. They
-// may have moved by the time we arrive; then whoever is nearby will do.
-func towardCompany(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-	o := PickCompany(a, w)
-	if o == nil {
-		return entity.Pos{}, false
-	}
-	return o.Pos, true
-}
 
 // intended is the person an agent expects to find at a target.
 func intended(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent {
@@ -588,6 +570,11 @@ var Socialize = &Def{
 			return // nobody home; a wasted walk
 		}
 		Encounter(a, o, w)
+		// A tavern is a better evening than a doorstep.
+		if inTavern(w, a.Pos) {
+			a.Needs.Add(need.Belonging, tavernCheer)
+			o.Needs.Add(need.Belonging, tavernCheer)
+		}
 	},
 }
 
@@ -596,8 +583,10 @@ func craftQuality(a *entity.Agent, w *world.World) float64 {
 }
 
 var Craft = &Def{
-	Name: "craft", Ticks: 3, Target: atHome,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Wood] >= 1 },
+	Name: "craft", Ticks: 3, Target: bench,
+	Available: func(a *entity.Agent, w *world.World) bool {
+		return a.Inventory[entity.Wood] >= 1 && hasPlace(bench)(a, w)
+	},
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		q := craftQuality(a, w)
 		return need.Levels{need.Esteem: 0.15 * q, need.Safety: 0.03 * q}
@@ -650,13 +639,7 @@ var Teach = &Def{
 }
 
 var Study = &Def{
-	Name: "study", Ticks: 4, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		if a.HasHome {
-			return a.Home, true
-		}
-		return w.MarketPos, true
-	},
+	Name: "study", Ticks: 4, Available: hasPlace(desk), Target: desk,
 	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		return need.Levels{need.Actualization: 0.3, need.Esteem: 0.03}
 	},

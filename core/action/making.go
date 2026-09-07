@@ -61,9 +61,10 @@ func rockNear(w *world.World, p entity.Pos, radius int) bool {
 }
 
 var Cook = &Def{
-	Name: "cook", Ticks: 2, Target: atHome,
+	Name: "cook", Ticks: 2, Target: hearth,
 	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Food] >= cookBatch && a.Inventory[entity.Wood] >= cookReserve+cookFuel && known(a, w, "pottery", "cook")
+		return a.Inventory[entity.Food] >= cookBatch && a.Inventory[entity.Wood] >= cookReserve+cookFuel &&
+			hasPlace(hearth)(a, w) && known(a, w, "pottery", "cook")
 	},
 	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
 		// A cooked meal feeds more than a raw one; that difference is what
@@ -145,9 +146,10 @@ var BuildGranary = &Def{
 }
 
 var Smelt = &Def{
-	Name: "smelt", Ticks: 3, Target: atHome,
+	Name: "smelt", Ticks: 3, Target: forge,
 	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Stone] >= smeltStone && a.Inventory[entity.Wood] >= smeltWood && known(a, w, "metallurgy", "smelt")
+		return a.Inventory[entity.Stone] >= smeltStone && a.Inventory[entity.Wood] >= smeltWood &&
+			hasPlace(forge)(a, w) && known(a, w, "metallurgy", "smelt")
 	},
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		q := craftQuality(a, w) * smeltYield

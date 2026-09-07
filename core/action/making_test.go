@@ -18,6 +18,9 @@ func workshop(t *testing.T) (*world.World, *entity.Agent) {
 	for _, tech := range []world.Tech{"pottery", "quarrying", "masonry", "metallurgy"} {
 		w.Unlock(tech)
 	}
+	// A house: a hearth, a forge, and a bench.
+	a.Home, a.HasHome = entity.Pos{X: 4, Y: 1}, true
+	w.Grid.At(a.Home).Structure, w.Grid.At(a.Home).Owner = world.House, a.ID
 	return w, a
 }
 

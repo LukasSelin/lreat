@@ -23,8 +23,11 @@ type Activity struct {
 	Agents int
 }
 
-// Mark is an agent's position and what it is doing, for the map.
+// Mark is an agent's position and what it is doing, for the map. The ID is
+// there so that a view can follow one particular figure from tick to tick
+// rather than whoever happens to be standing where it was.
 type Mark struct {
+	ID     entity.ID
 	Pos    entity.Pos
 	Action string
 }
@@ -149,7 +152,7 @@ func Take(w *world.World) Snapshot {
 		if age >= entity.Prime {
 			s.Elders++
 		}
-		mark := Mark{Pos: a.Pos}
+		mark := Mark{ID: a.ID, Pos: a.Pos}
 		if a.Plan != nil {
 			counts[a.Plan.Action]++
 			mark.Action = a.Plan.Action

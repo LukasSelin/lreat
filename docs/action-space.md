@@ -231,6 +231,28 @@ The longer chain that turns what the land gives into things that last. `core/act
 
 **What broke, and the lesson about measuring.** The first version cost survival badly, and finding out why took most of the work. Cooking burned half a unit of wood per meal, four meals to a house, and pottery came early enough that whole settlements learned to cook and stopped building. But no 24-seed sweep could show that, because a child inherits its habits with random drift on every coordinate of every catalog action, so a bigger catalog draws more from the world's random stream at every birth and every trajectory after the first birth is rerolled. Variants that changed nothing behavioural moved the 24-seed sweep by three survivors and halved its median. The comparisons that settled it were 96 seeds each: 86 survivors before the package, 68 with it, 84 with cooking removed, 82 with cooking made a hearth batch on spare wood. Anything that grows the catalog has to be judged on that scale.
 
+## Places
+
+A social act needs two things the old catalog did not ask for: somebody within reach, rather than anybody alive, and somewhere to meet. `core/action/places.go`.
+
+- **Company is within twelve tiles.** Socialising and teaching are unavailable otherwise, and the companion an agent picks is chosen among those within reach, so nobody crosses the map to see somebody.
+- **Meetings happen at places**: the market, a house, a granary's yard, or a tavern. The place is chosen by temperament. The warm head for a tavern, then the market, then wherever the companion already is; the cool would rather have company at their own house, then the companion's. If there is no place within six tiles of the companion, the meeting cannot happen: they are off in the woods. Across four seeds every one of tens of thousands of meetings took place at a market, a house, or a tavern, and none elsewhere.
+- **Taverns.** Brewing answers a settlement big enough to be lonely in with grain to spare (twelve people, five food at the market, knowledge 25) and opens building one, for three units of wood beside the market, one per settlement until it outgrows it. A meeting in a tavern is a better evening for both sides. Every seed builds its tavern within a few hundred ticks of brewing, and between a sixth and a half of all meetings then happen there. At four units of wood none was ever built: recognition agents seldom hold that much, since gathering yields a unit and a half and a house takes two.
+
+On 96 seeds, asking social acts to have somewhere to happen took survivors from 92 to 95 and the median population from 231 to 287; the tavern's cost brought the median back to 237.
+
+**Workplaces.** Making things needs somewhere to make them, as meeting needs somewhere to meet. Before, an agent without a house crafted, cooked, smelted, and studied wherever it stood, forest included.
+
+| act | place |
+|---|---|
+| craft | a bench: at home, or a stall at the market |
+| study | a desk: at home, or at the market where the records are; not the tavern |
+| cook | a hearth: at home, or at the tavern |
+| smelt | a forge: at home, and nowhere else |
+| guard | a market within the settlement's reach with somebody at it; an empty square is nothing to guard |
+
+The settlement's reach is twenty tiles from the market. Everything else already had its place: the field, the forest, the bank, the outcrop, the market, the companion's side, the requester's door. On 96 seeds the change leaves survival within the band, 92 against 94, and the median population at 356.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
@@ -277,6 +299,8 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 9 | Harvests: producing acts judged by all they fed; industrious farm prior; children inherit half their parents' skills | done |
 | 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
 | 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
+| 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
+| 13 | Workplaces: a bench, a desk, a hearth, a forge, and a market worth guarding | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
@@ -345,6 +369,78 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 | bridges | 1535 | 0.63% |
 
 Better on both counts, which is unusual for a change made for the look of the thing.
+
+### The land underneath
+
+The map used to be a sine wave with a river drawn along it and fertility measured as distance from that river. It is now a piece of ground, and everything else is read off it. `core/world/relief.go` holds the whole of it, and the order is the one a landscape obeys:
+
+1. **Raise** the ground — five octaves of smoothed random lattice, scaled to `Relief` (60 m over a map).
+2. **Fill** every hollow to the level at which it would spill, by priority-flood inward from the edges, so no ground is left with nowhere to send its water.
+3. **Drain** — each tile's water goes to its lowest neighbour, and `Flow` is the share of the map passing through it. Settled highest-first, so a tile's own total is complete before it is passed on.
+4. **Carve** — the wettest `waterShare` of the map is the river. Nothing about the water is drawn; it is where the water went.
+5. **Height above drainage** (`Tile.Drain`) — how far a tile stands above the water it drains into, got by following its flow down and adding up the fall.
+
+`Slope`, `Aspect` and `Sunlight` are read off `Height` on demand. Woods, outcrops and soil are then scored and thresholded against each map's own distribution rather than against fixed numbers, because a fixed cutoff gives one map a river and the next a puddle: over a handful of seeds the heaviest-draining tile carried between a fifth and four fifths of the map.
+
+**Drain, not flow, is what soil moisture means.** The first version read fertility off flow accumulation and produced a dead world - mean fertility 0.17, essentially no farmland, and three settlements in five collapsed. Flow is a terrible proxy: a tile on the valley floor beside the river carries hardly any flow of its own and is still a water meadow, while a tile halfway up a hillside may carry a gully's worth and be dry as a bone. Reading it off height-above-drainage instead gave mean fertility 0.33-0.45 and 435-747 good tiles per map.
+
+**Walking answers the ground.** `Grid.StepCost(from, to)` adds `Climb` per metre of ascent and `Descend` per metre of fall to the cost of the tile entered, so routing rounds the shoulder of a hill rather than going over it - and since roads are laid where the ground is worn, the streets follow the contours and the valley floors without anybody deciding they should.
+
+**What it cost.** Six seeds, 6000 ticks, 25 founders, against the flat map:
+
+| seed | flat | with relief |
+|---|---|---|
+| 1 | 255 | 65 |
+| 3 | 400 | 359 |
+| 5 | 400 | 203 |
+| 7 | 304 | 20 |
+| 11 | 272 | 399 |
+| 21 | 98 | 334 |
+| **total** | **1729** | **1380** |
+
+Down a fifth overall, but not uniformly: seeds 11 and 21 grew where they had struggled, and seed 7 nearly died where it had thrived. That is the change doing what it is for - the ground now has quality, and a valley is worth more than a hillside. Raising the fertility floor to lift the weak maps was tried at 0.25 and 0.35 and made the total worse (1311, 1096), because it flattens the very differences the good settlements are living on.
+
+Left for later: nothing erodes yet, and `Flow` is a static share rather than water with a season to it. Both are why the drainage is derived rather than drawn - re-run the four steps on changed ground and the rivers move by themselves.
+
+## Watching one agent decide
+
+Everything above is measured over settlements, and a settlement is the one
+thing a fit-based choice cannot be read off. A decision here is a draw from a
+softmax over every action available in the moment; what it leaves behind is a
+plan, and a plan is only the winner's name. Tuning a prior meant guessing
+from the aggregate which candidate it had beaten, and the map — hundreds of
+figures walking — shows the choices and not one reason for any of them.
+
+So the world will follow one agent at a time (`World.Watch`). While it does,
+every decision that agent makes is kept whole (`world.Deliberation`): each
+action it had before it, where it would have been done, how well it fitted
+the moment, how far into reach it still was, and the odds the draw actually
+ran on — `habit.Softmax` over the same fits `habit.Sample` drew from, at the
+same temperature, which is `Rules.Temperature` divided by how pressing the
+moment was. The value rule is watchable too and says so, since a score per
+tick is not read the way a fit is.
+
+Three things kept it from being a change to the simulation rather than a
+window on it:
+
+- **One agent.** Keeping this for everybody would cost every tick something
+  to be read for nobody, and following somebody else forgets the last one.
+- **Written on the way past.** Deliberations ride home from the parallel
+  deciding phase inside `decision`, beside the plan and the entropy, and are
+  filed in agent order. Watching an agent must not decide what a run does or
+  when it does it, and `TestWatchingChangesNothing` holds a watched run
+  against an unwatched one.
+- **Nothing inside may read it.** No agent knows what anyone weighed,
+  including itself. It is for the operator, and `observe.Look` — a whole
+  agent, including what it can do against what it believes it can do — is
+  frankly omniscient in the same way the rest of the watch command is.
+
+In `cmd/watch`, tab or a click picks a figure out of the crowd and opens it up
+beside the map; the last decision is shown as the candidates it beat, with
+the odds, over the run of choices behind it. A run of choices is what says
+whether an agent is getting anywhere or turning on the spot between the same
+two errands — which is the thing the aggregate graph, by construction,
+averages away.
 
 ## The turning year
 
