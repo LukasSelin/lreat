@@ -116,3 +116,34 @@ func AgentColor(action string) Color {
 	}
 	return AgentIdle
 }
+
+// Group is a kind of work, the unit the activity graph stacks by. Which
+// action an agent picks flips from tick to tick — farm, forage, eat — but
+// the kind of work it belongs to holds still long enough to read.
+type Group struct {
+	Name  string
+	Color Color
+}
+
+// Groups are every kind of work, in the order the graph stacks them. The
+// order is fixed so a band stays where it was between frames.
+var Groups = [...]Group{
+	{"food", AgentFood},
+	{"build", AgentBuild},
+	{"trade", AgentTrade},
+	{"guard", AgentGuard},
+	{"social", AgentSocial},
+	{"study", AgentStudy},
+	{"other", AgentIdle},
+}
+
+// GroupOf returns the index in Groups of the kind of work an action is.
+func GroupOf(action string) int {
+	c := AgentColor(action)
+	for i, g := range Groups {
+		if g.Color == c {
+			return i
+		}
+	}
+	return len(Groups) - 1
+}

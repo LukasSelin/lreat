@@ -1,7 +1,8 @@
 // Command watch is a live terminal view of a settlement developing, in the
 // spirit of Dwarf Fortress. The map is on the left, aggregate state and a
-// feed of notable events on the right. It is an omniscient view for insight
-// while tuning; the player's own view will be far narrower.
+// graph of what the settlement is spending itself on over time on the right.
+// It is an omniscient view for insight while tuning; the player's own view
+// will be far narrower.
 //
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // r lays streets through the settlement, q quits.
@@ -16,7 +17,6 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"lreat/core/event"
 	"lreat/core/need"
 	"lreat/core/observe"
 	"lreat/core/sim"
@@ -32,7 +32,11 @@ var names = []string{
 
 const (
 	panelWidth = 38
-	feedLength = 14
+	// The activity graph: graphWidth columns of history, each one the mean
+	// of graphTicks ticks, stacked graphHeight rows high.
+	graphWidth  = panelWidth - 2
+	graphHeight = 8
+	graphTicks  = 5
 )
 
 func main() {
@@ -73,15 +77,7 @@ func main() {
 		select {
 		case s := <-runner.Snapshots():
 			v.snap = &s
-			for _, e := range s.Notable {
-				if e.Kind == event.Traded || e.Kind == event.Guarded {
-					continue // too frequent to be informative in the feed
-				}
-				v.feed = append(v.feed, e)
-			}
-			if len(v.feed) > feedLength {
-				v.feed = v.feed[len(v.feed)-feedLength:]
-			}
+			v.record(&s)
 			v.draw()
 		case ev := <-keys:
 			switch ev := ev.(type) {
@@ -97,12 +93,48 @@ func main() {
 	}
 }
 
+// column is one bar of the activity graph: the share of the population in
+// each kind of work, averaged over graphTicks ticks. The shares need not
+// reach 1; what is left is everyone with nothing planned.
+type column [len(ascii.Groups)]float64
+
 type view struct {
 	screen tcell.Screen
 	snap   *observe.Snapshot
-	feed   []event.Event
-	speed  float64
-	paused bool
+	// hist is the graph's history, oldest column first. acc gathers the
+	// ticks of the column still being filled.
+	hist     []column
+	acc      column
+	accTotal float64
+	accTicks int
+	speed    float64
+	paused   bool
+}
+
+// record folds a tick's activity into the history. Ticks are averaged into
+// columns because a single tick's answer to what everyone is doing changes
+// faster than it can be read: agents swap between farm and forage and eat
+// several times a second. A column holds still.
+func (v *view) record(s *observe.Snapshot) {
+	for _, a := range s.Activity {
+		v.acc[ascii.GroupOf(a.Action)] += float64(a.Agents)
+	}
+	v.accTotal += float64(s.Population)
+	v.accTicks++
+	if v.accTicks < graphTicks {
+		return
+	}
+	var col column
+	if v.accTotal > 0 {
+		for i, n := range v.acc {
+			col[i] = n / v.accTotal
+		}
+	}
+	v.hist = append(v.hist, col)
+	if len(v.hist) > graphWidth {
+		v.hist = v.hist[len(v.hist)-graphWidth:]
+	}
+	v.acc, v.accTotal, v.accTicks = column{}, 0, 0
 }
 
 // handleKey reacts to a key press; it returns false when the user quits.
@@ -220,35 +252,49 @@ func (v *view) draw() {
 	put(tcell.StyleDefault, "techs: %s", trim(techs, panelWidth-9))
 	line++
 	put(bold, "doing")
-	for i, a := range s.Activity {
-		if i == 6 {
-			break
-		}
-		puts(sc, px, line, palette[ascii.AgentColor(a.Action)], "@")
-		puts(sc, px+2, line, tcell.StyleDefault, fmt.Sprintf("%-14s %d", a.Action, a.Agents))
-		line++
+	puts(sc, px+6, line-1, dim, fmt.Sprintf("%d ticks →", graphWidth*graphTicks))
+	v.drawGraph(px, line)
+	line += graphHeight
+	// The legend is fixed: every kind of work, always in the same order on
+	// the same row in the same colour, whether anyone is doing it or not.
+	// A legend that reshuffles itself is one more thing moving on a panel
+	// meant to be read at a glance, and the colours have to mean the same
+	// thing from one frame to the next for the bands above to be legible.
+	var counts [len(ascii.Groups)]int
+	for _, a := range s.Activity {
+		counts[ascii.GroupOf(a.Action)] += a.Agents
 	}
-	line++
-	put(bold, "recently")
-	for _, e := range v.feed {
-		if line >= sh-1 {
-			break
-		}
+	for i, g := range ascii.Groups {
+		puts(sc, px, line, palette[g.Color], "█")
 		style := tcell.StyleDefault
-		switch e.Kind {
-		case event.Discovered:
-			style = bold.Foreground(tcell.ColorAqua)
-		case event.Died, event.Stolen, event.Avenged:
-			style = tcell.StyleDefault.Foreground(tcell.ColorRed)
-		case event.Born:
-			style = tcell.StyleDefault.Foreground(tcell.ColorLime)
-		case event.Met, event.Taught:
+		if counts[i] == 0 {
 			style = dim
 		}
-		put(style, "%s", trim(fmt.Sprintf("%6d %s", e.Tick, e.Text), panelWidth-2))
+		puts(sc, px+2, line, style, fmt.Sprintf("%-7s %3d", g.Name, counts[i]))
+		line++
 	}
 	puts(sc, px, sh-1, dim, "space pause  +/- speed  . step  r pave  q quit")
 	sc.Show()
+}
+
+// drawGraph stacks the kinds of work as bands over time, oldest column on
+// the left, the full height being everyone with a plan. What a single-tick
+// list could never show is here: whether a band is widening.
+func (v *view) drawGraph(x, y int) {
+	for i, col := range v.hist {
+		cx := x + graphWidth - len(v.hist) + i
+		for r := 0; r < graphHeight; r++ {
+			share := (float64(graphHeight-r) - 0.5) / float64(graphHeight)
+			var cum float64
+			for gi, g := range ascii.Groups {
+				cum += col[gi]
+				if share <= cum {
+					v.screen.SetContent(cx, y+r, '█', nil, palette[g.Color])
+					break
+				}
+			}
+		}
+	}
 }
 
 func puts(sc tcell.Screen, x, y int, style tcell.Style, text string) {

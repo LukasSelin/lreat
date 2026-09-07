@@ -87,7 +87,6 @@ type Snapshot struct {
 
 	Houses, Fields, Forest, Roads int
 	Map                           *MapView
-	Notable                       []event.Event // this tick's events other than routine completions
 }
 
 // Take builds a Snapshot. It must run on the simulation goroutine.
@@ -120,12 +119,6 @@ func Take(w *world.World) Snapshot {
 	m := &MapView{W: w.Grid.W, H: w.Grid.H, Tiles: make([]world.Tile, len(w.Grid.Tiles)), Market: w.MarketPos}
 	copy(m.Tiles, w.Grid.Tiles)
 	s.Map = m
-
-	for _, e := range w.Log.Since(w.Tick) {
-		if e.Kind != event.Acted {
-			s.Notable = append(s.Notable, e)
-		}
-	}
 
 	if len(w.Agents) == 0 {
 		return s
