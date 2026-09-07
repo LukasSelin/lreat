@@ -31,9 +31,9 @@ func knows(w *world.World, a *entity.Agent, ps ...entity.Pos) {
 	a.Pos = here
 }
 
-// soil sets the ground at p and all round it, since an appraisal reads the
+// tilth sets the ground at p and all round it, since an appraisal reads the
 // best field a door could open onto rather than the dirt under the floor.
-func soil(w *world.World, p entity.Pos, v float64) {
+func tilth(w *world.World, p entity.Pos, v float64) {
 	for dy := -1; dy <= 1; dy++ {
 		for dx := -1; dx <= 1; dx++ {
 			q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
@@ -47,7 +47,7 @@ func soil(w *world.World, p entity.Pos, v float64) {
 
 // richen makes the ground at p worth living on, which on this flat test map
 // is entirely a matter of soil.
-func richen(w *world.World, p entity.Pos) { soil(w, p, 1) }
+func richen(w *world.World, p entity.Pos) { tilth(w, p, 1) }
 
 // A house on ground as good as anything its owner knows of is a house they
 // stay in. Nobody moves for the sake of moving.
@@ -69,7 +69,7 @@ func TestAHouseMovesOntoBetterGround(t *testing.T) {
 	good := entity.Pos{X: 3, Y: 4}
 	richen(w, good)
 	home := entity.Pos{X: 0, Y: 5}
-	soil(w, home, 0)
+	tilth(w, home, 0)
 	a := householder(t, w, home)
 	if _, ok := MoveHouse.Target(a, w); ok {
 		t.Fatal("a householder moved onto ground they had never seen")
@@ -114,7 +114,7 @@ func TestMovingCarriesTheRoofAndFreesTheOldGround(t *testing.T) {
 	old := entity.Pos{X: 0, Y: 5}
 	good := entity.Pos{X: 3, Y: 4}
 	richen(w, good)
-	soil(w, old, 0)
+	tilth(w, old, 0)
 	a := householder(t, w, old)
 	knows(w, a, good)
 	shelter, wood := a.Shelter, a.Inventory[entity.Wood]
