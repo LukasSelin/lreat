@@ -45,6 +45,12 @@ judged against another — a single seed is a coin toss:
 go run ./cmd/tune -seeds 24 -ticks 6000
 ```
 
+What that batch prints on master is checked in at
+[docs/baseline.md](docs/baseline.md), so a change is judged against a file
+rather than against a batch run to find out where master already stood. Take the
+one run that measures the change once it is settled, and refresh the file in the
+commit that lands it.
+
 All three take `-seed` and `-agents`. A seed plus a command log reproduces a run
 exactly, however the goroutines happen to interleave.
 
