@@ -82,6 +82,23 @@ func (g *Grid) StepToward(from, to entity.Pos) entity.Pos {
 	return g.ownRouter().StepToward(from, to)
 }
 
+// Path is the cheapest way from one tile to another, from excluded and to
+// included. It is what an agent is given to walk when it settles on a plan,
+// so that the way is worked out once rather than re-asked at every step.
+func (r *Router) Path(from, to entity.Pos) []entity.Pos {
+	g := r.g
+	if from == to || !g.In(to) {
+		return nil
+	}
+	stop := int32(to.Y*g.W + to.X)
+	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Path(to)
+}
+
+// Path routes on the grid's own router, for callers working one at a time.
+func (g *Grid) Path(from, to entity.Pos) []entity.Pos {
+	return g.ownRouter().Path(from, to)
+}
+
 // TravelCost is the ticks of walking from one tile to another along the route
 // the agent would actually take. Deciding uses it in place of raw distance,
 // so a target across the water is judged as far as the wading makes it, and

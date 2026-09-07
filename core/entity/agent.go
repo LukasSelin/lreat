@@ -107,6 +107,14 @@ type Plan struct {
 	Target    Pos
 	Remaining int
 	Total     int
+
+	// Route is the way to Target that was cheapest when the plan was made,
+	// the tiles still to be walked, nearest first. It is worked out once, at
+	// the moment of deciding, rather than asked again every tick: the same
+	// inertia that keeps an agent on a plan keeps it on the way it set out
+	// by. Somebody may pave a better street while it is walking, and it will
+	// not notice until its next errand takes it that way.
+	Route []Pos
 }
 
 // Agent is one actor in the world.

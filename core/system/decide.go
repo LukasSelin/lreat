@@ -91,8 +91,16 @@ func Decide(w *world.World) {
 	plans := make([]*entity.Plan, len(idle))
 	routers := w.Routers(workersFor(len(idle)))
 	inParallel(len(idle), len(routers), func(i, worker int) {
-		d, target := choose(idle[i], w, routers[worker])
-		plans[i] = &entity.Plan{Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks}
+		a, r := idle[i], routers[worker]
+		d, target := choose(a, w, r)
+		// The way there is worked out here too, while there are goroutines to
+		// work it out on. It is the last of the routing that used to happen a
+		// step at a time in Act, where only one agent could be served at once.
+		plans[i] = &entity.Plan{
+			Action: d.Name, Target: target,
+			Remaining: d.Ticks, Total: d.Ticks,
+			Route: r.Path(a.Pos, target),
+		}
 	})
 	for i, a := range idle {
 		a.Plan = plans[i]
@@ -153,7 +161,16 @@ func Act(w *world.World) {
 			continue
 		}
 		if a.Pos != a.Plan.Target {
-			next := w.Grid.StepToward(a.Pos, a.Plan.Target)
+			// A plan made by deciding already knows its way. One set by hand -
+			// a player's order, a test - works it out on arrival here.
+			if len(a.Plan.Route) == 0 {
+				a.Plan.Route = w.Grid.Path(a.Pos, a.Plan.Target)
+				if len(a.Plan.Route) == 0 {
+					a.Plan = nil // nowhere to go from here
+					continue
+				}
+			}
+			next := a.Plan.Route[0]
 			a.Travel += a.Vigor(w.Tick)
 			a.Needs.Add(need.Physiological, -Exertion*w.Grid.MoveDrain(next)/a.Endurance(w.Tick))
 			// A tick buys a budget of walking, and the agent spends all of it
@@ -161,14 +178,15 @@ func Act(w *world.World) {
 			// was; on ground cheap enough to cross for less than the budget —
 			// which is to say on a road — it is more than one, and that is
 			// where the speed of a street comes from.
-			for a.Pos != a.Plan.Target {
-				cost := w.Grid.MoveCost(next)
-				if a.Travel < cost || next == a.Pos {
+			for len(a.Plan.Route) > 0 {
+				step := a.Plan.Route[0]
+				cost := w.Grid.MoveCost(step)
+				if a.Travel < cost {
 					break
 				}
 				a.Travel -= cost
-				a.Pos = next
-				next = w.Grid.StepToward(a.Pos, a.Plan.Target)
+				a.Pos = step
+				a.Plan.Route = a.Plan.Route[1:]
 			}
 			continue
 		}
