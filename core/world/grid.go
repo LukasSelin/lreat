@@ -41,6 +41,18 @@ type Tile struct {
 	Wild      float64
 	Fish      float64
 
+	// Height is metres above the lowest ground on the map, and Flow is the
+	// share of the map whose water drains through this tile. Between them
+	// they are the land itself: the rivers, the fertility and the going
+	// underfoot are all read off these two rather than drawn on top of them.
+	// See relief.go.
+	Height float64
+	Flow   float64
+	// Drain is how far this tile stands above the water it drains into, in
+	// metres. It is what makes a valley floor a water meadow and a hillside
+	// dry, and it is the ground truth the soil is read from.
+	Drain float64
+
 	// Traffic is how worn the ground is: it rises with every crossing and
 	// fades when nobody comes that way. It is not a cost - walking a beaten
 	// path is no quicker - it is a record of where the settlement's errands

@@ -73,6 +73,35 @@ func (g *Grid) MoveCost(p entity.Pos) float64 {
 	return moveCost[t.Terrain]
 }
 
+// Climb and Descend are the ticks a metre of rise and a metre of fall add to
+// a step. Going up is what costs: a steep tile on this map rises seven metres
+// or so, which is most of another tile's walking on top of the ground itself,
+// and that is what makes a route round the shoulder of a hill cheaper than a
+// route over it. Coming down is charged a little too, because a walker picks
+// their way down a bank rather than running at it, and because a step that
+// cost nothing downhill would make a zigzag look free.
+const (
+	Climb   = 0.10
+	Descend = 0.02
+)
+
+// StepCost is the effort of moving from one tile to the next: the ground
+// being entered, plus the climb or the descent into it. It is what routing
+// costs a journey by, so agents round a hill rather than going over it, and
+// so the ways they wear - and the roads they lay on those ways - follow the
+// contours and the valley floors the way real ones do.
+func (g *Grid) StepCost(from, to entity.Pos) float64 {
+	c := g.MoveCost(to)
+	if math.IsInf(c, 1) || !g.In(from) {
+		return c
+	}
+	if d := g.Height(to) - g.Height(from); d > 0 {
+		return c + Climb*d
+	} else {
+		return c - Descend*d
+	}
+}
+
 // MoveDrain returns how hard on the body a tick of walking into p is, as a
 // multiple of the ordinary cost. Only paving changes it.
 func (g *Grid) MoveDrain(p entity.Pos) float64 {

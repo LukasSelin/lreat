@@ -344,3 +344,35 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 | bridges | 1535 | 0.63% |
 
 Better on both counts, which is unusual for a change made for the look of the thing.
+
+### The land underneath
+
+The map used to be a sine wave with a river drawn along it and fertility measured as distance from that river. It is now a piece of ground, and everything else is read off it. `core/world/relief.go` holds the whole of it, and the order is the one a landscape obeys:
+
+1. **Raise** the ground — five octaves of smoothed random lattice, scaled to `Relief` (60 m over a map).
+2. **Fill** every hollow to the level at which it would spill, by priority-flood inward from the edges, so no ground is left with nowhere to send its water.
+3. **Drain** — each tile's water goes to its lowest neighbour, and `Flow` is the share of the map passing through it. Settled highest-first, so a tile's own total is complete before it is passed on.
+4. **Carve** — the wettest `waterShare` of the map is the river. Nothing about the water is drawn; it is where the water went.
+5. **Height above drainage** (`Tile.Drain`) — how far a tile stands above the water it drains into, got by following its flow down and adding up the fall.
+
+`Slope`, `Aspect` and `Sunlight` are read off `Height` on demand. Woods, outcrops and soil are then scored and thresholded against each map's own distribution rather than against fixed numbers, because a fixed cutoff gives one map a river and the next a puddle: over a handful of seeds the heaviest-draining tile carried between a fifth and four fifths of the map.
+
+**Drain, not flow, is what soil moisture means.** The first version read fertility off flow accumulation and produced a dead world - mean fertility 0.17, essentially no farmland, and three settlements in five collapsed. Flow is a terrible proxy: a tile on the valley floor beside the river carries hardly any flow of its own and is still a water meadow, while a tile halfway up a hillside may carry a gully's worth and be dry as a bone. Reading it off height-above-drainage instead gave mean fertility 0.33-0.45 and 435-747 good tiles per map.
+
+**Walking answers the ground.** `Grid.StepCost(from, to)` adds `Climb` per metre of ascent and `Descend` per metre of fall to the cost of the tile entered, so routing rounds the shoulder of a hill rather than going over it - and since roads are laid where the ground is worn, the streets follow the contours and the valley floors without anybody deciding they should.
+
+**What it cost.** Six seeds, 6000 ticks, 25 founders, against the flat map:
+
+| seed | flat | with relief |
+|---|---|---|
+| 1 | 255 | 65 |
+| 3 | 400 | 359 |
+| 5 | 400 | 203 |
+| 7 | 304 | 20 |
+| 11 | 272 | 399 |
+| 21 | 98 | 334 |
+| **total** | **1729** | **1380** |
+
+Down a fifth overall, but not uniformly: seeds 11 and 21 grew where they had struggled, and seed 7 nearly died where it had thrived. That is the change doing what it is for - the ground now has quality, and a valley is worth more than a hillside. Raising the fertility floor to lift the weak maps was tried at 0.25 and 0.35 and made the total worse (1311, 1096), because it flattens the very differences the good settlements are living on.
+
+Left for later: nothing erodes yet, and `Flow` is a static share rather than water with a season to it. Both are why the drainage is derived rather than drawn - re-run the four steps on changed ground and the rivers move by themselves.

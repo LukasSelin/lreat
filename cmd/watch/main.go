@@ -176,6 +176,8 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.Default:     tcell.StyleDefault,
 	ascii.Water:       tcell.StyleDefault.Foreground(tcell.ColorBlue),
 	ascii.Grass:       tcell.StyleDefault.Foreground(tcell.Color(22)),
+	ascii.GrassLow:    tcell.StyleDefault.Foreground(tcell.Color(28)),
+	ascii.GrassHigh:   tcell.StyleDefault.Foreground(tcell.Color(101)),
 	ascii.ForestRich:  tcell.StyleDefault.Foreground(tcell.ColorGreen),
 	ascii.ForestPoor:  tcell.StyleDefault.Foreground(tcell.ColorOlive),
 	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),

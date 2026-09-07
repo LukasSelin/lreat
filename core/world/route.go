@@ -171,6 +171,13 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 			if t.Structure != None {
 				step = structureCost[t.Structure]
 			}
+			// The climb into the tile, which is what makes a route follow a
+			// contour rather than go straight over the hill in the way.
+			if d := t.Height - g.Tiles[top.idx].Height; d > 0 {
+				step += Climb * d
+			} else {
+				step -= Descend * d
+			}
 			cost := here + step
 			rank := top.rank
 			if top.idx == src {

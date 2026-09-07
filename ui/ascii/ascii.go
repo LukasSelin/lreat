@@ -18,6 +18,8 @@ const (
 	Default Color = iota
 	Water
 	Grass
+	GrassLow
+	GrassHigh
 	ForestRich
 	ForestPoor
 	Field
@@ -100,6 +102,16 @@ func tileCell(t *world.Tile) Cell {
 		return Cell{Ch: '"', Color: Field}
 	case world.Rock:
 		return Cell{Ch: '^', Color: Rock}
+	}
+	// Open ground is drawn by how far it stands above the water it drains
+	// into, so the shape of the land shows through the things built on it: the
+	// water meadows of the valley floor, the ordinary ground of the terraces,
+	// and the dry slopes above.
+	switch {
+	case t.Drain < world.FloodDepth/3:
+		return Cell{Ch: ',', Color: GrassLow}
+	case t.Drain > world.FloodDepth*2:
+		return Cell{Ch: '`', Color: GrassHigh}
 	}
 	return Cell{Ch: '.', Color: Grass}
 }
