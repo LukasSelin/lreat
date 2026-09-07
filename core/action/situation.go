@@ -19,10 +19,19 @@ func bipolar(x float64) float64 { return 2*need.Clamp(x) - 1 }
 
 // Knees are the amounts of each stock at which its dimension saturates.
 // They match the knees the value-based catalog already uses: food is worth
-// nothing past four units, two wood build a shelter, twenty coins is rich.
+// nothing past four units, a house's frame is as much wood as anybody needs
+// at once, twenty coins is rich.
+//
+// The wood knee has to be the frame's price and not an errand's. Read against
+// an armful, a person holding two lengths already feels flush, and feeling
+// flush is what stops them going back to the woods: they would spend the
+// afternoon paving or whittling instead, and never once in a life stand in
+// front of enough timber to raise a wall. Read against the frame, wood stays
+// something to be short of until there is a house's worth of it, which is
+// what makes gathering toward a house a thing an agent will keep at for days.
 const (
 	foodKnee   = 4
-	woodKnee   = 2
+	woodKnee   = raisingTimber
 	wealthKnee = 20
 	// nearKnee is the travel cost at which a target reads as far as can be.
 	nearKnee = 30

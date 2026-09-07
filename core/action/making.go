@@ -25,8 +25,11 @@ const (
 	cookBatch = 2.0
 	cookFuel  = 0.2
 	// cookReserve is the wood an agent keeps back from the hearth: fuel is
-	// taken from what is left after a house's worth.
-	cookReserve = 2.0
+	// taken from what is left after a house's worth. It has to follow the
+	// price of a frame and not sit at some remembered number, or a person
+	// saving up for walls burns the walls a meal at a time and never gets
+	// past the third length of timber.
+	cookReserve = raisingTimber
 	// quarryWear is how much of a tool cutting stone uses up.
 	quarryWear = 0.15
 	// granaryStone and granaryWood are what a granary is built of, and
