@@ -39,6 +39,7 @@ var structureCost = [...]float64{
 	None:    0, // unused: terrain decides
 	House:   1.3,
 	Granary: 1.3,
+	Tavern:  1.2,
 	Market:  1,
 	Road:    0.5,
 }

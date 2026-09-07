@@ -184,6 +184,7 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
 	ascii.Rock:        tcell.StyleDefault.Foreground(tcell.ColorGray),
 	ascii.Granary:     tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
+	ascii.Tavern:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.AgentFood:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
 	ascii.AgentBuild:  tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
 	ascii.AgentTrade:  tcell.StyleDefault.Foreground(tcell.ColorLime).Bold(true),

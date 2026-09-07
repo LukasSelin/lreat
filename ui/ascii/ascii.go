@@ -26,6 +26,7 @@ const (
 	Road
 	Rock
 	Granary
+	Tavern
 	AgentFood
 	AgentBuild
 	AgentTrade
@@ -87,6 +88,8 @@ func tileCell(t *world.Tile) Cell {
 		return Cell{Ch: '+', Color: Road}
 	case world.Granary:
 		return Cell{Ch: 'G', Color: Granary}
+	case world.Tavern:
+		return Cell{Ch: '&', Color: Tavern}
 	}
 	switch t.Terrain {
 	case world.Water:
@@ -109,7 +112,7 @@ func AgentColor(action string) Color {
 	switch action {
 	case "farm", "forage", "eat", "buy food", "fish", "hunt", "cook":
 		return AgentFood
-	case "gather wood", "build shelter", "craft", "irrigate", "plant trees", "lay road", "quarry", "build granary", "smelt":
+	case "gather wood", "build shelter", "craft", "irrigate", "plant trees", "lay road", "quarry", "build granary", "smelt", "build tavern":
 		return AgentBuild
 	case "sell":
 		return AgentTrade

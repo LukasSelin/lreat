@@ -230,6 +230,16 @@ The longer chain that turns what the land gives into things that last. `core/act
 
 **What broke, and the lesson about measuring.** The first version cost survival badly, and finding out why took most of the work. Cooking burned half a unit of wood per meal, four meals to a house, and pottery came early enough that whole settlements learned to cook and stopped building. But no 24-seed sweep could show that, because a child inherits its habits with random drift on every coordinate of every catalog action, so a bigger catalog draws more from the world's random stream at every birth and every trajectory after the first birth is rerolled. Variants that changed nothing behavioural moved the 24-seed sweep by three survivors and halved its median. The comparisons that settled it were 96 seeds each: 86 survivors before the package, 68 with it, 84 with cooking removed, 82 with cooking made a hearth batch on spare wood. Anything that grows the catalog has to be judged on that scale.
 
+## Places
+
+A social act needs two things the old catalog did not ask for: somebody within reach, rather than anybody alive, and somewhere to meet. `core/action/places.go`.
+
+- **Company is within twelve tiles.** Socialising and teaching are unavailable otherwise, and the companion an agent picks is chosen among those within reach, so nobody crosses the map to see somebody.
+- **Meetings happen at places**: the market, a house, a granary's yard, or a tavern. The place is chosen by temperament. The warm head for a tavern, then the market, then wherever the companion already is; the cool would rather have company at their own house, then the companion's. If there is no place within six tiles of the companion, the meeting cannot happen: they are off in the woods. Across four seeds every one of tens of thousands of meetings took place at a market, a house, or a tavern, and none elsewhere.
+- **Taverns.** Brewing answers a settlement big enough to be lonely in with grain to spare (twelve people, five food at the market, knowledge 25) and opens building one, for three units of wood beside the market, one per settlement until it outgrows it. A meeting in a tavern is a better evening for both sides. Every seed builds its tavern within a few hundred ticks of brewing, and between a sixth and a half of all meetings then happen there. At four units of wood none was ever built: recognition agents seldom hold that much, since gathering yields a unit and a half and a house takes two.
+
+On 96 seeds, asking social acts to have somewhere to happen took survivors from 92 to 95 and the median population from 231 to 287; the tavern's cost brought the median back to 237.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
@@ -276,6 +286,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 9 | Harvests: producing acts judged by all they fed; industrious farm prior; children inherit half their parents' skills | done |
 | 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
 | 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
+| 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

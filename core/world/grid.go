@@ -22,6 +22,7 @@ const (
 	Market
 	Road
 	Granary // keeps the market's food from spoiling
+	Tavern  // where people meet of an evening
 )
 
 // Tile is one cell of the world. Fertility comes from the river and is worn
