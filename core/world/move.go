@@ -67,19 +67,27 @@ func (g *Grid) MoveDrain(p entity.Pos) float64 {
 // only where fording beats going round, and joins a road that runs its way
 // even when the road starts off to one side. Ties keep the straight-line
 // step, so runs repeat.
-func (g *Grid) StepToward(from, to entity.Pos) entity.Pos {
+func (r *Router) StepToward(from, to entity.Pos) entity.Pos {
+	g := r.g
 	if from == to || !g.In(to) {
 		return from
 	}
 	stop := int32(to.Y*g.W + to.X)
-	return g.route(&g.scratch, from, stop, entity.StepToward(from, to)).Step(to)
+	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Step(to)
+}
+
+// StepToward routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) StepToward(from, to entity.Pos) entity.Pos {
+	return g.ownRouter().StepToward(from, to)
 }
 
 // TravelCost is the ticks of walking from one tile to another along the route
 // the agent would actually take. Deciding uses it in place of raw distance,
 // so a target across the water is judged as far as the wading makes it, and
 // one along a street as near as the paving makes it.
-func (g *Grid) TravelCost(from, to entity.Pos) float64 {
+func (r *Router) TravelCost(from, to entity.Pos) float64 {
+	g := r.g
 	if from == to {
 		return 0
 	}
@@ -87,5 +95,11 @@ func (g *Grid) TravelCost(from, to entity.Pos) float64 {
 		return math.Inf(1)
 	}
 	stop := int32(to.Y*g.W + to.X)
-	return g.route(&g.scratch, from, stop, entity.StepToward(from, to)).Cost(to)
+	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Cost(to)
+}
+
+// TravelCost routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) TravelCost(from, to entity.Pos) float64 {
+	return g.ownRouter().TravelCost(from, to)
 }

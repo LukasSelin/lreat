@@ -36,10 +36,36 @@ type Routes struct {
 	rank []int8 // rank of the first step of this tile's route, for tie-breaks
 }
 
+// Router is the working memory one line of routing runs on: the frontier its
+// searches build, and the result buffers a search reads its answer straight
+// out of. Keeping it here rather than on the Grid means pathing every agent on
+// every tick allocates nothing while still leaving the map itself something
+// several goroutines can read at once, each routing on a Router of its own.
+//
+// A Router may not be shared. The Grid it points at may.
+type Router struct {
+	g        *Grid
+	frontier []routeNode
+	scratch  Routes
+}
+
+// Router returns a router over this grid, for a caller that needs its own.
+func (g *Grid) Router() *Router { return &Router{g: g} }
+
+// offMap is a tile no search will meet, for when there is no step to prefer.
+var offMap = entity.Pos{X: -1, Y: -1}
+
 // Routes computes the cheapest way from one tile to every tile on the map,
 // in a result the caller may keep.
+func (r *Router) Routes(from entity.Pos) *Routes {
+	return r.route(&Routes{}, from, -1, offMap)
+}
+
+// Routes computes the cheapest way from one tile to every tile on the map,
+// in a result the caller may keep. It routes on the grid's own router, so it
+// is for callers working one at a time.
 func (g *Grid) Routes(from entity.Pos) *Routes {
-	return g.route(&Routes{}, from, -1, entity.Pos{X: -1, Y: -1})
+	return g.ownRouter().Routes(from)
 }
 
 // minMoveCost is the cheapest a tile can be to enter. Routing to a known
@@ -76,7 +102,8 @@ func before(a, b routeNode) bool {
 // The frontier is a hand-rolled binary heap of concrete nodes rather than a
 // container/heap: this runs for every agent on every tick, and boxing each
 // node into an interface would cost more than the search itself.
-func (g *Grid) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos) *Routes {
+func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos) *Routes {
+	g := r.g
 	n := len(g.Tiles)
 	if len(f.seen) != n {
 		f.seen = make([]int32, n)
@@ -117,7 +144,7 @@ func (g *Grid) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos) 
 		return minMoveCost * float64(dx)
 	}
 
-	q := append(g.frontier[:0], routeNode{rank: -1, idx: src})
+	q := append(r.frontier[:0], routeNode{rank: -1, idx: src})
 	for len(q) > 0 {
 		top := q[0]
 		last := len(q) - 1
@@ -160,7 +187,7 @@ func (g *Grid) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos) 
 			siftUp(q, len(q)-1)
 		}
 	}
-	g.frontier = q[:0]
+	r.frontier = q[:0]
 	return f
 }
 
