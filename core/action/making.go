@@ -30,10 +30,13 @@ const (
 	// quarryWear is how much of a tool cutting stone uses up.
 	quarryWear = 0.15
 	// granaryStone and granaryWood are what a granary is built of, and
-	// granaryKeeping how much of the market's spoilage each one stops.
+	// granaryKeeping what each one leaves of the market's spoilage. A
+	// granary is a cold store as much as a dry one: it does for the food
+	// it holds in August what the weather does for it in January, which is
+	// why it earns its stone in a world that now has an August.
 	granaryStone   = 3
 	granaryWood    = 2
-	granaryKeeping = 0.5
+	granaryKeeping = 0.4
 	// granaryRadius is how far from the market a granary may stand.
 	granaryRadius = 6
 	// smeltStone and smeltWood are what a smelting takes, and smeltYield

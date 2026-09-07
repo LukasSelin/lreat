@@ -54,8 +54,12 @@ func init() {
 	seed(Eat, reachEveryday, habit.Signature{
 		habit.Hunger: 1, habit.Near: 0.5,
 	})
+	// Foraging belongs to the green half of the year, which is the half in
+	// which the forest puts back most of what is taken from it. A
+	// settlement that forages through a winter is eating what will not be
+	// replaced until spring.
 	seed(Forage, reachEveryday, habit.Signature{
-		habit.Hunger: 0.8, habit.Food: -0.8, habit.Near: 0.6,
+		habit.Hunger: 0.8, habit.Food: -0.8, habit.Chill: -0.3, habit.Near: 0.6,
 	})
 	// Farming is not what hunger calls for; foraging is. Farming is what an
 	// industrious person with a field nearby does whether or not the larder
@@ -65,19 +69,26 @@ func init() {
 	// before the settlement had learned to rotate its fields or anyone had
 	// learned the work. Once they have, a field feeds two or three meals to
 	// the forest's one, the harvests thank it, and the forest empties.
+	// Farming is a season's work as well as a habit: little comes up in a
+	// frost, and the tradition that carries it is a tradition of sowing in
+	// spring.
 	seed(Farm, reachEveryday, habit.Signature{
-		habit.Food: -0.3, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.3,
+		habit.Food: -0.3, habit.Chill: -0.5, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.3,
 	})
 	Farm.Skilled = uses(entity.Farming)
 	// Wood is measured against the cost of a house, so "enough wood" reads
 	// as +1 exactly when a shelter can be built. Gathering belongs to the
 	// unsheltered moment more than to the empty-handed one; building to the
-	// unsheltered moment with the wood in hand.
+	// unsheltered moment with the wood in hand. Both lean into the cold,
+	// which is when a roof is worth having and when there is least else to
+	// do: the coordinate is mild, because a house is worth building in any
+	// weather and a settlement that waited for frost to start would spend
+	// the winter it was building for outdoors.
 	seed(GatherWood, reachEveryday, habit.Signature{
-		habit.Unsafe: 0.6, habit.Wood: -0.6, habit.Shelter: -0.6, habit.Near: 0.5,
+		habit.Unsafe: 0.6, habit.Wood: -0.6, habit.Shelter: -0.6, habit.Chill: 0.3, habit.Near: 0.5,
 	})
 	seed(BuildShelter, reachEveryday, habit.Signature{
-		habit.Unsafe: 1, habit.Wood: 1, habit.Shelter: -1,
+		habit.Unsafe: 1, habit.Wood: 1, habit.Shelter: -1, habit.Chill: 0.3,
 	})
 	BuildShelter.Skilled = uses(entity.Building)
 	seed(Sell, reachEveryday, habit.Signature{

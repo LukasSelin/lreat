@@ -21,18 +21,19 @@ import (
 )
 
 // Dims is the size of the space.
-const Dims = 19
+const Dims = 20
 
 // MaxActions bounds the catalog so per-agent habit tables can be arrays and
 // iteration order can never depend on a map.
 const MaxActions = 32
 
 // The dimensions. The first five are urgencies weighted by personality; the
-// next six are stock and surroundings; five are what the agent holds to be
-// right and how much reprisal it expects; the last three are patched per
-// candidate action, because how near a thing is, how one feels about the
-// person involved, and how able one believes oneself all depend on which
-// action is being considered.
+// next seven are stock and surroundings, the weather among them, because
+// what a moment calls for turns with the season; five are what the agent
+// holds to be right and how much reprisal it expects; the last three are
+// patched per candidate action, because how near a thing is, how one feels
+// about the person involved, and how able one believes oneself all depend
+// on which action is being considered.
 const (
 	Hunger = iota
 	Unsafe
@@ -44,6 +45,7 @@ const (
 	Wealth
 	Shelter
 	Company
+	Chill
 	Order
 	Honesty
 	Charity
@@ -58,7 +60,7 @@ const (
 // Names labels each dimension for reports.
 var Names = [Dims]string{
 	"hunger", "unsafe", "lonely", "unproven", "curious",
-	"food", "wood", "wealth", "shelter", "company", "order",
+	"food", "wood", "wealth", "shelter", "company", "chill", "order",
 	"honesty", "charity", "industry", "tradition", "caution",
 	"near", "rapport", "skill",
 }
