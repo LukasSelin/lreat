@@ -78,14 +78,14 @@ func TestQuarryingCutsStoneWithATool(t *testing.T) {
 func TestAGranaryKeepsTheMarketsFood(t *testing.T) {
 	w, a := workshop(t)
 	a.Inventory[entity.Stone], a.Inventory[entity.Wood] = granaryStone, granaryWood
-	before := w.Mods.Keeping
+	before := GranaryKeeping(w)
 	if !run(w, a, BuildGranary) {
 		t.Fatal("a granary should be buildable with stone and wood beside the market")
 	}
 	if w.Grid.At(a.Pos).Structure != world.Granary {
 		t.Fatal("a granary should stand where it was built")
 	}
-	if !(w.Mods.Keeping < before) {
+	if !(GranaryKeeping(w) < before) {
 		t.Fatal("a granary should keep the market's food")
 	}
 	if a.Inventory[entity.Stone] != 0 || a.Inventory[entity.Wood] != 0 {

@@ -97,6 +97,16 @@ var Transforms = []Transform{
 	{From: Provision, In: Person, Rate: 0.002},
 	{From: Meal, In: Person, Rate: 0.002},
 
+	// A roof over somebody's head is in their keeping the way the food in
+	// their pack is, and it wears at about the same pace. This is the roof
+	// as shelter - the condition of it, which a person makes good by
+	// building again - and not the house as a tile, which is the Dwelling
+	// below and goes only when there is nobody left to keep it. The two are
+	// the same thing at different grains: what rots daily and what falls in
+	// once. Nobody is fully roofed all the time, which is why the cold is a
+	// cost everyone pays a little of.
+	{From: Dwelling, In: Person, Rate: 0.002},
+
 	{From: Dwelling, To: Open, Rate: 1.0 / 300, Kept: true, Says: "an empty house fell in"},
 	{From: Field, To: Open, Rate: 1.0 / 300, Kept: true},
 	{From: Site, To: Open, Rate: 1, Kept: true},

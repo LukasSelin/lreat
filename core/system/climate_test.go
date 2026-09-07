@@ -123,6 +123,21 @@ func TestWeatherIsPartOfTheSeededRun(t *testing.T) {
 	}
 }
 
+// raiseGranaries puts n granaries up, since what the market keeps is read
+// off the stores that are standing rather than off the ones that were built.
+func raiseGranaries(w *world.World, n int) {
+	g := w.Grid
+	for i := range g.Tiles {
+		if n == 0 {
+			return
+		}
+		if t := &g.Tiles[i]; t.Buildable() {
+			t.Structure = world.Granary
+			n--
+		}
+	}
+}
+
 // A cold store is the oldest one there is. What the year takes from the
 // settlement in the growing it stops doing, it gives back a little of in the
 // keeping - and a granary does the same thing in August that the weather
@@ -131,9 +146,7 @@ func TestFoodKeepsInTheColdAndInTheGranary(t *testing.T) {
 	left := func(temp float64, granaries int) float64 {
 		w := fitWorld(11)
 		w.Climate = world.Climate{Temp: temp}
-		for i := 0; i < granaries; i++ {
-			w.Mods.Keeping *= 0.4
-		}
+		raiseGranaries(w, granaries)
 		w.Market.Stock[entity.Food] = 100
 		MarketStep(w)
 		return w.Market.Stock[entity.Food]
@@ -151,7 +164,9 @@ func TestFoodKeepsInTheColdAndInTheGranary(t *testing.T) {
 		t.Errorf("a granary in winter (%.4f) does not beat a granary in summer (%.4f) or a winter without one (%.4f)",
 			left(winter, 1), left(summer, 1), left(winter, 0))
 	}
-	if got := Keeping(&world.World{Mods: world.DefaultModifiers(), Climate: world.Climate{Temp: world.Mild + 5}}); got != 1 {
+	mild := fitWorld(11)
+	mild.Climate = world.Climate{Temp: world.Mild + 5}
+	if got := Keeping(mild); got != 1 {
 		t.Errorf("mild weather keeps %.2f of the usual spoilage, want all of it", got)
 	}
 }
@@ -162,9 +177,7 @@ func TestWhatIsCarriedRotsToo(t *testing.T) {
 	held := func(temp float64, granaries int) float64 {
 		w := fitWorld(13)
 		w.Climate = world.Climate{Temp: temp}
-		for i := 0; i < granaries; i++ {
-			w.Mods.Keeping *= 0.4
-		}
+		raiseGranaries(w, granaries)
 		a := w.Spawn("a", need.Neutral())
 		a.Inventory[entity.Food] = 10
 		Spoil(w, a)

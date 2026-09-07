@@ -3,6 +3,7 @@ package system
 import (
 	"math"
 
+	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/ontology"
@@ -60,7 +61,7 @@ const ColdKeeping = 0.6
 // here today: what the settlement's granaries stop, and what the weather
 // stops on top of that.
 func Keeping(w *world.World) float64 {
-	return w.Mods.Keeping * (1 - ColdKeeping*w.Climate.Chill())
+	return w.Mods.Keeping * action.GranaryKeeping(w) * (1 - ColdKeeping*w.Climate.Chill())
 }
 
 // Larder is Keeping for a pack rather than a shelf: the share of the usual

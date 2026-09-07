@@ -69,9 +69,8 @@ var plans = map[string]plan{
 		Name: "build granary", Amounts: []float64{granaryWood, granaryStone},
 		Site: publicPlot(granaryRadius), Learn: 0.03, Renown: 0.2,
 		Worth: func(_ *entity.Agent, w *world.World) need.Levels {
-			return need.Levels{need.Esteem: 0.2, need.Safety: 0.05 * w.Mods.Keeping}
+			return need.Levels{need.Esteem: 0.2, need.Safety: 0.05 * GranaryKeeping(w)}
 		},
-		Done:  func(w *world.World) { w.Mods.Keeping *= granaryKeeping },
 		Built: "built a granary",
 	},
 	// A tavern is where people meet of an evening. One is enough for a

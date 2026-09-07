@@ -40,11 +40,20 @@ type Modifiers struct {
 	BuildEfficiency float64
 	StudyRate       float64
 	CraftQuality    float64
-	ShelterDecay    float64
+	ShelterDecay    float64 // how fast a roof wears, as a share of the usual
 	FishYield       float64
 	HuntYield       float64
 	Regrowth        float64 // how fast forest, wild food, and fish come back
 	Keeping         float64 // how much of the market's food spoils, as a share of the usual
+}
+
+// Granaries is how many granaries are standing. It is what a granary does
+// for the settlement rather than what building one did: a store that has
+// fallen in keeps nothing, and the market's food has to notice that. Kept
+// as a count rather than folded into Keeping when one goes up, because a
+// one-way multiplier cannot be undone when one comes down.
+func (w *World) Granaries() int {
+	return w.Grid.Count(func(t *Tile) bool { return t.Structure == Granary })
 }
 
 // DefaultModifiers is the pre-technology baseline.
@@ -54,7 +63,7 @@ func DefaultModifiers() Modifiers {
 		BuildEfficiency: 1,
 		StudyRate:       1,
 		CraftQuality:    1,
-		ShelterDecay:    0.002,
+		ShelterDecay:    1,
 		FishYield:       1,
 		HuntYield:       1,
 		Regrowth:        1,
