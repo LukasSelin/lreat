@@ -153,7 +153,7 @@ func TestColdAgentWithWoodBuilds(t *testing.T) {
 	a := blank(w, "a")
 	a.Needs = need.Levels{0.9, 0.05, 0.8, 0.8, 0.8}
 	a.Inventory[entity.Food] = 3
-	a.Inventory[entity.Wood] = 2
+	a.Inventory[entity.Wood] = raisingTimber
 	a.Shelter = 0
 	r := Rank(a, w)
 	if r[0].Def != BuildShelter {
