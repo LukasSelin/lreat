@@ -106,13 +106,6 @@ func always(*entity.Agent, *world.World) bool { return true }
 
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
 
-func atHome(a *entity.Agent, _ *world.World) (entity.Pos, bool) {
-	if a.HasHome {
-		return a.Home, true
-	}
-	return a.Pos, true
-}
-
 func atMarket(_ *entity.Agent, w *world.World) (entity.Pos, bool) { return w.MarketPos, true }
 
 // foodValue is how much one more unit of food is worth to the physiological
@@ -121,14 +114,29 @@ func foodValue(a *entity.Agent) float64 {
 	return 0.25 * math.Max(0, 1-a.Inventory[entity.Food]/4)
 }
 
-// Rest is the fallback. It is always available and barely worth anything.
+// A rest restores a little of the body, and more under a roof.
+const (
+	restGain = 0.03
+	roofGain = 0.05
+)
+
+// Rest is the fallback. It is always available and barely worth anything,
+// though it is worth more at home or in the tavern, which is where an agent
+// goes for it when either is close.
 var Rest = &Def{
-	Name: "rest", Ticks: 1, Available: always, Target: here,
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: 0.03}
+	Name: "rest", Ticks: 1, Available: always, Target: comfort,
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		if underRoof(a, w, target) {
+			return need.Levels{need.Physiological: roofGain}
+		}
+		return need.Levels{need.Physiological: restGain}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		a.Needs.Add(need.Physiological, 0.03)
+		if underRoof(a, w, a.Pos) {
+			a.Needs.Add(need.Physiological, roofGain)
+			return
+		}
+		a.Needs.Add(need.Physiological, restGain)
 	},
 }
 
@@ -169,18 +177,28 @@ func helping(a *entity.Agent) (meals, raw, restores float64) {
 	return meals, raw, meals*mealNourish + raw*nourished
 }
 
+// A meal eaten in company at the tavern is a little belonging as well.
+const tableCheer = 0.03
+
 var Eat = &Def{
-	Name: "eat", Ticks: 1, Target: here,
+	Name: "eat", Ticks: 1, Target: comfort,
 	Available: func(a *entity.Agent, _ *world.World) bool { return Edible(a) >= mouthful },
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		_, _, restores := helping(a)
-		return need.Levels{need.Physiological: restores}
+		gain := need.Levels{need.Physiological: restores}
+		if inTavern(w, target) && intended(a, w, target) != nil {
+			gain[need.Belonging] = tableCheer
+		}
+		return gain
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		meals, raw, restores := helping(a)
 		a.Inventory[entity.Meals] -= meals
 		a.Inventory[entity.Food] -= raw
 		a.Needs.Add(need.Physiological, restores)
+		if inTavern(w, a.Pos) && w.Neighbor(a, 1) != nil {
+			a.Needs.Add(need.Belonging, tableCheer)
+		}
 	},
 }
 
@@ -243,13 +261,12 @@ func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 //
 // This map cannot carry that ratio: at eighty by thirty-six tiles, three
 // hectares to a household would give the world room for a dozen families.
-// What it can carry was measured rather than argued. Above three strips a
-// household the settlement gets no more farmland out of it - the arable
-// valley is the limit, not the rule - and the same land simply ends up in
-// fewer hands, with a third of the people holding none: at eight the
-// population ran an eighth below one-tile fields across three batches of
-// seeds, and at three it is level with them on two thirds more cultivated
-// ground. See docs/action-space.md.
+// What it can carry was measured rather than argued. Three strips a
+// household is half again as much cultivated land on the map and near twice
+// as much per head, for a population two batches of seeds cannot tell from
+// one-tile fields; eight buys a quarter more ground again and costs a
+// fifteenth of the population and a third of the median. See
+// docs/action-space.md.
 const fieldTiles = 3
 
 // fieldSoil is the least fertile ground worth breaking. It is what a farmer
@@ -300,9 +317,13 @@ func plough(w *world.World, p entity.Pos) bool {
 
 // newGround is the best ground worth breaking beside the holding: where the
 // next strip goes when the family has not yet broken all the land it eats.
+// It must be at least as good as what the household already works, because
+// the harvest comes off the holding as a whole - taking on poorer ground
+// would only pull down the crop the family lives on.
 func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	var best entity.Pos
-	fertility := -1.0
+	found := false
+	fertility := bearing(a, w)
 	for _, p := range a.Parcel {
 		for dy := -1; dy <= 1; dy++ {
 			for dx := -1; dx <= 1; dx++ {
@@ -310,13 +331,13 @@ func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 				if !w.Grid.In(q) || !plough(w, q) {
 					continue
 				}
-				if t := w.Grid.At(q); t.Fertility > fertility {
-					best, fertility = q, t.Fertility
+				if t := w.Grid.At(q); t.Fertility >= fertility {
+					best, fertility, found = q, t.Fertility, true
 				}
 			}
 		}
 	}
-	return best, fertility >= 0
+	return best, found
 }
 
 // farmSite is where a farmer goes to work: the next strip to break if the
@@ -664,7 +685,7 @@ var Buy = &Def{
 }
 
 var Guard = &Def{
-	Name: "guard", Ticks: 3, Available: hasCompany, Target: atMarket,
+	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		return need.Levels{
 			need.Safety:    0.12 * (1 - w.Safety),
@@ -721,8 +742,10 @@ func craftQuality(a *entity.Agent, w *world.World) float64 {
 }
 
 var Craft = &Def{
-	Name: "craft", Ticks: 3, Target: atHome,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Wood] >= 1 },
+	Name: "craft", Ticks: 3, Target: bench,
+	Available: func(a *entity.Agent, w *world.World) bool {
+		return a.Inventory[entity.Wood] >= 1 && hasPlace(bench)(a, w)
+	},
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		q := craftQuality(a, w)
 		return need.Levels{need.Esteem: 0.15 * q, need.Safety: 0.03 * q}
@@ -775,13 +798,7 @@ var Teach = &Def{
 }
 
 var Study = &Def{
-	Name: "study", Ticks: 4, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		if a.HasHome {
-			return a.Home, true
-		}
-		return w.MarketPos, true
-	},
+	Name: "study", Ticks: 4, Available: hasPlace(desk), Target: desk,
 	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		return need.Levels{need.Actualization: 0.3, need.Esteem: 0.03}
 	},

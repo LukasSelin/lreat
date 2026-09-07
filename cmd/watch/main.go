@@ -356,6 +356,10 @@ func (v *view) draw() {
 	put(tcell.StyleDefault, "houses %-4d fields %-4d forest %d", s.Houses, s.Fields, s.Forest)
 	put(tcell.StyleDefault, "roads  %-4d", s.Roads)
 	put(tcell.StyleDefault, "safety %.2f  food price %.2f", s.Safety, s.FoodPrice)
+	// The weather gets a line of its own: it is the one thing on the panel
+	// that moves on its own schedule rather than the settlement's, and the
+	// growth figure says what the season is doing to the land.
+	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Season, s.Temp, s.Growth)
 	put(tcell.StyleDefault, "knowledge %.0f  gini %.2f", s.Knowledge, s.WealthGini)
 	put(tcell.StyleDefault, "friends %-4d feuds %-4d hearsay %d", s.Friendships, s.Feuds, s.Hearsay)
 	put(tcell.StyleDefault, "reach %.2f  spread %.2f  open %.2f", s.GatedReach, s.HabitSpread, s.ChoiceEntropy)

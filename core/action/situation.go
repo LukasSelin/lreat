@@ -51,6 +51,17 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	} else {
 		s[habit.Company] = -1
 	}
+	// The weather, read as cold and one-sided: 0 through the mild half of
+	// the year, rising to 1 at the bottom of a hard winter. It is the one
+	// coordinate that says the same thing to everyone at once, which for
+	// any other coordinate would be a tax on whichever acts mention it -
+	// but this one is silent for half the year and turns with the rest, so
+	// what it taxes is farming in February and nothing in June. Read
+	// bipolar it was never silent: a mild spring read as a strong -1, every
+	// act that named the cold was penalised the year round, and farming,
+	// alone in naming the warmth, outranked studying for the curious and
+	// getting even for the wronged.
+	s[habit.Chill] = need.Clamp(w.Climate.Chill())
 	// The moral coordinates are one-sided, as the belief layer defines them:
 	// a norm of 0 is holding nothing, caution of 0 is having learned of no
 	// reprisal, safety of 0 is nobody keeping order. Read that way an

@@ -26,8 +26,23 @@ var spoilage = [entity.GoodCount]float64{
 	entity.Meals: 0.003,
 }
 
-// perishable is what a granary keeps.
+// perishable is what a granary keeps, and what the cold keeps.
 var perishable = [entity.GoodCount]bool{entity.Food: true, entity.Meals: true}
+
+// ColdKeeping is how much of a perishable's spoilage the bitterest cold
+// stops. A cold store is the oldest one there is: what the year takes from
+// the settlement in the growing it stops doing, it gives back a little of in
+// the keeping. It is what makes an autumn surplus worth holding rather than
+// selling, and it is the one thing in the world that gets better as the
+// weather gets worse.
+const ColdKeeping = 0.6
+
+// Keeping is the share of the usual spoilage a perishable actually suffers
+// here today: what the settlement's granaries stop, and what the weather
+// stops on top of that.
+func Keeping(w *world.World) float64 {
+	return w.Mods.Keeping * (1 - ColdKeeping*w.Climate.Chill())
+}
 
 // MarketStep moves prices against stock and lets goods spoil. Prices lag
 // supply, so gluts and shortages both overshoot, which is what gives traders
@@ -37,7 +52,7 @@ func MarketStep(w *world.World) {
 	for g := range m.Stock {
 		loss := spoilage[g]
 		if perishable[g] {
-			loss *= w.Mods.Keeping
+			loss *= Keeping(w)
 		}
 		m.Stock[g] = math.Max(0, m.Stock[g]*(1-loss))
 		target := basePrice[g] * math.Sqrt(10/(m.Stock[g]+2))

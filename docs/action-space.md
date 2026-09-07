@@ -16,7 +16,7 @@ Three commitments, agreed up front:
 
 ## The space
 
-`core/habit` defines a 19-dimensional space. Every coordinate is roughly in [-1, 1] with 0 meaning neutral.
+`core/habit` defines a 20-dimensional space. Every coordinate is roughly in [-1, 1] with 0 meaning neutral.
 
 Shared dimensions, computed once per agent per decision:
 
@@ -28,17 +28,18 @@ Shared dimensions, computed once per agent per decision:
 | 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
 | 8 | shelter | `Shelter` | `shelter - 1`, a lack: half a house is half a house short |
 | 9 | company | `w.Neighbor(a, 8) != nil` | +1 or -1 |
-| 10 | order | `w.Safety` | `safety`, one-sided |
-| 11-14 | honesty, charity, industry, tradition | `Norms` | `n`, one-sided, frozen |
-| 15 | caution | `Caution` | `c`, one-sided, frozen |
+| 10 | chill | `w.Climate.Chill()` | `chill`, one-sided: 0 through the mild half of the year, 1 at the bottom of a hard winter |
+| 11 | order | `w.Safety` | `safety`, one-sided |
+| 12-15 | honesty, charity, industry, tradition | `Norms` | `n`, one-sided, frozen |
+| 16 | caution | `Caution` | `c`, one-sided, frozen |
 
 Per-candidate dimensions, patched for each action being weighed:
 
 | dim | name | source |
 |---|---|---|
-| 16 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 30)` |
-| 17 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
-| 18 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
+| 17 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 30)` |
+| 18 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
+| 19 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
 
 Personality is folded into the urgency dimensions rather than kept separate. The moral coordinates and order are one-sided because the belief layer defines them that way: a norm of 0 is holding nothing, caution of 0 is having learned of no reprisal, safety of 0 is nobody keeping order. Read on that scale an ordinary agent minds a wrong about half as much as a saint, which is what conscience charges in the value rule. Centred at 0.5 they fell silent for everyone but the extremes, and theft ran wild (see the comparison below). The moral dimensions are frozen: they are the same across every candidate an agent weighs, so if habits could learn them every habit would soon carry the agent's own norms and the dimension would cancel out of the choice. Values belong to the agent. Habits learn situations.
 
@@ -240,6 +241,20 @@ A social act needs two things the old catalog did not ask for: somebody within r
 
 On 96 seeds, asking social acts to have somewhere to happen took survivors from 92 to 95 and the median population from 231 to 287; the tavern's cost brought the median back to 237.
 
+**Workplaces.** Making things needs somewhere to make them, as meeting needs somewhere to meet. Before, an agent without a house crafted, cooked, smelted, and studied wherever it stood, forest included.
+
+| act | place |
+|---|---|
+| craft | a bench: at home, or a stall at the market |
+| study | a desk: at home, or at the market where the records are; not the tavern |
+| cook | a hearth: at home, or at the tavern |
+| smelt | a forge: at home, and nowhere else |
+| guard | a market within the settlement's reach with somebody at it; an empty square is nothing to guard |
+
+**Comfort.** Resting and eating happen wherever the agent is, since a body that must be fed cannot be made to walk home first; but if home or the tavern is a single step away, the agent steps in, the warm to the tavern and the cool to their own hearth. A rest under a roof restores 0.05 against 0.03 in the open, and a meal in company at the tavern is a little belonging. The radius is one step for a reason worth keeping: recognition reads distance as poor fit, so a meal sent a few tiles off fits worse exactly when it should happen, and a one-tick act becomes a walk for the starving. At four tiles the preference killed two thirds of settlements over 96 seeds (33 survived, 23 extinct); at two it cost a dozen (80); at one it costs nothing (91, median 394).
+
+The settlement's reach is twenty tiles from the market. Everything else already had its place: the field, the forest, the bank, the outcrop, the market, the companion's side, the requester's door. On 96 seeds the change leaves survival within the band, 92 against 94, and the median population at 356.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
@@ -287,6 +302,8 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
 | 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
 | 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
+| 13 | Workplaces: a bench, a desk, a hearth, a forge, and a market worth guarding | done |
+| 14 | Comfort: rest and meals step under a roof when one is a step away | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
@@ -428,6 +445,63 @@ whether an agent is getting anywhere or turning on the spot between the same
 two errands — which is the thing the aggregate graph, by construction,
 averages away.
 
+## The turning year
+
+The world had one weather and kept it for ever. Now it has a temperate year, and the settlement has a season to get through rather than a steady state to sit in. `core/world/climate.go`, `core/system/climate.go`.
+
+**The shape of it.** A year is 100 ticks, so a life is some fifty years and a run long enough to develop sees dozens of winters. Temperature is a sine about a mean of 10 degrees with a swing of 12, putting midsummer at 22 and midwinter at -2, and two AR(1) wanderings sit on top of it: a slow one, eight years to shed an anomaly and a standard deviation of 1.2 degrees, which makes a decade kind or unkind, and a fast one, six ticks and 2.5 degrees, which makes the warm week and the cold snap. Tick zero is early spring, so founders arrive with a growing season in front of them rather than behind them. It costs two draws from `World.RNG` a tick and nothing else, so a seed and a command log still reproduce a run exactly.
+
+**Three things read it**, and the whole of the feature is in the three:
+
+| reader | what the season does |
+|---|---|
+| `system.Land` | forest, wild food, fish, fallow and reseeding all keep the season's hours. `Climate.Growth()` is two thirds of the old flat rate in the depth of winter and a third again as much at midsummer, and averages exactly 1 over a year, so the land tuning that came before the seasons still holds: what changed is when a forest grows, not how much it grows in a year. |
+| `system.Decay` | cold costs a body `Chill * (1 - Shelter)`, in the larder and, at a hundredth of the rate, in its health. A roof takes all of it. What makes winter dangerous is not the cold, it is being caught out in it. |
+| `habit.Chill` | the twentieth dimension. Farming and foraging name the warmth, gathering wood and building name the cold, so the same settlement does different work in February and in June without anyone being told to. |
+| `system.MarketStep` | perishables keep better in the cold. `Keeping` is what the granaries stop and what the weather stops on top of it, and at the bottom of a hard winter food spoils at two fifths of its usual rate. |
+
+**What it cost, measured.** Twenty-four seeds, 4000 ticks, 20 founders, population at the end:
+
+| | median | mean | extinctions |
+|---|---|---|---|
+| no seasons | 128 | 132 | 0 |
+| seasons that nothing reads | 140 | 144 | 0 |
+| first build: no winter growth, chill read bipolar | 21 | 28 | 1 |
+| the same, chill read one-sided | 51 | 69 | 1 |
+| winter at 0.35 of full growth, no keeping | 69 | 87 | 0 |
+| shipped: winter at 0.5, and the cold keeps food | 60 | 86 | 1 |
+
+The second row is the control, and it is the one that made the rest legible. The weather draws from `World.RNG` whether or not anything reads it, which reshuffles every downstream draw in the simulation, so a seasoned run and an unseasoned run of the same seed are different worlds and cannot be compared one to one. A climate that turns and draws and that nothing reads costs nothing: 140 against 128 is the same number twice. Everything below the control is winter, not noise.
+
+**Two things had to give, and a third was a plain mistake.**
+
+- **A winter that stops the forest dead is a siege, not a season.** Nothing in this world can put a summer by: the larder is a few meals and they spoil. At zero winter growth the median settlement fell to 21 and one seed died outright, which is the first extinction this sweep has seen. `WinterGrowth` is 0.35 of full growth now - about half the old flat rate once the year is renormalised - and the year is lean in its cold half rather than empty.
+- **Cold has to press on the unhoused, not on the settlement.** `ColdDrain` began at 0.010, half again the ordinary drain of 0.02. That is a cost the whole population pays, because shelter rots and nobody is fully roofed all the time. At 0.005, a quarter of the ordinary drain at its very worst, an unhoused winter tells and a housed one does not.
+- **The chill coordinate must be silent in mild weather.** Read bipolar, +1 in the cold and -1 in the warmth, it was never silent: an ordinary spring read as a strong -1 in every situation vector, and farming, alone in naming the warmth, outranked studying for the curious and getting even for the wronged. Two `core/action` tests caught it. Chill is one-sided now, like order and caution: 0 through the mild half of the year, rising to 1 at the bottom of a hard winter. It taxes farming in February and nothing in June. Between those two readings, with identical physics, the median settlement went from 21 to 51 - the habit layer earning its keep, and the largest single effect measured here.
+
+**Four thousand ticks was the wrong horizon to tune against.** At 4000 the floor at 0.5 and the floor at 0.35 gave the same median, 71 against 69, and it looked as though the depth of the winter cost nothing. It does not show at 4000 because a settlement that has stopped breeding still has its founders. Run to 6000, which is what `TestCityDevelopsByRecognition` runs, seed 1 died outright at 0.35: seventeen founders, not one birth in 2500 ticks, and then old age. Births need physiological, safety and belonging all above their thresholds at once, and physiological's is a cliff at 0.7. A settlement whose mean sits at 0.55 to 0.68 does not breed slowly, it does not breed. That cliff is why a small per-tick cost buys a large population effect, and why measuring at a horizon shorter than a generation hides it.
+
+**Somewhere to put a summer.** The answer to a lean winter is not a milder winter, it is a store. Perishables now keep better in the cold - `ColdKeeping` stops three fifths of their spoilage at the bottom of the year - and a granary keeps more of them than it did, 0.4 of the usual spoilage per granary against 0.5. A cold store is the oldest one there is, and it is the one thing in this world that gets better as the weather gets worse: what the year takes from the settlement in the growing it stops doing, it gives a little of back in the keeping. On the deep season it was the difference between seed 1 ending at 0 and ending at 17.
+
+| 6000 ticks, six seeds | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| winter 0.35, drain 0.005, no keeping | 0 | 400 | 400 | 99 | 400 | 203 |
+| winter 0.35, drain 0.005, keeping | 17 | 400 | 281 | 8 | 399 | 400 |
+| shipped: winter 0.5, drain 0.003, keeping | 43 | 364 | 399 | 113 | 167 | 142 |
+
+Keeping saves the deep winter but leaves two settlements hanging on by their fingernails, at 17 and at 8. The shipped season leaves none: it is a two-to-one year rather than a three-to-one one, still a season you can watch on the map, and it costs nothing to read.
+
+**The tail, and what the season really costs.** Twenty-four seeds to 6000 ticks, seasoned against unseasoned:
+
+| | median | weakest four | extinctions |
+|---|---|---|---|
+| no seasons | 350 | 4, 16, 24, 82 | 0 |
+| shipped | 224 | 0, 0, 0, 30 | 3 |
+
+The unseasoned world has no extinctions in 24 seeds and the seasoned one has three, so the season does turn near-misses into deaths; that is the cost, stated plainly. Two of the three - 13 and 22 - are the same worlds that come second and third from bottom without it, at 16 and 24, which is a settlement that never got going either way. The third, seed 23, ends at 82 unseasoned, and it is the one that says the season killed something that would otherwise have lived. Against that, seed 21 is the weakest unseasoned world of all at 4 and comes through the seasoned run at 86: on this tail the draw order matters as much as the weather, as the control row showed. The median is the honest headline, and it falls from 350 to 224. A year with a lean half in it carries fewer people, and the population a settlement can hold is the population its worst season can hold.
+
+**What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
+
 ## What a household eats
 
 A field was one tile, the same ground a house stands on, and that is not what a family lives off.
@@ -438,21 +512,25 @@ The map cannot carry that ratio. At eighty by thirty-six tiles, three hectares t
 
 **A holding is one farm, not three fields.** The household works the whole of it in a season and eats the whole of it, so the harvest is read off the mean fertility of the strips together and takes one harvest's worth out of the ground, shared over all of them. A worn strip is carried by the rest, which is what land enough to rotate is for, and the fallow keeps up with a draw a third the size. Three strips are not three families' worth of food; they are one family's, off land that gets a rest between crops. The farmer goes to the *nearest* strip they hold - making them cross their own land to reach the best of it only cost them the walk, and the walk came out of the time they had for everybody else.
 
-**How a holding grows.** It is not claimed in one act. A farmer short of what the household eats breaks another strip beside the ones they have, and that harvest comes off ground that was grass the same morning. Two rules bound where:
+**How a holding grows.** It is not claimed in one act. A farmer short of what the household eats breaks another strip beside the ones they have, and that harvest comes off ground that was grass the same morning. Three rules bound where:
 
 - **Only soil that will bear.** A strip must hold fertility 0.3, the same as the first furrow, so a holding grows toward the valley floor and stops on the dry hillside.
+- **Never poorer than what you have.** New ground must be at least as good as the holding's mean. This is the rule the whole change turned on. Without it a farmer took in whatever was next to them, the mean fell, and because the harvest is read off the mean their crop fell with it: the same seeds ran an eighth below one-tile fields, and it read as land hunger when it was really a farmer working ground that made them poorer. With it the cost disappears.
 - **Not against a wall.** New ground may not touch a roof, so the built core keeps the gaps its streets are laid along and the holdings lie outside it, which is where a village puts its fields. The *first* furrow is exempt: like a roof, a holding is what a settlement wants and not what it owes, and a man with no land takes the ground he can get. Requiring the first furrow to clear the houses too was tried and cost three settlements of twenty-four - newcomers in a built-up place had to walk out past everything to start at all.
 
 Nothing else was needed to give the land back: `Upkeep` already lets a field nobody is left to work go to weeds, and that matters more the bigger a holding is.
 
-**Three is what the world carries.** Three independent batches of 24 seeds, 6000 ticks, 25 founders:
+**Three is what the world carries.** Two independent batches of 24 seeds, 6000 ticks, 25 founders, on the turning year:
 
-| | mean population | median population | median field tiles | settlements that lasted |
+| | mean population | median population | field tiles over 48 seeds | field tiles a head |
 |---|---|---|---|---|
-| one tile a farmer | 275 / 289 / 302 | 298 / 372 / 314 | 280 / 330 / 306 | 23 / 23 / 24 |
-| holding of three | 269 / 281 / 287 | 346 / 396 / 308 | 460 / 556 / 508 | 22 / 22 / 22 |
-| holding of eight | 247 / 241 / 264 | 212 / 258 / 260 | 542 / 569 / 546 | 23 / 21 / 24 |
+| one tile a farmer | 156 | 102 | 5865 | 0.82 |
+| holding of three | 150 | 93 | 8722 | 1.48 |
+| holding of eight | 145 | 64 | 10994 | 1.68 |
+| holding of three, taking whatever was next to it | 127 | 54 | 9276 | 1.64 |
 
-Two thirds more cultivated ground at three, for a population the batches cannot tell apart from one-tile fields. At eight it costs an eighth of the population and buys **no more farmland at all**: the field tiles are the same, because the arable valley is what limits them and not the rule. The land simply ends up in fewer hands.
+Half again as much cultivated ground and near twice as much per head, for a population the batches cannot tell apart. Eight buys a quarter more ground again for a fifteenth of the mean population and a third of the median, which is not a trade worth making: past three, a holding stops being what a household eats and starts being what a household holds while its neighbours have none.
 
-**Land is the binding constraint,** which is the point and was not designed in. On the drain-fed map the soil worth ploughing is a band along the valley floor, and holdings claim all of it by mid-run: every holder short of a full holding has nothing ploughable left touching what they already hold. Whoever broke ground first farms a holding and everyone after them works one strip. Push the cap higher and the same acreage concentrates. On three seeds looked at, a holding of eight left between a seventh and two fifths of the settlement holding no land at all, against a fiftieth to an eighth before; and a settlement where that many people are back to foraging carries less knowledge with it - median 4360 against 5264 over a batch, with three strips at 4853 in between. Enclosure, without anybody having voted for it.
+**Land is the binding constraint,** which is the point and was not designed in. On the drain-fed map the soil worth ploughing is a band along the valley floor, and holdings claim it by mid-run: on four seeds looked at, three quarters to all of the farmers short of a full holding had nothing left touching them that was both worth breaking and no poorer than what they already work. Which is why the cap is not what most people get. Mean holdings run 1.0 to 1.8 strips and a good half of the holders are still on their first furrow; the full three is what the farmer who broke ground early has, and everyone after them works what is left. The change is not that every field is three times bigger - it is that the settlement's cultivated ground is half again as large, that the people who farm properly hold a parcel instead of a plot, and that ground is now something a valley can run out of.
+
+Cropping the best strip and letting the rest rest, rather than reading the harvest off the holding together, was also tried: it grows the holdings faster, and it was worse on both batches (mean 139, median 20 and 116, twelve settlements of twenty-four lasting on the first). A holding that carries its own poor ground is the version that works.

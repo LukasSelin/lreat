@@ -103,6 +103,105 @@ func towardCompany(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	return meetingPlace(a, o, w)
 }
 
+// Workplaces. Making things needs somewhere to make them, as meeting needs
+// somewhere to meet: a bench, a hearth, a forge, a quiet corner. An agent
+// with a house has all of these at home. One without has the market for a
+// bench and a desk and the tavern for a hearth, and no forge at all.
+
+// settlementRadius is how far from the market the settlement is taken to
+// reach: the distance within which the market counts as one's own.
+const settlementRadius = 20
+
+// bench is where an agent crafts: at home, or at a stall at the market.
+func bench(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if a.HasHome {
+		return a.Home, true
+	}
+	if entity.Dist(a.Pos, w.MarketPos) <= settlementRadius {
+		return w.MarketPos, true
+	}
+	return entity.Pos{}, false
+}
+
+// hearth is where an agent cooks: at home, or at the tavern.
+func hearth(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if a.HasHome {
+		return a.Home, true
+	}
+	return nearPlace(w, a.Pos, settlementRadius, world.Tavern)
+}
+
+// forge is where an agent smelts: at home, and nowhere else.
+func forge(a *entity.Agent, _ *world.World) (entity.Pos, bool) {
+	if a.HasHome {
+		return a.Home, true
+	}
+	return entity.Pos{}, false
+}
+
+// desk is where an agent studies: at home, or at the market where the
+// records are kept. Not the tavern.
+func desk(a *entity.Agent, w *world.World) (entity.Pos, bool) { return bench(a, w) }
+
+// hasPlace turns a place-finder into an availability check.
+func hasPlace(find func(*entity.Agent, *world.World) (entity.Pos, bool)) func(*entity.Agent, *world.World) bool {
+	return func(a *entity.Agent, w *world.World) bool {
+		_, ok := find(a, w)
+		return ok
+	}
+}
+
+// worthGuarding reports whether there is a market within the settlement's
+// reach with somebody at it to guard. A guard at an empty square in a
+// settlement that has moved on is a guard of nothing.
+func worthGuarding(a *entity.Agent, w *world.World) bool {
+	if entity.Dist(a.Pos, w.MarketPos) > settlementRadius {
+		return false
+	}
+	return w.AgentAt(w.MarketPos, placeRadius, a) != nil
+}
+
+// Comfort. Resting and eating happen wherever an agent is, since a body
+// that must be fed cannot be made to walk home first; but within a short
+// walk they prefer a roof, home or the tavern by temperament, and are the
+// better for it.
+
+// comfortRadius is how far an agent will go to rest or eat under a roof: a
+// single step. Recognition reads distance as poor fit, so a meal sent a few
+// tiles off fits worse exactly when it should happen, and a one-tick act
+// becomes a walk for the starving. At four tiles this preference killed
+// two thirds of settlements over 96 seeds; at two it cost a dozen; at one
+// it costs nothing.
+const comfortRadius = 1
+
+// comfort is where an agent would rest or eat: home or the tavern if either
+// is close, the warm preferring the tavern and the cool their own hearth;
+// otherwise right here.
+func comfort(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	home := func() (entity.Pos, bool) {
+		if a.HasHome && entity.Dist(a.Pos, a.Home) <= comfortRadius {
+			return a.Home, true
+		}
+		return entity.Pos{}, false
+	}
+	tavern := func() (entity.Pos, bool) { return nearPlace(w, a.Pos, comfortRadius, world.Tavern) }
+	order := []func() (entity.Pos, bool){home, tavern}
+	if outgoing(a) {
+		order = []func() (entity.Pos, bool){tavern, home}
+	}
+	for _, f := range order {
+		if p, ok := f(); ok {
+			return p, true
+		}
+	}
+	return a.Pos, true
+}
+
+// underRoof reports whether p is at the agent's own house or in a tavern.
+func underRoof(a *entity.Agent, w *world.World, p entity.Pos) bool {
+	return (a.HasHome && p == a.Home) || inTavern(w, p)
+}
+
 // inTavern reports whether p is in or beside a tavern.
 func inTavern(w *world.World, p entity.Pos) bool {
 	_, ok := nearPlace(w, p, 1, world.Tavern)
