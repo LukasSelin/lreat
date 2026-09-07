@@ -136,7 +136,7 @@ var MoveHouse = &Def{
 // half out of reach it was chosen too seldom to rearrange anything.
 func init() {
 	seed(MoveHouse, reachEveryday, habit.Signature{
-		habit.Shelter: 0.7, habit.Wood: 0.6, habit.Industry: 0.5, habit.Near: 0.8,
+		habit.Shelter: 0.7, habit.Industry: 0.5, habit.Near: 0.8,
 	})
 	MoveHouse.Skilled = uses(entity.Building)
 }

@@ -87,7 +87,7 @@ func init() {
 	// settlement that forages through a winter is eating what will not be
 	// replaced until spring.
 	seed(Forage, reachEveryday, habit.Signature{
-		habit.Hunger: 0.7, habit.Food: -0.8, habit.Chill: -0.3, habit.Near: 0.6,
+		habit.Hunger: 0.7, habit.Chill: -0.3, habit.Near: 0.6, habit.Lack: 0.8,
 	})
 	// Farming is not what hunger calls for; foraging is. Farming is what an
 	// industrious person with a field nearby does whether or not the larder
@@ -102,7 +102,7 @@ func init() {
 	// frost, and the tradition that carries it is a tradition of sowing in
 	// spring.
 	seed(Farm, reachEveryday, habit.Signature{
-		habit.Hunger: 0.8, habit.Food: -0.5, habit.Chill: -0.5, habit.Industry: 0.5, habit.Near: 0.5, habit.Skill: 0.3,
+		habit.Hunger: 0.8, habit.Chill: -0.5, habit.Industry: 0.5, habit.Near: 0.5, habit.Skill: 0.3, habit.Lack: 0.5,
 	})
 	Farm.Skilled = uses(entity.Farming)
 	// Clearing is the same moment as farming: it is what farming was before
@@ -139,18 +139,18 @@ func init() {
 	// the smallest part of the harvest, and that is the whole of why this
 	// number is small rather than round.
 	seed(GatherWood, reachEveryday, habit.Signature{
-		habit.Unsafe: 0.6, habit.Wood: -0.6, habit.Shelter: -0.6,
+		habit.Unsafe: 0.6, habit.Shelter: -0.6, habit.Lack: 0.6,
 		habit.Chill: 0.3, habit.Exposure: 0.3, habit.Near: 0.5,
 	})
 	seed(BuildShelter, reachEveryday, habit.Signature{
-		habit.Unsafe: 1, habit.Wood: 1, habit.Shelter: -1, habit.Exposure: 0.3,
+		habit.Unsafe: 1, habit.Shelter: -1, habit.Exposure: 0.3, habit.Stock: 1,
 	})
 	BuildShelter.Skilled = uses(entity.Building)
 	seed(Sell, reachEveryday, habit.Signature{
-		habit.Food: 1, habit.Wealth: -0.6, habit.Near: 0.4,
+		habit.Near: 0.4, habit.Lack: 0.6, habit.Stock: 1,
 	})
 	seed(Buy, reachEveryday, habit.Signature{
-		habit.Hunger: 0.8, habit.Food: -1, habit.Wealth: 0.6, habit.Near: 0.5,
+		habit.Hunger: 0.8, habit.Near: 0.5, habit.Lack: 1, habit.Stock: 0.6,
 	})
 	seed(Guard, reachGuard, habit.Signature{
 		habit.Unsafe: 0.6, habit.Company: 0.5, habit.Order: -1, habit.Charity: 0.4, habit.Tradition: 0.3,
@@ -161,7 +161,7 @@ func init() {
 	})
 	Socialize.With = atTarget
 	seed(Craft, reachCraft, habit.Signature{
-		habit.Hunger: -0.3, habit.Unproven: 0.8, habit.Wood: 0.7, habit.Skill: 0.5,
+		habit.Hunger: -0.3, habit.Unproven: 0.8, habit.Skill: 0.5, habit.Stock: 0.7,
 	})
 	Craft.Skilled = uses(entity.Crafting)
 	seed(Teach, reachTeach, habit.Signature{
@@ -180,7 +180,7 @@ func init() {
 	// skill: a newcomer believes itself unskilled at everything, and a prior
 	// that mentions skill taxes exactly the acts a young settlement needs.
 	seed(Pave, reachPave, habit.Signature{
-		habit.Wood: 0.6, habit.Shelter: 0.7, habit.Company: 0.6,
+		habit.Shelter: 0.7, habit.Company: 0.6, habit.Stock: 0.6,
 		habit.Charity: 0.5, habit.Industry: 0.6, habit.Near: 0.5,
 	})
 	seed(Study, reachStudy, habit.Signature{
@@ -188,14 +188,14 @@ func init() {
 	})
 	Study.Skilled = uses(entity.Scholarship)
 	seed(Steal, reachEveryday, habit.Signature{
-		habit.Hunger: 1, habit.Food: -1, habit.Order: -0.3,
+		habit.Hunger: 1, habit.Order: -0.3, habit.Lack: 1,
 		habit.Honesty: -1, habit.Caution: -0.7, habit.Near: 0.6, habit.Rapport: -0.4,
 	})
 	seed(Give, reachEveryday, habit.Signature{
-		habit.Hunger: -0.4, habit.Lonely: 0.3, habit.Food: 0.7, habit.Charity: 1, habit.Near: 0.5, habit.Rapport: 0.5,
+		habit.Hunger: -0.4, habit.Lonely: 0.3, habit.Charity: 1, habit.Near: 0.5, habit.Rapport: 0.5, habit.Stock: 0.7,
 	})
 	seed(Fulfil, reachEveryday, habit.Signature{
-		habit.Unproven: 0.5, habit.Wealth: -0.5, habit.Industry: 0.5, habit.Near: 0.4, habit.Rapport: 0.4, habit.Skill: 0.5,
+		habit.Unproven: 0.5, habit.Industry: 0.5, habit.Near: 0.4, habit.Rapport: 0.4, habit.Skill: 0.5, habit.Lack: 0.5,
 	})
 	Fulfil.Skilled = func(a *entity.Agent, w *world.World) (entity.Skill, bool) {
 		r := BestRequest(a, w)

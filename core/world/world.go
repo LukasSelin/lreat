@@ -115,8 +115,14 @@ type World struct {
 	// by habit slot, raised when the settlement discovers a thing. Room
 	// keeps it as long as there are slots.
 	ReachFloor []float64
-	// Deaths counts everyone who has died here.
-	Deaths int
+	// Deaths counts everyone who has died here. Vitals is the same
+	// turnover written out: by cause, by tick, and with the reason nobody
+	// else was born beside it. Chronicle is the last of the births,
+	// deaths, and discoveries, kept so a viewer that has fallen behind can
+	// still say what happened.
+	Deaths    int
+	Vitals    Vitals
+	Chronicle []Note
 	// Choices and Entropy record this tick's fit-based decisions: how many
 	// were made and how open they were in total, for observation.
 	Choices int
@@ -313,13 +319,15 @@ func (w *World) Find(id entity.ID) *entity.Agent {
 
 // Emit appends an event at the current tick.
 func (w *World) Emit(kind event.Kind, actor, target entity.ID, format string, args ...any) {
-	w.Log.Append(event.Event{
+	e := event.Event{
 		Tick:   w.Tick,
 		Kind:   kind,
 		Actor:  actor,
 		Target: target,
 		Text:   fmt.Sprintf(format, args...),
-	})
+	}
+	w.Log.Append(e)
+	w.note(e)
 }
 
 // EmitAt records an event that came out of a particular act on a particular

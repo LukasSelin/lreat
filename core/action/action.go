@@ -57,6 +57,11 @@ type Def struct {
 	// would be done, so that rapport toward that person is part of the
 	// situation. Nil means the action involves nobody in particular.
 	With func(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent
+	// Supply is how the agent's stores bear on this action: how short it
+	// is of what the action would bring, and how well supplied in what
+	// the action would spend, each in [-1, 1]. Nil means the action moves
+	// nothing the agent keeps.
+	Supply func(a *entity.Agent) (lack, stock float64)
 }
 
 // Count is the size of the catalog, set once it is assembled.
@@ -251,7 +256,7 @@ func helping(a *entity.Agent) (meals, raw, restores float64) {
 const tableCheer = 0.03
 
 var Eat = &Def{
-	Name: "eat", Ticks: 1, Target: here,
+	Name: "eat", Ticks: 1, Target: here, Supply: supply(nil, []*ontology.Class{ontology.Provision}, false),
 	Available: func(a *entity.Agent, _ *world.World) bool { return Edible(a) >= mouthful },
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		_, _, restores := helping(a)
@@ -459,7 +464,7 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 // yet. It is its own act so that a holding is a thing an agent has, lacks,
 // or is still adding to.
 var Clear = &Def{
-	Name: "clear field", Ticks: 4, Target: fieldSite,
+	Name: "clear field", Ticks: 4, Target: fieldSite, Supply: supply([]*ontology.Class{ontology.Grain}, nil, false),
 	Available: func(a *entity.Agent, _ *world.World) bool {
 		return !a.HasField || len(a.Parcel) < fieldTiles
 	},
@@ -494,7 +499,7 @@ var Clear = &Def{
 
 // Farm is the harvest: the household's holding, worked and worn.
 var Farm = &Def{
-	Name: "farm", Ticks: 4,
+	Name: "farm", Ticks: 4, Supply: supply([]*ontology.Class{ontology.Grain}, nil, false),
 	// A field is not a store to draw on at will. There has to be a crop
 	// standing on it, and until there is, the household lives on something
 	// else and the ground is left alone - which is the farming year, and
@@ -628,7 +633,7 @@ func roomNearby(w *world.World, p entity.Pos) bool {
 }
 
 var BuildShelter = &Def{
-	Name: "build shelter", Ticks: 3, Target: buildSite,
+	Name: "build shelter", Ticks: 3, Target: buildSite, Supply: supply(nil, []*ontology.Class{ontology.Timber}, false),
 	Available: func(a *entity.Agent, _ *world.World) bool {
 		return a.Inventory[entity.Wood] >= timberToBuild(a) && a.Shelter < 0.95
 	},
@@ -736,7 +741,7 @@ func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 // standing rather than in bread, which is the only reason anybody learns to
 // keep doing it.
 var Pave = &Def{
-	Name: "lay road", Ticks: 2, Target: paveSite,
+	Name: "lay road", Ticks: 2, Target: paveSite, Supply: supply(nil, []*ontology.Class{ontology.Timber}, false),
 	Available: func(a *entity.Agent, _ *world.World) bool {
 		return a.Inventory[entity.Wood] >= pavingWood
 	},

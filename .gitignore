@@ -65,3 +65,6 @@ $RECYCLE.BIN/
 
 # NFS temporary files
 .nfs*
+### Claude Code
+# Worktrees live under .claude but are not part of the tree.
+.claude/worktrees/

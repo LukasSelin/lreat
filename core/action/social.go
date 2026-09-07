@@ -7,6 +7,7 @@ import (
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -126,7 +127,7 @@ func BestRequest(a *entity.Agent, w *world.World) *entity.Request {
 // benefit lands on somebody else, which is what makes the settlement a
 // settlement rather than a set of people standing near each other.
 var Fulfil = &Def{
-	Name: "fulfil request", Ticks: 3,
+	Name: "fulfil request", Ticks: 3, Supply: supply([]*ontology.Class{ontology.Coin}, nil, false),
 	Available: func(a *entity.Agent, w *world.World) bool { return BestRequest(a, w) != nil },
 	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 		r := BestRequest(a, w)

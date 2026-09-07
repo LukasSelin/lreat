@@ -10,6 +10,7 @@ import (
 	"lreat/core/entity"
 	"lreat/core/habit"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -107,9 +108,9 @@ func TestSharedReflectsValuesAndStock(t *testing.T) {
 	a := blank(w, "a")
 	a.Norms[belief.Honesty] = 1
 	a.Caution = 0
-	a.Inventory[entity.Food] = foodKnee // a larder that reads as plenty
+	a.Inventory[entity.Food] = knee(ontology.Provision) // a larder that reads as plenty
 	s := Shared(a, w)
-	if s[habit.Honesty] != 1 || s[habit.Charity] != 0.5 || s[habit.Caution] != 0 || s[habit.Food] != 1 {
+	if s[habit.Honesty] != 1 || s[habit.Charity] != 0.5 || s[habit.Caution] != 0 {
 		t.Fatalf("shared = %v", s)
 	}
 	if s[habit.Company] != -1 {

@@ -392,6 +392,23 @@ func moving(in ontology.Instance) *Def {
 	}
 	tech := world.Tech(in.Tech)
 	d := &Def{Name: mv.Name, Ticks: in.Ticks, Target: other.Find}
+	// What the move brings and what it spends: the parts one way, coin the
+	// other at the market. A move that gives spends whichever part it has
+	// to spare.
+	var gets, gives []*ontology.Class
+	if receiving {
+		gets = parts
+		if other.Priced {
+			gives = []*ontology.Class{ontology.Coin}
+		}
+	} else {
+		gives = parts
+		if other.Priced {
+			gets = []*ontology.Class{ontology.Coin}
+		}
+	}
+	d.Supply = supply(gets, gives, !receiving)
+
 	if other.Who != nil {
 		d.With = func(a *entity.Agent, w *world.World, _ entity.Pos) *entity.Agent { return other.Who(a, w, reachRadius) }
 	}

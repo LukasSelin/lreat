@@ -183,7 +183,7 @@ func init() {
 	// A tavern belongs to the lonely with standing to win and timber to
 	// spare, among people they mean to keep company with.
 	seed(BuildTavern, reachTavern, habit.Signature{
-		habit.Lonely: 0.5, habit.Unproven: 0.6, habit.Wood: 0.8, habit.Company: 0.5, habit.Charity: 0.3, habit.Tradition: 0.3,
+		habit.Lonely: 0.5, habit.Unproven: 0.6, habit.Company: 0.5, habit.Charity: 0.3, habit.Tradition: 0.3, habit.Stock: 0.8,
 	})
 	BuildTavern.Skilled = uses(entity.Building)
 }

@@ -61,12 +61,12 @@ func TestTeachingPassesRecognitionOn(t *testing.T) {
 	Imprint(student)
 	i := Index(Craft)
 	teacher.Reach[i] = 1
-	teacher.Habits[i][habit.Wood] = -0.9 // an odd habit, to see it travel
+	teacher.Habits[i][habit.Stock] = -0.9 // an odd habit, to see it travel
 	Pass(teacher, student, entity.Crafting)
 	if student.Reach[i] != TaughtReach {
 		t.Fatalf("student reach = %v, want %v", student.Reach[i], TaughtReach)
 	}
-	if !(student.Habits[i][habit.Wood] < Craft.Prior[habit.Wood]) {
+	if !(student.Habits[i][habit.Stock] < Craft.Prior[habit.Stock]) {
 		t.Fatal("student's habit did not move toward the teacher's")
 	}
 	student.Reach[i] = 1
@@ -82,7 +82,7 @@ func TestChildrenInheritHabitsAndAShareOfReach(t *testing.T) {
 	Imprint(parent)
 	i := Index(Study)
 	parent.Reach[i] = 1
-	parent.Habits[i][habit.Food] = 0.8
+	parent.Habits[i][habit.Lack] = 0.8
 	w.ReachFloor[Index(Craft)] = Opened
 
 	Inherit(child, parent, w, nil)

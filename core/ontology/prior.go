@@ -47,14 +47,10 @@ var SeizePrior = habit.Signature{habit.Honesty: -1, habit.Charity: -0.6}
 // that gathering wood fit every moment a little and no moment well.
 const ForShare = 0.6
 
-// Having is the moment of already holding c: its stock coordinates turned
-// round, and nothing of what it is for.
+// Having is the moment of already holding c: well supplied in what the
+// act will spend, and nothing of what it is for.
 func Having(c *Class) habit.Signature {
-	s := c.DerivedPrior()
-	for i := range s {
-		s[i] = -s[i]
-	}
-	return s
+	return habit.Signature{habit.Stock: c.Short()}
 }
 
 // Wanting is the moment of lacking c: its own coordinates, what its traits
@@ -63,6 +59,7 @@ func Having(c *Class) habit.Signature {
 // it is a keeping one, so the trait is left out of a made thing's want.
 func Wanting(c *Class, getting bool) habit.Signature {
 	s := c.DerivedPrior()
+	s[habit.Lack] += c.Short()
 	if getting {
 		for t, p := range TraitPrior {
 			if c.Has(t) {

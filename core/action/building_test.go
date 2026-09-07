@@ -1,6 +1,7 @@
 package action
 
 import (
+	"lreat/core/ontology"
 	"testing"
 
 	"lreat/core/entity"
@@ -93,9 +94,9 @@ func TestAFrameCostsSeveralTreesAndAPatchDoesNot(t *testing.T) {
 	}
 	// Wood has to stay something to be short of right up to the frame's
 	// price, or nobody ever stands in front of enough timber to raise one.
-	if woodKnee != raisingTimber || cookReserve != raisingTimber {
+	if knee(ontology.Timber) != raisingTimber || cookReserve != raisingTimber {
 		t.Fatalf("wood knee %v and cook reserve %v should both be the frame's price %v",
-			woodKnee, cookReserve, raisingTimber)
+			knee(ontology.Timber), cookReserve, raisingTimber)
 	}
 }
 

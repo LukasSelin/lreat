@@ -8,7 +8,7 @@ import (
 
 func TestCosineIsBoundedAndNeverNaN(t *testing.T) {
 	var zero Signature
-	a := Signature{Hunger: 1, Food: -1}
+	a := Signature{Hunger: 1, Lack: 1}
 	if c := Cosine(a, zero); c != 0 {
 		t.Fatalf("cosine with zero vector = %v, want 0", c)
 	}

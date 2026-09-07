@@ -23,6 +23,15 @@ streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
 and everything it weighed before setting out. `esc` drops it, `q` quits.
 
+`d` swaps the map for the settlement's vital record, which is how a run that
+ended is read rather than guessed at: the population curve coloured by how well
+fed it was at the time, a ribbon under it saying which way each stretch of the
+run was going, what people died of, how the generations are shaped, what there
+is to live on — and the fertility funnel, which is every living figure counted
+under the first thing standing between it and a child. A settlement that starved
+and one that simply stopped bearing look identical on the map and nothing alike
+there.
+
 Run a settlement with no display and print how it went:
 
 ```bash
@@ -35,6 +44,14 @@ judged against another — a single seed is a coin toss:
 ```bash
 go run ./cmd/tune -seeds 24 -ticks 6000
 ```
+
+What that batch prints on master is checked in at
+[docs/baseline.md](docs/baseline.md), so a change is judged against a file
+rather than against a batch run to find out where master already stood. Take the
+one run that measures the change once it is settled, and refresh the file in the
+commit that lands it. The `baseline` skill in
+[.claude/skills](.claude/skills/baseline/SKILL.md) is that procedure written
+out, including which of the numbers are steady enough to believe.
 
 All three take `-seed` and `-agents`. A seed plus a command log reproduces a run
 exactly, however the goroutines happen to interleave.

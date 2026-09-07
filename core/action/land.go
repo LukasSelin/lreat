@@ -5,6 +5,7 @@ import (
 	"lreat/core/event"
 	"lreat/core/habit"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -109,7 +110,7 @@ func thirsty(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 }
 
 var Irrigate = &Def{
-	Name: "irrigate", Ticks: 4,
+	Name: "irrigate", Ticks: 4, Supply: supply(nil, []*ontology.Class{ontology.Timber}, false),
 	Available: func(a *entity.Agent, w *world.World) bool {
 		if !a.HasField || a.Inventory[entity.Wood] < irrigationCost || !known(a, w, "irrigation", "irrigate") {
 			return false
@@ -137,7 +138,7 @@ var Irrigate = &Def{
 }
 
 var PlantTrees = &Def{
-	Name: "plant trees", Ticks: 2,
+	Name: "plant trees", Ticks: 2, Supply: supply([]*ontology.Class{ontology.Timber}, nil, false),
 	Available: func(a *entity.Agent, w *world.World) bool { return known(a, w, "forestry", "plant trees") },
 	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 		anchor := a.Pos
@@ -183,21 +184,21 @@ func init() {
 	// Fishing belongs to the hungry moment by the water, and to those who
 	// have learned it.
 	seed(Fish, reachFish, habit.Signature{
-		habit.Hunger: 0.7, habit.Food: -0.6, habit.Near: 0.6, habit.Skill: 0.3,
+		habit.Hunger: 0.7, habit.Near: 0.6, habit.Skill: 0.3, habit.Lack: 0.6,
 	})
 	Fish.Skilled = uses(entity.Fishing)
 	// Hunting belongs to the hungry moment with a tool in hand.
 	seed(Hunt, reachHunt, habit.Signature{
-		habit.Hunger: 0.8, habit.Food: -0.7, habit.Near: 0.4,
+		habit.Hunger: 0.8, habit.Near: 0.4, habit.Lack: 0.7,
 	})
 	// Irrigating belongs to the industrious farmer with wood to spare.
 	seed(Irrigate, reachWater, habit.Signature{
-		habit.Industry: 0.7, habit.Wood: 0.5, habit.Near: 0.5, habit.Skill: 0.4,
+		habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.4, habit.Stock: 0.5,
 	})
 	Irrigate.Skilled = uses(entity.Farming)
 	// Planting belongs to a moment with no wood and a mind for those who
 	// come after: it feeds nobody today.
 	seed(PlantTrees, reachForest, habit.Signature{
-		habit.Wood: -0.5, habit.Industry: 0.4, habit.Charity: 0.3, habit.Tradition: 0.4, habit.Near: 0.5,
+		habit.Industry: 0.4, habit.Charity: 0.3, habit.Tradition: 0.4, habit.Near: 0.5, habit.Lack: 0.5,
 	})
 }

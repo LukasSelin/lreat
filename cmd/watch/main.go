@@ -10,9 +10,15 @@
 // ever the sum of those; without a way to read one of them the map is a
 // weather system.
 //
+// D swaps the map for the settlement's vital record: the population curve,
+// what people have died of, and what stood between everyone still alive and
+// a child. The map says a settlement has stopped; only that page says why,
+// and it is the reason a run that ends is worth reading rather than
+// restarting.
+//
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // r lays streets through the settlement, tab and shift-tab pick an agent
-// (or click one), esc drops it, q quits.
+// (or click one), esc drops it, d shows the vitals, q quits.
 package main
 
 import (
@@ -71,6 +77,27 @@ func main() {
 	defer cancel()
 	go runner.Run(ctx)
 
+	v := &view{
+		speed: *tps,
+		// The panel reads one agent at a time straight off the simulation
+		// goroutine rather than out of the snapshot: a portrait is far more
+		// than the map needs, and nobody is looking at all of them at once.
+		look: func(id entity.ID) *observe.Portrait {
+			var p *observe.Portrait
+			runner.Inspect(func(w *world.World) { p = observe.Look(w, id) })
+			return p
+		},
+		follow: func(id entity.ID) {
+			runner.Send(sim.Func(func(w *world.World) { w.Watch(id) }))
+		},
+	}
+	// However the run ends, it says how it went on the way out — and it is
+	// registered before the screen is, so that it prints to the terminal
+	// the screen has just been handed back rather than into a display about
+	// to be torn down. A settlement nobody can report on afterwards is one
+	// nobody can tune against. See Report in vitals.go.
+	defer func() { fmt.Print(v.Report()) }()
+
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		log.Fatal(err)
@@ -88,21 +115,7 @@ func main() {
 		}
 	}()
 
-	v := &view{
-		screen: screen,
-		speed:  *tps,
-		// The panel reads one agent at a time straight off the simulation
-		// goroutine rather than out of the snapshot: a portrait is far more
-		// than the map needs, and nobody is looking at all of them at once.
-		look: func(id entity.ID) *observe.Portrait {
-			var p *observe.Portrait
-			runner.Inspect(func(w *world.World) { p = observe.Look(w, id) })
-			return p
-		},
-		follow: func(id entity.ID) {
-			runner.Send(sim.Func(func(w *world.World) { w.Watch(id) }))
-		},
-	}
+	v.screen = screen
 	for {
 		select {
 		case s := <-runner.Snapshots():
@@ -149,6 +162,20 @@ type view struct {
 	pic    *observe.Portrait
 	look   func(entity.ID) *observe.Portrait
 	follow func(entity.ID)
+
+	// vitals swaps the map for the settlement's demographic record. The
+	// history behind it is kept whether the page is open or not: a
+	// settlement dies out once, and nobody is watching the right page when
+	// it does. See vitals.go.
+	vitals    bool
+	traces    []trace
+	peak      int
+	peakAt    int
+	gone      int // the tick the last person died, zero while anyone lives
+	births    int
+	deaths    int
+	lastBirth int
+	lastDeath int
 }
 
 // record folds a tick's activity into the history. Ticks are averaged into
@@ -156,6 +183,7 @@ type view struct {
 // faster than it can be read: agents swap between farm and forage and eat
 // several times a second. A column holds still.
 func (v *view) record(s *observe.Snapshot) {
+	v.keep(s)
 	for _, a := range s.Activity {
 		v.acc[ascii.GroupOf(a.Action)] += float64(a.Agents)
 	}
@@ -164,6 +192,7 @@ func (v *view) record(s *observe.Snapshot) {
 	if v.accTicks < graphTicks {
 		return
 	}
+	v.plot(s)
 	var col column
 	if v.accTotal > 0 {
 		for i, n := range v.acc {
@@ -183,12 +212,18 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Key() == tcell.KeyCtrlC || ev.Rune() == 'q':
 		return false
 	case ev.Key() == tcell.KeyEscape:
-		// Esc lets go of whoever is being followed, and only quits when
-		// nobody is: dropping back to the settlement is the commoner move.
-		if v.sel == 0 {
+		// Esc backs out one step at a time — off the vitals page, then off
+		// whoever is being followed — and only quits when there is nothing
+		// left to back out of: dropping back to the settlement is the
+		// commoner move.
+		switch {
+		case v.vitals:
+			v.vitals = false
+		case v.sel != 0:
+			v.choose(0)
+		default:
 			return false
 		}
-		v.choose(0)
 	case ev.Rune() == ' ':
 		v.paused = !v.paused
 		if v.paused {
@@ -211,6 +246,8 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 		v.pick(1)
 	case ev.Key() == tcell.KeyBacktab:
 		v.pick(-1)
+	case ev.Rune() == 'd':
+		v.vitals = !v.vitals
 	case ev.Rune() == 'r':
 		// Lay the whole street network at once. Agents pave for themselves
 		// now, a length at a time where they have worn the ground; this is
@@ -309,10 +346,14 @@ func (v *view) draw() {
 		return
 	}
 	s := v.snap
+	sw, sh := sc.Size()
+	if v.vitals {
+		v.drawVitals(sw, sh)
+		return
+	}
 	if v.sel != 0 && v.look != nil {
 		v.pic = v.look(v.sel)
 	}
-	sw, sh := sc.Size()
 	needH := s.Map.H + graphHeight + 3 // map, the legend, the graph, its span, the keys
 	if sw < s.Map.W+panelWidth || sh < needH {
 		puts(sc, 0, 0, tcell.StyleDefault, fmt.Sprintf("terminal too small: need %dx%d, have %dx%d", s.Map.W+panelWidth, needH, sw, sh))
@@ -432,7 +473,15 @@ func (v *view) draw() {
 	v.drawGraph(0, s.Map.H+1, s.Map.W)
 	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d ticks →", min(len(v.hist), s.Map.W)*graphTicks))
 	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  r pave")
-	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  q quit")
+	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  d vitals  q quit")
+	// A settlement that has ended says so across the empty map it left, and
+	// says where to go and read why. Without this the map simply stops
+	// moving and a finished run looks like a hung one.
+	if s.Population == 0 && v.gone != 0 {
+		note := fmt.Sprintf("the settlement died out at tick %d — press d for why", v.gone)
+		puts(sc, max(0, (s.Map.W-len([]rune(note)))/2), s.Map.H/2,
+			tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true), note)
+	}
 	sc.Show()
 }
 

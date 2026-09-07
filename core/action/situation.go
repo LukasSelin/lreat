@@ -17,43 +17,16 @@ import (
 // bipolar maps [0,1] onto [-1,1], clamping outside it.
 func bipolar(x float64) float64 { return 2*need.Clamp(x) - 1 }
 
-// Knees are the amounts of each stock at which its dimension saturates.
-// They are what an agent reads as plenty, and plenty is the whole of what
-// stops it going out to get more. Without a learner to notice that a full
-// larder went on feeding a family for a fortnight, these are the only place
-// that judgement lives.
-//
-// The wood knee has to be the frame's price and not an errand's. Read against
-// an armful, a person holding two lengths already feels flush, and feeling
-// flush is what stops them going back to the woods: they would spend the
-// afternoon paving or whittling instead, and never once in a life stand in
-// front of enough timber to raise a wall. Read against the frame, wood stays
-// something to be short of until there is a house's worth of it, which is
-// what makes gathering toward a house a thing an agent will keep at for days.
-//
-// The food knee is a fortnight's eating, not a day's. Read against four
-// units - the point past which one more unit is worth nothing to eat today -
-// a settlement lived hand to mouth: two units in the basket read as half
-// plenty, nobody went out, and a fertile adult was fed well enough to think
-// of a child about a third of the time. What a larder is for is the week
-// that has not happened yet, and read at sixteen the same person keeps
-// working.
-//
-// The near knee is the ground people live on, not the width of the map.
-// Read at thirty an errand three times as far as another read as only a
-// little worse, and agents spent their lives walking; read at six,
-// everything past the near ground reads as far as can be and the choice
-// between two errands is decided where it is actually made. It is the most
-// valuable number in the file: on its own it took settlements that replaced
-// their founders from 39 in 48 to 46, and with the food knee beside it the
-// median settlement roughly doubled.
-const (
-	foodKnee   = 16
-	woodKnee   = raisingTimber
-	wealthKnee = 20
-	// nearKnee is the travel cost at which a target reads as far as can be.
-	nearKnee = 6
-)
+// nearKnee is the travel cost at which a target reads as far as can be.
+// It is the ground people live on, not the width of the map. Read at
+// thirty an errand three times as far as another read as only a little
+// worse, and agents spent their lives walking; read at six, everything
+// past the near ground reads as far as can be and the choice between two
+// errands is decided where it is actually made. It is the most valuable
+// number in the file: on its own it took settlements that replaced their
+// founders from 39 in 48 to 46, and with the food knee beside it the
+// median settlement roughly doubled. The store knees are in store.go.
+const nearKnee = 6
 
 // Shared is the part of the situation that is the same for every candidate.
 func Shared(a *entity.Agent, w *world.World) habit.Signature {
@@ -62,9 +35,6 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	for t := range u {
 		s[t] = bipolar(u[t] * a.Personality[t])
 	}
-	s[habit.Food] = bipolar(a.Inventory[entity.Food] / foodKnee)
-	s[habit.Wood] = bipolar(a.Inventory[entity.Wood] / woodKnee)
-	s[habit.Wealth] = bipolar(a.Wealth / wealthKnee)
 	// Shelter is read as a lack, not around a midpoint: half a house is
 	// still half a house short, and a roof that is not kept up rots to
 	// nothing. Read around a midpoint the unsheltered moment only began once
@@ -141,6 +111,26 @@ func SituationOn(a *entity.Agent, w *world.World, r *world.Router, d *Def, targe
 			s[habit.Rapport] = rapport(a, w, d, o)
 		}
 	}
+	// What the act would bring and spend, or, for an act that moves
+	// nothing in particular, how the agent stands in general: every
+	// candidate's moment has the same shape, so none is nearer for saying
+	// less.
+	if d.Supply != nil {
+		s[habit.Lack], s[habit.Stock] = d.Supply(a)
+	} else {
+		p := plenty(a)
+		s[habit.Lack], s[habit.Stock] = -p, p
+	}
+	// What the act would bring and spend, or, for an act that moves
+	// nothing in particular, how the agent stands in general: every
+	// candidate's moment has the same shape, so none is nearer for saying
+	// less.
+	if d.Supply != nil {
+		s[habit.Lack], s[habit.Stock] = d.Supply(a)
+	} else {
+		p := plenty(a)
+		s[habit.Lack], s[habit.Stock] = -p, p
+	}
 	if d.Skilled != nil {
 		if sk, ok := d.Skilled(a, w); ok {
 			s[habit.Skill] = bipolar(a.Believes(sk))
@@ -162,7 +152,20 @@ func rapport(a *entity.Agent, w *world.World, d *Def, o *entity.Agent) float64 {
 // Fit is how well a candidate's situation matches the agent's habit for it,
 // less how far out of reach the action still is.
 func Fit(a *entity.Agent, i int, s habit.Signature) float64 {
-	return habit.Cosine(s, a.Habits[i]) - habit.ReachPenalty*(1-a.Reach[i])
+	// The store coordinates count toward how well the moment matches the
+	// habit, not toward how big the moment is. They are read per
+	// candidate, and a candidate is not further from its habit for being
+	// about something the agent is short of: with them in the norm, an
+	// act that moves nothing had the longer moment and lost on cosine to
+	// one that does, whatever either was about.
+	h := a.Habits[i]
+	shape := s
+	shape[habit.Lack], shape[habit.Stock] = 0, 0
+	ns, nh := habit.Norm(shape), habit.Norm(h)
+	if ns < habit.Epsilon || nh < habit.Epsilon {
+		return -habit.ReachPenalty * (1 - a.Reach[i])
+	}
+	return max(-1, min(1, habit.Dot(s, h)/(ns*nh))) - habit.ReachPenalty*(1-a.Reach[i])
 }
 
 // Candidate is one action the agent could take now, with everything the
