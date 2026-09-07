@@ -82,6 +82,10 @@ type Class struct {
 	Traits Trait
 	Prior  habit.Signature
 	At     habit.Signature
+	// Lack is how strongly being short of this registers, for a material:
+	// what a class adds on the lack coordinate when an act would bring it,
+	// and on the stock coordinate when an act would spend it. Inherited.
+	Lack float64
 
 	children []*Class
 }
@@ -173,20 +177,20 @@ var (
 	// foraging and hunting are different habits.
 	// A class's prior is its stock coordinate and nothing else: what it is
 	// for comes through Wanting, and what taking it takes is in takeDetail.
-	Provision = New("provision", Material, Edible, habit.Signature{habit.Food: -0.8})
+	Provision = lack(New("provision", Material, Edible, habit.Signature{}), 0.8)
 	Berries   = New("berries", Provision, Perishable, habit.Signature{habit.Chill: -0.3})
 	Game      = New("game", Provision, Perishable, habit.Signature{})
 	Fish      = New("fish", Provision, Perishable, habit.Signature{})
 	Grain     = New("grain", Provision, 0, habit.Signature{habit.Chill: -0.5})
 	Meal      = New("meal", Provision, Perishable, habit.Signature{})
 
-	Timber = New("timber", Material, Burnable|Buildable, habit.Signature{habit.Wood: -0.6})
-	Stone  = New("stone", Material, Buildable|Heavy, habit.Signature{})
-	Tool   = New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5})
+	Timber = lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6)
+	Stone  = lack(New("stone", Material, Buildable|Heavy, habit.Signature{}), 0.5)
+	Tool   = lack(New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5}), 0.5)
 	// Coin is a thing so that money can be made, given, and stolen like
 	// anything else. A young settlement barters; coin arrives when
 	// somebody mints it.
-	Coin = New("coin", Material, 0, habit.Signature{habit.Wealth: -0.6})
+	Coin = lack(New("coin", Material, 0, habit.Signature{}), 0.6)
 
 	// Person is one class. How a person stands to the actor is a Role, not
 	// a subclass: nobody is a pupil the way an oak is timber.
@@ -234,6 +238,22 @@ var (
 	Road = New("road", Built, Passable, habit.Signature{})
 )
 
+// lack sets how strongly being short of a material registers.
+func lack(c *Class, l float64) *Class {
+	c.Lack = l
+	return c
+}
+
+// Short is how strongly being short of c registers, walking up the tree.
+func (c *Class) Short() float64 {
+	for x := c; x != nil; x = x.Parent {
+		if x.Lack != 0 {
+			return x.Lack
+		}
+	}
+	return 0
+}
+
 // at sets what being at a site is like.
 func at(c *Class, s habit.Signature) *Class {
 	c.At = s
@@ -253,11 +273,11 @@ var (
 	// Neighbour is anyone within range.
 	Neighbour = Role{"neighbour", habit.Signature{habit.Lonely: 0.5, habit.Company: 0.5, habit.Rapport: 0.5}}
 	// Requester has asked for something the actor can supply.
-	Requester = Role{"requester", habit.Signature{habit.Unproven: 0.5, habit.Wealth: -0.5, habit.Industry: 0.5, habit.Skill: 0.5}}
+	Requester = Role{"requester", habit.Signature{habit.Unproven: 0.5, habit.Industry: 0.5, habit.Skill: 0.5, habit.Lack: 0.5}}
 	// Needy has none of something and feels the lack.
 	Needy = Role{"needy", habit.Signature{habit.Lonely: 0.3, habit.Rapport: 0.5}}
 	// Holder has more of something than they need.
-	Holder = Role{"holder", habit.Signature{habit.Hunger: 1, habit.Food: -1, habit.Rapport: -0.4}}
+	Holder = Role{"holder", habit.Signature{habit.Hunger: 1, habit.Rapport: -0.4}}
 	// Pupil reaches less far in some practice than the actor. Teaching is
 	// the moment of having a skill to show and someone to show it to; what
 	// is wanted of the practice is all on this side.

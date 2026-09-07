@@ -112,13 +112,13 @@ var Schemas = []Schema{
 	// Tending changes the ground. Clearing is the half of farming that
 	// makes a field; harvesting is the Take above.
 	{Verb: Tend, Name: "clear", Site: Open, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Food: -0.3, habit.Chill: -0.5, habit.Industry: 0.7, habit.Skill: 0.3},
+		Prior:   habit.Signature{habit.Chill: -0.5, habit.Industry: 0.7, habit.Skill: 0.3, habit.Lack: 0.3},
 		Valence: belief.Valence{belief.Industry: 0.3}},
 	{Verb: Tend, Name: "water", Inputs: []*Class{Timber}, Site: Field, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachWater, Tech: "irrigation",
 		Prior:   habit.Signature{habit.Industry: 0.7, habit.Skill: 0.4},
 		Valence: belief.Valence{belief.Industry: 0.3}},
 	{Verb: Tend, Name: "plant", Site: Open, Ticks: 2, Reach0: reachForest, Tech: "forestry",
-		Prior:   habit.Signature{habit.Wood: -0.5, habit.Charity: 0.4, habit.Tradition: 0.4},
+		Prior:   habit.Signature{habit.Charity: 0.4, habit.Tradition: 0.4, habit.Lack: 0.5},
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
 
 	// Making, at a workplace.
@@ -183,13 +183,13 @@ var Schemas = []Schema{
 	// household mostly has over its keep is food, and that is the moment
 	// selling belongs to.
 	{Verb: Exchange, Inputs: []*Class{Material}, Output: Coin, Site: Market, Ticks: 1, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Food: 0.8},
+		Prior:   habit.Signature{habit.Stock: 0.8},
 		Valence: belief.Valence{belief.Industry: 0.15}},
 	{Verb: Exchange, Inputs: []*Class{Coin}, Output: Provision, Site: Market, Ticks: 1, Reach0: reachEveryday},
 
 	// Handing over, and its inverse.
 	{Verb: Transfer, Object: Provision, CollapseObject: true, Role: &Needy, Ticks: 1, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Hunger: -0.4, habit.Food: 0.7, habit.Charity: 1},
+		Prior:   habit.Signature{habit.Hunger: -0.4, habit.Charity: 1},
 		Valence: belief.Valence{belief.Charity: 0.8, belief.Honesty: 0.1}},
 	{Verb: Transfer, Object: Material, CollapseObject: true, Role: &Requester, Ticks: 3, Skilled: true, Reach0: reachEveryday,
 		Valence: belief.Valence{belief.Charity: 0.5, belief.Industry: 0.35}},
@@ -211,7 +211,7 @@ var Schemas = []Schema{
 	// verb alone the prior was a bare nearness that fit every moment a
 	// little, and agents moved house instead of living in one.
 	{Verb: Move, Site: Dwelling, Ticks: 4, Reach0: reachEveryday,
-		Prior: habit.Signature{habit.Wood: 0.6, habit.Shelter: 0.7, habit.Industry: 0.5, habit.Near: 0.4}},
+		Prior: habit.Signature{habit.Shelter: 0.7, habit.Industry: 0.5, habit.Near: 0.4}},
 }
 
 // takeDetail is what differs between takings of different things: the
@@ -234,7 +234,7 @@ var takeDetail = map[*Class]struct {
 	// low, and that tradition is what carries farming through the bad
 	// years a first field has.
 	Grain: {Skill: entity.Farming, Skilled: true, Reach0: reachEveryday, Ticks: 4,
-		Prior: habit.Signature{habit.Hunger: -0.8, habit.Food: 0.5, habit.Industry: 0.7, habit.Skill: 0.3}},
+		Prior: habit.Signature{habit.Hunger: -0.8, habit.Industry: 0.7, habit.Skill: 0.3, habit.Lack: -0.5}},
 	// Felling is winter work whoever does it: the sap is down and there is
 	// least else to do.
 	Timber: {Reach0: reachEveryday, Ticks: 2, Prior: habit.Signature{habit.Chill: 0.3}},

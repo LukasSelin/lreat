@@ -107,3 +107,101 @@ func price(w *world.World, m *ontology.Class) float64 {
 	g, _ := good(m)
 	return w.Market.Price[g]
 }
+
+// Knees are the amounts of each material at which its store reads as
+// full. They are what an agent reads as plenty, and plenty is the whole of
+// what stops it going out to get more. Without a learner to notice that a
+// full larder went on feeding a family for a fortnight, these are the only
+// place that judgement lives.
+//
+// The food knee is a fortnight's eating, not a day's. Read against four
+// units - the point past which one more unit is worth nothing to eat today
+// - a settlement lived hand to mouth: two units in the basket read as half
+// plenty, nobody went out, and a fertile adult was fed well enough to think
+// of a child about a third of the time. What a larder is for is the week
+// that has not happened yet, and read at sixteen the same person keeps
+// working.
+//
+// The wood knee has to be the frame's price and not an errand's. Read
+// against an armful, a person holding two lengths already feels flush, and
+// feeling flush is what stops them going back to the woods; read against
+// the frame, wood stays something to be short of until there is a house's
+// worth of it, which is what makes gathering toward a house a thing an
+// agent will keep at for days. Twenty coins is rich.
+var knees = map[*ontology.Class]float64{
+	ontology.Provision: 16,
+	ontology.Timber:    raisingTimber,
+	ontology.Coin:      20,
+	ontology.Tool:      1,
+	ontology.Meal:      3,
+	ontology.Stone:     4,
+}
+
+// knee is the amount at which a store of m reads as full, walking up the
+// tree.
+func knee(m *ontology.Class) float64 {
+	for c := m; c != nil; c = c.Parent {
+		if k, ok := knees[c]; ok {
+			return k
+		}
+	}
+	return 1
+}
+
+// fullness is how well supplied a is in m, in [-1, 1].
+func fullness(a *entity.Agent, m *ontology.Class) float64 {
+	s, ok := pack(a, m)
+	if !ok {
+		return 0
+	}
+	return bipolar(s.Held() / knee(m))
+}
+
+// supply is how an agent's stores bear on an act that brings gets and
+// spends gives: how short of the former, how well supplied in the latter.
+// An act that needs all of what it spends reads as supplied only as far
+// as its scarcest input; one that spends whichever it has to spare reads
+// as supplied as far as its fullest. Where an act brings nothing in
+// particular, or spends nothing, that side reads the stores in general,
+// so that every act's moment has both coordinates live and a habit can
+// learn that felling is for the well fed as much as that it is for the
+// short of wood.
+func supply(gets, gives []*ontology.Class, any bool) func(a *entity.Agent) (lack, stock float64) {
+	if len(gets) == 0 && len(gives) == 0 {
+		return nil
+	}
+	return func(a *entity.Agent) (lack, stock float64) {
+		lack, stock = -plenty(a), plenty(a)
+		for i, m := range gets {
+			if l := -fullness(a, m); i == 0 || l > lack {
+				lack = l
+			}
+		}
+		for i, m := range gives {
+			f := fullness(a, m)
+			if i == 0 || (any && f > stock) || (!any && f < stock) {
+				stock = f
+			}
+		}
+		return lack, stock
+	}
+}
+
+// everyday is what everybody keeps some of and runs short of: the stores
+// a moment is well off or badly off in, taken together.
+var everyday = []*ontology.Class{ontology.Provision, ontology.Timber, ontology.Coin}
+
+// plenty is how well off an agent is in what it keeps, taken all
+// together: the mean fullness of its everyday stores. It is what an act
+// that moves nothing in particular reads. It is read over the everyday stores
+// and not over everything with a knee, because tools, meals, and stone
+// are empty for almost everyone almost always, and a mean that counts
+// them is the same for everyone - which is a tax on whichever acts learn
+// it and tells nobody anything.
+func plenty(a *entity.Agent) float64 {
+	var sum float64
+	for _, m := range everyday {
+		sum += fullness(a, m)
+	}
+	return sum / float64(len(everyday))
+}

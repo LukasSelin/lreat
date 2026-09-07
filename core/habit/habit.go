@@ -19,7 +19,7 @@ import (
 )
 
 // Dims is the size of the space.
-const Dims = 21
+const Dims = 20
 
 // Slots are places in every agent's tables, one per act, keyed by the
 // act's canonical name. A slot is given once, in the order acts are first
@@ -63,23 +63,30 @@ func Grow[T any](s []T, n int) []T {
 	return append(s, make([]T, n-len(s))...)
 }
 
-// The dimensions. The first five are urgencies weighted by personality; the
-// next eight are stock and surroundings, the weather among them and what
-// the weather is actually doing to this body, because what a moment calls
-// for turns with the season and turns harder for whoever is out in it; five are what the agent
-// holds to be right and how much reprisal it expects; the last three are
-// patched per candidate action, because how near a thing is, how one feels
-// about the person involved, and how able one believes oneself all depend
-// on which action is being considered.
+// The dimensions. The first five are urgencies weighted by personality;
+// the next five are surroundings: shelter, company, the weather and what
+// it is doing to this body, and whether anybody keeps order; five are what
+// the agent holds to be right and how much reprisal it expects; the last
+// five are patched per candidate action, because how near a thing is, how
+// one feels about the person involved, how able one believes oneself, and
+// how short one is of what the act brings or how well supplied in what it
+// costs all depend on which action is being considered.
+//
+// Lack and Stock are how an agent's stores enter the space. There is no
+// coordinate for food or wood or coin as such: a moment is short of what
+// this act would bring, or well supplied in what it would spend, whatever
+// that is. That is what lets a material the trees did not have yesterday
+// be recognised today, by an agent that was never told its name. An act
+// that moves nothing in particular reads the stores in general on the
+// same two coordinates - short of things, or well off - so that every
+// candidate's moment has the same shape, and a habit for resting or
+// meeting can still learn that it belongs to ease and not to want.
 const (
 	Hunger = iota
 	Unsafe
 	Lonely
 	Unproven
 	Curious
-	Food
-	Wood
-	Wealth
 	Shelter
 	Company
 	Chill
@@ -93,14 +100,16 @@ const (
 	Near
 	Rapport
 	Skill
+	Lack
+	Stock
 )
 
 // Names labels each dimension for reports.
 var Names = [Dims]string{
 	"hunger", "unsafe", "lonely", "unproven", "curious",
-	"food", "wood", "wealth", "shelter", "company", "chill", "exposure", "order",
+	"shelter", "company", "chill", "exposure", "order",
 	"honesty", "charity", "industry", "tradition", "caution",
-	"near", "rapport", "skill",
+	"near", "rapport", "skill", "lack", "stock",
 }
 
 // Signature is a point or direction in the space, each coordinate roughly

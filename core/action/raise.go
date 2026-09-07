@@ -105,7 +105,7 @@ func raising(in ontology.Instance) *Def {
 	}
 	takes := in.Schema.Inputs
 	tech := world.Tech(in.Tech)
-	d := &Def{Name: p.Name, Ticks: in.Ticks, Target: p.Site}
+	d := &Def{Name: p.Name, Ticks: in.Ticks, Target: p.Site, Supply: supply(nil, takes, false)}
 	d.Available = func(a *entity.Agent, w *world.World) bool {
 		for i, m := range takes {
 			if mine, _ := pack(a, m); mine.Held() < p.Amounts[i] {

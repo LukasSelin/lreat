@@ -25,10 +25,7 @@ Shared dimensions, computed once per agent per decision:
 | dim | name | source | mapping |
 |---|---|---|---|
 | 0-4 | hunger, unsafe, lonely, unproven, curious | `need.Urgencies(a.Needs)[t] * a.Personality[t]` | `2*clamp01(x) - 1` |
-| 5 | food | `Inventory[Food]` | `2*clamp01(food/16) - 1` (a fortnight's eating; see the knees in `situation.go`) |
-| 6 | wood | `Inventory[Wood]` | `2*clamp01(wood/2) - 1` (the cost of a house, so +1 means "can build") |
-| 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
-| 8 | shelter | `Shelter` | `shelter - 1`, a lack: half a house is half a house short |
+| 5 | shelter | `Shelter` | `shelter - 1`, a lack: half a house is half a house short |
 | 9 | company | `w.Neighbor(a, 8) != nil` | +1 or -1 |
 | 10 | chill | `w.Climate.Chill()` | `chill`, one-sided: 0 through the mild half of the year, 1 at the bottom of a hard winter |
 | 11 | order | `w.Safety` | `safety`, one-sided |
@@ -42,6 +39,25 @@ Per-candidate dimensions, patched for each action being weighed:
 | 17 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 6)` |
 | 18 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
 | 19 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
+| 18 | lack | `-bipolar(held/knee)` over what the act would bring: how short of it. For an act that brings nothing in particular, how short of things in general: `-plenty`, the mean fullness of food, timber, and coin. |
+| 19 | stock | `bipolar(held/knee)` over what the act would spend: how well supplied. The scarcest input for a making; the fullest of whatever a seller has to spare. For an act that spends nothing in particular, `plenty`. |
+
+There is no coordinate for food or wood or coin as such. The stock coordinates the space began with (`food`, `wood`, `wealth`, at dims 5-7) were literal: an agent could recognise being short of food because food had a dimension, and could not recognise being short of anything the space had not been told about. `lack` and `stock` are relational: a moment is short of *what this act would bring*, and supplied in *what it would spend*, whatever those are, read off the act's stores (see The ontology, Stores). Quarrying reads the lack of stone though stone never had a coordinate, and a material the trees get tomorrow reads the same way. The knees moved with them into `store.go`: food is full at a fortnight's eating, wood at a house's frame, coin at twenty, and stone, tools, and meals have knees of their own now. Every tuned prior that named a stock was translated, `wood: -0.6` on gathering becoming `lack: 0.6` and `wood: 1` on building becoming `stock: 1`; the golden fits stayed above 0.8 and the city test replaced its founders. What was lost, deliberately: a prior can no longer name a *particular* store the act does not touch - moving house was tuned to "spare wood", and reads only the settled moment now. What was nearly lost by accident: with the shared stock coordinates gone, a habit for resting or meeting or standing guard had no store coordinate left to learn on; an act that moves nothing in particular now reads the stores *in general* on the same two coordinates, `-plenty` and `plenty`, so every candidate's moment has the same shape.
+
+**Measured, and not merged.** The relational space is implemented, its tests pass, every fit against the tuned priors stays above 0.8, and the liveness and paving tests pass. It is nevertheless a regression, and the branch stops here until it is understood. Over the same twelve seeds, 4000 ticks, twenty founders:
+
+| space | lasted | bridged | mean alive |
+|---|---|---|---|
+| master (shared food, wood, wealth) | 12/12 | 11/12 | 179 |
+| relational, plain | 10/12 | 7/12 | 105 |
+| relational, an act that moves nothing reads the stores in general | 10/12 | 8/12 | 100 |
+| relational, a separate shared "plenty" coordinate | 10/12 | 8/12 | 65 |
+| relational plus the shared trio restored | 6/12 | 5/12 | 52 |
+| master plus lack and stock as extra zero-prior coordinates | 9/12 | 8/12 | 55 |
+
+The activity profile under the relational space is the same whatever else is turned: foraging up by a third, planting and building up, farming halved, standing guard down by two thirds, teaching and study by two thirds. Seventeen single-lever remedies were measured and none reached the plain relational tree's own 100, let alone 179: temperature (calibrated to master's decision entropy of 0.84 per choice against the relational tree's 0.69 - hotter was much worse), the reach penalty, the learning rate, retention, the coin knee, coin out of the coordinates, tool and stone without a lack, the mean over what a seller could spare, an always-on learned intercept, and the store coordinates left out of the moment's norm. Adding two zero-prior coordinates to master's space inverts the profile instead (guard and gathering up, building down), so the size of a per-candidate coordinate does shape choice through the cosine's norm; but taking the store coordinates out of the norm does not repair the relational tree, so that is not the whole of it. What the shared coordinates were doing that a per-act reading cannot is an open question, and the honest next step is a diagnostic that follows one settlement's farm and guard habits through their first thousand ticks in both spaces, not another constant.
+
+Two things the measuring found that hold regardless: the sampler reads `world.DefaultRules().Temperature`, and `habit.Temperature` is dead; and decision entropy per choice is a clean instrument for the openness of a space, cheaper than a batch and worth keeping.
 
 Personality is folded into the urgency dimensions rather than kept separate. The moral coordinates are one-sided because the belief layer defines them that way: a norm of 0 is holding nothing and caution of 0 is having seen no reprisal. Read on that scale an ordinary agent minds a wrong about half as much as a saint, which is what conscience charges in the value rule. Centred at 0.5 they fell silent for everyone but the extremes, and theft ran wild (see the comparison below). Order is read as a lack instead, `safety - 1`, so that the ungoverned settlement is the loud reading and an act whose moment is the ungoverned one can say so. The moral dimensions never vary between an agent's habits: they are the same across every candidate it weighs, so a difference on them would cancel out of the choice. Values belong to the agent. Signatures describe situations.
 
@@ -669,6 +685,8 @@ Thing                                 Site
 Two rules held across all of them. *What an act promises it gives*: the esteem a making expects is the esteem it grants, the company a tavern promises its builder is theirs on the day - except the body's tiers, which come with what was got, and safety, which is the settlement's to give as a structure does its work. And *the code corrects the trees*: the tavern was written as timber and stone and had only ever taken timber; selling was written over provisions and had always sold tools and stone too; giving was written to a neighbour and had always looked for someone in need. Each came out of binding the mechanics to the schema, and each is a `Needy` role or a `material` in a key now.
 
 **Adding a material** is now: a class under `Material` with its traits, an entry in `Affords` for where it lies, a lode row, and a stock on the tile if it draws one down. The walk entails the taking, the composition gives it a prior, the registry gives it a slot, and the binding at start says if anything is missing. A thing to make of it is a schema and a recipe; a thing to build of it a schema and a plan; a price for it a line in the terms. The four acts still by hand are the ones whose logic is different in kind, not in degree, and there is nothing to gain from forcing them.
+
+**Stores.** A material is always somewhere: in the ground, in a pack, in a purse, on the market's shelves. `Holds` in the trees says which kinds of thing hold which materials; `store.go` resolves that at run time to a number that can be read and moved - a `cell` in the world, or `bottomless` for the stone in an outcrop and the market's coin. Every verb that moves material names its stores by class and never says inventory or tile or wealth, which is what made taking, exchanging, and handing over one interpreter (`move.go`), and what the `lack` and `stock` coordinates above are read from.
 
 **Where to tune, now.** `core/action/priors.go` still holds the priors as they were written by hand, and they are kept as `Def.Tuned` for the golden test - but they no longer run. Exposure was added there first and reached nothing for a merge. What an act recognises is changed in `core/ontology`: the class's stock coordinate, a trait's want, a role's moment, a site's `At`, or the residue on the schema. The golden test says how far the composition has moved from what was tuned; the city test says whether the settlement still lives on it.
 

@@ -15,7 +15,7 @@ func TestALateActTakesAFreshSlot(t *testing.T) {
 	a := blank(w, "a")
 	Imprint(a)
 	i := Index(Forage)
-	a.Habits[i][habit.Food] = 0.9 // something learned, to see it kept
+	a.Habits[i][habit.Lack] = 0.9 // something learned, to see it kept
 	a.Reach[i] = 0.5
 
 	late := &Def{Key: "test/late", Name: "late", Ticks: 1, Reach0: 0.3,
@@ -39,7 +39,7 @@ func TestALateActTakesAFreshSlot(t *testing.T) {
 	if a.Habits[j] != late.Prior || a.Reach[j] != late.Reach0 {
 		t.Fatalf("late slot = %v reach %v, want its prior", a.Habits[j], a.Reach[j])
 	}
-	if a.Habits[i][habit.Food] != 0.9 || a.Reach[i] != 0.5 {
+	if a.Habits[i][habit.Lack] != 0.9 || a.Reach[i] != 0.5 {
 		t.Fatal("seeding a fresh slot should leave learned ones alone")
 	}
 	if a.Seeded != len(Catalog) {

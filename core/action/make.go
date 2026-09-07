@@ -97,7 +97,8 @@ func making(in ontology.Instance) *Def {
 	}
 	takes, gives := in.Schema.Inputs, in.Schema.Output
 	tech := world.Tech(in.Tech)
-	d := &Def{Name: r.Name, Ticks: in.Ticks, Target: place}
+	d := &Def{Name: r.Name, Ticks: in.Ticks, Target: place,
+		Supply: supply([]*ontology.Class{gives}, takes, false)}
 	d.Available = func(a *entity.Agent, w *world.World) bool {
 		for i, m := range takes {
 			wants := r.Amounts[i]

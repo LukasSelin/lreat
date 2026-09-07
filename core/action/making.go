@@ -84,7 +84,7 @@ func init() {
 	// spare beyond a house's worth, and no hunger to speak of. It is a
 	// keeping act, not a way of eating.
 	seed(Cook, reachCook, habit.Signature{
-		habit.Hunger: -0.5, habit.Food: 0.9, habit.Wood: 0.8, habit.Industry: 0.3, habit.Near: 0.5,
+		habit.Hunger: -0.5, habit.Industry: 0.3, habit.Near: 0.5, habit.Stock: 0.8,
 	})
 	// Quarrying belongs to the unsheltered with a tool in hand and stone
 	// near.
@@ -95,12 +95,12 @@ func init() {
 	// A granary belongs to those with standing to win and stone to spare,
 	// in a settlement they mean to stay in.
 	seed(BuildGranary, reachGranary, habit.Signature{
-		habit.Unproven: 0.7, habit.Wood: 0.5, habit.Charity: 0.4, habit.Tradition: 0.4, habit.Skill: 0.4,
+		habit.Unproven: 0.7, habit.Charity: 0.4, habit.Tradition: 0.4, habit.Skill: 0.4, habit.Stock: 0.5,
 	})
 	BuildGranary.Skilled = uses(entity.Building)
 	// Smelting belongs to the skilled crafter with stone and fuel.
 	seed(Smelt, reachSmelt, habit.Signature{
-		habit.Unproven: 0.6, habit.Wood: 0.5, habit.Industry: 0.5, habit.Skill: 0.6,
+		habit.Unproven: 0.6, habit.Industry: 0.5, habit.Skill: 0.6, habit.Stock: 0.5,
 	})
 	Smelt.Skilled = uses(entity.Crafting)
 }
