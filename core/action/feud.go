@@ -16,10 +16,6 @@ import (
 // out or becomes a feud depends on the two temperaments, on what each holds
 // to be right, and on how much reprisal each has learned to expect.
 
-func init() {
-	Catalog = append(Catalog, Retaliate)
-}
-
 const (
 	// GrudgeThreshold is how badly an agent must think of someone before
 	// getting even becomes a thing it might do.

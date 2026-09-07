@@ -12,6 +12,7 @@ import (
 
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/habit"
 	"lreat/core/need"
 	"lreat/core/world"
 )
@@ -30,10 +31,45 @@ type Def struct {
 	// Apply mutates the world when the action completes. The agent is at
 	// its plan's target by then, so Apply works on a.Pos.
 	Apply func(a *entity.Agent, w *world.World)
+
+	// Prior is the kind of moment this action belongs to, the signature every
+	// agent starts from before experience moves its own copy. It is the seed
+	// of recognition-based choice; Expect remains the seed of value-based
+	// choice. See package habit.
+	Prior habit.Signature
+	// Reach0 is how far into reach the action starts for a newborn, in
+	// [0,1]. Ordinary living starts at 1. Crafts and learning start lower and
+	// are brought closer by study, teaching, and discovery.
+	Reach0 float64
+	// Skill is the skill the action draws on, when HasSkill. It sets the
+	// skill dimension of the situation the agent sees for this candidate.
+	Skill    entity.Skill
+	HasSkill bool
+	// Person is true when the action is done to or with a particular other
+	// agent, so rapport toward that person is part of the situation.
+	Person bool
 }
 
-// Catalog lists every action in a fixed order. Order matters for determinism.
-var Catalog = []*Def{Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy, Guard, Socialize, Craft, Teach, Study}
+// Count is the size of the catalog. It is checked at init so that a table
+// indexed by catalog position can be a fixed array everywhere.
+const Count = 17
+
+// Catalog lists every action in a fixed order. Order matters for
+// determinism, and position is what per-agent habit tables are indexed by.
+var Catalog = []*Def{
+	Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
+	Guard, Socialize, Craft, Teach, Study,
+	Steal, Give, Fulfil, Retaliate,
+}
+
+func init() {
+	if len(Catalog) != Count {
+		panic("action: Catalog length does not match Count")
+	}
+	if Count > habit.MaxActions {
+		panic("action: Catalog exceeds habit.MaxActions")
+	}
+}
 
 // ByName returns the action with that name, or nil.
 func ByName(name string) *Def {
@@ -43,6 +79,16 @@ func ByName(name string) *Def {
 		}
 	}
 	return nil
+}
+
+// Index is the catalog position of d, or -1 if it is not in the catalog.
+func Index(d *Def) int {
+	for i, c := range Catalog {
+		if c == d {
+			return i
+		}
+	}
+	return -1
 }
 
 // searchRadius bounds how far agents look for a suitable tile.

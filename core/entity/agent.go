@@ -6,6 +6,7 @@ package entity
 
 import (
 	"lreat/core/belief"
+	"lreat/core/habit"
 	"lreat/core/need"
 )
 
@@ -105,6 +106,19 @@ type Plan struct {
 	Target    Pos
 	Remaining int
 	Total     int
+
+	// Index is the catalog position of Action, so the outcome can be
+	// credited to the right habit without a name lookup.
+	Index int
+	// Situation is the moment as the agent saw it when it chose this action.
+	// The lesson drawn on completion is about that moment, not about the
+	// one the agent finds itself in afterwards.
+	Situation habit.Signature
+	// Before is what the agent wanted and had when it decided, so that the
+	// outcome is judged by the urgencies of the time.
+	Before habit.Ledger
+	// Started is the tick the plan was made.
+	Started int
 }
 
 // Agent is one actor in the world.
@@ -170,6 +184,28 @@ type Agent struct {
 	Starving int // consecutive ticks at the bottom of the physiological tier
 	Bonds    []Bond
 	Plan     *Plan
+
+	// Habits is what this agent has come to recognise as the kind of moment
+	// each action belongs to, indexed by catalog position. Each starts as a
+	// copy of the action's shared prior and is moved by the agent's own
+	// outcomes, copied by teachers, and inherited with drift by children.
+	// It is the agent's character as revealed in what it does.
+	Habits [habit.MaxActions]habit.Signature
+	// Reach is how far into reach each action is for this agent, in [0,1].
+	// Everyday living is fully in reach from birth; crafts and learning
+	// begin far off and are brought closer by study, teaching, and what the
+	// settlement has discovered.
+	Reach [habit.MaxActions]float64
+	// Baseline is the agent's slow-moving sense of what an ordinary outcome
+	// feels like. Lessons are drawn from how an outcome differs from it.
+	Baseline float64
+	// Trace is the short memory of recent actions that share in the next
+	// reward, so that an action that only set up a later gain still learns.
+	Trace habit.Trace
+	// Imprinted is set once Habits and Reach have been seeded from the
+	// catalog priors. Seeding is lazy because the world cannot see the
+	// catalog, and a newborn's first decision is the earliest it is needed.
+	Imprinted bool
 }
 
 // ordinaryBody is the vitality of an agent constructed without one, as
