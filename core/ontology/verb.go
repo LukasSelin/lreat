@@ -157,7 +157,11 @@ var Schemas = []Schema{
 
 	// Trading, at the market. Provision for coin and coin for provision are
 	// the same schema with the sides swapped.
-	{Verb: Exchange, Inputs: []*Class{Provision}, Output: Coin, Site: Market, Ticks: 1, Reach0: reachEveryday,
+	// A seller brings whatever is over their keep, of anything; what a
+	// household mostly has over its keep is food, and that is the moment
+	// selling belongs to.
+	{Verb: Exchange, Inputs: []*Class{Material}, Output: Coin, Site: Market, Ticks: 1, Reach0: reachEveryday,
+		Prior:   habit.Signature{habit.Food: 0.8},
 		Valence: belief.Valence{belief.Industry: 0.15}},
 	{Verb: Exchange, Inputs: []*Class{Coin}, Output: Provision, Site: Market, Ticks: 1, Reach0: reachEveryday},
 
