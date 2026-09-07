@@ -121,7 +121,11 @@ type Snapshot struct {
 	MeanShelter float64
 
 	Houses, Fields, Forest, Roads int
-	Map                           *MapView
+	// Forest0 is how much forest there was before anyone touched it. Beside
+	// Forest it says what the settlement has taken out of the land, which
+	// the count on its own never can.
+	Forest0 int
+	Map     *MapView
 }
 
 // Take builds a Snapshot. It must run on the simulation goroutine.
@@ -141,6 +145,7 @@ func Take(w *world.World) Snapshot {
 		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Field }),
 		Forest:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest }),
 		Roads:      w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road }),
+		Forest0:    w.Forest0,
 
 		OpenRequests: len(w.Requests),
 		Deaths:       w.Deaths,

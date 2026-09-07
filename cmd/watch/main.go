@@ -12,13 +12,15 @@
 //
 // D swaps the map for the settlement's vital record: the population curve,
 // what people have died of, and what stood between everyone still alive and
-// a child. The map says a settlement has stopped; only that page says why,
-// and it is the reason a run that ends is worth reading rather than
-// restarting.
+// a child. W swaps it for what became of the ground it stands on: the wood
+// it has taken, the fields and houses and roads it has put there, what food
+// costs, what it knows, and what it has been spending its people on. The map
+// says a settlement has stopped; those two say why, and they are the reason
+// a run that ends is worth reading rather than restarting.
 //
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // r lays streets through the settlement, tab and shift-tab pick an agent
-// (or click one), esc drops it, d shows the vitals, q quits.
+// (or click one), esc drops it, d shows the vitals, w the world, q quits.
 package main
 
 import (
@@ -163,12 +165,15 @@ type view struct {
 	look   func(entity.ID) *observe.Portrait
 	follow func(entity.ID)
 
-	// vitals swaps the map for the settlement's demographic record. The
-	// history behind it is kept whether the page is open or not: a
-	// settlement dies out once, and nobody is watching the right page when
-	// it does. See vitals.go.
+	// vitals swaps the map for the settlement's demographic record and
+	// world for what became of the ground it stands on. The history behind
+	// both is kept whether either page is open or not: a settlement dies
+	// out once, and nobody is watching the right page when it does. See
+	// vitals.go and world.go.
 	vitals    bool
+	world     bool
 	traces    []trace
+	techs     []found
 	peak      int
 	peakAt    int
 	gone      int // the tick the last person died, zero while anyone lives
@@ -192,7 +197,6 @@ func (v *view) record(s *observe.Snapshot) {
 	if v.accTicks < graphTicks {
 		return
 	}
-	v.plot(s)
 	var col column
 	if v.accTotal > 0 {
 		for i, n := range v.acc {
@@ -204,6 +208,9 @@ func (v *view) record(s *observe.Snapshot) {
 		v.hist = v.hist[len(v.hist)-graphMax:]
 	}
 	v.acc, v.accTotal, v.accTicks = column{}, 0, 0
+	// The run's own history is kept last, so that the column of work just
+	// closed is the one it takes.
+	v.plot(s)
 }
 
 // handleKey reacts to a key press; it returns false when the user quits.
@@ -212,13 +219,13 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Key() == tcell.KeyCtrlC || ev.Rune() == 'q':
 		return false
 	case ev.Key() == tcell.KeyEscape:
-		// Esc backs out one step at a time — off the vitals page, then off
-		// whoever is being followed — and only quits when there is nothing
+		// Esc backs out one step at a time — off whichever page is up,
+		// then off whoever is being followed — and only quits when there is nothing
 		// left to back out of: dropping back to the settlement is the
 		// commoner move.
 		switch {
-		case v.vitals:
-			v.vitals = false
+		case v.vitals || v.world:
+			v.vitals, v.world = false, false
 		case v.sel != 0:
 			v.choose(0)
 		default:
@@ -247,7 +254,9 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Key() == tcell.KeyBacktab:
 		v.pick(-1)
 	case ev.Rune() == 'd':
-		v.vitals = !v.vitals
+		v.vitals, v.world = !v.vitals, false
+	case ev.Rune() == 'w':
+		v.world, v.vitals = !v.world, false
 	case ev.Rune() == 'r':
 		// Lay the whole street network at once. Agents pave for themselves
 		// now, a length at a time where they have worn the ground; this is
@@ -349,6 +358,10 @@ func (v *view) draw() {
 	sw, sh := sc.Size()
 	if v.vitals {
 		v.drawVitals(sw, sh)
+		return
+	}
+	if v.world {
+		v.drawWorld(sw, sh)
 		return
 	}
 	if v.sel != 0 && v.look != nil {
@@ -473,7 +486,7 @@ func (v *view) draw() {
 	v.drawGraph(0, s.Map.H+1, s.Map.W)
 	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d ticks →", min(len(v.hist), s.Map.W)*graphTicks))
 	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  r pave")
-	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  d vitals  q quit")
+	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  d vitals  w world  q quit")
 	// A settlement that has ended says so across the empty map it left, and
 	// says where to go and read why. Without this the map simply stops
 	// moving and a finished run looks like a hung one.
