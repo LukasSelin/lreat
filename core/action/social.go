@@ -60,7 +60,7 @@ func hasSpareFood(o *entity.Agent) bool { return o.Inventory[entity.Food] >= 1 }
 // Steal is the option that makes conscience mean something. It is fast, it
 // works, and the only thing standing against it is what the agent believes
 // about itself and what it thinks the neighbors will make of it.
-var Steal = handing("transfer/provision<holder")
+var Steal = mover("transfer/provision<holder")
 
 func inNeed(o *entity.Agent) bool {
 	return o.Needs[need.Physiological] < 0.4 && o.Inventory[entity.Food] < 1
@@ -68,7 +68,7 @@ func inNeed(o *entity.Agent) bool {
 
 // Give costs the giver and helps the receiver. Nothing in the need model
 // rewards it much; the charitable do it because their conscience pays them.
-var Give = handing("transfer/provision>needy")
+var Give = mover("transfer/provision>needy")
 
 // rewardValue converts a fee into need satisfaction. Money is worth what it
 // can buy, so the same wage means a great deal to the hungry and little to

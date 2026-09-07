@@ -83,11 +83,10 @@ var instances = func() map[string]ontology.Instance {
 const Derived = true
 
 // mechanics binds an act the ontology entails to the code that carries it
-// out. Takings, makings, raisings, exchanges, and transfers are not
-// listed: one verb carries each, from what the lode and the ground say
-// (see take.go), the recipe (see make.go), the plan (see raise.go), the
-// terms (see exchange.go), or the hand (see transfer.go), and those named
-// here are named only because the rest of the package refers to them. An act the ontology entails and nothing carries
+// out. Moves, makings, and raisings are not listed: one interpreter
+// carries each, from the move (see move.go), the recipe (see make.go), or
+// the plan (see raise.go), and those named here are named only because
+// the rest of the package refers to them. An act the ontology entails and nothing carries
 // is a catalog that cannot be assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
@@ -126,16 +125,12 @@ func init() {
 		d := mechanics[in.Key]
 		if d == nil {
 			switch in.Schema.Verb {
-			case ontology.Take:
-				d = taking(in)
+			case ontology.Take, ontology.Exchange, ontology.Transfer:
+				d = moving(in)
 			case ontology.Make:
 				d = making(in)
 			case ontology.Raise:
 				d = raising(in)
-			case ontology.Exchange:
-				d = exchanging(in)
-			case ontology.Transfer:
-				d = transferring(in)
 			}
 		}
 		if d == nil {
@@ -287,7 +282,7 @@ const forageTake = 0.08
 // the field rather than into the ground.
 func forageYield(wild float64) float64 { return 0.45 + 0.55*wild }
 
-var Forage = take("take/berries@wood")
+var Forage = mover("take/berries@wood")
 
 // farmWear is the fertility one farming takes from a field, and wornField
 // the least a field is worn down to. A field farmed without rest goes poor
@@ -517,7 +512,7 @@ const (
 	armful   = 0.5
 )
 
-var GatherWood = take("take/timber@wood")
+var GatherWood = mover("take/timber@wood")
 
 // Raising a house and keeping one are the same act to the person doing it
 // and quite different things to the forest. raisingTimber is the frame: the
@@ -727,9 +722,9 @@ var Pave = &Def{
 	},
 }
 
-var Sell = trade("exchange/material>coin@market")
+var Sell = mover("exchange/material>coin@market")
 
-var Buy = trade("exchange/coin>provision@market")
+var Buy = mover("exchange/coin>provision@market")
 
 var Guard = &Def{
 	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,
