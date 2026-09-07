@@ -135,7 +135,7 @@ var Schemas = []Schema{
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Tradition: 0.1}},
 	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Granary, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachGranary, Tech: "masonry",
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
-	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Tavern, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachTavern, Tech: "brewing",
+	{Verb: Raise, Inputs: []*Class{Timber}, Output: Tavern, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachTavern, Tech: "brewing",
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
 	{Verb: Raise, Inputs: []*Class{Timber}, Output: Road, Site: Ground, CollapseSite: true, Ticks: 2, Reach0: reachPave,
 		Prior:   habit.Signature{habit.Shelter: 0.7, habit.Company: 0.6, habit.Charity: 0.5, habit.Industry: 0.3},

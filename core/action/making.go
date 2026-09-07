@@ -2,9 +2,7 @@ package action
 
 import (
 	"lreat/core/entity"
-	"lreat/core/event"
 	"lreat/core/habit"
-	"lreat/core/need"
 	"lreat/core/world"
 )
 
@@ -69,44 +67,7 @@ func quarryYield(a *entity.Agent) float64 { return 0.5 + a.Skills[entity.Buildin
 
 var Quarry = take("take/stone@outcrop")
 
-// granarySite is a plot beside the market. Like a house it wants its own
-// ground around it: a granary the carts cannot get round is no use to the
-// market it keeps food for.
-func granarySite(_ *entity.Agent, w *world.World) (entity.Pos, bool) {
-	if p, ok := w.Grid.Nearest(w.MarketPos, granaryRadius, func(p entity.Pos, _ *world.Tile) bool {
-		return w.Grid.RoomToBuild(p)
-	}); ok {
-		return p, true
-	}
-	return w.Grid.Nearest(w.MarketPos, granaryRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
-}
-
-var BuildGranary = &Def{
-	Name: "build granary", Ticks: 4, Target: granarySite,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Stone] >= granaryStone && a.Inventory[entity.Wood] >= granaryWood && known(a, w, "masonry", "build granary")
-	},
-	Expect: func(_ *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
-		// A granary is a public good: the market keeps what it holds. Its
-		// worth to the builder is standing, and a little safety in a
-		// settlement that will not run short.
-		return need.Levels{need.Esteem: 0.2, need.Safety: 0.05 * w.Mods.Keeping}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if !t.Buildable() {
-			return
-		}
-		t.Structure = world.Granary
-		a.Inventory[entity.Stone] -= granaryStone
-		a.Inventory[entity.Wood] -= granaryWood
-		w.Mods.Keeping *= granaryKeeping
-		a.Reputation += 0.2
-		a.AddSkill(entity.Building, 0.03)
-		a.Needs.Add(need.Esteem, 0.2)
-		w.Emit(event.Built, a.ID, 0, "%s built a granary", a.Name)
-	},
-}
+var BuildGranary = raise("raise/timber+stone>granary@open")
 
 var Smelt = product("make/stone+timber>tool@forge")
 

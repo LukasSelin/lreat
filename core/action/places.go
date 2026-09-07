@@ -2,9 +2,7 @@ package action
 
 import (
 	"lreat/core/entity"
-	"lreat/core/event"
 	"lreat/core/habit"
-	"lreat/core/need"
 	"lreat/core/world"
 )
 
@@ -177,44 +175,7 @@ func inTavern(w *world.World, p entity.Pos) bool {
 	return ok
 }
 
-// tavernSite is a plot beside the market. Like a house and a granary it
-// wants its own ground around it: a tavern is a door people come to of an
-// evening, and a door with a wall against it is no use to anybody.
-func tavernSite(_ *entity.Agent, w *world.World) (entity.Pos, bool) {
-	if p, ok := w.Grid.Nearest(w.MarketPos, tavernRadius, func(p entity.Pos, _ *world.Tile) bool {
-		return w.Grid.RoomToBuild(p)
-	}); ok {
-		return p, true
-	}
-	return w.Grid.Nearest(w.MarketPos, tavernRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
-}
-
-var BuildTavern = &Def{
-	Name: "build tavern", Ticks: 4, Target: tavernSite,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		if a.Inventory[entity.Wood] < tavernWood || !known(a, w, "brewing", "build tavern") {
-			return false
-		}
-		_, taken := nearPlace(w, w.MarketPos, tavernApart, world.Tavern)
-		return !taken
-	},
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Esteem: 0.25, need.Belonging: 0.1}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if !t.Buildable() {
-			return
-		}
-		t.Structure = world.Tavern
-		a.Inventory[entity.Wood] -= tavernWood
-		a.Reputation += 0.3
-		a.AddSkill(entity.Building, 0.03)
-		a.Needs.Add(need.Esteem, 0.25)
-		a.Needs.Add(need.Belonging, 0.1)
-		w.Emit(event.Built, a.ID, 0, "%s built a tavern", a.Name)
-	},
-}
+var BuildTavern = raise("raise/timber>tavern@open")
 
 const reachTavern = 0.2
 

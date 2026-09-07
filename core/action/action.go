@@ -83,10 +83,10 @@ var instances = func() map[string]ontology.Instance {
 const Derived = true
 
 // mechanics binds an act the ontology entails to the code that carries it
-// out. Takings and makings are not listed: one verb carries each, from
-// what the lode and the ground say (see take.go) or the recipe (see
-// make.go), and those named here are named only because the rest of the
-// package refers to them. An act the ontology entails and nothing carries
+// out. Takings, makings, and raisings are not listed: one verb carries
+// each, from what the lode and the ground say (see take.go), the recipe
+// (see make.go), or the plan (see raise.go), and those named here are
+// named only because the rest of the package refers to them. An act the ontology entails and nothing carries
 // is a catalog that cannot be assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
@@ -103,7 +103,7 @@ var mechanics = map[string]*Def{
 	"make/provision+timber>meal@hearth": Cook,
 	"raise/timber>dwelling@open":        BuildShelter,
 	"raise/timber+stone>granary@open":   BuildGranary,
-	"raise/timber+stone>tavern@open":    BuildTavern,
+	"raise/timber>tavern@open":          BuildTavern,
 	"raise/timber>road@ground":          Pave,
 	"consume/provision":                 Eat,
 	"dwell/rest":                        Rest,
@@ -129,6 +129,8 @@ func init() {
 				d = taking(in)
 			case ontology.Make:
 				d = making(in)
+			case ontology.Raise:
+				d = raising(in)
 			}
 		}
 		if d == nil {
