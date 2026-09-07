@@ -30,6 +30,7 @@ const (
 	reachEveryday = 1.0
 	reachGuard    = 1.0
 	reachCraft    = 0.5
+	reachPave     = 0.5
 	reachStudy    = 0.4
 	reachTeach    = 0.3
 )
@@ -100,6 +101,17 @@ func init() {
 		return s, true
 	}
 	Teach.With = atTarget
+	// Paving belongs to the settled moment: somebody already under a roof,
+	// with wood past what that roof needed, among neighbours whose comings
+	// and goings have worn a way. Shelter is what separates it from gathering
+	// and building, which want the opposite; charity and industry are what it
+	// shares with standing guard. It says nothing of hunger and nothing of
+	// skill: a newcomer believes itself unskilled at everything, and a prior
+	// that mentions skill taxes exactly the acts a young settlement needs.
+	seed(Pave, reachPave, habit.Signature{
+		habit.Wood: 0.6, habit.Shelter: 0.7, habit.Company: 0.6,
+		habit.Charity: 0.5, habit.Industry: 0.6, habit.Near: 0.5,
+	})
 	seed(Study, reachStudy, habit.Signature{
 		habit.Hunger: -0.5, habit.Unsafe: -0.3, habit.Curious: 1, habit.Tradition: -0.4,
 	})

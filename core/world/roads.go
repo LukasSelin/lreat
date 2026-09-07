@@ -11,8 +11,58 @@ import (
 // Roads are the settlement's first piece of shared infrastructure: the only
 // thing it builds that nobody lives in, farms, or sells, and that pays back
 // only by being walked on. Everything here is the material — how a road is
-// laid and where a sensible one runs. Nothing in this file decides that a
-// road ought to be laid; that judgement belongs to whatever comes to want it.
+// laid, where a sensible one runs, and how the ground remembers being walked
+// on. Nothing here decides that a road ought to be laid: agents do that for
+// themselves, in action.Pave, by recognising worn ground as calling for one.
+
+// Wear is how much one crossing marks the ground, and Fade is the share of
+// that marking a tile keeps from one tick to the next. Together they give the
+// map a memory about a hundred and forty ticks long: long enough that a route
+// walked daily stands out from one walked once, short enough that a way people
+// have stopped using stops asking to be paved.
+const (
+	Wear = 1
+	Fade = 0.995
+)
+
+// Tread records that somebody crossed this tile.
+func (g *Grid) Tread(p entity.Pos) {
+	if g.In(p) {
+		g.At(p).Traffic += Wear
+	}
+}
+
+// Weather fades every tile's wear by one tick's worth.
+func (g *Grid) Weather() {
+	for i := range g.Tiles {
+		if g.Tiles[i].Traffic > 0 {
+			g.Tiles[i].Traffic *= Fade
+		}
+	}
+}
+
+// Busiest returns the most walked-on tile within radius of from that a road
+// could be laid on, and how worn it is. Ties go to the tile nearest the top
+// left, so that two agents reading the same ground reach for the same spot.
+func (g *Grid) Busiest(from entity.Pos, radius int) (entity.Pos, float64, bool) {
+	var best entity.Pos
+	var worn float64
+	found := false
+	for y := from.Y - radius; y <= from.Y+radius; y++ {
+		for x := from.X - radius; x <= from.X+radius; x++ {
+			p := entity.Pos{X: x, Y: y}
+			if !g.In(p) {
+				continue
+			}
+			t := g.At(p)
+			if !t.Pavable() || t.Traffic <= worn {
+				continue
+			}
+			best, worn, found = p, t.Traffic, true
+		}
+	}
+	return best, worn, found
+}
 
 // Pave lays a road on one tile and reports whether it took. Woods in the way
 // are cleared, since a road through a forest is a road, not a forest.
@@ -28,6 +78,7 @@ func (g *Grid) Pave(p entity.Pos) bool {
 		t.Terrain, t.Wood = Grass, 0
 	}
 	t.Structure = Road
+	t.Traffic = 0 // the ground is no longer asking for a road; it has one
 	return true
 }
 

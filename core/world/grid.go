@@ -30,6 +30,12 @@ type Tile struct {
 	Owner     entity.ID
 	Fertility float64
 	Wood      float64
+
+	// Traffic is how worn the ground is: it rises with every crossing and
+	// fades when nobody comes that way. It is not a cost - walking a beaten
+	// path is no quicker - it is a record of where the settlement's errands
+	// actually run, which is what somebody deciding to lay a road reads.
+	Traffic float64
 }
 
 // Buildable reports whether a tile is open ground nobody has claimed. A road

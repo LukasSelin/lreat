@@ -46,9 +46,9 @@ func main() {
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
-		// Roads are a material the settlement can have. Wanting one is not yet
-		// anybody's decision to make, so the operator spawns them on a timer
-		// and the table shows what changes.
+		// The settlement paves for itself; this lays the whole network at
+		// once, for comparing a built-out network against what agents get
+		// round to on their own.
 		if *pave > 0 && w.Tick%*pave == 0 {
 			w.PaveStreets()
 		}

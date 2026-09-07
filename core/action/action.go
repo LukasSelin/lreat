@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 17
+const Count = 18
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -65,7 +65,7 @@ var Catalog []*Def
 func init() {
 	Catalog = []*Def{
 		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
-		Guard, Socialize, Craft, Teach, Study,
+		Guard, Socialize, Craft, Teach, Study, Pave,
 		Steal, Give, Fulfil, Retaliate,
 	}
 	if len(Catalog) != Count {
@@ -275,6 +275,63 @@ var BuildShelter = &Def{
 		a.Shelter = need.Clamp(a.Shelter + shelterGain(a, w))
 		a.AddSkill(entity.Building, 0.02)
 		a.Needs.Add(need.Esteem, 0.05)
+	},
+}
+
+// pavingWood is the timber one length of road takes. It is half a house, so
+// laying a way is a smaller commitment than raising a roof but competes with
+// it for the same wood.
+const pavingWood = 1
+
+// wornEnough is how beaten the ground must be before anyone thinks of paving
+// it. Below this the wear is somebody having passed once, not a route.
+const wornEnough = 45
+
+// pavingRadius is how far somebody will go to lay a road. Roads are laid
+// where the layer already lives and walks, not wherever the settlement's
+// worst bottleneck happens to be: nobody has that view of the place.
+const pavingRadius = 12
+
+// paveSite is the most walked-on unpaved ground near the agent. Roads follow
+// the settlement's own errands: the way people already take is the way that
+// gets made, which is why nobody has to plan the network for it to appear.
+func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius)
+	if !ok || worn < wornEnough {
+		return entity.Pos{}, false
+	}
+	return p, true
+}
+
+// Pave is the settlement's first work on the common ground: a stretch of road
+// that does the layer no direct good beyond the credit of having laid it, and
+// that everybody who walks it afterwards is quicker and less worn for. Like
+// standing guard it is a public good, and like standing guard it pays in
+// standing rather than in bread, which is the only reason anybody learns to
+// keep doing it.
+var Pave = &Def{
+	Name: "lay road", Ticks: 2, Target: paveSite,
+	Available: func(a *entity.Agent, _ *world.World) bool {
+		return a.Inventory[entity.Wood] >= pavingWood
+	},
+	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
+		// The road is for everyone who walks it. What comes back to the one
+		// who laid it is the credit of having laid it, and that is deliberately
+		// less per tick than standing guard pays: paving that repaid its own
+		// effort would be an esteem farm, and the settlement would pave itself
+		// into a yard. Measured at twice this, agents laid a third of the map.
+		return need.Levels{need.Esteem: 0.03, need.Belonging: 0.02}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		// Somebody may have built here, or paved it, while this one walked.
+		if !w.Grid.Pave(a.Pos) {
+			return
+		}
+		a.Inventory[entity.Wood] -= pavingWood
+		a.AddSkill(entity.Building, 0.01)
+		a.Needs.Add(need.Esteem, 0.03)
+		a.Needs.Add(need.Belonging, 0.02)
+		w.Emit(event.Built, a.ID, 0, "%s laid a road", a.Name)
 	},
 }
 

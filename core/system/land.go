@@ -21,6 +21,7 @@ func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
 // the built footprint of a settlement persists while the wild edges shift.
 func Land(w *world.World) {
 	g := w.Grid
+	g.Weather()
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		if t.Terrain == world.Forest && t.Wood < 1 {

@@ -142,10 +142,10 @@ What the numbers say:
 
 Implemented in `core/action/reach.go`; the constants live there.
 
-- `Reach0` per action. Everyday living (rest, eat, forage, farm, gather, build, sell, buy, socialize, give, steal, retaliate, fulfil) starts at 1. Gated: craft 0.5, guard 0.6, teach 0.3, study 0.4.
+- `Reach0` per action. Everyday living (rest, eat, forage, farm, gather, build, sell, buy, socialize, give, steal, retaliate, fulfil) starts at 1. Gated: craft 0.5, lay road 0.5, guard 0.6, teach 0.3, study 0.4.
 - **Study broadens.** Every gated action comes closer: `Reach += 0.03 * (1 - Reach) * Mods.StudyRate`, so written records make study widen reach twice as fast.
 - **Teaching passes recognition on.** The student's reach for the taught skill's action becomes `max(own, 0.6 * teacher)`, and its habit moves 0.3 of the way toward the teacher's. `ForSkill` maps farming, building, crafting, scholarship, and guarding to farm, build, craft, study, and guard.
-- **Discovery opens.** A `Discovery` has an `Opens` list; masonry opens craft, writing opens study and teach, metallurgy opens craft and guard. Each raises `world.ReachFloor` for that action to 0.8, and every agent is lifted to the floor at its next decision.
+- **Discovery opens.** A `Discovery` has an `Opens` list; masonry opens craft, writing opens study and teach, metallurgy opens craft and guard. Masonry opens laying roads too. Each raises `world.ReachFloor` for that action to 0.8, and every agent is lifted to the floor at its next decision.
 - **Children inherit.** A child takes its parent's habits with N(0, 0.05) drift on the learnable coordinates and `Reach = max(floor, 0.7 * parent)`. Under the value rule the copy is exact so that rule draws nothing extra from the RNG.
 - Doing an action raises its own reach by 0.02 in the learning step.
 
@@ -183,3 +183,38 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
+
+## Laying roads (the second public good)
+
+`Pave` ("lay road", catalog position 13, `Count` 18) is the first action added after the six phases. It is the trigger for the road material that already existed: nothing lays streets on the settlement's behalf any more, agents decide to.
+
+**The ground remembers.** `Tile.Traffic` rises by 1 whenever an agent steps onto a tile and fades by 0.5% a tick, a memory about 140 ticks long. It costs nothing to walk a worn tile - wear is not a road - it is only a record of where the settlement's errands actually run. `Grid.Busiest` returns the most-worn *pavable* tile within a radius, so houses and claimed fields are never offered: roads form in the gaps between buildings, which is what streets are.
+
+**The moment.** `Pave`'s prior is the settled one: `Wood 0.6, Shelter 0.7, Company 0.6, Charity 0.5, Industry 0.6, Near 0.5`. Shelter is what separates it from gathering and building, which want the opposite - you improve the common ground once your own roof is up. Charity and industry are what it shares with standing guard. It mentions neither hunger nor skill, for the reasons in "Writing priors".
+
+**Why it is not an esteem farm.** Paving has no provenance channel: a road pays back as slightly cheaper walking, forever, for everybody, and a needs-only reward would extinguish it. So like guard it pays the layer in standing - but deliberately less per tick than guard does. At esteem 0.05 / belonging 0.03 agents paved a third of the map and the settlement was worse for it (seed 5: 984 road tiles, pop 135). At 0.03 / 0.02, with `wornEnough` at 45, paving is common but self-limiting.
+
+**Tuning.** `wornEnough` was measured, not guessed. Equilibrium wear on a tile is roughly crossings-per-tick x 200, so the threshold is what decides whether roads are a big-city luxury or an ordinary act. Sweeping it on seed 5 (6000 ticks, 25 founders):
+
+| `wornEnough` | pop | roads |
+|---|---|---|
+| 6 | 135 | 984 |
+| 20 | 222 | 973 |
+| 40 | 332 | 245 |
+| 80 | 400 | 170 |
+| 150 | 305 | 60 |
+
+At 80 the threshold was population-sensitive - only the largest settlements ever wore ground that far, and seeds 7, 11 and 21 laid 15, 26 and 2 tiles. Dropping the payoff to 0.03/0.02 and the threshold to 45 gave paving on every seed tried, and against the same seeds with no paving action at all (comparison is statistical; adding an action re-rolls the stream):
+
+| seed | without | with |
+|---|---|---|
+| 5 | pop 170, 111 houses | pop 391, 181 houses, 402 roads |
+| 7 | pop 64, 80 houses | pop 163, 117 houses, 181 roads |
+| 11 | pop 91, 87 houses | pop 182, 139 houses, 179 roads |
+| 21 | pop 132, 122 houses | pop 163, 103 houses, 103 roads |
+| 31 | pop 92, 77 houses | pop 97, 77 houses, 75 roads |
+| 44 | pop 4, 29 houses | pop 3, 29 houses, 27 roads |
+
+Equal or better on all six, which is the first change in this document to move the subsistence finding rather than work around it. The mechanism is the one the house toll exposed: recognition reads distance straight off the ground, so making the settlement cheaper to cross improves the judgement of everyone in it.
+
+**Known limitation: the value rule barely paves.** Over 4000 ticks on seeds 5, 7, 11, 21 and 31 the value rule laid 0, 0, 0, 2 and 0 tiles. The cause is not that a value maximiser cannot see the point of a road - it is that `wornEnough` is an absolute threshold and value-rule settlements are smaller. Diagnosed on seed 11 (pop 61): the busiest tile on the map had wear 118.7, but the busiest *pavable* one had 16.7, because traffic concentrates on the houses and fields agents walk over and those are never offered for paving. Fixes would be a threshold relative to the settlement's own traffic, or weighing a tile by its neighbours' wear so the gap beside a busy house reads as the place for a street. Both would need the recognition tuning above redone, so neither is taken while the value rule is the legacy path.

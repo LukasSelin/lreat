@@ -90,3 +90,56 @@ func TestPaveStreetsConnectsTheSettlement(t *testing.T) {
 		t.Fatalf("road tiles went from %d to %d; the network should have grown", before, after)
 	}
 }
+
+// Ground remembers being walked on, and forgets when nobody comes.
+func TestGroundRemembersBeingWalkedOn(t *testing.T) {
+	g := NewGrid(10, 10)
+	busy, quiet := entity.Pos{X: 3, Y: 3}, entity.Pos{X: 7, Y: 7}
+	for i := 0; i < 20; i++ {
+		g.Tread(busy)
+	}
+	g.Tread(quiet)
+	if g.At(busy).Traffic <= g.At(quiet).Traffic {
+		t.Fatal("the well-walked tile is no more worn than the once-walked one")
+	}
+
+	before := g.At(busy).Traffic
+	for i := 0; i < 200; i++ {
+		g.Weather()
+	}
+	if after := g.At(busy).Traffic; after >= before {
+		t.Fatalf("wear went from %.2f to %.2f with nobody walking; it should fade", before, after)
+	}
+}
+
+// Somebody looking for where to lay a road finds the most-walked open ground,
+// and does not offer to pave what is already built on or claimed.
+func TestBusiestFindsTheWornWay(t *testing.T) {
+	g := NewGrid(20, 20)
+	from := entity.Pos{X: 10, Y: 10}
+	way := entity.Pos{X: 12, Y: 10}
+	for i := 0; i < 30; i++ {
+		g.Tread(way)
+	}
+	// A busier tile, but somebody's field: property is not a right of way.
+	claimed := entity.Pos{X: 8, Y: 10}
+	g.At(claimed).Owner = 3
+	for i := 0; i < 60; i++ {
+		g.Tread(claimed)
+	}
+	p, worn, ok := g.Busiest(from, 6)
+	if !ok || p != way {
+		t.Fatalf("Busiest picked %v (ok=%v), want the worn open ground at %v", p, ok, way)
+	}
+	if worn <= 0 {
+		t.Fatalf("Busiest reported wear %v", worn)
+	}
+	if _, _, ok := g.Busiest(entity.Pos{X: 2, Y: 2}, 1); ok {
+		t.Fatal("Busiest found somewhere worth paving in untrodden wilderness")
+	}
+	// Paving settles the question, so the ground stops asking.
+	g.Pave(way)
+	if g.At(way).Traffic != 0 {
+		t.Fatal("a paved tile still reads as ground crying out for a road")
+	}
+}
