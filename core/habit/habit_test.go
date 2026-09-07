@@ -4,8 +4,6 @@ import (
 	"math"
 	"math/rand/v2"
 	"testing"
-
-	"lreat/core/need"
 )
 
 func TestCosineIsBoundedAndNeverNaN(t *testing.T) {
@@ -91,69 +89,5 @@ func TestEntropyShrinksWithSharpness(t *testing.T) {
 	}
 	if Entropy(eff, 0) != 0 {
 		t.Fatal("argmax entropy should be 0")
-	}
-}
-
-func TestUpdateMovesTowardOnGainAndAwayOnLoss(t *testing.T) {
-	s := Signature{Hunger: 1, Honesty: 1}
-	h := Signature{}
-	Update(&h, s, 0.5, 1, Eta)
-	if !(h[Hunger] > 0) {
-		t.Fatalf("hunger did not move toward situation: %v", h[Hunger])
-	}
-	if h[Honesty] != 0 {
-		t.Fatalf("frozen dimension moved: %v", h[Honesty])
-	}
-	h = Signature{}
-	Update(&h, s, -0.5, 1, Eta)
-	if !(h[Hunger] < 0) {
-		t.Fatalf("hunger did not move away: %v", h[Hunger])
-	}
-	half, full := Signature{}, Signature{}
-	Update(&half, s, 0.5, Weight(1), Eta)
-	Update(&full, s, 0.5, Weight(0), Eta)
-	if !(math.Abs(full[Hunger]) > math.Abs(half[Hunger])) {
-		t.Fatal("older step got as much credit as the newest")
-	}
-}
-
-func TestRetainPullsTowardPrior(t *testing.T) {
-	prior := Signature{Curious: 1, Tradition: -1}
-	h := Signature{}
-	Retain(&h, prior, 0.5)
-	if h[Curious] != 0.5 || h[Tradition] != -0.5 {
-		t.Fatalf("retain = %v", h)
-	}
-}
-
-func TestRewardWeighsChangeByUrgencyThen(t *testing.T) {
-	before := Ledger{Needs: need.Levels{0.2, 0.5, 0.5, 0.5, 0.5}}
-	before.Urgency = need.Urgencies(before.Needs)
-	after := before
-	after.Needs[need.Physiological] = 0.55
-	fed := Reward(before, after, need.Neutral())
-	after = before
-	after.Needs[need.Actualization] = 0.85
-	enlightened := Reward(before, after, need.Neutral())
-	if !(fed > enlightened) {
-		t.Fatalf("hunger relief %v should outweigh curiosity %v for a hungry agent", fed, enlightened)
-	}
-	if a := Advantage(10, 0); a != AdvantageClamp {
-		t.Fatalf("advantage not clamped: %v", a)
-	}
-}
-
-func TestTraceKeepsNewestFirst(t *testing.T) {
-	var tr Trace
-	for i := 0; i < TraceLen+2; i++ {
-		tr.Push(Step{Index: i})
-	}
-	if len(tr) != TraceLen {
-		t.Fatalf("trace len = %d", len(tr))
-	}
-	for k, s := range tr {
-		if want := TraceLen + 1 - k; s.Index != want {
-			t.Fatalf("trace[%d].Index = %d, want %d", k, s.Index, want)
-		}
 	}
 }

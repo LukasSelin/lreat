@@ -199,9 +199,8 @@ func foodValue(a *entity.Agent) float64 {
 }
 
 // A rest restores a little of the body. A rest that restored more under a
-// roof was tried: the reward reinforced an idle act, and under a seasoned
-// year the median settlement fell by a third. Rest is a fallback and stays
-// one.
+// roof was tried: under a seasoned year the median settlement fell by a
+// third, idling indoors. Rest is a fallback and stays one.
 const restGain = 0.03
 
 // Rest is the fallback. It is always available and barely worth anything.

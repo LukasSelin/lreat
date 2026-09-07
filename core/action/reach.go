@@ -11,13 +11,17 @@ import (
 
 // Reach is the distance gate. An action that begins far out of reach is one
 // whose moment an agent cannot yet recognise as its own, however well the
-// coordinates line up. Three things bring it closer: studying, which widens
-// what one can imagine doing; being taught, which hands over a teacher's
-// recognition ready-made; and living in a settlement that has discovered
-// the thing, which puts it in front of everyone. Doing it brings it closer
-// too, in the learning step. Reach only ever grows.
+// coordinates line up. Four things bring it closer: doing it, which is
+// simply practice; studying, which widens what one can imagine doing; being
+// taught, which hands over a teacher's recognition ready-made; and living in
+// a settlement that has discovered the thing, which puts it in front of
+// everyone. None of them asks whether the doing went well - reach is
+// familiarity, not success. Reach only ever grows.
 
 const (
+	// PractisedReach is how much doing an action once brings it further
+	// within reach.
+	PractisedReach = 0.02
 	// StudyReach is how much of the remaining distance one study closes on
 	// every gated action, before the settlement's study rate.
 	StudyReach = 0.03
@@ -28,12 +32,18 @@ const (
 	// Opened is the reach everyone has for an action the settlement has
 	// discovered.
 	Opened = 0.8
-	// InheritNoise is the drift on each learnable coordinate a child's
-	// habits take from a parent's.
-	InheritNoise = 0.05
 	// InheritReach is the share of a parent's reach a child is born with.
 	InheritReach = 0.7
 )
+
+// BornNoise is the drift on each varying coordinate of a founder's habits,
+// which are otherwise the bare priors. It is what makes one founder read a
+// morning differently from the next.
+var BornNoise = 0.15
+
+// InheritNoise is the drift on each varying coordinate a child's habits take
+// from a parent's.
+var InheritNoise = 0.05
 
 // Gated lists the catalog positions of actions that do not start fully
 // within reach.
@@ -66,6 +76,16 @@ func ForSkill(s entity.Skill) *Def {
 	return nil
 }
 
+// Practise is what doing an action does to reach: having done a thing once
+// it is that much less foreign the next time, whatever came of it.
+func Practise(a *entity.Agent, i int) {
+	if i < 0 || i >= Count {
+		return
+	}
+	Imprint(a)
+	a.Reach[i] = min(1, a.Reach[i]+PractisedReach)
+}
+
 // Broaden is what study does to reach: every gated action comes a little
 // closer, faster where the settlement has learned to keep records.
 func Broaden(a *entity.Agent, w *world.World) {
@@ -94,7 +114,7 @@ func Pass(teacher, student *entity.Agent, s entity.Skill) {
 }
 
 // Inherit gives a child its parent's habits and a share of its reach. With
-// rng the learnable coordinates drift a little, so children are like their
+// rng the varying coordinates drift a little, so children are like their
 // parents and not copies; without it they are copies, for runs that must
 // not draw on the RNG for this.
 func Inherit(child, parent *entity.Agent, w *world.World, rng *rand.Rand) {
@@ -106,7 +126,7 @@ func Inherit(child, parent *entity.Agent, w *world.World, rng *rand.Rand) {
 	if rng != nil {
 		for i := range Catalog {
 			for k := range child.Habits[i] {
-				if habit.Learnable[k] {
+				if habit.Varying[k] {
 					child.Habits[i][k] += rng.NormFloat64() * InheritNoise
 				}
 			}

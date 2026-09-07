@@ -145,8 +145,19 @@ var Schemas = []Schema{
 	{Verb: Consume, Object: Provision, CollapseObject: true, Ticks: 1, Reach0: reachEveryday},
 
 	// Being somewhere.
+	// Rest is the moment when nothing presses: fed, safe enough, in no
+	// particular want of company, of standing, or of anything to wonder
+	// at. Naming every urgency negative is what makes it a fallback rather
+	// than a rival, since any urgency at all turns an agent away from it.
+	// Read as a mild version of eating's moment - which is what it was
+	// while outcomes could still move habits and rest could be learned
+	// away - a third of every settlement's waking life went on resting off
+	// a hunger it was not answering.
 	{Verb: Dwell, Name: "rest", Ticks: 1, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Hunger: 1},
+		Prior: habit.Signature{
+			habit.Hunger: -1, habit.Unsafe: -0.6, habit.Lonely: -0.6,
+			habit.Unproven: -0.4, habit.Curious: -0.4,
+		},
 		Valence: belief.Valence{belief.Industry: -0.4}},
 	{Verb: Dwell, Name: "meet", Site: Tavern, Role: &Neighbour, Ticks: 2, Reach0: reachEveryday,
 		Prior:   habit.Signature{habit.Lonely: 0.5},

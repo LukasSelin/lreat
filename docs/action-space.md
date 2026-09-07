@@ -1,18 +1,20 @@
 # Fit-based action space
 
-Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements replace their founders on 21 of 24 seeds with no extinctions (see Robustness below), farming overtakes foraging as fields and farmers improve (see Harvests below), and the land pushes back and is answered (see The land below).
+Status: implemented and the default rule. **There is no learning anywhere in the simulation.** Choice is recognition against signatures that are seeded from a hand-written table, varied a little at birth, copied by teaching, and inherited by children - and never revised by how anything turned out. The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered.
+
+The reward-driven layer that used to sit behind recognition - per-action baselines, an advantage signal, an eligibility trace, and credit that followed provenance from a meal back to the field that grew it - has been removed. It was reinforcement learning, and this is a simulation of people living in a world, not of a policy being fitted to one. Everything below that describes what the reward signal did is kept as history, marked as such, because it records what the priors have to carry on their own now, and what it cost to take it out (see [Taking the learning out](#taking-the-learning-out)).
 
 ## Why
 
 `system.Choose` is an expected-value maximizer. For every action it multiplies the action's expected need gains by the agent's urgencies and personality, adds conscience, subtracts expected reprisal, divides by time cost, and takes the argmax with a little noise. It works, but it means every agent is a small economist, and the only way to change behaviour is to change payoffs.
 
-People do not choose that way most of the time. They recognise what kind of moment they are in and do what such moments call for. The value of the outcome shapes what they will recognise next time. This document describes a decision rule built on that idea: **choice is recognition, learning is where value lives, and the two never meet in the same step.**
+People do not choose that way most of the time. They recognise what kind of moment they are in and do what such moments call for. This document describes a decision rule built on that idea: **choice is recognition, and value is computed nowhere.**
 
-Three commitments, agreed up front:
+Three commitments:
 
 1. Ranking is by cosine fit between the moment and each action's signature. The overall intensity of the moment only sharpens or loosens the sampling. It never reorders candidates.
-2. Signatures ("habits") are per agent, seeded from one shared prior per action. Teaching copies them. Children inherit them.
-3. The learning signal counts need changes only. No stock valuation, no pride term. Actions that only set up a later gain learn through credit that follows provenance: a meal thanks the act that grew the food, and rising safety thanks the act that raised the roof or kept the watch. A short eligibility trace also hands part of each lesson to the acts just before it.
+2. Signatures ("habits") are per agent, seeded from one shared prior per action with a little idiosyncrasy at birth. Teaching copies them. Children inherit them with drift.
+3. Nothing an outcome does moves a signature. What an agent does in a moment is what it was born or taught to do in such a moment; how it turned out changes nothing about the next one. That makes the prior table the whole of the design: to change behaviour, change what a moment is written to call for.
 
 ## The space
 
@@ -41,16 +43,17 @@ Per-candidate dimensions, patched for each action being weighed:
 | 18 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
 | 19 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
 
-Personality is folded into the urgency dimensions rather than kept separate. The moral coordinates and order are one-sided because the belief layer defines them that way: a norm of 0 is holding nothing, caution of 0 is having learned of no reprisal, safety of 0 is nobody keeping order. Read on that scale an ordinary agent minds a wrong about half as much as a saint, which is what conscience charges in the value rule. Centred at 0.5 they fell silent for everyone but the extremes, and theft ran wild (see the comparison below). The moral dimensions are frozen: they are the same across every candidate an agent weighs, so if habits could learn them every habit would soon carry the agent's own norms and the dimension would cancel out of the choice. Values belong to the agent. Habits learn situations.
+Personality is folded into the urgency dimensions rather than kept separate. The moral coordinates are one-sided because the belief layer defines them that way: a norm of 0 is holding nothing and caution of 0 is having seen no reprisal. Read on that scale an ordinary agent minds a wrong about half as much as a saint, which is what conscience charges in the value rule. Centred at 0.5 they fell silent for everyone but the extremes, and theft ran wild (see the comparison below). Order is read as a lack instead, `safety - 1`, so that the ungoverned settlement is the loud reading and an act whose moment is the ungoverned one can say so. The moral dimensions never vary between an agent's habits: they are the same across every candidate it weighs, so a difference on them would cancel out of the choice. Values belong to the agent. Signatures describe situations.
 
 Dropped on purpose: health (tracks hunger and shelter), tools (sell and craft are hard-gated), market price, knowledge (global and unbounded).
 
 ## Signatures and habits
 
 - `action.Def.Prior` is the shared signature of the moment an action belongs to. It is composed by the ontology from what the act is about (see The ontology below) and never learned; the prior each act was tuned to by hand before that is kept as `Def.Tuned` and held against it in a golden test. `Def.Skilled` names the skill a candidate draws on for this agent right now, and `Def.With` names the other agent it involves, so the per-candidate dimensions can be filled in.
-- `entity.Agent.Habits[i]` is the agent's own copy for habit slot `i`, which is catalog position, seeded from the prior on first decision (`Imprinted`) and moved by experience.
-- `entity.Agent.Reach[i]` in [0, 1] is how far into reach action `i` is for this agent. `Def.Reach0` seeds it.
-- Habit length is clamped to [0.2, 2] after every update. Cosine of a zero vector is 0, never NaN.
+- `entity.Agent.Habits[i]` is the agent's own copy for habit slot `i`, which is catalog position, seeded from the prior on first decision (`Imprinted`) with N(0, 0.15) drift on the varying coordinates, drawn from the agent's own luck. Founders seeded from the bare table read every moment identically and forage, build, and starve in lockstep; the drift is what lets a division of labour exist at all. It is fixed at birth.
+- `entity.Agent.Reach[i]` in [0, 1] is how far into reach action `i` is for this agent. `Def.Reach0` seeds it. Doing an action raises it by 0.02 (`action.Practise`), which is practice and not reward: it does not ask how the doing went.
+- Habit length is clamped to [0.2, 2] wherever two signatures are blended - birth, teaching, inheritance. Cosine of a zero vector is 0, never NaN.
+- The moral coordinates never vary (`habit.Varying`): they are the same across every candidate an agent weighs, so drift on them would say only what the agent already says everywhere and would cancel out of the choice.
 
 ## Choice
 
@@ -62,114 +65,55 @@ eff_i = cos(S_i, H_i) - 0.6 * (1 - Reach_i)
 
 Sample from a softmax over `eff` at temperature `τ / intensity`, with `τ = 0.15` and `intensity = 0.5 + Σ_t urgency[t] * personality[t]` over raw urgencies. A moment with strong urgencies is decided sharply. A bland moment is decided loosely. The norm of the whole situation vector is not a usable intensity, because the stock and surroundings coordinates saturate at -1 for most agents most of the time. Exactly one `w.RNG.Float64()` is consumed per decision.
 
-Nothing is divided by cost. Nearness is a dimension the habit learns about. Hard physical gates in `Available` stay (eating needs food). The only soft judgement gate in the catalog today, teach's skill floor, becomes reach.
+Nothing is divided by cost. Nearness is a dimension of the moment, and a prior says how much the act belongs to a near one. Hard physical gates in `Available` stay (eating needs food). The only soft judgement gate in the catalog today, teach's skill floor, becomes reach.
 
 ### Writing priors
 
 Fit is by direction, which has three consequences that phase 3 ran into:
 
 - **A prior should name only the coordinates that predict its moment.** Every extra coordinate dilutes the ones that matter. The first draft put a skill coordinate on farm, build, and guard; since every newcomer believes itself unskilled, that read as a tax on exactly the acts a settlement needs first.
-- **There is no constant fallback.** A rest prior of "nothing is urgent" matched a sated agent on four axes and beat every specific act. A prior with one always-maximal coordinate has a constant fit that real but moderate matches lose to. Rest's prior is therefore "recover", a mild version of eating's. Under sampling the least bad candidate is fallback enough.
+- **The fallback is the quiet moment, and it is a real candidate.** Rest names every urgency and names them all negative, so any pressing need turns an agent away from it. Two other shapes were tried and are worse: a zero vector, which fits nothing and everything at once, and "a mild version of eating's moment", which is what rest was while outcomes could still move habits and rest could be learned away - with the learning gone that prior sent a third of every settlement's waking life on resting off a hunger it was not answering. Rest tops the ranking in a settled moment, and that is the intended reading: `TestSatedCuriousAgentStudiesWhenItIsInReach` asks that study is the first act that *does* something, not that it beats resting.
 - **Stock coordinates that sit at -1 for everyone are attractors.** Gather wood fits any agent with no wood and no house rather well, whatever else is going on. That is arguably true, and it is what gets houses built, but it is worth remembering when reading activity tables.
 
 `action.Rank` orders the available candidates by fit and is the ordering oracle for tests: a test asserts which action ranks first for a canonical moment, never what the sampler drew.
 
-## Learning
+## Taking the learning out
 
-At every plan end, whether or not `Apply` ran (a plan whose `Available` went false while walking is a lesson too):
+Recognition was built with a reward-driven learner behind it, and the priors were tuned with that learner running. Pulling it out is not a deletion of dead weight: the learner was carrying a share of the behaviour, and the priors had to be rewritten to carry it themselves. What went:
 
-```
-r   = Σ_t (Needs_after[t] - Needs_before[t]) * Urgency_at_decision[t] * Personality[t]
-adv = clamp(r - Baselines[index], -0.5, 0.5)                                  // BaselineMix = 1
-Baseline += 0.02 * (r - Baseline);  Baselines[index] += 0.05 * (r - Baselines[index])
-Trace.Push(index, S_at_decision)             // keep 3, newest first
-for k, step in Trace:
-    H[step.Index] += 0.10 * 0.5^k * adv * (step.Situation - H[step.Index])   // learnable dims only
-H[index] += 0.003 * (Prior[index] - H[index])                                // retention, all dims
-clamp |H[index]| to [0.2, 2]
-Reach[index] = min(1, Reach[index] + 0.02)                                   // doing is learning
-```
+- `system.Learn` and everything it used: reward from need changes, advantage against a per-action baseline, the eligibility trace, `habit.Update`, `habit.Retain`, the larder that remembered which act grew each unit of food, and the roof and watch that were thanked for safety that rose later.
+- The agent fields that held it: `Baseline`, `Baselines`, `Trace`, `Larder`, `Harvest`, `Roof`, `Watch`.
+- The plan fields that fed it: `Plan.Situation` and `Plan.Before`. A plan now records only what it is, where, and when it started.
 
-The reward uses urgencies from the moment of the decision, so an outcome is judged by what the agent wanted then. A lesson is judged against the act's own baseline, so it is about *when* the act pays, never *whether*. The machinery for a blend with the agent's general baseline is there (`BaselineMix`) and is set to the act's own alone. With the general baseline in the mix, an act whose direct outcome is always modest, which is every instrumental act and above all the public good of standing guard, is pushed a little further from its own moments every time it happens, and the settlement loses public order and with it the safety that births need. With only the general baseline (phases 4 and 5) every positive reward reinforced and the eat habit drifted toward barely-hungry moments.
+What stayed, because none of it is reinforcement: the recognition space and the cosine; sampling at a temperature sharpened by intensity; teaching, which copies a signature from one person to another; inheritance with drift; reach, which grows with practice, study, teaching, and discovery without asking how anything went; and the belief layer's caution and regard, which follow from what an agent has *seen*, not from what it was paid.
 
-### Credit by provenance
+### What it cost, and what was rewritten
 
-Food on hand remembers the act that produced it and the moment it was taken in, as a harvest (`Agent.Larder`, oldest first, capped at 16 harvests). As the food is consumed, by meals, sales, gifts, or a thief, each consuming plan's reward is added to the harvest it came from, and when the last of a harvest goes the act that made it is judged by all it brought (see Harvests below). A roof remembers the act that last raised shelter (`Agent.Roof`), a watch the act by which the agent last kept public order (`Agent.Watch`); safety that rises during any later plan credits both, for the part of that plan's reward safety accounts for.
+Measured over 24 seeds, 20 founders, 6000 ticks, counting settlements that replaced their founders (population at least 20 at the end), extinctions, and mean final population:
 
-What the credit carries is an **advantage**, never a raw reward. This was the difference between a working economy and a runaway one. Thanked with the raw reward, a forage got good news from every meal, its habit drifted onto the average moment and fit everything, and agents foraged every six ticks into a larder of thirty units while houses rotted. Thanked with the advantage, a forage that fed a full belly is pushed away from that moment, and production regulates itself: a meal better than meals usually are pulls the field toward the moment it was worked in, a needless one pushes it away.
+| variant | lasted | extinct | mean pop |
+|---|---|---|---|
+| recognition with learning (before) | 11/12 | 0 | 108 |
+| the value rule, unchanged | 10/12 | 1 | 86 |
+| recognition, learning removed, priors untouched | 0/24 | 9 in the first 12 | 1 |
+| recognition, learning removed, priors rewritten | 13/24 | 1 | 24 |
 
-### Harvests
+The untuned number is the honest measure of how much the learner was doing: with the priors as they stood, every settlement died. Four changes brought it back, in order of what they were worth:
 
-The owner's brief for farming: bad and slow when first discovered, then improving until it is the mainstay. Recognition has no efficiency channel at the moment of choice, by design, so the only place a field can be found better than the forest is in what its harvests fed. A harvest is settled when its last unit is gone: the act that made it is credited with `Advantage(Returned, Harvest)`, where `Returned` is the need satisfaction everything it fed brought and `Agent.Harvest` is the agent's running sense of what a producing act usually brings. A forage brings one unit and feeds one meal. A first field on ordinary ground brings 0.4 to 0.8 and feeds less, so it is learned away; after agriculture (yield times 1.8) and with the work learned (plus two times skill) it brings two or three, and the same lesson pulls it in. A harvest evicted unsettled, because the larder is full, is judged by what it brought so far, which is how overproduction is learned away too.
+- **Founders differ from one another.** Habits drift N(0, 0.15) at birth. Twenty founders reading every moment identically have no division of labour to fall into. Extinctions 9 → 4 on the first twelve seeds.
+- **Public order is read as a lack**, the way shelter already was: `order - 1`, so an ungoverned settlement reads -1 and a well-kept one reads 0. Read one-sided it was silent exactly when it mattered, and guarding - whose prior names the ungoverned moment - never happened in a settlement that had never had a watch. This is the change that let a settlement hold order at all.
+- **Hunger is answered by farming as well as by foraging.** The old farm prior said nothing of hunger on purpose: under learning, harvests judged farming by what a first poor field fed and learned it away before agriculture arrived. With no learner to be misled there is nothing to protect farming from, and a prior that only industrious people recognise leaves a settlement foraging its woods bare. Farm now names hunger at 0.8 and forage at 0.7, so a person with a field works it and a person without goes to the trees. Lasted 4/12 → 8/12, extinct 0.
+- **Rest is the quiet moment** rather than a mild hunger (see Writing priors), and **eating names the food in hand** at 0.4, which is what separates it from going to look for food.
 
-Two things had to be true for the arc to show:
+What this buys is a settlement that lives: nobody starves out on all but one seed, houses are built and kept, order is held on about half the seeds, fields are worked, and the land's answers - fishing above all - are found and used. What it does not buy is the growth the learner produced. Populations sit near 25 rather than near 110, resting is about a fifth of all acts, and the higher tiers stay thin. That is the honest shape of the trade: **a rule that never learns is a rule whose ceiling is written into its priors**, and the priors are a hand's estimate of what each moment calls for rather than a fitted one.
 
-- **Tradition has to carry farming through its bad years.** A farm prior with a hunger coordinate gave farming a foothold in hungry moments, and the harvests learned it away before agriculture arrived on either seed (agriculture needs two farmers at skill 0.2, which is twenty farms each). The farm prior is the industrious moment alone, a person with a field nearby working it whether or not the larder is low, and retention toward that prior is what keeps a poor field worked until it is a good one.
-- **Skill has to survive a generation.** With the founders dead, their children started at skill zero, and on seed 7 farming fell from 15 acts per agent to one inside 500 ticks. A child is now born with half its parent's skills (`system.InheritedSkill`, under recognition; the value rule keeps its original design), so a farming family stays a farming family. Teaching passes the rest.
+### Measuring a change
 
-With both, on seed 7 farming goes from 7 acts per agent per 500 ticks to 16 while foraging falls from 35 to 18, farming skill reaches 0.8, and the population reaches 127 by tick 6000; on seed 21 farming doubles and skill reaches 0.4 while the forest still feeds most meals, the arc in progress. On the 24-seed sweep this took survivors from 20 to 22 and the median population from 118 to 127.
-
-Guard starts fully in reach. It is the one public good in the catalog, and a settlement that has to discover it first has died of disorder before it does. The value rule's safety turned out to come from public order too, not from houses: its agents guard several hundred times per 500 ticks and hold order at 1.0, while their shelter is as low as recognition's. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
-
-The trace is what keeps the economy alive under a needs-only reward. Farm and forage never touch needs, only the larder. When a later eat pays +0.35, the trace hands half of that to the previous plan and a quarter to the one before. If liveness runs still show farming being learned away, the documented fallback is to add stock terms to `r`. That would move a value judgement into learning, which is the agreed place for it, but it has been rejected for now.
-
-### Second tuning pass and the subsistence finding (phase 6)
-
-Flipping the default broke one test: on seed 21 nobody posted a request in 3000 ticks. Diagnostics showed why. Wealth stayed at zero because nobody sold; nobody sold because food per agent never rose above about half a unit; and that was because the farm prior said "hungry and out of food", so agents farmed only when hungry and foraged the rest of the time. Three changes, all inside the design:
-
-- **The farm prior no longer mentions hunger.** Foraging is what hunger calls for. Farming is what an industrious person with a field nearby does, whether or not the larder is low. That is the only moment in which a larder ever fills past today.
-- **Wood is measured against the cost of a house**, so "enough wood" reads as +1 exactly when a shelter can be built, and the gather and build priors are worded around the unsheltered moment.
-- **Per-action baselines** (above), so that a good outcome for an act is judged against that act's usual outcome.
-
-After these, seed 21 reaches 41 fulfilled requests per 500 ticks by tick 2000 and wealth grows; the social seed keeps its request rate (276 asked, 230 fulfilled) with theft at 293 and giving at 222.
-
-What did not move is safety, and with it growth. Agents forage every 17 ticks and gather wood a tenth as often, houses rot faster than they are rebuilt, and mean safety sits near 0.3 against 0.5 under the value rule, below the 0.6 a birth requires. The cause is structural. Under the leaky hierarchy a moderately hungry agent has its safety urgency damped, so it chases food; recognition has no notion that a field is more efficient than the forest, so it chases food the slow way; and a needs-only reward gives no credit for surplus, so nothing it learns changes that. **Recognition with a needs-only reward produces a subsistence society: fed, housed after a fashion, social, literate in time, and not growing.** Whether that is a bug or the point is a design call. The two levers left, both rejected so far, are an efficiency or stock term in the reward, and a longer credit horizon (a trace of 8 at 0.75 was tried and made requests collapse, because it spread each meal's credit over everything).
-
-### Robustness
-
-Single seeds are a coin toss near the edge. Whether a settlement lasts turns on how many births fall in its founders' fertile years, and that turns on safety crossing 0.6 at the moment of a roll, so the same change can send one seed from 0 to 144 and another the other way. Ranking a change on one or two seeds is meaningless; the method that worked is a batch of 24 seeds, in parallel, counting settlements that replaced their founders (population at least 20 at tick 6000), extinctions, and the median population, confirmed on a second independent batch:
+Single seeds are a coin toss. Whether a settlement lasts turns on how many births fall in its founders' fertile years, and that turns on safety crossing 0.6 at the moment of a roll, so the same change can send one seed from 0 to 144 and another the other way. Ranking a change on one or two seeds is meaningless; the method is a batch of at least 24 seeds run in parallel, counting settlements that replaced their founders, extinctions, and the mean final population. With the learning gone the batch matters more, not less: a prior is a single number that every agent in every settlement reads the same way, so a bad one fails everywhere at once and a good one has to be shown to help across the spread rather than on the seed it was written against.
 
 ```bash
 go build -o /tmp/h.exe ./cmd/headless && seq 1 24 | xargs -P 8 -I{} sh -c '/tmp/h.exe -seed {} -ticks 6000 -every 6000 | grep "^  6000" | awk -v s={} "{print s, \$2}"' | sort -n
 ```
-
-| variant | seeds 1-24 | seeds 25-48 |
-|---|---|---|
-| committed after provenance | 16 survived, 2 extinct, median 42 | 19 survived, 0 extinct, median 43 |
-| **shelter read as a lack** (adopted) | 20 survived, 0 extinct, median 118 | 20 survived, 0 extinct, median 77 |
-| plus unsheltered gather and build priors | 21 survived, 1 extinct, median 78 | |
-| plus eat at milder hunger | 16 survived, 2 extinct, median 94 | |
-| order with a midpoint, guard prior on it | worse on every seed tried | |
-| guard prior less repelled by order | 4 extinctions in 8 seeds | |
-
-What the winning change is about. Safety urgency is gone by the time safety reaches 0.4, a birth needs 0.6, and a house rots at 0.002 per tick. Read around a midpoint, the shelter coordinate only called for gathering and building once a house had mostly rotted, so shelter sat near 0.2 in both rules and safety only crossed 0.6 in the spike after a rebuild. Read as a lack, half a house is still a moment that calls for wood, houses are kept nearer 0.5, and the spikes are no longer what a settlement lives or dies on.
-
-What did not work is as telling. Anything that made disorder a louder call to stand guard, whether through the mapping or the guard prior, starved settlements at their posts. The milder eat prior, meant to keep agents above the birth mark, undid the gain. And seed 21, the seed that started this, is still on the edge: 13 before, 10 after, 63 under a variant that was worse overall. It is not a special seed, it is an ordinary one that fell on the wrong side of a knife edge, and the fix was to blunt the edge for everyone rather than to tune for it.
-
-### First side-by-side run
-
-Same seeds, same populations, same tick counts; the two modes are different RNG streams so this is a comparison of character, not of trajectories. Phase 4, before any tuning.
-
-| test | value mode | fit mode |
-|---|---|---|
-| seed 7, 20 agents, 6000 ticks | pop 40, 4 starved, 36 houses, 3 techs | pop 22, 0 starved, 22 houses, 3 techs |
-| seed 31, 25 agents, 6000 ticks | 148 asked, 134 fulfilled, 9 stolen, 84 given | 105 asked, 103 fulfilled, 510 stolen, 39 given |
-| seed 1, 20 agents, 4000 ticks | 7 stolen, 31 avenged, 1 feud | 397 avenged, 45 feuds |
-
-After the first tuning pass (moral coordinates one-sided, phase 5):
-
-| test | fit mode, tuned |
-|---|---|
-| seed 7 | pop 18, 2 starved, 20 houses, 3 techs, mean physiological 0.71 |
-| seed 31 | 216 asked, 202 fulfilled, 310 stolen, 214 given, 298 avenged |
-| seed 1 | 94 avenged, 4 feuds |
-
-What the numbers say:
-
-- **Nobody starves, but nobody thrives.** Mean physiological need sits near 0.55 in fit mode against 0.85 in value mode, and the population barely grows. Agents under recognition satisfy the pressing need and stop; value maximisers overshoot into surplus, which is what feeds births. The eligibility trace did keep farming and foraging alive with a needs-only reward.
-- **Theft was fifty times more common, now thirty.** Before tuning the moral coordinates were centred so that a norm of 0.5 read as 0, which made them silent for the average agent, whereas value mode charges everyone conscience in proportion to their honesty. Reading them one-sided, as the belief layer defines them, cut theft by two fifths, multiplied giving by five, and collapsed feuds from 45 to 4 on seed 1. What remains is honest dynamics: stealing works, the trace hands the meal's reward back to the theft, and guilt lands as an esteem loss that a hungry agent barely weighs. A society with a self-centred reward and no enforcement steals. The remaining levers are the steal prior itself and how hard remorse lands, both left for phase 6.
-- **Feuds cluster and persist**, which is the predicted consequence of habits being individual: once an agent has learned that a grudge calls for getting even, it keeps recognising that moment.
-- **Requests are fulfilled at the same rate**, so the contract layer works under recognition without changes.
 
 ## The land
 
@@ -220,7 +164,7 @@ Under the value rule the land actions are unavailable until their tech is known 
 
 Study starts nearer to reach (0.6, from 0.4). Recognition settlements otherwise rarely studied, and every discovery waited on knowledge they did not have.
 
-**What the runs show.** Over 6000 ticks: seed 3 learns fishing at tick 200, before it has learned to farm; seeds 2, 7, and 16 farm first and turn to the river between ticks 1500 and 2100, once the forest they live off is thin, with hundreds to fifteen hundred fishing acts following. Trapping arrives with fishing wherever tools are held. Irrigation and forestry did not fire on these seeds: with wear at 0.006 the fields near the market stay above the 0.45 that counts as poor, and forest reseeding more than replaces what is cleared, so the founding forest is never down by four tenths. Both remain reachable by pioneers through study and teaching, and are used that way (fifty to a hundred irrigations and several hundred plantings per run), but as discoveries they wait for a scarcer world or a larger settlement. On the 24-seed sweep the package leaves survival at 21 of 24 with no extinctions and a median population of 127 to 144.
+**What the runs show.** Over 6000 ticks: seed 3 learns fishing at tick 200, before it has learned to farm; seeds 2, 7, and 16 farm first and turn to the river between ticks 1500 and 2100, once the forest they live off is thin, with hundreds to fifteen hundred fishing acts following. Trapping arrives with fishing wherever tools are held. Irrigation and forestry did not fire on these seeds: with wear at 0.006 the fields near the market stay above the 0.45 that counts as poor, and forest reseeding more than replaces what is cleared, so the founding forest is never down by four tenths. Both remain reachable by pioneers through study and teaching, and are used that way (fifty to a hundred irrigations and several hundred plantings per run), but as discoveries they wait for a scarcer world or a larger settlement. On the 24-seed sweep the package left survival at 21 of 24 with no extinctions and a median population of 127 to 144, measured while the learning was still in.
 
 ## Making and keeping
 
@@ -280,27 +224,27 @@ Implemented in `core/action/reach.go`; the constants live there.
 - **Study broadens.** Every gated action comes closer: `Reach += 0.03 * (1 - Reach) * Mods.StudyRate`, so written records make study widen reach twice as fast.
 - **Teaching passes recognition on.** The student's reach for the taught skill's action becomes `max(own, 0.6 * teacher)`, and its habit moves 0.3 of the way toward the teacher's. `ForSkill` maps farming, building, crafting, scholarship, and guarding to farm, build, craft, study, and guard.
 - **Discovery opens.** A `Discovery` has an `Opens` list; masonry opens craft, writing opens study and teach, metallurgy opens craft and guard. Masonry opens laying roads too. Each raises `world.ReachFloor` for that action to 0.8, and every agent is lifted to the floor at its next decision.
-- **Children inherit.** A child takes its parent's habits with N(0, 0.05) drift on the learnable coordinates and `Reach = max(floor, 0.7 * parent)`. Under the value rule the copy is exact so that rule draws nothing extra from the RNG.
-- Doing an action raises its own reach by 0.02 in the learning step.
+- **Children inherit.** A child takes its parent's habits with N(0, 0.05) drift on the varying coordinates and `Reach = max(floor, 0.7 * parent)`. Under the value rule the copy is exact so that rule draws nothing extra from the RNG.
+- **Doing brings a thing closer.** `action.Practise` raises the acted action's reach by 0.02 at every plan end, whether or not the plan came to anything. It is familiarity, not success: reach is the only thing in the simulation that a completed action changes, and it does not look at the outcome.
 
 Reach is the "distance gate": a far action is one whose signature the agent cannot yet reach, and study, teaching, and discovery bring it closer. Because it is a penalty on fit rather than a lock, a curious agent can occasionally reach a far action early. Pioneers fall out of the sampling.
 
 ## Expected impact on the simulation
 
-- **Roles.** Agents keep doing what fitted before, so farmers, scholars, and thieves become individuals rather than a population-wide threshold. Feuds cluster around people.
-- **Slower reaction to acute need** until temperature and learning rate are tuned. Intensity sharpening is the safety valve. Watch starvation counts; seed 7 today has 4 deaths in 6000 ticks.
+- **Roles.** Agents differ in what they recognise, so farmers, scholars, and thieves are individuals rather than a population-wide threshold. Who becomes which is settled at birth and by who taught them, not by how anything went.
+- **Slower reaction to acute need** than a maximizer. Intensity sharpening is the safety valve. Watch starvation counts.
 - **Techs later.** Study is gated and knowledge only comes from study and scholar service.
-- **Culture.** Teaching and births transmit habits, so settlements diverge across seeds more than they do now.
+- **Culture.** Teaching and births transmit habits, so settlements diverge across seeds. With nothing learned, that transmission and the drift at birth are the only sources of divergence there are.
 - **Determinism** holds: habit tables are arrays, one RNG draw per decision, fixed catalog order. Fit mode and value mode are different RNG streams for the same seed, so comparison is statistical, not trajectory-level.
-- **Player.** `sim.Intend` must build plans through the same builder, so player commands teach the player's habits.
+- **Player.** `sim.Intend` builds plans through the same builder as everyone else, so a player's order is an ordinary plan.
 
 Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit habit from the population's mean unit habit, over all actions; 0 means everyone recognises the same moments the same way), `MeanReach`, `GatedReach` (over the four gated actions), `ChoiceEntropy` (mean entropy in nats of the tick's sampled decisions; 0 in value mode), `Deaths` (cumulative). Headless prints them as `died`, `reach`, `sprd`, `open`; the TUI has one line for them.
 
 ## Pitfalls recorded
 
 - The catalog used to be assembled by two `init()` appenders in different files, which run in filename order and put retaliate before steal. Phase 0 replaced them with one literal and `action.Count`, checked at init.
-- Rewards are misattributed when other agents change your needs mid-plan (theft, retaliation, encounters). Accepted as noise, which is why the learning rate is small and the baseline slow.
-- Only the chosen action's habit moves toward the situation, so winners drift toward "the moment I am usually in" and win more. Retention toward the prior, the norm clamp, and sampling instead of argmax all push against lock-in. `HabitSpread` makes it visible.
+- A signature that is never revised is a signature that is never corrected either: a prior written against one settlement's circumstances is read the same way in a settlement where it is wrong. That is the price of the rule, and the reason the prior table is tuned across a batch of seeds rather than one.
+- `HabitSpread` no longer moves during a run. It is the spread of what was handed down - drift at birth, teaching, inheritance - and a flat line is the expected reading, not a broken one.
 - `world` cannot import `action`, so habits are imprinted lazily in `system` on an agent's first decision.
 
 ## Phases
@@ -321,9 +265,10 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
 | 13 | Workplaces: a bench, a desk, a hearth, a forge, and a market worth guarding | done |
 | 14 | Comfort: tried and mostly withdrawn; a meal in company at the tavern is a little belonging | done |
+| 15 | The learning removed: `system.Learn` and the whole reward layer gone; founders drift at birth; order read as a lack; farm, eat, and rest priors rewritten; `action.Practise` for reach | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
-Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
+Tests under fit mode assert ordering (which action ranks first), not the sampled outcome, and they run with founder drift switched off (`BornNoise = 0` in the action package's `TestMain`) because they are about what the shared table means. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes.
 
 ## Laying roads (the second public good)
 
@@ -333,7 +278,7 @@ Tests under fit mode assert ordering (which action ranks first), not the sampled
 
 **The moment.** `Pave`'s prior is the settled one: `Wood 0.6, Shelter 0.7, Company 0.6, Charity 0.5, Industry 0.6, Near 0.5`. Shelter is what separates it from gathering and building, which want the opposite - you improve the common ground once your own roof is up. Charity and industry are what it shares with standing guard. It mentions neither hunger nor skill, for the reasons in "Writing priors".
 
-**Why it is not an esteem farm.** Paving has no provenance channel: a road pays back as slightly cheaper walking, forever, for everybody, and a needs-only reward would extinguish it. So like guard it pays the layer in standing - but deliberately less per tick than guard does. At esteem 0.05 / belonging 0.03 agents paved a third of the map and the settlement was worse for it (seed 5: 984 road tiles, pop 135). At 0.03 / 0.02 paving is common but self-limiting.
+**Why it is not an esteem farm.** A road pays back as slightly cheaper walking, forever, for everybody, and none of that reaches the person who laid it. So like guard it pays the layer in standing - but deliberately less per tick than guard does. At esteem 0.05 / belonging 0.03 agents paved a third of the map and the settlement was worse for it (seed 5: 984 road tiles, pop 135). At 0.03 / 0.02 paving is common but self-limiting.
 
 **Tuning.** `wornEnough` was measured, not guessed. Equilibrium wear on a tile is roughly crossings-per-tick x 200, so the threshold is what decides whether roads are a big-city luxury or an ordinary act. Sweeping it on seed 5 (6000 ticks, 25 founders):
 
@@ -555,7 +500,7 @@ The season costs about a seventh of the median where a tree earlier it cost thre
 
 What the season does on this ground is thin the weak without killing them: the mean falls from 119 to 79 while the median barely moves, five settlements come in under twenty where the control has none, and seventeen of twenty-four seeds end lower. That is the shape the feature was for. It also retires the extinction question this section spent so long on - neither column loses a settlement now - and with it the ceiling that `WinterGrowth` was being tuned against. If the depth of the winter is ever revisited, it should be re-argued from this distribution and not from the one above.
 
-**What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
+**What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and no prior yet says that August is a moment for selling into a granary and February one for buying out of it. Writing a pair of priors that read the season that way is the interesting question here, and this package does not answer it.
 
 ## What a household eats
 
@@ -646,3 +591,104 @@ Two rules held across all of them. *What an act promises it gives*: the esteem a
 **Adding a material** is now: a class under `Material` with its traits, an entry in `Affords` for where it lies, a lode row, and a stock on the tile if it draws one down. The walk entails the taking, the composition gives it a prior, the registry gives it a slot, and the binding at start says if anything is missing. A thing to make of it is a schema and a recipe; a thing to build of it a schema and a plan; a price for it a line in the terms. The four acts still by hand are the ones whose logic is different in kind, not in degree, and there is nothing to gain from forcing them.
 
 **Where to tune, now.** `core/action/priors.go` still holds the priors as they were written by hand, and they are kept as `Def.Tuned` for the golden test - but they no longer run. Exposure was added there first and reached nothing for a merge. What an act recognises is changed in `core/ontology`: the class's stock coordinate, a trait's want, a role's moment, a site's `At`, or the residue on the schema. The golden test says how far the composition has moved from what was tuned; the city test says whether the settlement still lives on it.
+
+## History: the learning that used to be here
+
+The sections below describe the reward-driven layer as it worked before it was removed. Nothing in them is live. They are kept because they record what the priors now have to carry unaided, and because the findings about the space itself - what an advantage does that a raw reward does not, why a public good is never learned against a general baseline - are the reason some of the priors are shaped the way they are.
+
+### Learning (removed)
+
+At every plan end, whether or not `Apply` ran (a plan whose `Available` went false while walking is a lesson too):
+
+```
+r   = Σ_t (Needs_after[t] - Needs_before[t]) * Urgency_at_decision[t] * Personality[t]
+adv = clamp(r - Baselines[index], -0.5, 0.5)                                  // BaselineMix = 1
+Baseline += 0.02 * (r - Baseline);  Baselines[index] += 0.05 * (r - Baselines[index])
+Trace.Push(index, S_at_decision)             // keep 3, newest first
+for k, step in Trace:
+    H[step.Index] += 0.10 * 0.5^k * adv * (step.Situation - H[step.Index])   // learnable dims only
+H[index] += 0.003 * (Prior[index] - H[index])                                // retention, all dims
+clamp |H[index]| to [0.2, 2]
+Reach[index] = min(1, Reach[index] + 0.02)                                   // doing is learning
+```
+
+The reward uses urgencies from the moment of the decision, so an outcome is judged by what the agent wanted then. A lesson is judged against the act's own baseline, so it is about *when* the act pays, never *whether*. The machinery for a blend with the agent's general baseline is there (`BaselineMix`) and is set to the act's own alone. With the general baseline in the mix, an act whose direct outcome is always modest, which is every instrumental act and above all the public good of standing guard, is pushed a little further from its own moments every time it happens, and the settlement loses public order and with it the safety that births need. With only the general baseline (phases 4 and 5) every positive reward reinforced and the eat habit drifted toward barely-hungry moments.
+
+### Credit by provenance
+
+Food on hand remembers the act that produced it and the moment it was taken in, as a harvest (`Agent.Larder`, oldest first, capped at 16 harvests). As the food is consumed, by meals, sales, gifts, or a thief, each consuming plan's reward is added to the harvest it came from, and when the last of a harvest goes the act that made it is judged by all it brought (see Harvests below). A roof remembers the act that last raised shelter (`Agent.Roof`), a watch the act by which the agent last kept public order (`Agent.Watch`); safety that rises during any later plan credits both, for the part of that plan's reward safety accounts for.
+
+What the credit carries is an **advantage**, never a raw reward. This was the difference between a working economy and a runaway one. Thanked with the raw reward, a forage got good news from every meal, its habit drifted onto the average moment and fit everything, and agents foraged every six ticks into a larder of thirty units while houses rotted. Thanked with the advantage, a forage that fed a full belly is pushed away from that moment, and production regulates itself: a meal better than meals usually are pulls the field toward the moment it was worked in, a needless one pushes it away.
+
+### Harvests
+
+The owner's brief for farming: bad and slow when first discovered, then improving until it is the mainstay. Recognition has no efficiency channel at the moment of choice, by design, so the only place a field can be found better than the forest is in what its harvests fed. A harvest is settled when its last unit is gone: the act that made it is credited with `Advantage(Returned, Harvest)`, where `Returned` is the need satisfaction everything it fed brought and `Agent.Harvest` is the agent's running sense of what a producing act usually brings. A forage brings one unit and feeds one meal. A first field on ordinary ground brings 0.4 to 0.8 and feeds less, so it is learned away; after agriculture (yield times 1.8) and with the work learned (plus two times skill) it brings two or three, and the same lesson pulls it in. A harvest evicted unsettled, because the larder is full, is judged by what it brought so far, which is how overproduction is learned away too.
+
+Two things had to be true for the arc to show:
+
+- **Tradition has to carry farming through its bad years.** A farm prior with a hunger coordinate gave farming a foothold in hungry moments, and the harvests learned it away before agriculture arrived on either seed (agriculture needs two farmers at skill 0.2, which is twenty farms each). The farm prior is the industrious moment alone, a person with a field nearby working it whether or not the larder is low, and retention toward that prior is what keeps a poor field worked until it is a good one.
+- **Skill has to survive a generation.** With the founders dead, their children started at skill zero, and on seed 7 farming fell from 15 acts per agent to one inside 500 ticks. A child is now born with half its parent's skills (`system.InheritedSkill`, under recognition; the value rule keeps its original design), so a farming family stays a farming family. Teaching passes the rest.
+
+With both, on seed 7 farming goes from 7 acts per agent per 500 ticks to 16 while foraging falls from 35 to 18, farming skill reaches 0.8, and the population reaches 127 by tick 6000; on seed 21 farming doubles and skill reaches 0.4 while the forest still feeds most meals, the arc in progress. On the 24-seed sweep this took survivors from 20 to 22 and the median population from 118 to 127.
+
+Guard starts fully in reach. It is the one public good in the catalog, and a settlement that has to discover it first has died of disorder before it does. The value rule's safety turned out to come from public order too, not from houses: its agents guard several hundred times per 500 ticks and hold order at 1.0, while their shelter is as low as recognition's. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
+
+The trace is what keeps the economy alive under a needs-only reward. Farm and forage never touch needs, only the larder. When a later eat pays +0.35, the trace hands half of that to the previous plan and a quarter to the one before. If liveness runs still show farming being learned away, the documented fallback is to add stock terms to `r`. That would move a value judgement into learning, which is the agreed place for it, but it has been rejected for now.
+
+### Second tuning pass and the subsistence finding (phase 6)
+
+Flipping the default broke one test: on seed 21 nobody posted a request in 3000 ticks. Diagnostics showed why. Wealth stayed at zero because nobody sold; nobody sold because food per agent never rose above about half a unit; and that was because the farm prior said "hungry and out of food", so agents farmed only when hungry and foraged the rest of the time. Three changes, all inside the design:
+
+- **The farm prior no longer mentions hunger.** Foraging is what hunger calls for. Farming is what an industrious person with a field nearby does, whether or not the larder is low. That is the only moment in which a larder ever fills past today.
+- **Wood is measured against the cost of a house**, so "enough wood" reads as +1 exactly when a shelter can be built, and the gather and build priors are worded around the unsheltered moment.
+- **Per-action baselines** (above), so that a good outcome for an act is judged against that act's usual outcome.
+
+After these, seed 21 reaches 41 fulfilled requests per 500 ticks by tick 2000 and wealth grows; the social seed keeps its request rate (276 asked, 230 fulfilled) with theft at 293 and giving at 222.
+
+What did not move is safety, and with it growth. Agents forage every 17 ticks and gather wood a tenth as often, houses rot faster than they are rebuilt, and mean safety sits near 0.3 against 0.5 under the value rule, below the 0.6 a birth requires. The cause is structural. Under the leaky hierarchy a moderately hungry agent has its safety urgency damped, so it chases food; recognition has no notion that a field is more efficient than the forest, so it chases food the slow way; and a needs-only reward gives no credit for surplus, so nothing it learns changes that. **Recognition with a needs-only reward produces a subsistence society: fed, housed after a fashion, social, literate in time, and not growing.** Whether that is a bug or the point is a design call. The two levers left, both rejected so far, are an efficiency or stock term in the reward, and a longer credit horizon (a trace of 8 at 0.75 was tried and made requests collapse, because it spread each meal's credit over everything).
+
+### Robustness (the learning era)
+
+Single seeds are a coin toss near the edge. Whether a settlement lasts turns on how many births fall in its founders' fertile years, and that turns on safety crossing 0.6 at the moment of a roll, so the same change can send one seed from 0 to 144 and another the other way. Ranking a change on one or two seeds is meaningless; the method that worked is a batch of 24 seeds, in parallel, counting settlements that replaced their founders (population at least 20 at tick 6000), extinctions, and the median population, confirmed on a second independent batch:
+
+```bash
+go build -o /tmp/h.exe ./cmd/headless && seq 1 24 | xargs -P 8 -I{} sh -c '/tmp/h.exe -seed {} -ticks 6000 -every 6000 | grep "^  6000" | awk -v s={} "{print s, \$2}"' | sort -n
+```
+
+| variant | seeds 1-24 | seeds 25-48 |
+|---|---|---|
+| committed after provenance | 16 survived, 2 extinct, median 42 | 19 survived, 0 extinct, median 43 |
+| **shelter read as a lack** (adopted) | 20 survived, 0 extinct, median 118 | 20 survived, 0 extinct, median 77 |
+| plus unsheltered gather and build priors | 21 survived, 1 extinct, median 78 | |
+| plus eat at milder hunger | 16 survived, 2 extinct, median 94 | |
+| order with a midpoint, guard prior on it | worse on every seed tried | |
+| guard prior less repelled by order | 4 extinctions in 8 seeds | |
+
+What the winning change is about. Safety urgency is gone by the time safety reaches 0.4, a birth needs 0.6, and a house rots at 0.002 per tick. Read around a midpoint, the shelter coordinate only called for gathering and building once a house had mostly rotted, so shelter sat near 0.2 in both rules and safety only crossed 0.6 in the spike after a rebuild. Read as a lack, half a house is still a moment that calls for wood, houses are kept nearer 0.5, and the spikes are no longer what a settlement lives or dies on.
+
+What did not work is as telling. Anything that made disorder a louder call to stand guard, whether through the mapping or the guard prior, starved settlements at their posts. The milder eat prior, meant to keep agents above the birth mark, undid the gain. And seed 21, the seed that started this, is still on the edge: 13 before, 10 after, 63 under a variant that was worse overall. It is not a special seed, it is an ordinary one that fell on the wrong side of a knife edge, and the fix was to blunt the edge for everyone rather than to tune for it.
+
+### First side-by-side run
+
+Same seeds, same populations, same tick counts; the two modes are different RNG streams so this is a comparison of character, not of trajectories. Phase 4, before any tuning.
+
+| test | value mode | fit mode |
+|---|---|---|
+| seed 7, 20 agents, 6000 ticks | pop 40, 4 starved, 36 houses, 3 techs | pop 22, 0 starved, 22 houses, 3 techs |
+| seed 31, 25 agents, 6000 ticks | 148 asked, 134 fulfilled, 9 stolen, 84 given | 105 asked, 103 fulfilled, 510 stolen, 39 given |
+| seed 1, 20 agents, 4000 ticks | 7 stolen, 31 avenged, 1 feud | 397 avenged, 45 feuds |
+
+After the first tuning pass (moral coordinates one-sided, phase 5):
+
+| test | fit mode, tuned |
+|---|---|
+| seed 7 | pop 18, 2 starved, 20 houses, 3 techs, mean physiological 0.71 |
+| seed 31 | 216 asked, 202 fulfilled, 310 stolen, 214 given, 298 avenged |
+| seed 1 | 94 avenged, 4 feuds |
+
+What the numbers say:
+
+- **Nobody starves, but nobody thrives.** Mean physiological need sits near 0.55 in fit mode against 0.85 in value mode, and the population barely grows. Agents under recognition satisfy the pressing need and stop; value maximisers overshoot into surplus, which is what feeds births. The eligibility trace did keep farming and foraging alive with a needs-only reward.
+- **Theft was fifty times more common, now thirty.** Before tuning the moral coordinates were centred so that a norm of 0.5 read as 0, which made them silent for the average agent, whereas value mode charges everyone conscience in proportion to their honesty. Reading them one-sided, as the belief layer defines them, cut theft by two fifths, multiplied giving by five, and collapsed feuds from 45 to 4 on seed 1. What remains is honest dynamics: stealing works, the trace hands the meal's reward back to the theft, and guilt lands as an esteem loss that a hungry agent barely weighs. A society with a self-centred reward and no enforcement steals. The remaining levers are the steal prior itself and how hard remorse lands, both left for phase 6.
+- **Feuds cluster and persist**, which is the predicted consequence of habits being individual: once an agent has learned that a grudge calls for getting even, it keeps recognising that moment.
+- **Requests are fulfilled at the same rate**, so the contract layer works under recognition without changes.

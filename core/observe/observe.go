@@ -83,10 +83,11 @@ type Snapshot struct {
 	Feuds       int
 	Hearsay     int
 
-	// The habit layer. HabitSpread is how far agents' habits have grown
-	// apart, 0 when everyone recognises the same moments the same way.
-	// GatedReach is how far the crafts and learning have come within reach
-	// on average. ChoiceEntropy is how open this tick's decisions were, in
+	// The habit layer. HabitSpread is how far agents' habits lie apart, 0
+	// when everyone recognises the same moments the same way. It is what
+	// birth, teaching, and inheritance have made of one shared table, and
+	// it does not move within a life. GatedReach is how far the crafts and
+	// learning have come within reach on average. ChoiceEntropy is how open this tick's decisions were, in
 	// nats, 0 when every choice was certain. Deaths is cumulative.
 	HabitSpread   float64
 	MeanReach     float64
@@ -206,8 +207,8 @@ func Take(w *world.World) Snapshot {
 	return s
 }
 
-// habits measures the habit layer: how far apart agents' recognition has
-// grown, and how far the gated actions have come within reach. Agents not
+// habits measures the habit layer: how far apart agents' recognition lies,
+// and how far the gated actions have come within reach. Agents not
 // yet imprinted are read as holding the priors.
 func habits(w *world.World) (spread, mean, gated float64) {
 	n := float64(len(w.Agents))

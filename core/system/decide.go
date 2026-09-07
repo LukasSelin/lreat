@@ -152,7 +152,7 @@ func decide(a *entity.Agent, w *world.World, r *world.Router) decision {
 		}
 		c := &cs[chosen]
 		out := decision{
-			plan:    newPlan(a, w, r, c.Def, c.Target, c.Index, c.Situation),
+			plan:    newPlan(a, w, r, c.Def, c.Target, c.Index),
 			entropy: entropy,
 			counted: true,
 		}
@@ -163,8 +163,7 @@ func decide(a *entity.Agent, w *world.World, r *world.Router) decision {
 	}
 	d, target, weighed := choose(a, w, r, watched)
 	action.Imprint(a)
-	s := action.SituationOn(a, w, r, d, target, action.Shared(a, w))
-	out := decision{plan: newPlan(a, w, r, d, target, action.Index(d), s)}
+	out := decision{plan: newPlan(a, w, r, d, target, action.Index(d))}
 	if watched {
 		out.thought = valued(a, w, d, weighed)
 	}
@@ -314,28 +313,20 @@ func Intensity(a *entity.Agent) float64 {
 }
 
 // Commit makes a plan for d at target and installs it on the agent. It is
-// the one place plans are made, for agents and for the player alike, so the
-// lesson drawn when the plan ends is always available. The situation is
-// recorded as the agent sees it now, whatever rule chose the action.
+// the one place plans are made, for agents and for the player alike.
 func Commit(a *entity.Agent, w *world.World, d *action.Def, target entity.Pos) *entity.Plan {
 	r := w.Routers(1)[0]
 	action.Imprint(a)
-	s := action.SituationOn(a, w, r, d, target, action.Shared(a, w))
-	a.Plan = newPlan(a, w, r, d, target, action.Index(d), s)
+	a.Plan = newPlan(a, w, r, d, target, action.Index(d))
 	return a.Plan
 }
 
 // newPlan builds a plan without installing it, so that plans worked out side
 // by side can be installed afterwards in a fixed order.
-func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, target entity.Pos, index int, s habit.Signature) *entity.Plan {
+func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, target entity.Pos, index int) *entity.Plan {
 	return &entity.Plan{
 		Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks,
-		Index:     index,
-		Situation: s,
-		Before: habit.Ledger{
-			Needs: a.Needs, Urgency: need.Urgencies(a.Needs),
-			Food: action.Edible(a), Shelter: a.Shelter,
-		},
+		Index:   index,
 		Started: w.Tick,
 		Route:   r.Carrying(a.Load()).Path(a.Pos, target),
 	}
@@ -397,11 +388,11 @@ func Act(w *world.World) {
 		a.Plan = nil
 		// Circumstances may have changed since the plan was made: the last
 		// unit of food may have been bought by someone faster. A plan that is
-		// no longer possible simply fails, and the failure is a lesson too.
+		// no longer possible simply fails, and nothing comes of it.
 		if d != nil && d.Available(a, w) {
 			d.Apply(a, w)
 			w.Emit(event.Acted, a.ID, 0, "%s finished %s", a.Name, d.Name)
 		}
-		Learn(a, w, p)
+		action.Practise(a, p.Index)
 	}
 }

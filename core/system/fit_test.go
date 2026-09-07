@@ -9,7 +9,6 @@ import (
 	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/event"
-	"lreat/core/habit"
 	"lreat/core/need"
 	"lreat/core/observe"
 	"lreat/core/world"
@@ -45,8 +44,8 @@ func TestFitModeIsDeterministic(t *testing.T) {
 	}
 	for i, x := range a.Agents {
 		y := b.Agents[i]
-		if !slices.Equal(x.Habits, y.Habits) || !slices.Equal(x.Reach, y.Reach) || x.Baseline != y.Baseline || !slices.Equal(x.Baselines, y.Baselines) {
-			t.Fatalf("agent %d learned differently in two identical worlds", x.ID)
+		if !slices.Equal(x.Habits, y.Habits) || !slices.Equal(x.Reach, y.Reach) {
+			t.Fatalf("agent %d came out differently in two identical worlds", x.ID)
 		}
 		for _, h := range x.Habits[:action.Count] {
 			for _, v := range h {
@@ -58,38 +57,35 @@ func TestFitModeIsDeterministic(t *testing.T) {
 	}
 }
 
-func TestAGoodOutcomePullsTheHabitTowardTheMoment(t *testing.T) {
+// An outcome, good or bad, is not allowed to move a habit. Recognition is
+// the whole of the decision: what an agent does in a moment is what it was
+// born or taught to do in such a moment, and how it turns out changes
+// nothing about the next one. This is the guard on that.
+
+func TestAGoodOutcomeLeavesTheHabitAlone(t *testing.T) {
 	w := fitWorld(3)
 	a := w.SpawnAt("a", need.Neutral(), w.MarketPos)
 	a.Needs[need.Physiological] = 0.05
-	a.Inventory[entity.Food] = 4 // a full larder: the food coordinate reads +1
-	p := Commit(a, w, action.Eat, a.Pos)
-	if p.Situation[habit.Food] != 1 {
-		t.Fatalf("food coordinate = %v, want 1", p.Situation[habit.Food])
-	}
-	before := a.Habits[action.Index(action.Eat)]
+	a.Inventory[entity.Food] = 4
+	Commit(a, w, action.Eat, a.Pos)
+	before := slices.Clone(a.Habits)
 	Act(w)
-	after := a.Habits[action.Index(action.Eat)]
-	if !(after[habit.Food] > before[habit.Food]) {
-		t.Fatalf("eating well should teach that full larders call for eating: %v -> %v", before[habit.Food], after[habit.Food])
+	if a.Needs[need.Physiological] <= 0.05 {
+		t.Fatal("eating should have fed the agent")
 	}
-	if a.Baseline <= 0 {
-		t.Fatalf("baseline should rise after a good outcome, got %v", a.Baseline)
+	if !slices.Equal(a.Habits, before) {
+		t.Fatal("a good outcome moved a habit")
 	}
 }
 
-func TestAFailedPlanIsALesson(t *testing.T) {
+func TestAFailedPlanLeavesTheHabitAlone(t *testing.T) {
 	w := fitWorld(4)
 	a := w.SpawnAt("a", need.Neutral(), w.MarketPos)
 	a.Needs[need.Physiological] = 0.05
-	a.Inventory[entity.Food] = 1 // the food coordinate reads -0.5
-	p := Commit(a, w, action.Eat, a.Pos)
+	a.Inventory[entity.Food] = 1
+	Commit(a, w, action.Eat, a.Pos)
 	a.Inventory[entity.Food] = 0 // someone took it while the plan was pending
-	// An agent used to eating well finds a fruitless meal disappointing.
-	// Within a bare Act nothing decays, so without that expectation the
-	// outcome would be exactly nothing and carry no lesson either way.
-	a.Baselines[p.Index] = 0.1
-	before := a.Habits[p.Index]
+	before := slices.Clone(a.Habits)
 	Act(w)
 	if a.Plan != nil {
 		t.Fatal("plan should have ended")
@@ -97,21 +93,8 @@ func TestAFailedPlanIsALesson(t *testing.T) {
 	if a.Inventory[entity.Food] != 0 || a.Needs[need.Physiological] > 0.05 {
 		t.Fatal("eat should have failed")
 	}
-	after := a.Habits[p.Index]
-	s := p.Situation[habit.Food]
-	if !(math.Abs(after[habit.Food]-s) > math.Abs(before[habit.Food]-s)) {
-		t.Fatalf("a failed plan should push the habit away from the moment: %v -> %v (moment %v)", before[habit.Food], after[habit.Food], s)
-	}
-}
-
-func TestPlansMadeOutsideTheBuilderTeachNothing(t *testing.T) {
-	w := fitWorld(5)
-	a := w.SpawnAt("a", need.Neutral(), w.MarketPos)
-	action.Imprint(a)
-	before := slices.Clone(a.Habits)
-	Learn(a, w, &entity.Plan{Action: "rest"})
 	if !slices.Equal(a.Habits, before) {
-		t.Fatal("a bare plan should carry no lesson")
+		t.Fatal("a failed plan moved a habit")
 	}
 }
 
@@ -141,13 +124,14 @@ func TestIntensitySharpensWithNeed(t *testing.T) {
 }
 
 // Liveness under recognition. These mirror the value-mode tests and are the
-// first thing to look at after any change to the priors or the learning
-// constants. They log the same tallies so the two modes can be compared.
+// first thing to look at after any change to the priors, the temperature, or
+// the reach constants. They log the same tallies so the two modes can be
+// compared.
 //
 // They run long enough for the founders to die of old age, so passing means
-// the settlement replaced itself. Before credit followed provenance it did
-// not: it lived at subsistence, never reached the safety a birth needs,
-// and was extinct within a generation. See docs/action-space.md.
+// the settlement replaced itself. What carries a settlement is the priors:
+// the moments each act is written to belong to, inherited and taught but
+// never revised by experience. See docs/action-space.md.
 //
 // The city test runs several seeds because one is a coin toss: whether a
 // settlement lasts turns on how many births fall in its founders' fertile

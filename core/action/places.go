@@ -166,8 +166,8 @@ func worthGuarding(a *entity.Agent, w *world.World) bool {
 // meal, at a house tile's toll, is the margin between a settlement breeding
 // and not. What remains of the preference is the table: a meal in company at
 // the tavern is a little belonging. A rest that restored more under a roof
-// was tried too, and the reward reinforced an idle act; under the year the
-// median settlement fell by a third, so rest stays what it was.
+// was tried too, and under the year the median settlement fell by a third,
+// idling indoors, so rest stays what it was.
 
 // inTavern reports whether p is in or beside a tavern.
 func inTavern(w *world.World, p entity.Pos) bool {

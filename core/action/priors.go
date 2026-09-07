@@ -7,12 +7,14 @@ import (
 )
 
 // The priors: for each action, the kind of moment it belongs to. These are
-// not payoffs. They are the situation an agent would recognise as calling
-// for the act before it has any experience of its own. Every agent starts
-// from these and every agent's copy drifts with what happens to it. The
-// moral coordinates never drift; they are matched against the agent's own
-// values, so an act that belongs to dishonest moments is one an honest agent
-// rarely recognises as fitting.
+// not payoffs, and they are not learned. They are the situation an agent
+// recognises as calling for the act, and they are the whole of what decides
+// behaviour: every agent starts from these, teaching copies one person's
+// onto another's, and children inherit their parents' with a little drift.
+// Nothing an outcome does revises them, so tuning behaviour means tuning
+// this table. The moral coordinates never drift; they are matched against
+// the agent's own values, so an act that belongs to dishonest moments is one
+// an honest agent rarely recognises as fitting.
 //
 // THE PRIORS WRITTEN HERE NO LONGER RUN. What an agent starts from is
 // composed by core/ontology from what the act is about (see prior.go
@@ -34,8 +36,8 @@ import (
 // Reach at birth. Ordinary living is fully within reach, and standing guard
 // is ordinary living: it is the one public good in the catalog, and a
 // settlement that has to discover it first has died of disorder before it
-// does. Crafts and learning begin far off and are brought closer by study,
-// teaching, and discovery.
+// does. Crafts and learning begin far off and are brought closer by doing,
+// study, teaching, and discovery.
 const (
 	reachEveryday = 1.0
 	reachGuard    = 1.0
@@ -56,34 +58,47 @@ func atTarget(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent 
 }
 
 func init() {
-	// Rest recovers a little of the body, so its moment is a mild version
-	// of eating's. It has no constant coordinate on purpose: a fallback
-	// that always fits a little would beat every real but moderate match,
-	// and under sampling the least bad option is fallback enough.
-	seed(Rest, reachEveryday, habit.Signature{habit.Hunger: 1})
+	// Rest is the moment when nothing presses: fed, safe enough, in no
+	// particular want of company, of standing, or of anything to wonder at.
+	// It names every urgency and names them all negative, which is what
+	// makes it a fallback rather than a rival - any urgency at all turns an
+	// agent away from it - and it has no constant coordinate on purpose,
+	// since a fallback that always fitted a little would beat every real but
+	// moderate match. Read as a mild version of eating's moment, which is
+	// what it was while outcomes still moved habits and rest could be
+	// learned away, a third of every settlement's waking life went on
+	// resting off a hunger it was not answering.
+	seed(Rest, reachEveryday, habit.Signature{
+		habit.Hunger: -1, habit.Unsafe: -0.6, habit.Lonely: -0.6,
+		habit.Unproven: -0.4, habit.Curious: -0.4,
+	})
+	// Eating is the hungry moment with something in hand. The food
+	// coordinate is what separates it from going to look for food, which is
+	// the same hunger with an empty larder.
 	seed(Eat, reachEveryday, habit.Signature{
-		habit.Hunger: 1, habit.Near: 0.5,
+		habit.Hunger: 1, habit.Food: 0.4, habit.Near: 0.5,
 	})
 	// Foraging belongs to the green half of the year, which is the half in
 	// which the forest puts back most of what is taken from it. A
 	// settlement that forages through a winter is eating what will not be
 	// replaced until spring.
 	seed(Forage, reachEveryday, habit.Signature{
-		habit.Hunger: 0.8, habit.Food: -0.8, habit.Chill: -0.3, habit.Near: 0.6,
+		habit.Hunger: 0.7, habit.Food: -0.8, habit.Chill: -0.3, habit.Near: 0.6,
 	})
 	// Farming is not what hunger calls for; foraging is. Farming is what an
 	// industrious person with a field nearby does whether or not the larder
 	// is low. That is tradition, and tradition is what carries farming
 	// through its bad years: a first field feeds less than the forest, and
-	// were farming judged by hunger alone the harvests would learn it away
-	// before the settlement had learned to rotate its fields or anyone had
-	// learned the work. Once they have, a field feeds two or three meals to
-	// the forest's one, the harvests thank it, and the forest empties.
+	// an agent who farmed only when hungry would give it up before the
+	// settlement had learned to rotate its fields or anyone had the skill
+	// for the work. Because the moment for it is industry and not hunger,
+	// the bad years are worked through, and once a field feeds two or three
+	// meals to the forest's one the forest empties.
 	// Farming is a season's work as well as a habit: little comes up in a
 	// frost, and the tradition that carries it is a tradition of sowing in
 	// spring.
 	seed(Farm, reachEveryday, habit.Signature{
-		habit.Food: -0.3, habit.Chill: -0.5, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.3,
+		habit.Hunger: 0.8, habit.Food: -0.5, habit.Chill: -0.5, habit.Industry: 0.5, habit.Near: 0.5, habit.Skill: 0.3,
 	})
 	Farm.Skilled = uses(entity.Farming)
 	// Clearing is the same moment as farming: it is what farming was before

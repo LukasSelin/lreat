@@ -84,13 +84,19 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	// the settlement endures together, the other is the season sorting out
 	// who needs to do something about it.
 	s[habit.Exposure] = need.Clamp(w.Climate.Chill() * (1 - a.Shelter))
+	// Public order is read as a lack, the way shelter is: order of 0 is
+	// nobody keeping any, and that is the loudest the coordinate ever gets.
+	// Read one-sided it was silent exactly when it mattered - an act whose
+	// moment is the ungoverned one, which is standing guard, could say so
+	// only by naming a coordinate that reads 0 in an ungoverned settlement -
+	// and nobody ever stood a watch in a place that had never had one.
+	s[habit.Order] = need.Clamp(w.Safety) - 1
 	// The moral coordinates are one-sided, as the belief layer defines them:
-	// a norm of 0 is holding nothing, caution of 0 is having learned of no
-	// reprisal, safety of 0 is nobody keeping order. Read that way an
-	// ordinary agent minds a wrong about half as much as a saint, which is
-	// what conscience in the value rule charges too. Centred at 0.5 they
-	// would fall silent for everyone but the extremes.
-	s[habit.Order] = need.Clamp(w.Safety)
+	// a norm of 0 is holding nothing and caution of 0 is having learned of no
+	// reprisal. Read that way an ordinary agent minds a wrong about half as
+	// much as a saint, which is what conscience in the value rule charges
+	// too. Centred at 0.5 they would fall silent for everyone but the
+	// extremes.
 	for n := range a.Norms {
 		s[habit.Honesty+n] = need.Clamp(a.Norms[n])
 	}
@@ -142,7 +148,7 @@ func Fit(a *entity.Agent, i int, s habit.Signature) float64 {
 }
 
 // Candidate is one action the agent could take now, with everything the
-// chooser and the learner need to know about it.
+// chooser needs to know about it.
 type Candidate struct {
 	Def       *Def
 	Index     int
@@ -191,15 +197,32 @@ func Rank(a *entity.Agent, w *world.World) []Candidate {
 }
 
 // Imprint seeds an agent's habits and reach from the catalog priors, once
-// per slot. It is lazy because the world cannot see the catalog when it
-// spawns, and a newborn's first decision is the earliest the habits are
-// needed. Agents whose habits were inherited or copied are marked
-// imprinted by whoever gave them. A slot given after that is fresh for
-// everyone alive and is seeded here the next time each of them decides.
+// per slot, with a little idiosyncrasy on the varying coordinates. It is
+// lazy because the world cannot see the catalog when it spawns, and a
+// newborn's first decision is the earliest the habits are needed. Agents
+// whose habits were inherited or copied are marked imprinted by whoever
+// gave them. A slot given after that is fresh for everyone alive and is
+// seeded here the next time each of them decides.
+//
+// The idiosyncrasy is what makes a settlement more than twenty copies of one
+// person. Founders seeded from the bare priors all recognise the same moment
+// as calling for the same act, so they forage together, build together, and
+// go hungry together; there is no division of labour to be had, because
+// there is nobody who reads a morning differently. Drawn from the agent's own
+// luck, so it is fixed at birth and the same in any run of the same seed.
 func Imprint(a *entity.Agent) {
 	a.Room()
 	for i := a.Seeded; i < len(Catalog); i++ {
-		a.Habits[i] = Catalog[i].Prior
+		prior := Catalog[i].Prior
+		a.Habits[i] = prior
+		if a.Luck != nil && BornNoise > 0 && habit.Norm(prior) >= habit.Epsilon {
+			for k := range a.Habits[i] {
+				if habit.Varying[k] {
+					a.Habits[i][k] += a.Luck.NormFloat64() * BornNoise
+				}
+			}
+			habit.ClampNorm(&a.Habits[i], habit.MinNorm, habit.MaxNorm)
+		}
 		a.Reach[i] = Catalog[i].Reach0
 	}
 	a.Seeded = len(Catalog)

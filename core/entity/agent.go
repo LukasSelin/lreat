@@ -120,16 +120,9 @@ type Plan struct {
 	// not notice until its next errand takes it that way.
 	Route []Pos
 
-	// Index is the catalog position of Action, so the outcome can be
-	// credited to the right habit without a name lookup.
+	// Index is the catalog position of Action, so a finished plan can be
+	// tied back to the action it ran without a name lookup.
 	Index int
-	// Situation is the moment as the agent saw it when it chose this action.
-	// The lesson drawn on completion is about that moment, not about the
-	// one the agent finds itself in afterwards.
-	Situation habit.Signature
-	// Before is what the agent wanted and had when it decided, so that the
-	// outcome is judged by the urgencies of the time.
-	Before habit.Ledger
 	// Started is the tick the plan was made.
 	Started int
 }
@@ -214,48 +207,24 @@ type Agent struct {
 	Bonds    []Bond
 	Plan     *Plan
 
-	// Habits is what this agent has come to recognise as the kind of moment
-	// each action belongs to, by habit slot, which is catalog position.
-	// Each starts as a copy of the action's shared prior and is moved by
-	// the agent's own outcomes, copied by teachers, and inherited with
-	// drift by children. It is the agent's character as revealed in what
-	// it does. Room keeps it, Reach, and Baselines as long as there are
-	// slots; see habit.Register.
+	// Habits is the kind of moment this agent recognises each action as
+	// belonging to, by habit slot, which is catalog position. Each starts
+	// as a copy of the action's shared prior with a little drift of its
+	// own; teachers copy theirs onto students, and children inherit their
+	// parents' with drift again. Nothing an outcome does moves them. It is
+	// the agent's character as it was handed down and passed on, not as it
+	// was earned. Room keeps it and Reach as long as there are slots; see
+	// habit.Register.
 	Habits []habit.Signature
 	// Reach is how far into reach each action is for this agent, in [0,1].
 	// Everyday living is fully in reach from birth; crafts and learning
-	// begin far off and are brought closer by study, teaching, and what the
-	// settlement has discovered.
+	// begin far off and are brought closer by practice, study, teaching,
+	// and what the settlement has discovered.
 	Reach []float64
-	// Baseline is the agent's slow-moving sense of what an ordinary outcome
-	// feels like, and Baselines the same for each action on its own.
-	// Lessons are drawn from how an outcome differs from a blend of the two.
-	Baseline  float64
-	Baselines []float64
 	// Seeded is how many slots have been given a starting habit and reach,
 	// so that a slot given after this agent was imprinted can be told from
 	// one it has lived with.
 	Seeded int
-	// Trace is the short memory of recent actions that share in the next
-	// reward, so that an action that only set up a later gain still learns.
-	Trace habit.Trace
-	// Larder remembers, for the food on hand, the acts that produced it and
-	// the moments they were taken in, oldest first. As the food is eaten
-	// each act is judged by all it fed, against Harvest, the agent's sense
-	// of what a producing act usually brings. It is credit by provenance:
-	// the meals thank the field, and a field that feeds more meals than
-	// the forest does is thanked more.
-	Larder  []habit.Harvest
-	Harvest float64
-	// Roof is the act that last raised this agent's shelter, and Watch the
-	// act by which it last kept public order. Safety that rises afterwards
-	// thanks them both: the one is a private good and the other a public
-	// one, and without the second nobody would learn to stand guard, since
-	// a guard's own safety barely moves for it.
-	Roof     habit.Step
-	HasRoof  bool
-	Watch    habit.Step
-	HasWatch bool
 	// Imprinted is set once Habits and Reach have been seeded from the
 	// catalog priors. Seeding is lazy because the world cannot see the
 	// catalog, and a newborn's first decision is the earliest it is needed.
@@ -328,7 +297,6 @@ func (a *Agent) Room() {
 	n := habit.Slots()
 	a.Habits = habit.Grow(a.Habits, n)
 	a.Reach = habit.Grow(a.Reach, n)
-	a.Baselines = habit.Grow(a.Baselines, n)
 }
 
 // BestSkill returns the agent's strongest skill and its level.

@@ -81,6 +81,11 @@ func TestTheSeasonChangesWhatFits(t *testing.T) {
 		a := w.Spawn("a", need.Neutral())
 		a.Shelter = 0.4
 		a.Inventory[entity.Wood] = 1
+		// The shared prior is what is being asked about, so the founder
+		// idiosyncrasy that Imprint would otherwise draw is switched off:
+		// it is drift on twenty coordinates and can flip a fine margin.
+		defer func(n float64) { action.BornNoise = n }(action.BornNoise)
+		action.BornNoise = 0
 		action.Imprint(a)
 		return habit.Cosine(action.Shared(a, w), a.Habits[i])
 	}

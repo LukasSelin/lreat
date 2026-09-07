@@ -18,7 +18,7 @@ var VerbPrior = [VerbCount]habit.Signature{
 	Make:     {habit.Industry: 0.4},
 	Raise:    {habit.Industry: 0.3},
 	Tend:     {},
-	Consume:  {habit.Hunger: 1, habit.Near: 0.5},
+	Consume:  {habit.Hunger: 1, habit.Near: 0.8},
 	Dwell:    {},
 	Exchange: {habit.Near: 0.4},
 	Transfer: {habit.Near: 0.5},
