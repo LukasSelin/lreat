@@ -103,7 +103,7 @@ func AgentColor(action string) Color {
 	switch action {
 	case "farm", "forage", "eat", "buy food", "fish", "hunt":
 		return AgentFood
-	case "gather wood", "build shelter", "craft", "irrigate", "plant trees":
+	case "gather wood", "build shelter", "craft", "irrigate", "plant trees", "lay road":
 		return AgentBuild
 	case "sell":
 		return AgentTrade
