@@ -19,6 +19,9 @@ const (
 	BirthChance = 0.006
 	// MaxPopulation caps growth so runs stay bounded.
 	MaxPopulation = 400
+	// InheritedSkill is the share of a parent's skills a child is born with,
+	// under recognition.
+	InheritedSkill = 0.5
 )
 
 // Population handles deaths and births. Births need the three lower tiers
@@ -71,6 +74,16 @@ func Population(w *world.World) {
 		// settlement keep a character across generations.
 		child.Norms = belief.Inherit(a.Norms, w.RNG)
 		child.Temperament = entity.InheritTemperament(a.Temperament, w.RNG)
+		// Under recognition a child grows up in its parent's work and starts
+		// with a share of the skill, so a farming family stays a farming
+		// family. Without this every generation began at nothing and the
+		// fields emptied with each founder's death. The value rule keeps
+		// its original design, in which every child starts from nothing.
+		if w.Rules.Fit {
+			for s := range child.Skills {
+				child.Skills[s] = InheritedSkill * a.Skills[s]
+			}
+		}
 		// Habits pass down too: what a parent has come to recognise as
 		// calling for what, the child starts out recognising. Under
 		// recognition they drift a little; under value they are copied, so

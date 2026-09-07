@@ -224,11 +224,14 @@ type Agent struct {
 	// Trace is the short memory of recent actions that share in the next
 	// reward, so that an action that only set up a later gain still learns.
 	Trace habit.Trace
-	// Larder remembers, for each unit of food on hand, the act that
-	// produced it and the moment it was taken in, oldest first. When the
-	// unit is eaten the meal's reward reaches that act. It is credit by
-	// provenance: the meal thanks the field.
-	Larder []habit.Step
+	// Larder remembers, for the food on hand, the acts that produced it and
+	// the moments they were taken in, oldest first. As the food is eaten
+	// each act is judged by all it fed, against Harvest, the agent's sense
+	// of what a producing act usually brings. It is credit by provenance:
+	// the meals thank the field, and a field that feeds more meals than
+	// the forest does is thanked more.
+	Larder  []habit.Harvest
+	Harvest float64
 	// Roof is the act that last raised this agent's shelter, and Watch the
 	// act by which it last kept public order. Safety that rises afterwards
 	// thanks them both: the one is a private good and the other a public

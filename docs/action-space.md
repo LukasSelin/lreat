@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements replace their founders on 40 of 48 seeds (see Robustness below).
+Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements replace their founders on 22 of 24 seeds with no extinctions (see Robustness below), and farming overtakes foraging as fields and farmers improve (see Harvests below).
 
 ## Why
 
@@ -93,9 +93,20 @@ The reward uses urgencies from the moment of the decision, so an outcome is judg
 
 ### Credit by provenance
 
-A unit of food remembers the act that produced it and the moment it was taken in (`Agent.Larder`, oldest first, capped at 16). When a unit is consumed, by a meal, a sale, a gift, or a thief, the act that brought it is credited. A roof remembers the act that last raised shelter (`Agent.Roof`), a watch the act by which the agent last kept public order (`Agent.Watch`); safety that rises during any later plan credits both, for the part of that plan's reward safety accounts for.
+Food on hand remembers the act that produced it and the moment it was taken in, as a harvest (`Agent.Larder`, oldest first, capped at 16 harvests). As the food is consumed, by meals, sales, gifts, or a thief, each consuming plan's reward is added to the harvest it came from, and when the last of a harvest goes the act that made it is judged by all it brought (see Harvests below). A roof remembers the act that last raised shelter (`Agent.Roof`), a watch the act by which the agent last kept public order (`Agent.Watch`); safety that rises during any later plan credits both, for the part of that plan's reward safety accounts for.
 
-What the credit carries is the **advantage** of the consuming plan, not its reward. This was the difference between a working economy and a runaway one. Thanked with the raw reward, a forage got good news from every meal, its habit drifted onto the average moment and fit everything, and agents foraged every six ticks into a larder of thirty units while houses rotted. Thanked with the advantage, a forage that fed a full belly is pushed away from that moment, and production regulates itself: a meal better than meals usually are pulls the field toward the moment it was worked in, a needless one pushes it away.
+What the credit carries is an **advantage**, never a raw reward. This was the difference between a working economy and a runaway one. Thanked with the raw reward, a forage got good news from every meal, its habit drifted onto the average moment and fit everything, and agents foraged every six ticks into a larder of thirty units while houses rotted. Thanked with the advantage, a forage that fed a full belly is pushed away from that moment, and production regulates itself: a meal better than meals usually are pulls the field toward the moment it was worked in, a needless one pushes it away.
+
+### Harvests
+
+The owner's brief for farming: bad and slow when first discovered, then improving until it is the mainstay. Recognition has no efficiency channel at the moment of choice, by design, so the only place a field can be found better than the forest is in what its harvests fed. A harvest is settled when its last unit is gone: the act that made it is credited with `Advantage(Returned, Harvest)`, where `Returned` is the need satisfaction everything it fed brought and `Agent.Harvest` is the agent's running sense of what a producing act usually brings. A forage brings one unit and feeds one meal. A first field on ordinary ground brings 0.4 to 0.8 and feeds less, so it is learned away; after agriculture (yield times 1.8) and with the work learned (plus two times skill) it brings two or three, and the same lesson pulls it in. A harvest evicted unsettled, because the larder is full, is judged by what it brought so far, which is how overproduction is learned away too.
+
+Two things had to be true for the arc to show:
+
+- **Tradition has to carry farming through its bad years.** A farm prior with a hunger coordinate gave farming a foothold in hungry moments, and the harvests learned it away before agriculture arrived on either seed (agriculture needs two farmers at skill 0.2, which is twenty farms each). The farm prior is the industrious moment alone, a person with a field nearby working it whether or not the larder is low, and retention toward that prior is what keeps a poor field worked until it is a good one.
+- **Skill has to survive a generation.** With the founders dead, their children started at skill zero, and on seed 7 farming fell from 15 acts per agent to one inside 500 ticks. A child is now born with half its parent's skills (`system.InheritedSkill`, under recognition; the value rule keeps its original design), so a farming family stays a farming family. Teaching passes the rest.
+
+With both, on seed 7 farming goes from 7 acts per agent per 500 ticks to 16 while foraging falls from 35 to 18, farming skill reaches 0.8, and the population reaches 127 by tick 6000; on seed 21 farming doubles and skill reaches 0.4 while the forest still feeds most meals, the arc in progress. On the 24-seed sweep this took survivors from 20 to 22 and the median population from 118 to 127.
 
 Guard starts fully in reach. It is the one public good in the catalog, and a settlement that has to discover it first has died of disorder before it does. The value rule's safety turned out to come from public order too, not from houses: its agents guard several hundred times per 500 ticks and hold order at 1.0, while their shelter is as low as recognition's. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
 
@@ -202,6 +213,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 5 | `action.Broaden`, `action.Pass`, `Discovery.Opens` and `world.ReachFloor`, `action.Inherit` at birth; `HabitSpread`, `GatedReach`, `ChoiceEntropy`, `Deaths` in snapshot, headless, TUI; moral coordinates one-sided | done |
 | 7 | Credit by provenance: larder, roof, and watch; credit carries the advantage; per-action baseline alone; guard fully in reach | done |
 | 8 | Robustness: 48-seed sweeps; shelter read as a lack | done |
+| 9 | Harvests: producing acts judged by all they fed; industrious farm prior; children inherit half their parents' skills | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

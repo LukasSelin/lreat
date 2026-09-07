@@ -58,9 +58,14 @@ func init() {
 	})
 	// Farming is not what hunger calls for; foraging is. Farming is what an
 	// industrious person with a field nearby does whether or not the larder
-	// is low, which is the only way a larder ever fills past today.
+	// is low. That is tradition, and tradition is what carries farming
+	// through its bad years: a first field feeds less than the forest, and
+	// were farming judged by hunger alone the harvests would learn it away
+	// before the settlement had learned to rotate its fields or anyone had
+	// learned the work. Once they have, a field feeds two or three meals to
+	// the forest's one, the harvests thank it, and the forest empties.
 	seed(Farm, reachEveryday, habit.Signature{
-		habit.Food: -0.3, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.4,
+		habit.Food: -0.3, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.3,
 	})
 	Farm.Skilled = uses(entity.Farming)
 	// Wood is measured against the cost of a house, so "enough wood" reads
