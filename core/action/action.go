@@ -421,6 +421,19 @@ var Farm = &Def{
 	},
 }
 
+// A day in the woods and what it is worth. Felling is the slow half of every
+// building: treeTake is how much standing timber one day's work brings down,
+// and armful how much of that a person can drag home before the light goes.
+// Most of a tree is left where it falls. When an armful was three lengths of
+// wood a single tree housed a family twice over, everybody was under a roof
+// inside the first season, and the forest was decoration rather than the
+// thing a settlement is built out of. At half a length the woods are what a
+// house is made of, and a settlement's shape follows the treeline.
+const (
+	treeTake = 0.4
+	armful   = 0.5
+)
+
 var GatherWood = &Def{
 	Name: "gather wood", Ticks: 2, Available: always,
 	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
@@ -431,7 +444,7 @@ var GatherWood = &Def{
 	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
 		// Instrumental: wood is only worth something if you lack shelter or craft.
 		want := 0.0
-		if a.Inventory[entity.Wood] < 2 {
+		if a.Inventory[entity.Wood] < raisingTimber {
 			want = 0.1*(1-a.Shelter) + 0.03*a.Skills[entity.Crafting]
 		}
 		return need.Levels{need.Safety: want, need.Esteem: want * 0.3}
@@ -441,12 +454,41 @@ var GatherWood = &Def{
 		if t.Terrain != world.Forest {
 			return
 		}
-		t.Wood -= 0.4
-		a.Inventory[entity.Wood] += 1.5
+		t.Wood -= treeTake
+		a.Inventory[entity.Wood] += armful
 		if t.Wood < 0.1 {
 			t.Terrain, t.Wood = world.Grass, 0
 		}
 	},
+}
+
+// Raising a house and keeping one are the same act to the person doing it
+// and quite different things to the forest. raisingTimber is the frame: the
+// walls and the roof beams, a winter's felling, more wood than anybody
+// carries about with them and so a thing that has to be gathered toward on
+// purpose over many days. roofingTimber is what patching that roof takes
+// afterwards, which is exactly one day in the woods: an armful, carried home
+// and nailed on the same evening.
+//
+// Before they were told apart a house cost what a repair costs, and a
+// settlement of twenty was housed to the last person inside two hundred
+// ticks, on wood nobody had to go looking for. Charging the frame properly
+// while leaving the patching cheap is what puts the founding years back:
+// people live rough among half-built walls for a good while, the ones with
+// a roof keep it easily, and where the houses go is decided by where the
+// timber was rather than by where the first day's walk happened to end.
+const (
+	raisingTimber = 6
+	roofingTimber = armful
+)
+
+// timberToBuild is what the next day's building costs this agent: a frame if
+// they have no house, a course of repair if they have.
+func timberToBuild(a *entity.Agent) float64 {
+	if a.HasHome {
+		return roofingTimber
+	}
+	return raisingTimber
 }
 
 func shelterGain(a *entity.Agent, w *world.World) float64 {
@@ -491,12 +533,19 @@ func roomNearby(w *world.World, p entity.Pos) bool {
 var BuildShelter = &Def{
 	Name: "build shelter", Ticks: 3, Target: buildSite,
 	Available: func(a *entity.Agent, _ *world.World) bool {
-		return a.Inventory[entity.Wood] >= 2 && a.Shelter < 0.95
+		return a.Inventory[entity.Wood] >= timberToBuild(a) && a.Shelter < 0.95
 	},
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		return need.Levels{need.Safety: shelterGain(a, w) * 0.8, need.Esteem: 0.05}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
+		// The frame is charged for here rather than up front, because a
+		// raising that finds the plot taken is a wasted walk and not a
+		// wasted winter's timber.
+		cost := timberToBuild(a)
+		if a.Inventory[entity.Wood] < cost {
+			return
+		}
 		if !a.HasHome {
 			t := w.Grid.At(a.Pos)
 			if !t.Buildable() {
@@ -513,7 +562,7 @@ var BuildShelter = &Def{
 			a.Home, a.HasHome = a.Pos, true
 			w.Emit(event.Built, a.ID, 0, "%s built a house", a.Name)
 		}
-		a.Inventory[entity.Wood] -= 2
+		a.Inventory[entity.Wood] -= cost
 		gain := shelterGain(a, w)
 		// A stone in the walls makes a house that stands.
 		if a.Inventory[entity.Stone] >= 1 {
@@ -526,16 +575,19 @@ var BuildShelter = &Def{
 	},
 }
 
-// pavingWood is the timber one length of road takes. It is half a house, so
-// laying a way is a smaller commitment than raising a roof but competes with
-// it for the same wood. A bridge takes more, because it has to hold itself up
-// over the water, and it is the one piece of road worth walking a long way to
-// build: a river is otherwise something a settlement can only put up with.
-// A bridge costs what a house costs. More was tried, and the economy has no
-// room for it: an agent gathers toward the roof it wants and spends the
-// timber as soon as it has enough, so nobody in a settlement ever holds more
-// than about two and a half lengths of wood at once. A bridge dearer than a
-// house is one nobody can ever afford.
+// pavingWood is the timber one length of road takes: two days in the woods,
+// a small fraction of a house, so laying a way is a far smaller commitment
+// than raising a roof while competing with it for the same wood. A bridge
+// takes twice that, because it has to hold itself up over the water, and it
+// is the one piece of road worth walking a long way to build: a river is
+// otherwise something a settlement can only put up with.
+//
+// These were once set against a house that cost two lengths of timber, when
+// an agent spent its wood the moment it had any and nobody ever held more
+// than about two and a half lengths at once. A frame now costs six and gets
+// saved up for, so both are cheap against it on purpose: the roads are what
+// a settled person does with the wood left over, not what they choose
+// instead of a roof.
 const (
 	pavingWood = 1
 	bridgeWood = 2
