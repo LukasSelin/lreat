@@ -43,7 +43,7 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 		if !ok {
 			continue
 		}
-		cost := float64(d.Ticks) + w.Grid.TravelCost(a.Pos, target)/a.Vigor()
+		cost := float64(d.Ticks) + w.Grid.TravelCost(a.Pos, target)/a.Vigor(w.Tick)
 		// Conscience sits beside need rather than inside it. It is not scaled
 		// by urgency, so a principle holds until hunger grows big enough to
 		// outweigh it, and then it gives way.
@@ -87,8 +87,8 @@ func Act(w *world.World) {
 		}
 		if a.Pos != a.Plan.Target {
 			next := w.Grid.StepToward(a.Pos, a.Plan.Target)
-			a.Travel += a.Vigor()
-			a.Needs.Add(need.Physiological, -Exertion*w.Grid.MoveDrain(next)/a.Endurance())
+			a.Travel += a.Vigor(w.Tick)
+			a.Needs.Add(need.Physiological, -Exertion*w.Grid.MoveDrain(next)/a.Endurance(w.Tick))
 			// A tick buys a budget of walking, and the agent spends all of it
 			// it can. Over ordinary ground that is the one tile it always
 			// was; on ground cheap enough to cross for less than the budget —

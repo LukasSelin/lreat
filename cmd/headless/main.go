@@ -35,8 +35,8 @@ func main() {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
 
-	fmt.Printf("%6s %4s | %5s %5s %5s %5s %5s | %5s | %5s %5s %6s | %4s %4s %4s | %4s %4s | %s\n",
-		"tick", "pop", "phys", "safe", "belng", "estm", "actl", "hlth", "gini", "price", "knowl", "hous", "road", "fild", "frnd", "feud", "doing")
+	fmt.Printf("%6s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s | %4s %4s | %s\n",
+		"tick", "pop", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "frnd", "feud", "doing")
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
@@ -76,7 +76,7 @@ func report(s observe.Snapshot) {
 		doing = append(doing, fmt.Sprintf("%s:%d", a.Action, a.Agents))
 	}
 	n := s.MeanNeeds
-	fmt.Printf("%6d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f | %5.2f %5.2f %6.1f | %4d %4d %4d | %4d %4d | %s\n",
-		s.Tick, s.Population, n[0], n[1], n[2], n[3], n[4], s.MeanHealth,
+	fmt.Printf("%6d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d | %4d %4d | %s\n",
+		s.Tick, s.Population, n[0], n[1], n[2], n[3], n[4], s.MeanHealth, s.MeanAge, s.Elders,
 		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Friendships, s.Feuds, strings.Join(doing, " "))
 }
