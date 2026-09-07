@@ -28,12 +28,19 @@ var living = map[Terrain]*ontology.Class{
 	Field:  ontology.Field,
 }
 
+// alive is the same binding read as a table over the terrains, built once
+// from it. Every tile on the map is asked whether it is alive on every tick,
+// and hashing the terrain to answer was a twentieth of a whole run.
+var alive = func() (a [Rock + 1]bool) {
+	for t := range living {
+		a[t] = true
+	}
+	return a
+}()
+
 // Alive reports whether this tile carries a standing crop, which is to say
 // something that had to grow before it could be taken.
-func (t *Tile) Alive() bool {
-	_, ok := living[t.Terrain]
-	return ok
-}
+func (t *Tile) Alive() bool { return alive[t.Terrain] }
 
 // Grown is how far along what grows here is, in [0,1], against the time such
 // a thing takes to come on. It only rises: a wood that has made its timber
