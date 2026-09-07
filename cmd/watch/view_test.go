@@ -63,10 +63,10 @@ func TestActivityGraphKeepsHistory(t *testing.T) {
 	if got := v.hist[0][ascii.GroupOf("farm")]; got != 0.75 {
 		t.Fatalf("three of four farming is a share of 0.75, have %.2f", got)
 	}
-	for i := 0; i < graphWidth*graphTicks*2; i++ {
+	for i := 0; i < graphMax*graphTicks*2; i++ {
 		v.record(&s)
 	}
-	if len(v.hist) != graphWidth {
-		t.Fatalf("history is not bounded by the panel: %d columns", len(v.hist))
+	if len(v.hist) != graphMax {
+		t.Fatalf("history is not bounded: %d columns", len(v.hist))
 	}
 }

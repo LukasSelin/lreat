@@ -47,7 +47,7 @@ var Discoveries = []Discovery{
 			w.Mods.ShelterDecay *= 0.5
 		},
 		Text:  "builders began working in stone",
-		Opens: []string{"craft", "build granary"},
+		Opens: []string{"craft", "lay road", "build granary"},
 	},
 	{
 		Tech: "writing", Knowledge: 90,

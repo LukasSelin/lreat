@@ -10,7 +10,14 @@ import (
 )
 
 func TestGatedIsTheCraftsAndLearning(t *testing.T) {
-	want := map[*Def]bool{Craft: true, Teach: true, Study: true, Fish: true, Hunt: true, Irrigate: true, PlantTrees: true, Cook: true, Quarry: true, BuildGranary: true, Smelt: true}
+	// Paving is gated with the crafts: a settlement that has not yet learned
+	// to work in stone has more pressing uses for its timber than the common
+	// ground, and masonry is what opens it.
+	want := map[*Def]bool{
+		Craft: true, Teach: true, Study: true, Pave: true,
+		Fish: true, Hunt: true, Irrigate: true, PlantTrees: true,
+		Cook: true, Quarry: true, BuildGranary: true, Smelt: true,
+	}
 	for _, i := range Gated() {
 		if !want[Catalog[i]] {
 			t.Errorf("%s should not be gated", Catalog[i].Name)

@@ -295,6 +295,7 @@ func Act(w *world.World) {
 				a.Travel -= cost
 				a.Pos = step
 				a.Plan.Route = a.Plan.Route[1:]
+				w.Grid.Tread(step)
 			}
 			continue
 		}

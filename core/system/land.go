@@ -31,6 +31,7 @@ func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
 // other ways of living.
 func Land(w *world.World) {
 	g := w.Grid
+	g.Weather()
 	k := w.Mods.Regrowth
 	for i := range g.Tiles {
 		t := &g.Tiles[i]

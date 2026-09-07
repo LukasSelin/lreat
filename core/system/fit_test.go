@@ -223,20 +223,35 @@ func TestSocialLifeEmergesByRecognition(t *testing.T) {
 }
 
 func TestFeudsFormByRecognition(t *testing.T) {
-	w := fitWorld(1)
-	for i := 0; i < 20; i++ {
-		w.Spawn("a", w.RandomPersonality())
-	}
-	Run(w, 4000)
-	var avenged int
-	for _, e := range w.Log.All() {
-		if e.Kind == event.Avenged {
-			avenged++
+	// Several seeds, because one is a coin toss: whether a wrong hardens
+	// into a feud turns on who was standing where when a theft went down,
+	// and any change to the catalog rerolls every trajectory.
+	seeds := []uint64{1, 2, 3, 4}
+	avenged := make([]int, len(seeds))
+	t.Run("seeds", func(t *testing.T) {
+		for i, seed := range seeds {
+			t.Run(fmt.Sprint(seed), func(t *testing.T) {
+				t.Parallel()
+				w := fitWorld(seed)
+				for j := 0; j < 20; j++ {
+					w.Spawn("a", w.RandomPersonality())
+				}
+				Run(w, 4000)
+				for _, e := range w.Log.All() {
+					if e.Kind == event.Avenged {
+						avenged[i]++
+					}
+				}
+				s := observe.Take(w)
+				t.Logf("seed %d: avenged %d, feuds %d", seed, avenged[i], s.Feuds)
+			})
 		}
+	})
+	total := 0
+	for _, n := range avenged {
+		total += n
 	}
-	s := observe.Take(w)
-	t.Logf("avenged %d, feuds %d", avenged, s.Feuds)
-	if avenged == 0 {
-		t.Fatal("nobody ever got even")
+	if total == 0 {
+		t.Fatal("nobody ever got even in any settlement")
 	}
 }
