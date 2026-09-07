@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: phases 0 to 2 implemented (habit package, catalog hygiene, agent state). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`.
+Status: phases 0 to 3 implemented (habit package, catalog hygiene, agent state, situations and priors). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`.
 
 ## Why
 
@@ -46,7 +46,7 @@ Dropped on purpose: health (tracks hunger and shelter), tools (sell and craft ar
 
 ## Signatures and habits
 
-- `action.Def.Prior` is the shared signature of the moment an action belongs to. It is hand-seeded and never learned.
+- `action.Def.Prior` is the shared signature of the moment an action belongs to. It is hand-seeded in `core/action/priors.go` and never learned. `Def.Skilled` names the skill a candidate draws on for this agent right now, and `Def.With` names the other agent it involves, so the per-candidate dimensions can be filled in.
 - `entity.Agent.Habits[i]` is the agent's own copy for catalog position `i`, seeded from the prior on first decision (`Imprinted`) and moved by experience.
 - `entity.Agent.Reach[i]` in [0, 1] is how far into reach action `i` is for this agent. `Def.Reach0` seeds it.
 - Habit length is clamped to [0.2, 2] after every update. Cosine of a zero vector is 0, never NaN.
@@ -59,9 +59,19 @@ For every action that is `Available` and has a target:
 eff_i = cos(S_i, H_i) - 0.6 * (1 - Reach_i)
 ```
 
-Sample from a softmax over `eff` at temperature `τ / |S_shared|`, with `τ = 0.15`. A moment with strong urgencies has a large norm, so it is decided sharply. A bland moment is decided loosely. Exactly one `w.RNG.Float64()` is consumed per decision.
+Sample from a softmax over `eff` at temperature `τ / intensity`, with `τ = 0.15` and `intensity = 0.5 + Σ_t urgency[t] * personality[t]` over raw urgencies. A moment with strong urgencies is decided sharply. A bland moment is decided loosely. The norm of the whole situation vector is not a usable intensity, because the stock and surroundings coordinates saturate at -1 for most agents most of the time. Exactly one `w.RNG.Float64()` is consumed per decision.
 
 Nothing is divided by cost. Nearness is a dimension the habit learns about. Hard physical gates in `Available` stay (eating needs food). The only soft judgement gate in the catalog today, teach's skill floor, becomes reach.
+
+### Writing priors
+
+Fit is by direction, which has three consequences that phase 3 ran into:
+
+- **A prior should name only the coordinates that predict its moment.** Every extra coordinate dilutes the ones that matter. The first draft put a skill coordinate on farm, build, and guard; since every newcomer believes itself unskilled, that read as a tax on exactly the acts a settlement needs first.
+- **There is no constant fallback.** A rest prior of "nothing is urgent" matched a sated agent on four axes and beat every specific act. A prior with one always-maximal coordinate has a constant fit that real but moderate matches lose to. Rest's prior is therefore "recover", a mild version of eating's. Under sampling the least bad candidate is fallback enough.
+- **Stock coordinates that sit at -1 for everyone are attractors.** Gather wood fits any agent with no wood and no house rather well, whatever else is going on. That is arguably true, and it is what gets houses built, but it is worth remembering when reading activity tables.
+
+`action.Rank` orders the available candidates by fit and is the ordering oracle for tests: a test asserts which action ranks first for a canonical moment, never what the sampler drew.
 
 ## Learning
 
@@ -118,8 +128,8 @@ New metrics for `observe.Snapshot`: `HabitSpread` (mean distance of unit habits 
 | 0 | One catalog literal, `Count`, `Index`, new `Def` fields | done |
 | 1 | `core/habit`: space, cosine, sampling, update, ledger, trace, tests | done |
 | 2 | Agent `Habits`, `Reach`, `Baseline`, `Trace`, `Imprinted`; Plan `Index`, `Situation`, `Before`, `Started`; `world.Rules` | done |
-| 3 | `action.Situation(a, w, d, target)`, priors and `Reach0` for all 17 actions, `Imprint`, canonical-situation ranking tests | next |
-| 4 | Fit chooser in `system.Decide`, learning at plan end in `system.Act`, `sim.Intend` through the shared builder, headless `-fit` and `-temp` flags | |
+| 3 | `action.Shared`, `action.Situation`, `action.Candidates`, `action.Rank`, `action.Imprint`; priors and `Reach0` for all 17 actions; canonical-moment ranking tests | done |
+| 4 | Fit chooser in `system.Decide`, learning at plan end in `system.Act`, `sim.Intend` through the shared builder, headless `-fit` and `-temp` flags | next |
 | 5 | Reach growth from study, teach, discovery; inheritance at birth; metrics in snapshot, headless, TUI | |
 | 6 | Flip `DefaultRules` to fit; port choose tests to ordering twins via a `Rank` helper; keep value mode behind the flag | |
 

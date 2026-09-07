@@ -41,13 +41,14 @@ type Def struct {
 	// [0,1]. Ordinary living starts at 1. Crafts and learning start lower and
 	// are brought closer by study, teaching, and discovery.
 	Reach0 float64
-	// Skill is the skill the action draws on, when HasSkill. It sets the
-	// skill dimension of the situation the agent sees for this candidate.
-	Skill    entity.Skill
-	HasSkill bool
-	// Person is true when the action is done to or with a particular other
-	// agent, so rapport toward that person is part of the situation.
-	Person bool
+	// Skilled names the skill the action draws on for this agent right now,
+	// if any. It sets the skill dimension of the situation the agent sees
+	// for this candidate. Nil means the action takes no skill.
+	Skilled func(a *entity.Agent, w *world.World) (entity.Skill, bool)
+	// With is the other agent the action is done to or with, given where it
+	// would be done, so that rapport toward that person is part of the
+	// situation. Nil means the action involves nobody in particular.
+	With func(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent
 }
 
 // Count is the size of the catalog. It is checked at init so that a table

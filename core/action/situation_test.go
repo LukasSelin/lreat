@@ -1,0 +1,190 @@
+package action
+
+import (
+	"math"
+	"testing"
+
+	"lreat/core/belief"
+	"lreat/core/entity"
+	"lreat/core/habit"
+	"lreat/core/need"
+	"lreat/core/world"
+)
+
+// position is where d ranks for a, or -1 if it is not a candidate.
+func position(r []Candidate, d *Def) int {
+	for i, c := range r {
+		if c.Def == d {
+			return i
+		}
+	}
+	return -1
+}
+
+func names(r []Candidate) []string {
+	out := make([]string, len(r))
+	for i, c := range r {
+		out[i] = c.Def.Name
+	}
+	return out
+}
+
+func TestImprintCopiesPriorsOnce(t *testing.T) {
+	w := world.New(1)
+	a := blank(w, "a")
+	Imprint(a)
+	for i, d := range Catalog {
+		if a.Habits[i] != d.Prior || a.Reach[i] != d.Reach0 {
+			t.Fatalf("%s not imprinted", d.Name)
+		}
+	}
+	a.Habits[Index(Eat)][habit.Hunger] = 0
+	Imprint(a)
+	if a.Habits[Index(Eat)][habit.Hunger] != 0 {
+		t.Fatal("imprint overwrote a learned habit")
+	}
+}
+
+func TestEveryPriorHasADirection(t *testing.T) {
+	for _, d := range Catalog {
+		if habit.Norm(d.Prior) < habit.MinNorm {
+			t.Errorf("%s prior is too faint to recognise anything", d.Name)
+		}
+		if d.Reach0 <= 0 || d.Reach0 > 1 {
+			t.Errorf("%s reach0 = %v", d.Name, d.Reach0)
+		}
+	}
+}
+
+func TestSharedReflectsValuesAndStock(t *testing.T) {
+	w := world.New(2)
+	a := blank(w, "a")
+	a.Norms[belief.Honesty] = 1
+	a.Caution = 0
+	a.Inventory[entity.Food] = 4
+	s := Shared(a, w)
+	if s[habit.Honesty] != 1 || s[habit.Caution] != -1 || s[habit.Food] != 1 {
+		t.Fatalf("shared = %v", s)
+	}
+	if s[habit.Company] != -1 {
+		t.Fatal("alone should read as no company")
+	}
+	blank(w, "b")
+	if Shared(a, w)[habit.Company] != 1 {
+		t.Fatal("a neighbour should read as company")
+	}
+}
+
+func TestStarvingWithFoodEats(t *testing.T) {
+	w := world.New(3)
+	a := blank(w, "a")
+	a.Needs[need.Physiological] = 0.05
+	a.Inventory[entity.Food] = 2
+	r := Rank(a, w)
+	if r[0].Def != Eat {
+		t.Fatalf("starving agent with food ranked %v", names(r))
+	}
+}
+
+func TestStarvingWithoutFoodGoesLookingForIt(t *testing.T) {
+	w := world.New(4)
+	a := blank(w, "a")
+	a.Needs[need.Physiological] = 0.05
+	a.Inventory[entity.Food] = 0
+	r := Rank(a, w)
+	if r[0].Def != Forage && r[0].Def != Farm {
+		t.Fatalf("starving agent without food ranked %v", names(r))
+	}
+}
+
+func TestDishonestyMakesTheftFitBetter(t *testing.T) {
+	rank := func(honesty, caution float64) int {
+		w := world.New(5)
+		thief := blank(w, "thief")
+		victim := blank(w, "victim")
+		victim.Pos = entity.Pos{X: thief.Pos.X + 1, Y: thief.Pos.Y}
+		victim.Inventory[entity.Food] = 3
+		thief.Needs[need.Physiological] = 0.05
+		thief.Inventory[entity.Food] = 0
+		thief.Norms[belief.Honesty] = honesty
+		thief.Caution = caution
+		return position(Rank(thief, w), Steal)
+	}
+	crook, saint := rank(0, 0), rank(1, 1)
+	if crook < 0 || saint < 0 {
+		t.Fatal("steal was not a candidate")
+	}
+	if !(crook < saint) {
+		t.Fatalf("steal ranks %d for the crook and %d for the saint", crook, saint)
+	}
+}
+
+func TestSatedCuriousAgentStudiesWhenItIsInReach(t *testing.T) {
+	w := world.New(6)
+	a := blank(w, "a")
+	a.Needs = need.Levels{0.95, 0.95, 0.9, 0.9, 0.1}
+	a.Inventory[entity.Food] = 3
+	a.Shelter = 1
+	Imprint(a)
+	a.Reach[Index(Study)] = 1
+	r := Rank(a, w)
+	if r[0].Def != Study {
+		t.Fatalf("curious agent ranked %v", names(r))
+	}
+}
+
+func TestReachHoldsAnActionBack(t *testing.T) {
+	w := world.New(7)
+	a := blank(w, "a")
+	a.Needs = need.Levels{0.95, 0.95, 0.9, 0.9, 0.1}
+	a.Inventory[entity.Food] = 3
+	Imprint(a)
+	a.Reach[Index(Study)] = 0
+	far := position(Rank(a, w), Study)
+	a.Reach[Index(Study)] = 1
+	near := position(Rank(a, w), Study)
+	if !(near < far) {
+		t.Fatalf("study ranks %d out of reach and %d in reach", far, near)
+	}
+}
+
+func TestColdAgentWithWoodBuilds(t *testing.T) {
+	w := world.New(8)
+	a := blank(w, "a")
+	a.Needs = need.Levels{0.9, 0.05, 0.8, 0.8, 0.8}
+	a.Inventory[entity.Food] = 3
+	a.Inventory[entity.Wood] = 2
+	a.Shelter = 0
+	r := Rank(a, w)
+	if r[0].Def != BuildShelter {
+		t.Fatalf("cold agent with wood ranked %v", names(r))
+	}
+}
+
+func TestLonelyAgentWithCompanySocializes(t *testing.T) {
+	w := world.New(9)
+	a := blank(w, "a")
+	o := blank(w, "o")
+	o.Pos = entity.Pos{X: a.Pos.X + 2, Y: a.Pos.Y}
+	a.Needs = need.Levels{0.9, 0.9, 0.05, 0.8, 0.8}
+	a.Inventory[entity.Food] = 3
+	a.Shelter = 1
+	r := Rank(a, w)
+	if r[0].Def != Socialize {
+		t.Fatalf("lonely agent ranked %v", names(r))
+	}
+}
+
+func TestSituationIsPerCandidate(t *testing.T) {
+	w := world.New(10)
+	a := blank(w, "a")
+	a.Inventory[entity.Food] = 2
+	for _, c := range Candidates(a, w) {
+		if c.Def == Eat && c.Situation[habit.Near] != 1 {
+			t.Fatalf("eating here should be as near as can be, got %v", c.Situation[habit.Near])
+		}
+		if math.IsNaN(c.Fit) {
+			t.Fatalf("%s fit is NaN", c.Def.Name)
+		}
+	}
+}
