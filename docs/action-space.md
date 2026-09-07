@@ -230,6 +230,16 @@ The longer chain that turns what the land gives into things that last. `core/act
 
 **What broke, and the lesson about measuring.** The first version cost survival badly, and finding out why took most of the work. Cooking burned half a unit of wood per meal, four meals to a house, and pottery came early enough that whole settlements learned to cook and stopped building. But no 24-seed sweep could show that, because a child inherits its habits with random drift on every coordinate of every catalog action, so a bigger catalog draws more from the world's random stream at every birth and every trajectory after the first birth is rerolled. Variants that changed nothing behavioural moved the 24-seed sweep by three survivors and halved its median. The comparisons that settled it were 96 seeds each: 86 survivors before the package, 68 with it, 84 with cooking removed, 82 with cooking made a hearth batch on spare wood. Anything that grows the catalog has to be judged on that scale.
 
+## Places
+
+A social act needs two things the old catalog did not ask for: somebody within reach, rather than anybody alive, and somewhere to meet. `core/action/places.go`.
+
+- **Company is within twelve tiles.** Socialising and teaching are unavailable otherwise, and the companion an agent picks is chosen among those within reach, so nobody crosses the map to see somebody.
+- **Meetings happen at places**: the market, a house, a granary's yard, or a tavern. The place is chosen by temperament. The warm head for a tavern, then the market, then wherever the companion already is; the cool would rather have company at their own house, then the companion's. If there is no place within six tiles of the companion, the meeting cannot happen: they are off in the woods. Across four seeds every one of tens of thousands of meetings took place at a market, a house, or a tavern, and none elsewhere.
+- **Taverns.** Brewing answers a settlement big enough to be lonely in with grain to spare (twelve people, five food at the market, knowledge 25) and opens building one, for three units of wood beside the market, one per settlement until it outgrows it. A meeting in a tavern is a better evening for both sides. Every seed builds its tavern within a few hundred ticks of brewing, and between a sixth and a half of all meetings then happen there. At four units of wood none was ever built: recognition agents seldom hold that much, since gathering yields a unit and a half and a house takes two.
+
+On 96 seeds, asking social acts to have somewhere to happen took survivors from 92 to 95 and the median population from 231 to 287; the tavern's cost brought the median back to 237.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
@@ -276,6 +286,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 9 | Harvests: producing acts judged by all they fed; industrious farm prior; children inherit half their parents' skills | done |
 | 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
 | 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
+| 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
@@ -345,29 +356,103 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 
 Better on both counts, which is unusual for a change made for the look of the thing.
 
+### The land underneath
+
+The map used to be a sine wave with a river drawn along it and fertility measured as distance from that river. It is now a piece of ground, and everything else is read off it. `core/world/relief.go` holds the whole of it, and the order is the one a landscape obeys:
+
+1. **Raise** the ground — five octaves of smoothed random lattice, scaled to `Relief` (60 m over a map).
+2. **Fill** every hollow to the level at which it would spill, by priority-flood inward from the edges, so no ground is left with nowhere to send its water.
+3. **Drain** — each tile's water goes to its lowest neighbour, and `Flow` is the share of the map passing through it. Settled highest-first, so a tile's own total is complete before it is passed on.
+4. **Carve** — the wettest `waterShare` of the map is the river. Nothing about the water is drawn; it is where the water went.
+5. **Height above drainage** (`Tile.Drain`) — how far a tile stands above the water it drains into, got by following its flow down and adding up the fall.
+
+`Slope`, `Aspect` and `Sunlight` are read off `Height` on demand. Woods, outcrops and soil are then scored and thresholded against each map's own distribution rather than against fixed numbers, because a fixed cutoff gives one map a river and the next a puddle: over a handful of seeds the heaviest-draining tile carried between a fifth and four fifths of the map.
+
+**Drain, not flow, is what soil moisture means.** The first version read fertility off flow accumulation and produced a dead world - mean fertility 0.17, essentially no farmland, and three settlements in five collapsed. Flow is a terrible proxy: a tile on the valley floor beside the river carries hardly any flow of its own and is still a water meadow, while a tile halfway up a hillside may carry a gully's worth and be dry as a bone. Reading it off height-above-drainage instead gave mean fertility 0.33-0.45 and 435-747 good tiles per map.
+
+**Walking answers the ground.** `Grid.StepCost(from, to)` adds `Climb` per metre of ascent and `Descend` per metre of fall to the cost of the tile entered, so routing rounds the shoulder of a hill rather than going over it - and since roads are laid where the ground is worn, the streets follow the contours and the valley floors without anybody deciding they should.
+
+**What it cost.** Six seeds, 6000 ticks, 25 founders, against the flat map:
+
+| seed | flat | with relief |
+|---|---|---|
+| 1 | 255 | 65 |
+| 3 | 400 | 359 |
+| 5 | 400 | 203 |
+| 7 | 304 | 20 |
+| 11 | 272 | 399 |
+| 21 | 98 | 334 |
+| **total** | **1729** | **1380** |
+
+Down a fifth overall, but not uniformly: seeds 11 and 21 grew where they had struggled, and seed 7 nearly died where it had thrived. That is the change doing what it is for - the ground now has quality, and a valley is worth more than a hillside. Raising the fertility floor to lift the weak maps was tried at 0.25 and 0.35 and made the total worse (1311, 1096), because it flattens the very differences the good settlements are living on.
+
+Left for later: nothing erodes yet, and `Flow` is a static share rather than water with a season to it. Both are why the drainage is derived rather than drawn - re-run the four steps on changed ground and the rivers move by themselves.
+
+## Watching one agent decide
+
+Everything above is measured over settlements, and a settlement is the one
+thing a fit-based choice cannot be read off. A decision here is a draw from a
+softmax over every action available in the moment; what it leaves behind is a
+plan, and a plan is only the winner's name. Tuning a prior meant guessing
+from the aggregate which candidate it had beaten, and the map — hundreds of
+figures walking — shows the choices and not one reason for any of them.
+
+So the world will follow one agent at a time (`World.Watch`). While it does,
+every decision that agent makes is kept whole (`world.Deliberation`): each
+action it had before it, where it would have been done, how well it fitted
+the moment, how far into reach it still was, and the odds the draw actually
+ran on — `habit.Softmax` over the same fits `habit.Sample` drew from, at the
+same temperature, which is `Rules.Temperature` divided by how pressing the
+moment was. The value rule is watchable too and says so, since a score per
+tick is not read the way a fit is.
+
+Three things kept it from being a change to the simulation rather than a
+window on it:
+
+- **One agent.** Keeping this for everybody would cost every tick something
+  to be read for nobody, and following somebody else forgets the last one.
+- **Written on the way past.** Deliberations ride home from the parallel
+  deciding phase inside `decision`, beside the plan and the entropy, and are
+  filed in agent order. Watching an agent must not decide what a run does or
+  when it does it, and `TestWatchingChangesNothing` holds a watched run
+  against an unwatched one.
+- **Nothing inside may read it.** No agent knows what anyone weighed,
+  including itself. It is for the operator, and `observe.Look` — a whole
+  agent, including what it can do against what it believes it can do — is
+  frankly omniscient in the same way the rest of the watch command is.
+
+In `cmd/watch`, tab or a click picks a figure out of the crowd and opens it up
+beside the map; the last decision is shown as the candidates it beat, with
+the odds, over the run of choices behind it. A run of choices is what says
+whether an agent is getting anywhere or turning on the spot between the same
+two errands — which is the thing the aggregate graph, by construction,
+averages away.
+
 ## What a household eats
 
 A field was one tile, the same ground a house stands on, and that is not what a family lives off.
 
 **The calculation.** A year's bread for a household of five is on the order of a tonne of grain. Wheat before the plough of our own age gave perhaps a tonne to the hectare in a good year, a quarter of which went back into the ground as next year's seed, and half the holding lay fallow while the other half bore. That is something like three hectares held to eat from one - against the sixty square metres the family slept under, a field some hundreds of times the house. No settlement has ever been laid out the other way round.
 
-The map cannot carry that ratio. At eighty by thirty-six tiles, three hectares to a household would leave room for a dozen families and nothing else. So it is compressed rather than abandoned: `fieldTiles` is 8, and a holding is eight times the plot a house stands on rather than eight hundred.
+The map cannot carry that ratio. At eighty by thirty-six tiles, three hectares to a household would leave room for a dozen families and nothing else. So it is compressed, and how far it compresses was measured rather than argued: `fieldTiles` is 3.
 
-**How a holding grows.** It is not claimed in one act. A farmer with land short of what the household eats breaks another strip beside the ones they have, and that harvest comes off ground that was grass the same morning; once the holding is full they stop breaking and start rotating. Three rules bound it:
+**A holding is one farm, not three fields.** The household works the whole of it in a season and eats the whole of it, so the harvest is read off the mean fertility of the strips together and takes one harvest's worth out of the ground, shared over all of them. A worn strip is carried by the rest, which is what land enough to rotate is for, and the fallow keeps up with a draw a third the size. Three strips are not three families' worth of food; they are one family's, off land that gets a rest between crops. The farmer goes to the *nearest* strip they hold - making them cross their own land to reach the best of it only cost them the walk, and the walk came out of the time they had for everybody else.
 
-- **Only soil that will bear.** A strip must hold fertility 0.3, the same as the first furrow. A holding grows toward the river, where the fertility gradient is, and stops at the sand.
-- **Not against a wall.** New ground may not touch a roof, so the built core keeps the gaps that streets are laid along and the holdings lie outside it, which is where a village puts its fields. The *first* furrow is exempt: like a roof, a holding is what a settlement wants and not what it owes, and a man with no land takes the ground he can get. Requiring the first furrow to clear the houses too was tried and cost three settlements of twenty-four - newcomers in a built-up place had to walk out past everything to start at all.
-- **The dead let go.** A strip nobody is left to work goes back to grass at 0.002 a tick, about a 350-tick half-life. Fields were never released before and it did not much matter at one tile a head; at eight it does. Without it the map fills with the holdings of people who died a thousand ticks ago and the living have nowhere to plough - the same 24 seeds ran a median population of 206 and lost two settlements against 281 and none with it.
+**How a holding grows.** It is not claimed in one act. A farmer short of what the household eats breaks another strip beside the ones they have, and that harvest comes off ground that was grass the same morning. Two rules bound where:
 
-**Rotation comes free.** A farmer works the richest strip they hold, so the rest lies fallow while it waits. A holding large enough to rotate is a holding that does not wear out, which is the other half of why fields are big.
+- **Only soil that will bear.** A strip must hold fertility 0.3, the same as the first furrow, so a holding grows toward the valley floor and stops on the dry hillside.
+- **Not against a wall.** New ground may not touch a roof, so the built core keeps the gaps its streets are laid along and the holdings lie outside it, which is where a village puts its fields. The *first* furrow is exempt: like a roof, a holding is what a settlement wants and not what it owes, and a man with no land takes the ground he can get. Requiring the first furrow to clear the houses too was tried and cost three settlements of twenty-four - newcomers in a built-up place had to walk out past everything to start at all.
 
-**Measured.** 24 seeds, 6000 ticks, 25 founders, against the same seeds with one-tile fields:
+Nothing else was needed to give the land back: `Upkeep` already lets a field nobody is left to work go to weeds, and that matters more the bigger a holding is.
 
-| | settlements that lasted | median population | median houses | median field tiles | median techs |
-|---|---|---|---|---|---|
-| one tile a farmer | 24 of 24 | 280 | 140 | 307 | 7 |
-| holdings | 24 of 24 | 281 | 121 | 585 | 7 |
+**Three is what the world carries.** Three independent batches of 24 seeds, 6000 ticks, 25 founders:
 
-The settlement is no worse off and its footprint is now mostly field, which is what a farming settlement's footprint is.
+| | mean population | median population | median field tiles | settlements that lasted |
+|---|---|---|---|---|
+| one tile a farmer | 275 / 289 / 302 | 298 / 372 / 314 | 280 / 330 / 306 | 23 / 23 / 24 |
+| holding of three | 269 / 281 / 287 | 346 / 396 / 308 | 460 / 556 / 508 | 22 / 22 / 22 |
+| holding of eight | 247 / 241 / 264 | 212 / 258 / 260 | 542 / 569 / 546 | 23 / 21 / 24 |
 
-**Land became the binding constraint,** which is the point of the change and was not designed in. Holdings do not reach 8 on average - across four seeds the mean is about 2.5, and of some 260 people holding land only 30 to 50 hold a full eight. Every single holder short of a full holding has no ground left to break: not thin soil somewhere else on the map, but nothing ploughable touching what they already have. The riverside is taken. Whoever broke ground first farms a holding, and everyone after them works one strip - which is roughly how it went.
+Two thirds more cultivated ground at three, for a population the batches cannot tell apart from one-tile fields. At eight it costs an eighth of the population and buys **no more farmland at all**: the field tiles are the same, because the arable valley is what limits them and not the rule. The land simply ends up in fewer hands.
+
+**Land is the binding constraint,** which is the point and was not designed in. On the drain-fed map the soil worth ploughing is a band along the valley floor, and holdings claim all of it by mid-run: every holder short of a full holding has nothing ploughable left touching what they already hold. Whoever broke ground first farms a holding and everyone after them works one strip. Push the cap higher and the same acreage concentrates. On three seeds looked at, a holding of eight left between a seventh and two fifths of the settlement holding no land at all, against a fiftieth to an eighth before; and a settlement where that many people are back to foraging carries less knowledge with it - median 4360 against 5264 over a batch, with three strips at 4853 in between. Enclosure, without anybody having voted for it.

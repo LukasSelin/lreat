@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 26
+const Count = 28
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -69,6 +69,7 @@ func init() {
 		Steal, Give, Fulfil, Retaliate,
 		Fish, Hunt, Irrigate, PlantTrees,
 		Cook, Quarry, BuildGranary, Smelt,
+		BuildTavern, MoveHouse,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -102,8 +103,6 @@ func Index(d *Def) int {
 const searchRadius = 40
 
 func always(*entity.Agent, *world.World) bool { return true }
-
-func hasCompany(_ *entity.Agent, w *world.World) bool { return len(w.Agents) > 1 }
 
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
 
@@ -244,33 +243,50 @@ func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 //
 // This map cannot carry that ratio: at eighty by thirty-six tiles, three
 // hectares to a household would give the world room for a dozen families.
-// So the ratio is compressed, not abandoned. A holding is many times the
-// plot a house stands on, it is broken a strip at a time as the farmer
-// works, and it stops short wherever the neighbours or the river got there
-// first - which is what makes land something a settlement can run out of.
-const fieldTiles = 8
+// What it can carry was measured rather than argued. Above three strips a
+// household the settlement gets no more farmland out of it - the arable
+// valley is the limit, not the rule - and the same land simply ends up in
+// fewer hands, with a third of the people holding none: at eight the
+// population ran an eighth below one-tile fields across three batches of
+// seeds, and at three it is level with them on two thirds more cultivated
+// ground. See docs/action-space.md.
+const fieldTiles = 3
 
 // fieldSoil is the least fertile ground worth breaking. It is what a farmer
 // asks of the tile they first clear, and of every strip they add after: a
 // holding grows into land that will bear, and stops at the sand.
 const fieldSoil = 0.3
 
-// worked is the strip of a holding a farmer turns to next: the richest
-// ground they hold, so that the rest of the holding lies fallow and comes
-// back while it waits. A holding large enough to rotate is a holding that
-// does not wear out, which is the other half of why fields are big.
+// worked is the strip of a holding a farmer goes to: the nearest one. A
+// holding is one farm and not eight fields - the household works the whole
+// of it in a season and eats the whole of it, so which strip they are
+// standing on when the day's work is done does not matter, and making them
+// cross their own land to reach the best of it only cost them the walk.
 func worked(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if len(a.Parcel) == 0 {
 		return a.Field, a.HasField // a holding of one, from before it was a holding
 	}
-	var best entity.Pos
-	fertility := -1.0
-	for _, p := range a.Parcel {
-		if t := w.Grid.At(p); t.Fertility > fertility {
-			best, fertility = p, t.Fertility
+	best, near := a.Parcel[0], entity.Dist(a.Pos, a.Parcel[0])
+	for _, p := range a.Parcel[1:] {
+		if d := entity.Dist(a.Pos, p); d < near {
+			best, near = p, d
 		}
 	}
-	return best, fertility >= 0
+	return best, true
+}
+
+// bearing is what a holding has to give: the fertility of the ground taken
+// together, because the harvest comes off all of it. A worn strip is carried
+// by the rest, which is what a holding large enough to rotate is for.
+func bearing(a *entity.Agent, w *world.World) float64 {
+	if len(a.Parcel) == 0 {
+		return 0
+	}
+	sum := 0.0
+	for _, p := range a.Parcel {
+		sum += w.Grid.At(p).Fertility
+	}
+	return sum / float64(len(a.Parcel))
 }
 
 // plough reports whether open ground is worth breaking: soil the crop will
@@ -344,8 +360,12 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 var Farm = &Def{
 	Name: "farm", Ticks: 4, Available: always, Target: farmSite,
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		fertility := w.Grid.At(target).Fertility
+		if a.Holds(target) {
+			fertility = bearing(a, w)
+		}
 		return need.Levels{
-			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.At(target).Fertility),
+			need.Physiological: foodValue(a) * farmYield(a, w, fertility),
 			need.Esteem:        0.02,
 		}
 	},
@@ -368,14 +388,22 @@ var Farm = &Def{
 				return
 			}
 		}
-		yield := farmYield(a, w, t.Fertility)
+		yield := farmYield(a, w, bearing(a, w))
 		// A tool makes the work go further, and wears with it.
 		if a.Inventory[entity.Tools] >= 0.5 {
 			yield *= toolFarming
 			a.Inventory[entity.Tools] -= farmWearTool
 		}
 		a.Inventory[entity.Food] += yield
-		t.Fertility = max(wornField, t.Fertility-farmWear)
+		// One harvest takes one harvest's worth out of the ground however
+		// much ground it came off, so the draw is shared over the holding.
+		// Eight strips are not eight fields' worth of food; they are one
+		// family's, off land that gets a rest between crops.
+		wear := farmWear / float64(len(a.Parcel))
+		for _, p := range a.Parcel {
+			f := w.Grid.At(p)
+			f.Fertility = max(wornField, f.Fertility-wear)
+		}
 		a.AddSkill(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
 	},
@@ -655,16 +683,6 @@ var Guard = &Def{
 // companionRadius is how close two agents must be to interact.
 const companionRadius = 3
 
-// towardCompany heads for the person the agent would most like to see. They
-// may have moved by the time we arrive; then whoever is nearby will do.
-func towardCompany(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-	o := PickCompany(a, w)
-	if o == nil {
-		return entity.Pos{}, false
-	}
-	return o.Pos, true
-}
-
 // intended is the person an agent expects to find at a target.
 func intended(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent {
 	return w.AgentAt(target, companionRadius, a)
@@ -690,6 +708,11 @@ var Socialize = &Def{
 			return // nobody home; a wasted walk
 		}
 		Encounter(a, o, w)
+		// A tavern is a better evening than a doorstep.
+		if inTavern(w, a.Pos) {
+			a.Needs.Add(need.Belonging, tavernCheer)
+			o.Needs.Add(need.Belonging, tavernCheer)
+		}
 	},
 }
 

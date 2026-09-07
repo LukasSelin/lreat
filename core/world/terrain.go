@@ -6,105 +6,129 @@ import (
 	"lreat/core/entity"
 )
 
-// GenerateTerrain lays down a meandering river, scattered forest, a fertility
-// gradient falling away from the water, and a market on the bank near the
-// middle. Everything else on the map is built by agents.
+// GenerateTerrain raises the ground, lets the water find its way down it, and
+// reads everything else off what that leaves: the woods where it is damp and
+// not too steep, the outcrops where it is high and bare, the good soil on the
+// valley floors and the sunny slopes. Nothing here is drawn on top of the
+// land; see relief.go for the shape of it.
 func (w *World) GenerateTerrain(width, height int) {
 	g := NewGrid(width, height)
 
-	phase := w.RNG.Float64() * 2 * math.Pi
-	amp := float64(width) / 6
-	riverX := func(y int) int {
-		return width/2 + int(amp*math.Sin(float64(y)*0.12+phase))
-	}
-	for y := 0; y < height; y++ {
-		half := 1
-		if w.RNG.Float64() < 0.2 {
-			half = 2
-		}
-		for dx := -half; dx <= half; dx++ {
-			p := entity.Pos{X: riverX(y) + dx, Y: y}
-			if g.In(p) {
-				t := g.At(p)
-				t.Terrain = Water
-				t.Fish = 0.7 + 0.3*w.RNG.Float64()
-			}
-		}
-	}
+	w.raise(g)
+	g.fill()
+	g.drain()
+	g.carve(w.RNG)
+	g.height()
 
-	blobs := width * height / 150
-	for i := 0; i < blobs; i++ {
-		p := entity.Pos{X: w.RNG.IntN(width), Y: w.RNG.IntN(height)}
-		for s := 0; s < 45; s++ {
-			if g.In(p) {
-				if t := g.At(p); t.Terrain == Grass {
-					t.Terrain = Forest
-					t.Wood = 0.6 + 0.4*w.RNG.Float64()
-					t.Wild = 0.6 + 0.4*w.RNG.Float64()
-				}
-			}
-			p.X += w.RNG.IntN(3) - 1
-			p.Y += w.RNG.IntN(3) - 1
-		}
-	}
-
-	// Outcrops: a few small patches of bare rock on the grass, away from the
-	// water, for stone once the settlement knows how to cut it.
-	for i := 0; i < width*height/700; i++ {
-		p := entity.Pos{X: w.RNG.IntN(width), Y: w.RNG.IntN(height)}
-		for s := 0; s < 10; s++ {
-			if g.In(p) {
-				if t := g.At(p); t.Terrain == Grass {
-					t.Terrain = Rock
-				}
-			}
-			p.X += w.RNG.IntN(3) - 1
-			p.Y += w.RNG.IntN(3) - 1
-		}
-	}
-
-	// Fertility: breadth-first distance from water, eight-connected.
-	dist := make([]int, len(g.Tiles))
-	queue := make([]int, 0, len(g.Tiles))
+	// Woods stand where the ground is damp enough to grow them and gentle
+	// enough to hold soil: the valley sides above the flood, not the crown of
+	// the ridge and not the bed of the river. Each tile is scored on how well
+	// it suits trees, with a little luck thrown in so that two maps with the
+	// same bones are not the same map, and the best of them are wooded. The
+	// share is fixed rather than the score, because how wet a map is depends
+	// on the shape of it and a settlement needs roughly the same timber
+	// whatever ground it was given.
+	slopes := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain == Water {
-			dist[i] = 0
-			queue = append(queue, i)
-		} else {
-			dist[i] = -1
-		}
+		slopes[i] = g.Slope(entity.Pos{X: i % width, Y: i / width})
 	}
-	for head := 0; head < len(queue); head++ {
-		i := queue[head]
-		p := entity.Pos{X: i % width, Y: i / width}
-		for dy := -1; dy <= 1; dy++ {
-			for dx := -1; dx <= 1; dx++ {
-				q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
-				if !g.In(q) {
-					continue
-				}
-				j := q.Y*width + q.X
-				if dist[j] == -1 {
-					dist[j] = dist[i] + 1
-					queue = append(queue, j)
-				}
-			}
-		}
-	}
+	steepAt := quantile(slopes, 0.9)
+	wooded := make([]float64, 0, len(g.Tiles))
+	score := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain == Water {
+		damp := clamp01(1 - g.Tiles[i].Drain/(2*FloodDepth))
+		steep := clamp01(slopes[i] / math.Max(1e-12, steepAt))
+		score[i] = damp*(1-0.6*steep) + 0.35*w.RNG.Float64()
+		if g.Tiles[i].Terrain == Grass {
+			wooded = append(wooded, score[i])
+		}
+	}
+	treeLine := quantile(wooded, 1-forestShare)
+	for i := range g.Tiles {
+		t := &g.Tiles[i]
+		if t.Terrain != Grass || score[i] < treeLine {
 			continue
 		}
-		d := float64(dist[i])
-		g.Tiles[i].Fertility = 0.15 + 0.8*math.Max(0, 1-d/10)
-		g.Tiles[i].Rich = g.Tiles[i].Fertility
+		t.Terrain = Forest
+		t.Wood = 0.6 + 0.4*w.RNG.Float64()
+		t.Wild = 0.6 + 0.4*w.RNG.Float64()
+	}
+
+	// Outcrops are where the soil has gone: high, steep ground the water runs
+	// off rather than soaks into. Scored and shared the same way, because an
+	// outcrop is a comparison with the rest of the map, not a measurement.
+	heights := make([]float64, len(g.Tiles))
+	for i := range g.Tiles {
+		heights[i] = g.Tiles[i].Height
+	}
+	highAt := quantile(heights, 0.6)
+	bare := make([]float64, len(g.Tiles))
+	open := make([]float64, 0, len(g.Tiles))
+	for i := range g.Tiles {
+		bare[i] = clamp01(slopes[i]/math.Max(1e-12, steepAt)) +
+			clamp01((heights[i]-highAt)/math.Max(1e-12, Relief-highAt))
+		if g.Tiles[i].Terrain == Grass {
+			open = append(open, bare[i])
+		}
+	}
+	stoneLine := quantile(open, 1-rockShare)
+	for i := range g.Tiles {
+		if t := &g.Tiles[i]; t.Terrain == Grass && bare[i] >= stoneLine {
+			t.Terrain = Rock
+		}
+	}
+
+	// Good soil is where the water has been and stopped: the flat of a valley,
+	// damp from what drains through it, facing the sun. A steep field loses
+	// its soil down the hill, and a dry one grows what it is given.
+	for i := range g.Tiles {
+		t := &g.Tiles[i]
+		if t.Terrain == Water {
+			continue
+		}
+		p := entity.Pos{X: i % width, Y: i / width}
+		damp := clamp01(1 - t.Drain/FloodDepth)
+		steep := clamp01(g.Slope(p) / math.Max(1e-12, steepAt))
+		f := 0.15 + 0.85*damp*(1-0.7*steep)*(0.75+0.5*g.Sunlight(p))
+		t.Fertility = math.Max(0.05, math.Min(1, f))
+		t.Rich = t.Fertility
 	}
 	w.Forest0 = g.Count(func(t *Tile) bool { return t.Terrain == Forest })
 
-	center := entity.Pos{X: riverX(height/2) + 4, Y: height / 2}
-	mp, ok := g.Nearest(center, width+height, func(_ entity.Pos, t *Tile) bool { return t.Terrain == Grass })
-	if !ok {
-		mp = entity.Pos{X: width / 2, Y: height / 2}
+	// The market goes where a settlement would put it: dry, gentle ground
+	// beside the largest water near the middle of the map, which after the
+	// draining is a place the land chose rather than one picked in advance.
+	center := entity.Pos{X: width / 2, Y: height / 2}
+	best, bestScore := entity.Pos{}, math.Inf(-1)
+	for i := range g.Tiles {
+		p := entity.Pos{X: i % width, Y: i / width}
+		if g.Tiles[i].Terrain == Water {
+			continue
+		}
+		if !g.HasNeighbor(p, func(t *Tile) bool { return t.Terrain == Water }) {
+			continue
+		}
+		// What founds a market: good soil, the flat of the valley rather than
+		// the bank above it, level ground to stand on, and somewhere near the
+		// middle of the country. Weighted this way round because a settlement
+		// picks its ground first and its distance from anywhere second - the
+		// other way round put markets on dry hillsides, and the settlements
+		// that grew there starved.
+		t := &g.Tiles[i]
+		score := 2*t.Fertility +
+			1.2*clamp01(1-t.Drain/FloodDepth) -
+			4*g.Slope(p) -
+			0.03*float64(entity.Dist(p, center))
+		if score > bestScore {
+			best, bestScore = p, score
+		}
+	}
+	mp := best
+	if math.IsInf(bestScore, -1) {
+		mp, _ = g.Nearest(center, width+height, func(_ entity.Pos, t *Tile) bool { return t.Terrain == Grass })
+	}
+	if t := g.At(mp); t.Terrain != Grass {
+		t.Terrain = Grass
 	}
 	g.At(mp).Structure = Market
 	w.Grid = g

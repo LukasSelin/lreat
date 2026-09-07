@@ -51,30 +51,35 @@ func TestAHoldingGrowsToWhatAFamilyEats(t *testing.T) {
 	}
 }
 
-// A holding large enough to rotate is a holding that does not wear out: the
-// farmer turns to the richest ground they hold and the rest lies fallow
-// while it waits.
-func TestAFarmerWorksTheRichestStripAndRestsTheOthers(t *testing.T) {
+// A holding is one farm, not eight fields. The harvest comes off all of it,
+// so one harvest takes one harvest's worth out of the ground however much
+// ground it came off - which is what lets the fallow keep up with it.
+func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 	w, a := shore(t)
-	for i := 0; i < fieldTiles; i++ {
+	for i := 0; i < 3*fieldTiles; i++ {
 		run(w, a, Farm)
 	}
-	worn := map[entity.Pos]bool{}
-	rich := w.Grid.At(a.Field).Fertility
-	for i := 0; i < fieldTiles; i++ {
-		if !run(w, a, Farm) {
-			t.Fatal("a farmer with a holding should always have somewhere to work")
-		}
-		if !a.Holds(a.Pos) {
-			t.Fatalf("a full holding should be worked, not added to: went to %v", a.Pos)
-		}
-		worn[a.Pos] = true
+	holding := held(t, w, a)
+	before := make([]float64, len(holding))
+	for i, p := range holding {
+		before[i] = w.Grid.At(p).Fertility
 	}
-	if len(worn) != fieldTiles {
-		t.Fatalf("%d harvests fell on %d of %d strips: the holding is not being rotated", fieldTiles, len(worn), fieldTiles)
+	if !run(w, a, Farm) {
+		t.Fatal("a farmer with a holding should always have somewhere to work")
 	}
-	if !(w.Grid.At(a.Field).Fertility < rich) {
-		t.Fatal("harvests should wear the ground they come off")
+	if !a.Holds(a.Pos) {
+		t.Fatalf("a full holding should be worked, not added to: went to %v", a.Pos)
+	}
+	taken := 0.0
+	for i, p := range holding {
+		worn := before[i] - w.Grid.At(p).Fertility
+		if worn <= 0 {
+			t.Fatalf("strip %v gave nothing to the harvest", p)
+		}
+		taken += worn
+	}
+	if taken > farmWear*1.001 {
+		t.Fatalf("one harvest took %v out of the ground, more than the %v a harvest takes", taken, farmWear)
 	}
 }
 
