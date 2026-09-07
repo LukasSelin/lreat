@@ -21,11 +21,14 @@ import (
 // newcomer's low belief in every skill, say) is a tax on whichever acts
 // mention it. Compare with the situation table in docs/action-space.md.
 
-// Reach at birth. Ordinary living is fully within reach. Crafts and learning
-// begin far off and are brought closer by study, teaching, and discovery.
+// Reach at birth. Ordinary living is fully within reach, and standing guard
+// is ordinary living: it is the one public good in the catalog, and a
+// settlement that has to discover it first has died of disorder before it
+// does. Crafts and learning begin far off and are brought closer by study,
+// teaching, and discovery.
 const (
 	reachEveryday = 1.0
-	reachGuard    = 0.8
+	reachGuard    = 1.0
 	reachCraft    = 0.5
 	reachStudy    = 0.4
 	reachTeach    = 0.3

@@ -83,10 +83,10 @@ func TestAFailedPlanIsALesson(t *testing.T) {
 	a.Inventory[entity.Food] = 1 // the food coordinate reads -0.5
 	p := Commit(a, w, action.Eat, a.Pos)
 	a.Inventory[entity.Food] = 0 // someone took it while the plan was pending
-	// An agent used to good outcomes finds a fruitless plan disappointing.
+	// An agent used to eating well finds a fruitless meal disappointing.
 	// Within a bare Act nothing decays, so without that expectation the
 	// outcome would be exactly nothing and carry no lesson either way.
-	a.Baseline = 0.1
+	a.Baselines[p.Index] = 0.1
 	before := a.Habits[p.Index]
 	Act(w)
 	if a.Plan != nil {
@@ -142,17 +142,15 @@ func TestIntensitySharpensWithNeed(t *testing.T) {
 // first thing to look at after any change to the priors or the learning
 // constants. They log the same tallies so the two modes can be compared.
 //
-// They run for one generation. A settlement choosing by fit lives at
-// subsistence and never reaches the safety a birth needs, so once agents
-// age it does not replace itself; what these tests claim is that the first
-// generation lives, builds, and trades, not that the settlement lasts.
-// Making it last is the open problem recorded in docs/action-space.md.
-const generation = 3000
+// They run long enough for the founders to die of old age, so passing means
+// the settlement replaced itself. Before credit followed provenance it did
+// not: it lived at subsistence, never reached the safety a birth needs,
+// and was extinct within a generation. See docs/action-space.md.
 
 func TestCityDevelopsByRecognition(t *testing.T) {
 	w := fitWorld(7)
 	populate(w, 20)
-	Run(w, generation)
+	Run(w, 6000)
 	died := 0
 	for _, e := range w.Log.All() {
 		if e.Kind == event.Died {
@@ -167,8 +165,11 @@ func TestCityDevelopsByRecognition(t *testing.T) {
 	if s.Houses == 0 || s.Fields == 0 {
 		t.Fatalf("settlement left no footprint: houses=%d fields=%d", s.Houses, s.Fields)
 	}
-	if s.Deaths > len(w.Agents) {
-		t.Fatalf("more died than lived: %d dead, %d alive", s.Deaths, len(w.Agents))
+	if len(w.Techs()) == 0 {
+		t.Fatalf("no discoveries in 6000 ticks; knowledge=%.1f", w.Knowledge)
+	}
+	if len(w.Agents) < 20 {
+		t.Fatalf("the settlement did not replace its founders: %d alive after %d deaths", len(w.Agents), s.Deaths)
 	}
 }
 
@@ -177,7 +178,7 @@ func TestSocialLifeEmergesByRecognition(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, generation)
+	Run(w, 6000)
 	counts := map[event.Kind]int{}
 	for _, e := range w.Log.All() {
 		counts[e.Kind]++
@@ -185,10 +186,12 @@ func TestSocialLifeEmergesByRecognition(t *testing.T) {
 	t.Logf("requested %d, fulfilled %d, unmet %d, stolen %d, given %d, avenged %d",
 		counts[event.Requested], counts[event.Fulfilled], counts[event.Unmet],
 		counts[event.Stolen], counts[event.Given], counts[event.Avenged])
-	// Requests are logged, not required. Before aging a recognition
-	// settlement posted and filled hundreds over a long run; with the young
-	// slow and the old frail a subsistence economy has no slack left to
-	// hire anyone in its first generation. That is part of the open problem.
+	if counts[event.Requested] == 0 {
+		t.Fatal("no request was ever posted")
+	}
+	if counts[event.Fulfilled] == 0 {
+		t.Fatal("no request was ever fulfilled")
+	}
 	if counts[event.Stolen] == 0 && counts[event.Given] == 0 {
 		t.Fatal("the moral layer never engaged")
 	}
@@ -202,7 +205,7 @@ func TestFeudsFormByRecognition(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, generation)
+	Run(w, 4000)
 	var avenged int
 	for _, e := range w.Log.All() {
 		if e.Kind == event.Avenged {

@@ -60,12 +60,10 @@ type Rules struct {
 	Temperature float64
 }
 
-// DefaultRules is the value rule. Recognition is complete behind the flag
-// but does not yet replace its population: a settlement choosing by fit
-// lives at subsistence, never reaches the safety a birth needs, and with
-// aging dies out within a generation. See docs/action-space.md.
+// DefaultRules is recognition. The value rule, the original, stays behind
+// the flag for comparison. See docs/action-space.md.
 func DefaultRules() Rules {
-	return Rules{Fit: false, Temperature: 0.15}
+	return Rules{Fit: true, Temperature: 0.15}
 }
 
 // MarketState is a single shared marketplace with a stock and a price per good.

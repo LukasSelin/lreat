@@ -204,6 +204,20 @@ type Agent struct {
 	// Trace is the short memory of recent actions that share in the next
 	// reward, so that an action that only set up a later gain still learns.
 	Trace habit.Trace
+	// Larder remembers, for each unit of food on hand, the act that
+	// produced it and the moment it was taken in, oldest first. When the
+	// unit is eaten the meal's reward reaches that act. It is credit by
+	// provenance: the meal thanks the field.
+	Larder []habit.Step
+	// Roof is the act that last raised this agent's shelter, and Watch the
+	// act by which it last kept public order. Safety that rises afterwards
+	// thanks them both: the one is a private good and the other a public
+	// one, and without the second nobody would learn to stand guard, since
+	// a guard's own safety barely moves for it.
+	Roof     habit.Step
+	HasRoof  bool
+	Watch    habit.Step
+	HasWatch bool
 	// Imprinted is set once Habits and Reach have been seeded from the
 	// catalog priors. Seeding is lazy because the world cannot see the
 	// catalog, and a newborn's first decision is the earliest it is needed.

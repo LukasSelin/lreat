@@ -39,6 +39,7 @@ func Population(w *world.World) {
 		// one of the same years.
 		age := a.Age(w.Tick)
 		if w.RNG.Float64() < entity.Frailty(age)*(1.5-need.Clamp(a.Health)) {
+			w.Deaths++
 			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, age)
 			continue
 		}

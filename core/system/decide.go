@@ -127,8 +127,11 @@ func commit(a *entity.Agent, w *world.World, d *action.Def, target entity.Pos, i
 		Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks,
 		Index:     index,
 		Situation: s,
-		Before:    habit.Ledger{Needs: a.Needs, Urgency: need.Urgencies(a.Needs)},
-		Started:   w.Tick,
+		Before: habit.Ledger{
+			Needs: a.Needs, Urgency: need.Urgencies(a.Needs),
+			Food: a.Inventory[entity.Food], Shelter: a.Shelter,
+		},
+		Started: w.Tick,
 	}
 	return a.Plan
 }

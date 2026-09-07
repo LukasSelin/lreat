@@ -112,14 +112,23 @@ const (
 	// BaselineMix is how much of the expectation a lesson is judged against
 	// is the act's own. Against the act's own baseline a lesson is about
 	// when the act pays; against the agent's general one it is about
-	// whether it pays at all. Both are wanted: the first stops eating from
-	// being reinforced at a nearly full belly, the second lets a uniformly
-	// poor act be given up.
-	BaselineMix = 0.5
+	// whether it pays at all. It is set to the act's own alone. With the
+	// general baseline in the mix every act whose direct outcome is modest,
+	// which is every instrumental act and above all standing guard, is
+	// pushed a little further from its own moments each time it happens,
+	// and the settlement loses public order and the births that need it.
+	BaselineMix = 1.0
 	// AdvantageClamp bounds the size of one lesson.
 	AdvantageClamp = 0.5
 	// ReachGain is how much doing an action brings it further into reach.
 	ReachGain = 0.02
+	// ProvenanceWeight is the share of a later reward that reaches the act
+	// which made it possible: the meal's share for the act that grew the
+	// food, the safety's share for the act that raised the roof.
+	ProvenanceWeight = 0.7
+	// LarderCap bounds how many units of food an agent remembers the
+	// origin of.
+	LarderCap = 16
 )
 
 // Dot is the inner product.
@@ -254,10 +263,14 @@ func Retain(h *Signature, prior Signature, lambda float64) {
 }
 
 // Ledger is what an agent remembers about its state when it committed to
-// an action, so that the outcome can be judged by what it wanted then.
+// an action, so that the outcome can be judged by what it wanted then. Food
+// and Shelter are not valued; they are how the learner tells that an act
+// produced or consumed something, so that credit can follow provenance.
 type Ledger struct {
 	Needs   need.Levels
 	Urgency [need.Count]float64
+	Food    float64
+	Shelter float64
 }
 
 // Reward is the value of what changed between before and after, judged by

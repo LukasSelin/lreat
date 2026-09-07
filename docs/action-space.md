@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: all six phases implemented, and recognition is **not yet the default**. It is complete behind `world.Rules.Fit = true`, or `-fit` on the headless runner, with its own determinism, learning, and one-generation liveness tests. It was the default for one commit. Merging with master brought aging, and a settlement choosing by fit does not replace itself: it lives at subsistence, never reaches the safety a birth needs, and with everyone born at the start dying of old age by about tick 4500 it is extinct by tick 5000 on seed 7. The value rule survives the same run through births. Aging also costs the recognition economy its slack: on the social seed it posted no requests at all within the first generation, where before aging it posted and filled over two hundred in a long run. Until recognition has children it stays behind the flag. The open problem and the levers are in the phase 6 section below.
+Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements now replace their founders: on seed 7 the population goes from 20 to 65 over 6000 ticks with all four techs; seeds 31 and 1 reach 63 and 114; seed 21 survives but shrinks to 13, the weak case to watch.
 
 ## Why
 
@@ -12,7 +12,7 @@ Three commitments, agreed up front:
 
 1. Ranking is by cosine fit between the moment and each action's signature. The overall intensity of the moment only sharpens or loosens the sampling. It never reorders candidates.
 2. Signatures ("habits") are per agent, seeded from one shared prior per action. Teaching copies them. Children inherit them.
-3. The learning signal counts need changes only. No stock valuation, no pride term. Actions that only set up a later gain (farm, forage, gather, sell) learn through an eligibility trace that hands part of a later reward back to the actions that preceded it.
+3. The learning signal counts need changes only. No stock valuation, no pride term. Actions that only set up a later gain learn through credit that follows provenance: a meal thanks the act that grew the food, and rising safety thanks the act that raised the roof or kept the watch. A short eligibility trace also hands part of each lesson to the acts just before it.
 
 ## The space
 
@@ -79,7 +79,7 @@ At every plan end, whether or not `Apply` ran (a plan whose `Available` went fal
 
 ```
 r   = Σ_t (Needs_after[t] - Needs_before[t]) * Urgency_at_decision[t] * Personality[t]
-adv = clamp(r - (0.5*Baselines[index] + 0.5*Baseline), -0.5, 0.5)
+adv = clamp(r - Baselines[index], -0.5, 0.5)                                  // BaselineMix = 1
 Baseline += 0.02 * (r - Baseline);  Baselines[index] += 0.05 * (r - Baselines[index])
 Trace.Push(index, S_at_decision)             // keep 3, newest first
 for k, step in Trace:
@@ -89,7 +89,15 @@ clamp |H[index]| to [0.2, 2]
 Reach[index] = min(1, Reach[index] + 0.02)                                   // doing is learning
 ```
 
-The reward uses urgencies from the moment of the decision, so an outcome is judged by what the agent wanted then. The expectation a lesson is judged against blends two baselines. Against the act's own baseline a lesson is about *when* the act pays, which stops eating from being reinforced at a nearly full belly; against the agent's general baseline it is about *whether* it pays, which lets a uniformly poor act be given up. With only the general baseline (phases 4 and 5) every positive reward reinforced, and the eat habit drifted toward barely-hungry moments. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
+The reward uses urgencies from the moment of the decision, so an outcome is judged by what the agent wanted then. A lesson is judged against the act's own baseline, so it is about *when* the act pays, never *whether*. The machinery for a blend with the agent's general baseline is there (`BaselineMix`) and is set to the act's own alone. With the general baseline in the mix, an act whose direct outcome is always modest, which is every instrumental act and above all the public good of standing guard, is pushed a little further from its own moments every time it happens, and the settlement loses public order and with it the safety that births need. With only the general baseline (phases 4 and 5) every positive reward reinforced and the eat habit drifted toward barely-hungry moments.
+
+### Credit by provenance
+
+A unit of food remembers the act that produced it and the moment it was taken in (`Agent.Larder`, oldest first, capped at 16). When a unit is consumed, by a meal, a sale, a gift, or a thief, the act that brought it is credited. A roof remembers the act that last raised shelter (`Agent.Roof`), a watch the act by which the agent last kept public order (`Agent.Watch`); safety that rises during any later plan credits both, for the part of that plan's reward safety accounts for.
+
+What the credit carries is the **advantage** of the consuming plan, not its reward. This was the difference between a working economy and a runaway one. Thanked with the raw reward, a forage got good news from every meal, its habit drifted onto the average moment and fit everything, and agents foraged every six ticks into a larder of thirty units while houses rotted. Thanked with the advantage, a forage that fed a full belly is pushed away from that moment, and production regulates itself: a meal better than meals usually are pulls the field toward the moment it was worked in, a needless one pushes it away.
+
+Guard starts fully in reach. It is the one public good in the catalog, and a settlement that has to discover it first has died of disorder before it does. The value rule's safety turned out to come from public order too, not from houses: its agents guard several hundred times per 500 ticks and hold order at 1.0, while their shelter is as low as recognition's. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
 
 The trace is what keeps the economy alive under a needs-only reward. Farm and forage never touch needs, only the larder. When a later eat pays +0.35, the trace hands half of that to the previous plan and a quarter to the one before. If liveness runs still show farming being learned away, the documented fallback is to add stock terms to `r`. That would move a value judgement into learning, which is the agreed place for it, but it has been rejected for now.
 
@@ -171,6 +179,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 3 | `action.Shared`, `action.Situation`, `action.Candidates`, `action.Rank`, `action.Imprint`; priors and `Reach0` for all 17 actions; canonical-moment ranking tests | done |
 | 4 | `system.Recognise` sampling in `Decide`, `system.Learn` at every plan end in `Act`, `system.Commit` as the one plan builder (used by `sim.Intend`), headless `-fit` and `-temp`; fit-mode determinism and liveness tests | done |
 | 5 | `action.Broaden`, `action.Pass`, `Discovery.Opens` and `world.ReachFloor`, `action.Inherit` at birth; `HabitSpread`, `GatedReach`, `ChoiceEntropy`, `Deaths` in snapshot, headless, TUI; moral coordinates one-sided | done |
-| 6 | Recognition complete behind the flag (`DefaultRules` reverted to value after the aging merge, see status); headless `-fit`; value-rule tests run through `valueWorld`, recognition twins run one generation; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
+| 7 | Credit by provenance: larder, roof, and watch; credit carries the advantage; per-action baseline alone; guard fully in reach | done |
+| 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
