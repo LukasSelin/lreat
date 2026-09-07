@@ -151,6 +151,12 @@ type Agent struct {
 	// exists only where somebody keeps enforcing.
 	Caution float64
 
+	// Travel is effort banked toward entering the next tile. An agent puts
+	// one tick of walking into it per tick and steps once the tile it is
+	// entering has been paid for, so hard ground is crossed slowly rather
+	// than in the same stride as open grass.
+	Travel float64
+
 	Starving int // consecutive ticks at the bottom of the physiological tier
 	Bonds    []Bond
 	Plan     *Plan

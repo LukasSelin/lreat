@@ -125,6 +125,11 @@ func TestAgentsWalkBeforeActing(t *testing.T) {
 	w := world.New(1)
 	a := w.Spawn("a", need.Neutral())
 	target := entity.Pos{X: a.Pos.X + 5, Y: a.Pos.Y}
+	// Walking speed belongs to the terrain; this test is about the order of
+	// walking and acting, so clear the route to one tick per tile.
+	for x := a.Pos.X; x <= target.X; x++ {
+		w.Grid.At(entity.Pos{X: x, Y: a.Pos.Y}).Terrain = world.Grass
+	}
 	a.Plan = &entity.Plan{Action: "rest", Target: target, Remaining: 1, Total: 1}
 	for i := 0; i < 5; i++ {
 		Act(w)

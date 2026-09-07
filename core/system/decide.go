@@ -28,7 +28,9 @@ func Score(a *entity.Agent, gain need.Levels, urgency [need.Count]float64) float
 
 // Choose picks the best available action for an agent and where to do it.
 // Scores are divided by total time, travel included, so a quick fix nearby
-// beats a slow one far away. Distance is how the map shapes behavior.
+// beats a slow one far away. Travel is costed over the terrain in the way,
+// so the shape of the ground, not just distance, is how the map shapes
+// behavior.
 func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 	urgency := need.Urgencies(a.Needs)
 	best, bestPos, bestScore := action.Rest, a.Pos, math.Inf(-1)
@@ -40,7 +42,7 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 		if !ok {
 			continue
 		}
-		cost := float64(d.Ticks + entity.Dist(a.Pos, target))
+		cost := float64(d.Ticks) + w.Grid.TravelCost(a.Pos, target)
 		// Conscience sits beside need rather than inside it. It is not scaled
 		// by urgency, so a principle holds until hunger grows big enough to
 		// outweigh it, and then it gives way.
@@ -67,6 +69,11 @@ func Decide(w *world.World) {
 	}
 }
 
+// Exertion is the physiological cost of one tick's worth of walking. Hard
+// ground is slow and tiring in the same measure: a tile that takes three ticks
+// to cross also takes three ticks of hunger with it.
+const Exertion = 0.006
+
 // Act moves agents toward their targets, then advances and applies plans.
 func Act(w *world.World) {
 	for _, a := range w.Agents {
@@ -74,9 +81,16 @@ func Act(w *world.World) {
 			continue
 		}
 		if a.Pos != a.Plan.Target {
-			a.Pos = entity.StepToward(a.Pos, a.Plan.Target)
+			next := w.Grid.StepToward(a.Pos, a.Plan.Target)
+			a.Travel++
+			a.Needs.Add(need.Physiological, -Exertion)
+			if cost := w.Grid.MoveCost(next); a.Travel >= cost {
+				a.Travel -= cost
+				a.Pos = next
+			}
 			continue
 		}
+		a.Travel = 0
 		a.Plan.Remaining--
 		if a.Plan.Remaining > 0 {
 			continue
