@@ -3,6 +3,7 @@ package system
 import (
 	"math"
 	"runtime"
+	"sort"
 	"sync"
 
 	"lreat/core/action"
@@ -36,15 +37,19 @@ func Score(a *entity.Agent, gain need.Levels, urgency [need.Count]float64) float
 // has been built on it — a river across the way, a street running to the
 // market — is how the map shapes behavior.
 func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
-	return choose(a, w, w.Routers(1)[0])
+	d, target, _ := choose(a, w, w.Routers(1)[0], false)
+	return d, target
 }
 
 // choose is Choose over a given router, so that agents deciding at the same
-// time each route on working memory of their own.
-func choose(a *entity.Agent, w *world.World, r *world.Router) (*action.Def, entity.Pos) {
+// time each route on working memory of their own. When record is set it also
+// returns everything it weighed, for an onlooker; nothing else is different
+// about such a decision, and in particular it draws no more luck.
+func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*action.Def, entity.Pos, []world.Weighed) {
 	urgency := need.Urgencies(a.Needs)
 	best, bestPos, bestScore := action.Rest, a.Pos, math.Inf(-1)
-	for _, d := range action.Catalog {
+	var weighed []world.Weighed
+	for i, d := range action.Catalog {
 		if !d.Available(a, w) {
 			continue
 		}
@@ -61,11 +66,16 @@ func choose(a *entity.Agent, w *world.World, r *world.Router) (*action.Def, enti
 		v := action.ValenceOf(d.Name)
 		worth := Score(a, d.Expect(a, w, target), urgency) + belief.Conscience(v, a.Norms) - belief.Reprisal(v, a.Caution)
 		s := worth/cost + a.Luck.NormFloat64()*Noise
+		if record {
+			weighed = append(weighed, world.Weighed{
+				Action: d.Name, Index: i, Target: target, Weight: s, Reach: a.Reach[i],
+			})
+		}
 		if s > bestScore {
 			best, bestPos, bestScore = d, target, s
 		}
 	}
-	return best, bestPos
+	return best, bestPos, weighed
 }
 
 // Workers is how many goroutines deciding may spread over. Deciding is the
@@ -81,6 +91,11 @@ type decision struct {
 	plan    *entity.Plan
 	entropy float64
 	counted bool
+	// thought is what the agent weighed, kept only for the one agent being
+	// watched. It rides home with the plan rather than being written where
+	// it was worked out, so that watching an agent cannot change what a run
+	// does or when it does it.
+	thought *world.Deliberation
 }
 
 // Decide gives every idle agent a plan, by value or by fit as the world's
@@ -114,6 +129,9 @@ func Decide(w *world.World) {
 			w.Choices++
 			w.Entropy += out[i].entropy
 		}
+		if out[i].thought != nil {
+			w.Remember(*out[i].thought)
+		}
 	}
 }
 
@@ -122,21 +140,85 @@ func Decide(w *world.World) {
 // goroutines to work it out on: it is the last of the routing that used to
 // happen a step at a time in Act, where only one agent could be served.
 func decide(a *entity.Agent, w *world.World, r *world.Router) decision {
+	watched := w.Watching() == a.ID
 	if w.Rules.Fit {
-		c, entropy := recognise(a, w, r)
-		if c == nil {
+		cs, chosen, entropy := recognise(a, w, r)
+		if chosen < 0 {
 			return decision{}
 		}
-		return decision{
+		c := &cs[chosen]
+		out := decision{
 			plan:    newPlan(a, w, r, c.Def, c.Target, c.Index, c.Situation),
 			entropy: entropy,
 			counted: true,
 		}
+		if watched {
+			out.thought = recognised(a, w, cs, chosen, entropy)
+		}
+		return out
 	}
-	d, target := choose(a, w, r)
+	d, target, weighed := choose(a, w, r, watched)
 	action.Imprint(a)
 	s := action.SituationOn(a, w, r, d, target, action.Shared(a, w))
-	return decision{plan: newPlan(a, w, r, d, target, action.Index(d), s)}
+	out := decision{plan: newPlan(a, w, r, d, target, action.Index(d), s)}
+	if watched {
+		out.thought = valued(a, w, d, weighed)
+	}
+	return out
+}
+
+// recognised writes down a recognition-based decision as an onlooker would
+// want it: every candidate with the chance the agent really drew on, best
+// first. The chances come from the same softmax the draw came from.
+func recognised(a *entity.Agent, w *world.World, cs []action.Candidate, chosen int, entropy float64) *world.Deliberation {
+	eff := make([]float64, len(cs))
+	for i := range cs {
+		eff[i] = cs[i].Fit
+	}
+	intensity := Intensity(a)
+	chance := habit.Softmax(eff, w.Rules.Temperature/intensity)
+	d := &world.Deliberation{
+		Tick: w.Tick, Agent: a.ID, Rule: "fit",
+		Intensity: intensity, Entropy: entropy,
+		Weighed: make([]world.Weighed, len(cs)),
+	}
+	for i, c := range cs {
+		d.Weighed[i] = world.Weighed{
+			Action: c.Def.Name, Index: c.Index, Target: c.Target,
+			Weight: c.Fit, Reach: a.Reach[c.Index], Chance: chance[i],
+			Chosen: i == chosen,
+		}
+	}
+	sortWeighed(d.Weighed)
+	return d
+}
+
+// valued does the same for a value-based decision. There is no chance in it:
+// the best score is taken every time, jitter aside, so the one taken carries
+// the whole of it.
+func valued(a *entity.Agent, w *world.World, took *action.Def, weighed []world.Weighed) *world.Deliberation {
+	d := &world.Deliberation{
+		Tick: w.Tick, Agent: a.ID, Rule: "value",
+		Intensity: Intensity(a), Weighed: weighed,
+	}
+	for i := range d.Weighed {
+		if d.Weighed[i].Action == took.Name {
+			d.Weighed[i].Chosen, d.Weighed[i].Chance = true, 1
+		}
+	}
+	sortWeighed(d.Weighed)
+	return d
+}
+
+// sortWeighed puts the strongest candidate first, ties in catalog order, so
+// that a list read twice in a row reads the same way.
+func sortWeighed(ws []world.Weighed) {
+	sort.SliceStable(ws, func(i, j int) bool {
+		if ws[i].Weight != ws[j].Weight {
+			return ws[i].Weight > ws[j].Weight
+		}
+		return ws[i].Index < ws[j].Index
+	})
 }
 
 // workersFor is how many goroutines to spread n agents over. One agent each
@@ -182,23 +264,25 @@ func inParallel(n, workers int, f func(i, worker int)) {
 // pressing the moment is. No value is computed here. Nil only when nothing
 // at all is available, which the always-available rest prevents.
 func Recognise(a *entity.Agent, w *world.World) *action.Candidate {
-	c, entropy := recognise(a, w, w.Routers(1)[0])
-	if c == nil {
+	cs, chosen, entropy := recognise(a, w, w.Routers(1)[0])
+	if chosen < 0 {
 		return nil
 	}
 	w.Choices++
 	w.Entropy += entropy
-	return c
+	return &cs[chosen]
 }
 
-// recognise is Recognise on a given router, returning how undecided the
+// recognise is Recognise on a given router, returning everything the agent
+// had before it and which of them it settled on, and how undecided the
 // moment was rather than adding it to the world's tally. Agents recognising
 // at the same time cannot share a tally: the order floating-point additions
 // land in would decide the total. The caller adds them up in agent order.
-func recognise(a *entity.Agent, w *world.World, r *world.Router) (*action.Candidate, float64) {
+// The chosen index is -1 when there was nothing at all to choose from.
+func recognise(a *entity.Agent, w *world.World, r *world.Router) ([]action.Candidate, int, float64) {
 	cs := action.CandidatesOn(a, w, r)
 	if len(cs) == 0 {
-		return nil, 0
+		return nil, -1, 0
 	}
 	eff := make([]float64, len(cs))
 	for i := range cs {
@@ -209,7 +293,7 @@ func recognise(a *entity.Agent, w *world.World, r *world.Router) (*action.Candid
 	// so what it settles on does not depend on who else was deciding beside
 	// it. See entity.Agent.Luck.
 	i := habit.Sample(a.Luck, eff, temp)
-	return &cs[i], habit.Entropy(eff, temp)
+	return cs, i, habit.Entropy(eff, temp)
 }
 
 // Intensity is how pressing an agent's moment is: the sum of its urgencies

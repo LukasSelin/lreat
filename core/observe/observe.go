@@ -23,8 +23,11 @@ type Activity struct {
 	Agents int
 }
 
-// Mark is an agent's position and what it is doing, for the map.
+// Mark is an agent's position and what it is doing, for the map. The ID is
+// there so that a view can follow one particular figure from tick to tick
+// rather than whoever happens to be standing where it was.
 type Mark struct {
+	ID     entity.ID
 	Pos    entity.Pos
 	Action string
 }
@@ -61,6 +64,12 @@ type Snapshot struct {
 	Safety     float64
 	FoodPrice  float64
 	Events     int
+	// The weather. Temp is this tick's temperature and Season names the
+	// quarter of the year it falls in; Growth is what the season lets the
+	// land put back, 1 being an ordinary year's average.
+	Temp   float64
+	Season string
+	Growth float64
 
 	// The moral and contractual state of the settlement. MeanNorms is what
 	// this population currently holds to be right, which drifts on its own.
@@ -98,6 +107,9 @@ func Take(w *world.World) Snapshot {
 		Techs:      w.Techs(),
 		Safety:     w.Safety,
 		FoodPrice:  w.Market.Price[entity.Food],
+		Temp:       w.Climate.Temp,
+		Season:     world.SeasonOf(w.Tick),
+		Growth:     w.Climate.Growth(),
 		Events:     w.Log.Len(),
 		Houses:     w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.House }),
 		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Field }),
@@ -140,7 +152,7 @@ func Take(w *world.World) Snapshot {
 		if age >= entity.Prime {
 			s.Elders++
 		}
-		mark := Mark{Pos: a.Pos}
+		mark := Mark{ID: a.ID, Pos: a.Pos}
 		if a.Plan != nil {
 			counts[a.Plan.Action]++
 			mark.Action = a.Plan.Action

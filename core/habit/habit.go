@@ -21,18 +21,19 @@ import (
 )
 
 // Dims is the size of the space.
-const Dims = 19
+const Dims = 20
 
 // MaxActions bounds the catalog so per-agent habit tables can be arrays and
 // iteration order can never depend on a map.
 const MaxActions = 32
 
 // The dimensions. The first five are urgencies weighted by personality; the
-// next six are stock and surroundings; five are what the agent holds to be
-// right and how much reprisal it expects; the last three are patched per
-// candidate action, because how near a thing is, how one feels about the
-// person involved, and how able one believes oneself all depend on which
-// action is being considered.
+// next seven are stock and surroundings, the weather among them, because
+// what a moment calls for turns with the season; five are what the agent
+// holds to be right and how much reprisal it expects; the last three are
+// patched per candidate action, because how near a thing is, how one feels
+// about the person involved, and how able one believes oneself all depend
+// on which action is being considered.
 const (
 	Hunger = iota
 	Unsafe
@@ -44,6 +45,7 @@ const (
 	Wealth
 	Shelter
 	Company
+	Chill
 	Order
 	Honesty
 	Charity
@@ -58,7 +60,7 @@ const (
 // Names labels each dimension for reports.
 var Names = [Dims]string{
 	"hunger", "unsafe", "lonely", "unproven", "curious",
-	"food", "wood", "wealth", "shelter", "company", "order",
+	"food", "wood", "wealth", "shelter", "company", "chill", "order",
 	"honesty", "charity", "industry", "tradition", "caution",
 	"near", "rapport", "skill",
 }
@@ -234,23 +236,45 @@ func Sample(rng *rand.Rand, eff []float64, temp float64) int {
 	return len(eff) - 1
 }
 
+// Softmax is the chance of each candidate being drawn by Sample, in the same
+// order. A temperature at or below zero puts all of it on the best one. It
+// is not what Sample draws with - Sample needs no normalising and does none -
+// but it is the same distribution, which is what lets an onlooker be shown
+// the odds an agent actually decided under.
+func Softmax(eff []float64, temp float64) []float64 {
+	if len(eff) == 0 {
+		return nil
+	}
+	best := 0
+	for i, e := range eff {
+		if e > eff[best] {
+			best = i
+		}
+	}
+	p := make([]float64, len(eff))
+	if temp <= 0 {
+		p[best] = 1
+		return p
+	}
+	var total float64
+	for i, e := range eff {
+		p[i] = math.Exp((e - eff[best]) / temp)
+		total += p[i]
+	}
+	for i := range p {
+		p[i] /= total
+	}
+	return p
+}
+
 // Entropy is the entropy in nats of the softmax over eff, a measure of how
 // open the choice was. Zero means one action was certain.
 func Entropy(eff []float64, temp float64) float64 {
-	if len(eff) == 0 || temp <= 0 {
+	if temp <= 0 {
 		return 0
 	}
-	best := eff[0]
-	for _, e := range eff {
-		best = math.Max(best, e)
-	}
-	var total float64
-	for _, e := range eff {
-		total += math.Exp((e - best) / temp)
-	}
 	var h float64
-	for _, e := range eff {
-		p := math.Exp((e-best)/temp) / total
+	for _, p := range Softmax(eff, temp) {
 		if p > 0 {
 			h -= p * math.Log(p)
 		}

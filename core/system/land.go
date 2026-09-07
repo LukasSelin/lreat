@@ -43,7 +43,12 @@ func Land(w *world.World) {
 	if w.Tick%ErodeEvery == 0 {
 		w.Erode()
 	}
-	k := w.Mods.Regrowth
+	// Green things keep the season's hours. In the cold half of the year
+	// nothing regrows, so what a summer left standing is what a winter has
+	// to live on; over a whole year the growth is what it was before the
+	// seasons existed. Fish and fallow follow the same clock: the water
+	// under ice gives back nothing, and worn ground rests until it thaws.
+	k := w.Mods.Regrowth * w.Climate.Growth()
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		switch t.Terrain {
@@ -53,7 +58,7 @@ func Land(w *world.World) {
 		case world.Water:
 			t.Fish = min(1, t.Fish+fishRegrowth*k)
 		case world.Field:
-			t.Fertility = min(t.Rich, t.Fertility+fallow)
+			t.Fertility = min(t.Rich, t.Fertility+fallow*k)
 		}
 	}
 	for k := 0; k < reseedSamples; k++ {
@@ -62,7 +67,8 @@ func Land(w *world.World) {
 		if !t.Buildable() || !g.HasNeighbor(p, isForest) {
 			continue
 		}
-		if w.RNG.Float64() < reseedChance {
+		// Seed falls in the growing season, not on frozen ground.
+		if w.RNG.Float64() < reseedChance*w.Climate.Growth() {
 			t.Terrain, t.Wood, t.Wild = world.Forest, 0.2, 0.3
 		}
 	}

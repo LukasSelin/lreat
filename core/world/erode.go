@@ -161,10 +161,16 @@ func (w *World) Erode() {
 // strip a hillside of it in a few lifetimes of hard farming.
 const SoilDepth = 3.0
 
-// resoil reads what the land will now hold off the new drainage, and lets the
-// soil already there move toward it rather than jumping. Ground newly on the
-// flood plain does not become a water meadow in an afternoon, and a terrace
-// the river has left below it does not go barren overnight.
+// resoil lets ground that the moving water has made better become better:
+// a flat newly within reach of the flood comes up toward what such ground
+// holds, a little each age rather than overnight.
+//
+// It only ever raises. What lowers soil is the weather taking it away, above,
+// and nothing else should: a field somebody has cut a channel to holds more
+// than the bare ground around it would, and that is the whole point of having
+// dug it. An earlier version pulled every tile toward what its drainage alone
+// would give, which quietly undid irrigation every age and cost the
+// settlements that had invested in it dearly.
 func (g *Grid) resoil() {
 	const toward = 0.08
 	for i := range g.Tiles {
@@ -173,7 +179,9 @@ func (g *Grid) resoil() {
 			continue
 		}
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
-		t.Rich += toward * (g.SoilAt(p) - t.Rich)
+		if can := g.SoilAt(p); can > t.Rich {
+			t.Rich += toward * (can - t.Rich)
+		}
 		t.Fertility = math.Min(t.Fertility, t.Rich)
 	}
 }

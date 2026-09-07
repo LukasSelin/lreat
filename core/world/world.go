@@ -96,6 +96,7 @@ type World struct {
 	MarketPos entity.Pos
 
 	Market    MarketState
+	Climate   Climate // the weather over the whole map this tick
 	Safety    float64 // public safety in [0,1], raised by guarding, decays
 	Knowledge float64 // accumulated by study, consumed by nothing
 	Mods      Modifiers
@@ -120,6 +121,12 @@ type World struct {
 	Choices int
 	Entropy float64
 
+	// watched is the agent whose deliberations are being kept, and thoughts
+	// is what it has been weighing. Both are for observation only; see
+	// watch.go.
+	watched  entity.ID
+	thoughts []Deliberation
+
 	techs     map[Tech]bool
 	nextID    entity.ID
 	nextReqID entity.RequestID
@@ -136,9 +143,10 @@ func New(seed uint64) *World {
 // NewSized creates a world with terrain of the given size.
 func NewSized(seed uint64, width, height int) *World {
 	w := &World{
-		RNG:   rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
-		Mods:  DefaultModifiers(),
-		Rules: DefaultRules(),
+		RNG:     rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
+		Mods:    DefaultModifiers(),
+		Rules:   DefaultRules(),
+		Climate: NewClimate(),
 		Market: MarketState{
 			Price: [entity.GoodCount]float64{1, 0.5, 3, 1.5, 2},
 		},

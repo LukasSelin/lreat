@@ -8,6 +8,7 @@ import "lreat/core/world"
 // Step advances the world by one tick.
 func Step(w *world.World) {
 	w.Tick++
+	Climate(w)
 	Decay(w)
 	Land(w)
 	Beliefs(w)
@@ -16,6 +17,7 @@ func Step(w *world.World) {
 	Act(w)
 	MarketStep(w)
 	Population(w)
+	Upkeep(w)
 	Discover(w)
 }
 

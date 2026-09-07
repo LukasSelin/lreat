@@ -22,6 +22,7 @@ const (
 	Market
 	Road
 	Granary // keeps the market's food from spoiling
+	Tavern  // where people meet of an evening
 )
 
 // Tile is one cell of the world. Fertility comes from the river and is worn
@@ -183,10 +184,14 @@ func (g *Grid) HasNeighbor(p entity.Pos, ok func(*Tile) bool) bool {
 }
 
 // Roofed reports whether a tile is a building somebody stands inside: a
-// house, the market, a granary. A road is not - a way beside a door is what
-// a door is for.
+// house, the market, a granary, a tavern. A road is not - a way beside a
+// door is what a door is for.
 func (t *Tile) Roofed() bool {
-	return t.Structure == House || t.Structure == Market || t.Structure == Granary
+	switch t.Structure {
+	case House, Market, Granary, Tavern:
+		return true
+	}
+	return false
 }
 
 // RoomToBuild reports whether p is open ground with open ground all round
@@ -197,4 +202,28 @@ func (t *Tile) Roofed() bool {
 // line up into the lanes a road is later laid along.
 func (g *Grid) RoomToBuild(p entity.Pos) bool {
 	return g.In(p) && g.At(p).Buildable() && !g.HasNeighbor(p, (*Tile).Roofed)
+}
+
+// Raze takes down what stands on p and gives the ground back: the tile keeps
+// its terrain and loses its building and its owner, and a field goes back to
+// grass. The market is the one thing that cannot come down, being the root
+// of everything else. A settlement that could only ever add to itself would
+// be stuck for good with every choice its founders made on ground they had
+// only just arrived on, so what has been built has to be able to go.
+func (g *Grid) Raze(p entity.Pos) bool {
+	if !g.In(p) {
+		return false
+	}
+	t := g.At(p)
+	if t.Structure == Market {
+		return false
+	}
+	if t.Structure == None && t.Owner == 0 {
+		return false
+	}
+	if t.Terrain == Field {
+		t.Terrain = Grass
+	}
+	t.Structure, t.Owner = None, 0
+	return true
 }
