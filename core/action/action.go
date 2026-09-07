@@ -114,28 +114,19 @@ func foodValue(a *entity.Agent) float64 {
 	return 0.25 * math.Max(0, 1-a.Inventory[entity.Food]/4)
 }
 
-// A rest restores a little of the body, and more under a roof.
-const (
-	restGain = 0.03
-	roofGain = 0.05
-)
+// A rest restores a little of the body. A rest that restored more under a
+// roof was tried: the reward reinforced an idle act, and under a seasoned
+// year the median settlement fell by a third. Rest is a fallback and stays
+// one.
+const restGain = 0.03
 
-// Rest is the fallback. It is always available and barely worth anything,
-// though it is worth more at home or in the tavern, which is where an agent
-// goes for it when either is close.
+// Rest is the fallback. It is always available and barely worth anything.
 var Rest = &Def{
-	Name: "rest", Ticks: 1, Available: always, Target: comfort,
-	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		if underRoof(a, w, target) {
-			return need.Levels{need.Physiological: roofGain}
-		}
+	Name: "rest", Ticks: 1, Available: always, Target: here,
+	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		return need.Levels{need.Physiological: restGain}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		if underRoof(a, w, a.Pos) {
-			a.Needs.Add(need.Physiological, roofGain)
-			return
-		}
 		a.Needs.Add(need.Physiological, restGain)
 	},
 }
@@ -181,7 +172,7 @@ func helping(a *entity.Agent) (meals, raw, restores float64) {
 const tableCheer = 0.03
 
 var Eat = &Def{
-	Name: "eat", Ticks: 1, Target: comfort,
+	Name: "eat", Ticks: 1, Target: here,
 	Available: func(a *entity.Agent, _ *world.World) bool { return Edible(a) >= mouthful },
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		_, _, restores := helping(a)
