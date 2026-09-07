@@ -138,15 +138,30 @@ func nearWater(w *world.World, p entity.Pos) bool {
 	return ok
 }
 
+// thirsty is the strip of a holding most worth cutting a channel to: the
+// poorest ground the farmer holds that water can be brought to. A holding is
+// watered a strip at a time, the way it was broken.
+func thirsty(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	var best entity.Pos
+	rich := 1.0
+	for _, p := range a.Parcel {
+		if t := w.Grid.At(p); t.Rich < rich && nearWater(w, p) {
+			best, rich = p, t.Rich
+		}
+	}
+	return best, rich < 1
+}
+
 var Irrigate = &Def{
 	Name: "irrigate", Ticks: 4,
 	Available: func(a *entity.Agent, w *world.World) bool {
 		if !a.HasField || a.Inventory[entity.Wood] < irrigationCost || !known(a, w, "irrigation", "irrigate") {
 			return false
 		}
-		return w.Grid.At(a.Field).Rich < 1 && nearWater(w, a.Field)
+		_, ok := thirsty(a, w)
+		return ok
 	},
-	Target: func(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Field, true },
+	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) { return thirsty(a, w) },
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		// Worth what the extra fertility will grow, over a few harvests.
 		return need.Levels{need.Physiological: foodValue(a) * 0.7 * irrigationGain * (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * 3, need.Esteem: 0.03}

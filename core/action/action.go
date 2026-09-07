@@ -230,18 +230,115 @@ func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
 }
 
-// farmSite is the agent's field, or the best unclaimed ground near home.
+// fieldTiles is the ground one household works: how many strips a farmer
+// goes on breaking before the holding is as much land as the family needs.
+//
+// A house is one tile. A holding is not, and the gap is not small. A year's
+// bread for a family of five is on the order of a tonne of grain. Wheat
+// before the plough of our own age gave perhaps a tonne to the hectare in a
+// good year, a quarter of which went back into the ground as next year's
+// seed, and half the holding lay fallow while the other half bore - so the
+// family needed something like three hectares to hold to eat from one. Set
+// against the sixty square metres they slept under, the field they lived off
+// was hundreds of times the house.
+//
+// This map cannot carry that ratio: at eighty by thirty-six tiles, three
+// hectares to a household would give the world room for a dozen families.
+// So the ratio is compressed, not abandoned. A holding is many times the
+// plot a house stands on, it is broken a strip at a time as the farmer
+// works, and it stops short wherever the neighbours or the river got there
+// first - which is what makes land something a settlement can run out of.
+const fieldTiles = 8
+
+// fieldSoil is the least fertile ground worth breaking. It is what a farmer
+// asks of the tile they first clear, and of every strip they add after: a
+// holding grows into land that will bear, and stops at the sand.
+const fieldSoil = 0.3
+
+// worked is the strip of a holding a farmer turns to next: the richest
+// ground they hold, so that the rest of the holding lies fallow and comes
+// back while it waits. A holding large enough to rotate is a holding that
+// does not wear out, which is the other half of why fields are big.
+func worked(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if len(a.Parcel) == 0 {
+		return a.Field, a.HasField // a holding of one, from before it was a holding
+	}
+	var best entity.Pos
+	fertility := -1.0
+	for _, p := range a.Parcel {
+		if t := w.Grid.At(p); t.Fertility > fertility {
+			best, fertility = p, t.Fertility
+		}
+	}
+	return best, fertility >= 0
+}
+
+// plough reports whether open ground is worth breaking: soil the crop will
+// come up in, and not the yard of somebody's house. A settlement keeps its
+// built ground - the roofs, and the gaps between them the lanes run along -
+// and the holdings lie outside it, which is where a village puts its fields.
+func plough(w *world.World, p entity.Pos) bool {
+	t := w.Grid.At(p)
+	return t.Buildable() && t.Fertility >= fieldSoil && !w.Grid.HasNeighbor(p, (*world.Tile).Roofed)
+}
+
+// newGround is the best ground worth breaking beside the holding: where the
+// next strip goes when the family has not yet broken all the land it eats.
+func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	var best entity.Pos
+	fertility := -1.0
+	for _, p := range a.Parcel {
+		for dy := -1; dy <= 1; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
+				if !w.Grid.In(q) || !plough(w, q) {
+					continue
+				}
+				if t := w.Grid.At(q); t.Fertility > fertility {
+					best, fertility = q, t.Fertility
+				}
+			}
+		}
+	}
+	return best, fertility >= 0
+}
+
+// farmSite is where a farmer goes to work: the next strip to break if the
+// holding is still short of what the household eats, otherwise the richest
+// strip they hold. Someone with no field at all takes the nearest open
+// ground near home that will bear a crop - a man with no land takes what he
+// can get, even the strip behind his neighbour's house; it is only in adding
+// to a holding that a farmer leaves the neighbourhood its ground.
 func farmSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField {
-		return a.Field, true
+		if len(a.Parcel) < fieldTiles {
+			if p, ok := newGround(a, w); ok {
+				return p, true
+			}
+		}
+		return worked(a, w)
 	}
 	anchor := a.Pos
 	if a.HasHome {
 		anchor = a.Home
 	}
 	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Buildable() && t.Fertility >= 0.3
+		return t.Buildable() && t.Fertility >= fieldSoil
 	})
+}
+
+// breakGround turns open ground beside a holding into another strip of it.
+func breakGround(a *entity.Agent, w *world.World) bool {
+	t := w.Grid.At(a.Pos)
+	if !plough(w, a.Pos) || len(a.Parcel) >= fieldTiles {
+		return false
+	}
+	if !w.Grid.HasNeighbor(a.Pos, func(n *world.Tile) bool { return n.Terrain == world.Field && n.Owner == a.ID }) {
+		return false
+	}
+	t.Terrain, t.Owner = world.Field, a.ID
+	a.Parcel = append(a.Parcel, a.Pos)
+	return true
 }
 
 var Farm = &Def{
@@ -254,17 +351,22 @@ var Farm = &Def{
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t := w.Grid.At(a.Pos)
-		if !a.HasField {
+		switch {
+		case !a.HasField:
 			if !t.Buildable() {
 				return // claimed by someone else first
 			}
 			t.Terrain = world.Field
 			t.Owner = a.ID
 			a.Field, a.HasField = a.Pos, true
+			a.Parcel = []entity.Pos{a.Pos}
 			w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
-		}
-		if a.Pos != a.Field {
-			return
+		case !a.Holds(a.Pos):
+			// Standing on the edge of the holding with more land to break:
+			// this harvest comes off ground that was grass this morning.
+			if !breakGround(a, w) {
+				return
+			}
 		}
 		yield := farmYield(a, w, t.Fertility)
 		// A tool makes the work go further, and wears with it.

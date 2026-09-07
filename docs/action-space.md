@@ -344,3 +344,30 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 | bridges | 1535 | 0.63% |
 
 Better on both counts, which is unusual for a change made for the look of the thing.
+
+## What a household eats
+
+A field was one tile, the same ground a house stands on, and that is not what a family lives off.
+
+**The calculation.** A year's bread for a household of five is on the order of a tonne of grain. Wheat before the plough of our own age gave perhaps a tonne to the hectare in a good year, a quarter of which went back into the ground as next year's seed, and half the holding lay fallow while the other half bore. That is something like three hectares held to eat from one - against the sixty square metres the family slept under, a field some hundreds of times the house. No settlement has ever been laid out the other way round.
+
+The map cannot carry that ratio. At eighty by thirty-six tiles, three hectares to a household would leave room for a dozen families and nothing else. So it is compressed rather than abandoned: `fieldTiles` is 8, and a holding is eight times the plot a house stands on rather than eight hundred.
+
+**How a holding grows.** It is not claimed in one act. A farmer with land short of what the household eats breaks another strip beside the ones they have, and that harvest comes off ground that was grass the same morning; once the holding is full they stop breaking and start rotating. Three rules bound it:
+
+- **Only soil that will bear.** A strip must hold fertility 0.3, the same as the first furrow. A holding grows toward the river, where the fertility gradient is, and stops at the sand.
+- **Not against a wall.** New ground may not touch a roof, so the built core keeps the gaps that streets are laid along and the holdings lie outside it, which is where a village puts its fields. The *first* furrow is exempt: like a roof, a holding is what a settlement wants and not what it owes, and a man with no land takes the ground he can get. Requiring the first furrow to clear the houses too was tried and cost three settlements of twenty-four - newcomers in a built-up place had to walk out past everything to start at all.
+- **The dead let go.** A strip nobody is left to work goes back to grass at 0.002 a tick, about a 350-tick half-life. Fields were never released before and it did not much matter at one tile a head; at eight it does. Without it the map fills with the holdings of people who died a thousand ticks ago and the living have nowhere to plough - the same 24 seeds ran a median population of 206 and lost two settlements against 281 and none with it.
+
+**Rotation comes free.** A farmer works the richest strip they hold, so the rest lies fallow while it waits. A holding large enough to rotate is a holding that does not wear out, which is the other half of why fields are big.
+
+**Measured.** 24 seeds, 6000 ticks, 25 founders, against the same seeds with one-tile fields:
+
+| | settlements that lasted | median population | median houses | median field tiles | median techs |
+|---|---|---|---|---|---|
+| one tile a farmer | 24 of 24 | 280 | 140 | 307 | 7 |
+| holdings | 24 of 24 | 281 | 121 | 585 | 7 |
+
+The settlement is no worse off and its footprint is now mostly field, which is what a farming settlement's footprint is.
+
+**Land became the binding constraint,** which is the point of the change and was not designed in. Holdings do not reach 8 on average - across four seeds the mean is about 2.5, and of some 260 people holding land only 30 to 50 hold a full eight. Every single holder short of a full holding has no ground left to break: not thin soil somewhere else on the map, but nothing ploughable touching what they already have. The riverside is taken. Whoever broke ground first farms a holding, and everyone after them works one strip - which is roughly how it went.
