@@ -83,10 +83,11 @@ var instances = func() map[string]ontology.Instance {
 const Derived = true
 
 // mechanics binds an act the ontology entails to the code that carries it
-// out. Takings and makings are not listed: one verb carries each, from
-// what the lode and the ground say (see take.go) or the recipe (see
-// make.go), and those named here are named only because the rest of the
-// package refers to them. An act the ontology entails and nothing carries
+// out. Takings, makings, raisings, and exchanges are not listed: one verb
+// carries each, from what the lode and the ground say (see take.go), the
+// recipe (see make.go), the plan (see raise.go), or the terms (see
+// exchange.go), and those named here are named only because the rest of
+// the package refers to them. An act the ontology entails and nothing carries
 // is a catalog that cannot be assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
@@ -103,13 +104,13 @@ var mechanics = map[string]*Def{
 	"make/provision+timber>meal@hearth": Cook,
 	"raise/timber>dwelling@open":        BuildShelter,
 	"raise/timber+stone>granary@open":   BuildGranary,
-	"raise/timber+stone>tavern@open":    BuildTavern,
+	"raise/timber>tavern@open":          BuildTavern,
 	"raise/timber>road@ground":          Pave,
 	"consume/provision":                 Eat,
 	"dwell/rest":                        Rest,
 	"dwell/meet@tavern>neighbour":       Socialize,
 	"dwell/guard@market":                Guard,
-	"exchange/provision>coin@market":    Sell,
+	"exchange/material>coin@market":     Sell,
 	"exchange/coin>provision@market":    Buy,
 	"transfer/provision>neighbour":      Give,
 	"transfer/material>requester":       Fulfil,
@@ -129,6 +130,10 @@ func init() {
 				d = taking(in)
 			case ontology.Make:
 				d = making(in)
+			case ontology.Raise:
+				d = raising(in)
+			case ontology.Exchange:
+				d = exchanging(in)
 			}
 		}
 		if d == nil {
@@ -720,62 +725,9 @@ var Pave = &Def{
 	},
 }
 
-var Sell = &Def{
-	Name: "sell", Ticks: 1, Target: atMarket,
-	Available: func(a *entity.Agent, _ *world.World) bool {
-		return a.Inventory[entity.Food] > 4 || a.Inventory[entity.Tools] >= 1 ||
-			a.Inventory[entity.Meals] > 3 || a.Inventory[entity.Stone] > 4
-	},
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		// Savings buy safety; being a seller of note buys a little esteem.
-		return need.Levels{need.Safety: 0.08, need.Esteem: 0.03}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		var earned float64
-		if surplus := a.Inventory[entity.Food] - 3; surplus > 0 {
-			a.Inventory[entity.Food] -= surplus
-			w.Market.Stock[entity.Food] += surplus
-			earned += surplus * w.Market.Price[entity.Food]
-		}
-		if tools := a.Inventory[entity.Tools]; tools > 0 {
-			a.Inventory[entity.Tools] = 0
-			w.Market.Stock[entity.Tools] += tools
-			earned += tools * w.Market.Price[entity.Tools]
-		}
-		if surplus := a.Inventory[entity.Meals] - 2; surplus > 0 {
-			a.Inventory[entity.Meals] -= surplus
-			w.Market.Stock[entity.Meals] += surplus
-			earned += surplus * w.Market.Price[entity.Meals]
-		}
-		if surplus := a.Inventory[entity.Stone] - 3; surplus > 0 {
-			a.Inventory[entity.Stone] -= surplus
-			w.Market.Stock[entity.Stone] += surplus
-			earned += surplus * w.Market.Price[entity.Stone]
-		}
-		a.Wealth += earned
-		a.Needs.Add(need.Esteem, 0.03)
-		w.Emit(event.Traded, a.ID, 0, "%s sold goods for %.1f", a.Name, earned)
-	},
-}
+var Sell = trade("exchange/material>coin@market")
 
-var Buy = &Def{
-	Name: "buy food", Ticks: 1, Target: atMarket,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Food] < 1 &&
-			w.Market.Stock[entity.Food] >= 1 &&
-			a.Wealth >= w.Market.Price[entity.Food]
-	},
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: 0.3}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		p := w.Market.Price[entity.Food]
-		a.Wealth -= p
-		a.Inventory[entity.Food]++
-		w.Market.Stock[entity.Food]--
-		w.Emit(event.Traded, a.ID, 0, "%s bought food for %.2f", a.Name, p)
-	},
-}
+var Buy = trade("exchange/coin>provision@market")
 
 var Guard = &Def{
 	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,

@@ -135,7 +135,7 @@ var Schemas = []Schema{
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Tradition: 0.1}},
 	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Granary, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachGranary, Tech: "masonry",
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
-	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Tavern, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachTavern, Tech: "brewing",
+	{Verb: Raise, Inputs: []*Class{Timber}, Output: Tavern, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachTavern, Tech: "brewing",
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
 	{Verb: Raise, Inputs: []*Class{Timber}, Output: Road, Site: Ground, CollapseSite: true, Ticks: 2, Reach0: reachPave,
 		Prior:   habit.Signature{habit.Shelter: 0.7, habit.Company: 0.6, habit.Charity: 0.5, habit.Industry: 0.3},
@@ -157,7 +157,11 @@ var Schemas = []Schema{
 
 	// Trading, at the market. Provision for coin and coin for provision are
 	// the same schema with the sides swapped.
-	{Verb: Exchange, Inputs: []*Class{Provision}, Output: Coin, Site: Market, Ticks: 1, Reach0: reachEveryday,
+	// A seller brings whatever is over their keep, of anything; what a
+	// household mostly has over its keep is food, and that is the moment
+	// selling belongs to.
+	{Verb: Exchange, Inputs: []*Class{Material}, Output: Coin, Site: Market, Ticks: 1, Reach0: reachEveryday,
+		Prior:   habit.Signature{habit.Food: 0.8},
 		Valence: belief.Valence{belief.Industry: 0.15}},
 	{Verb: Exchange, Inputs: []*Class{Coin}, Output: Provision, Site: Market, Ticks: 1, Reach0: reachEveryday},
 
@@ -209,6 +213,8 @@ var takeDetail = map[*Class]struct {
 	// years a first field has.
 	Grain: {Skill: entity.Farming, Skilled: true, Reach0: reachEveryday, Ticks: 4,
 		Prior: habit.Signature{habit.Hunger: -0.8, habit.Food: 0.5, habit.Industry: 0.7, habit.Skill: 0.3}},
-	Timber: {Reach0: reachEveryday, Ticks: 2},
+	// Felling is winter work whoever does it: the sap is down and there is
+	// least else to do.
+	Timber: {Reach0: reachEveryday, Ticks: 2, Prior: habit.Signature{habit.Chill: 0.3}},
 	Stone:  {Skill: entity.Building, Skilled: true, Reach0: reachQuarry, Ticks: 3, Tech: "quarrying", Prior: habit.Signature{habit.Industry: 0.5, habit.Skill: 0.3}},
 }
