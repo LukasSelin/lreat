@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 27
+const Count = 28
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -69,7 +69,7 @@ func init() {
 		Steal, Give, Fulfil, Retaliate,
 		Fish, Hunt, Irrigate, PlantTrees,
 		Cook, Quarry, BuildGranary, Smelt,
-		MoveHouse,
+		BuildTavern, MoveHouse,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -103,8 +103,6 @@ func Index(d *Def) int {
 const searchRadius = 40
 
 func always(*entity.Agent, *world.World) bool { return true }
-
-func hasCompany(_ *entity.Agent, w *world.World) bool { return len(w.Agents) > 1 }
 
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
 
@@ -554,16 +552,6 @@ var Guard = &Def{
 // companionRadius is how close two agents must be to interact.
 const companionRadius = 3
 
-// towardCompany heads for the person the agent would most like to see. They
-// may have moved by the time we arrive; then whoever is nearby will do.
-func towardCompany(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-	o := PickCompany(a, w)
-	if o == nil {
-		return entity.Pos{}, false
-	}
-	return o.Pos, true
-}
-
 // intended is the person an agent expects to find at a target.
 func intended(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent {
 	return w.AgentAt(target, companionRadius, a)
@@ -589,6 +577,11 @@ var Socialize = &Def{
 			return // nobody home; a wasted walk
 		}
 		Encounter(a, o, w)
+		// A tavern is a better evening than a doorstep.
+		if inTavern(w, a.Pos) {
+			a.Needs.Add(need.Belonging, tavernCheer)
+			o.Needs.Add(need.Belonging, tavernCheer)
+		}
 	},
 }
 

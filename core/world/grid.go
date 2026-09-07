@@ -22,6 +22,7 @@ const (
 	Market
 	Road
 	Granary // keeps the market's food from spoiling
+	Tavern  // where people meet of an evening
 )
 
 // Tile is one cell of the world. Fertility comes from the river and is worn
@@ -40,6 +41,18 @@ type Tile struct {
 	Wood      float64
 	Wild      float64
 	Fish      float64
+
+	// Height is metres above the lowest ground on the map, and Flow is the
+	// share of the map whose water drains through this tile. Between them
+	// they are the land itself: the rivers, the fertility and the going
+	// underfoot are all read off these two rather than drawn on top of them.
+	// See relief.go.
+	Height float64
+	Flow   float64
+	// Drain is how far this tile stands above the water it drains into, in
+	// metres. It is what makes a valley floor a water meadow and a hillside
+	// dry, and it is the ground truth the soil is read from.
+	Drain float64
 
 	// Traffic is how worn the ground is: it rises with every crossing and
 	// fades when nobody comes that way. It is not a cost - walking a beaten
@@ -171,10 +184,14 @@ func (g *Grid) HasNeighbor(p entity.Pos, ok func(*Tile) bool) bool {
 }
 
 // Roofed reports whether a tile is a building somebody stands inside: a
-// house, the market, a granary. A road is not - a way beside a door is what
-// a door is for.
+// house, the market, a granary, a tavern. A road is not - a way beside a
+// door is what a door is for.
 func (t *Tile) Roofed() bool {
-	return t.Structure == House || t.Structure == Market || t.Structure == Granary
+	switch t.Structure {
+	case House, Market, Granary, Tavern:
+		return true
+	}
+	return false
 }
 
 // RoomToBuild reports whether p is open ground with open ground all round

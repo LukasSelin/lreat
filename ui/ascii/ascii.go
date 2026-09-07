@@ -18,6 +18,8 @@ const (
 	Default Color = iota
 	Water
 	Grass
+	GrassLow
+	GrassHigh
 	ForestRich
 	ForestPoor
 	Field
@@ -26,6 +28,7 @@ const (
 	Road
 	Rock
 	Granary
+	Tavern
 	AgentFood
 	AgentBuild
 	AgentTrade
@@ -87,6 +90,8 @@ func tileCell(t *world.Tile) Cell {
 		return Cell{Ch: '+', Color: Road}
 	case world.Granary:
 		return Cell{Ch: 'G', Color: Granary}
+	case world.Tavern:
+		return Cell{Ch: '&', Color: Tavern}
 	}
 	switch t.Terrain {
 	case world.Water:
@@ -101,6 +106,16 @@ func tileCell(t *world.Tile) Cell {
 	case world.Rock:
 		return Cell{Ch: '^', Color: Rock}
 	}
+	// Open ground is drawn by how far it stands above the water it drains
+	// into, so the shape of the land shows through the things built on it: the
+	// water meadows of the valley floor, the ordinary ground of the terraces,
+	// and the dry slopes above.
+	switch {
+	case t.Drain < world.FloodDepth/3:
+		return Cell{Ch: ',', Color: GrassLow}
+	case t.Drain > world.FloodDepth*2:
+		return Cell{Ch: '`', Color: GrassHigh}
+	}
 	return Cell{Ch: '.', Color: Grass}
 }
 
@@ -109,7 +124,7 @@ func AgentColor(action string) Color {
 	switch action {
 	case "farm", "forage", "eat", "buy food", "fish", "hunt", "cook":
 		return AgentFood
-	case "gather wood", "build shelter", "craft", "irrigate", "plant trees", "lay road", "quarry", "build granary", "smelt":
+	case "gather wood", "build shelter", "craft", "irrigate", "plant trees", "lay road", "quarry", "build granary", "smelt", "build tavern":
 		return AgentBuild
 	case "sell":
 		return AgentTrade

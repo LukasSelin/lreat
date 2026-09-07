@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/observe"
 	"lreat/core/world"
@@ -69,4 +70,101 @@ func TestActivityGraphKeepsHistory(t *testing.T) {
 	if len(v.hist) != graphMax {
 		t.Fatalf("history is not bounded: %d columns", len(v.hist))
 	}
+}
+
+// Picking a figure out of the crowd opens it up beside the map: who it is,
+// what it is good at, what it is doing, and what it weighed before it set
+// out. Without the last of those the view shows movement and no reason.
+func TestCardShowsTheFollowedAgent(t *testing.T) {
+	w := world.NewSized(1, 40, 12)
+	a := w.Spawn("Ada", need.Neutral())
+	a.AddSkill(entity.Farming, 0.6)
+	a.Plan = &entity.Plan{Action: "farm", Target: a.Pos, Remaining: 2, Total: 4}
+	w.Watch(a.ID)
+	w.Remember(world.Deliberation{Tick: 9, Agent: a.ID, Rule: "fit", Entropy: 1.2,
+		Weighed: []world.Weighed{
+			{Action: "farm", Weight: 0.41, Chance: 0.62, Chosen: true},
+			{Action: "forage", Weight: 0.33, Chance: 0.21},
+		}})
+
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(140, 48)
+
+	s := observe.Take(w)
+	v := &view{screen: sc, snap: &s, sel: a.ID, look: func(id entity.ID) *observe.Portrait { return observe.Look(w, id) }}
+	v.draw()
+
+	text := screenText(sc)
+	for _, want := range []string{"Ada", "farming", "farm", "forage", "62%", "tick 9"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("the card does not show %q:\n%s", want, text)
+		}
+	}
+}
+
+// Following somebody who has died says so rather than quietly following
+// whoever is standing where they were.
+func TestCardSaysWhenTheAgentIsGone(t *testing.T) {
+	w := world.NewSized(1, 40, 12)
+	w.Spawn("Ada", need.Neutral())
+
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(140, 48)
+
+	s := observe.Take(w)
+	v := &view{screen: sc, snap: &s, sel: 99, look: func(entity.ID) *observe.Portrait { return nil }}
+	v.draw()
+	if !strings.Contains(screenText(sc), "gone") {
+		t.Fatalf("the card does not say the agent is gone:\n%s", screenText(sc))
+	}
+}
+
+// Tab walks the population and tells the simulation who to keep the
+// thinking of; esc lets go again.
+func TestPickWalksThePopulation(t *testing.T) {
+	w := world.NewSized(1, 40, 12)
+	w.Spawn("Ada", need.Neutral())
+	w.Spawn("Bo", need.Neutral())
+	s := observe.Take(w)
+
+	var followed []entity.ID
+	v := &view{snap: &s, follow: func(id entity.ID) { followed = append(followed, id) }}
+	v.pick(1)
+	first := v.sel
+	v.pick(1)
+	second := v.sel
+	if first == 0 || second == 0 || first == second {
+		t.Fatalf("tab does not move through the population: %d then %d", first, second)
+	}
+	v.pick(1)
+	if v.sel != first {
+		t.Fatal("tab does not come back round to the first agent")
+	}
+	v.choose(0)
+	if v.sel != 0 || v.pic != nil {
+		t.Fatal("letting go left somebody selected")
+	}
+	if len(followed) != 4 {
+		t.Fatalf("the simulation was told to watch %d times, want 4", len(followed))
+	}
+}
+
+func screenText(sc tcell.SimulationScreen) string {
+	cells, width, _ := sc.GetContents()
+	var text strings.Builder
+	for i, c := range cells {
+		if i%width == 0 {
+			text.WriteByte('\n')
+		}
+		text.WriteRune(c.Runes[0])
+	}
+	return text.String()
 }

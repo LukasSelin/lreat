@@ -234,23 +234,45 @@ func Sample(rng *rand.Rand, eff []float64, temp float64) int {
 	return len(eff) - 1
 }
 
+// Softmax is the chance of each candidate being drawn by Sample, in the same
+// order. A temperature at or below zero puts all of it on the best one. It
+// is not what Sample draws with - Sample needs no normalising and does none -
+// but it is the same distribution, which is what lets an onlooker be shown
+// the odds an agent actually decided under.
+func Softmax(eff []float64, temp float64) []float64 {
+	if len(eff) == 0 {
+		return nil
+	}
+	best := 0
+	for i, e := range eff {
+		if e > eff[best] {
+			best = i
+		}
+	}
+	p := make([]float64, len(eff))
+	if temp <= 0 {
+		p[best] = 1
+		return p
+	}
+	var total float64
+	for i, e := range eff {
+		p[i] = math.Exp((e - eff[best]) / temp)
+		total += p[i]
+	}
+	for i := range p {
+		p[i] /= total
+	}
+	return p
+}
+
 // Entropy is the entropy in nats of the softmax over eff, a measure of how
 // open the choice was. Zero means one action was certain.
 func Entropy(eff []float64, temp float64) float64 {
-	if len(eff) == 0 || temp <= 0 {
+	if temp <= 0 {
 		return 0
 	}
-	best := eff[0]
-	for _, e := range eff {
-		best = math.Max(best, e)
-	}
-	var total float64
-	for _, e := range eff {
-		total += math.Exp((e - best) / temp)
-	}
 	var h float64
-	for _, e := range eff {
-		p := math.Exp((e-best)/temp) / total
+	for _, p := range Softmax(eff, temp) {
 		if p > 0 {
 			h -= p * math.Log(p)
 		}
