@@ -59,6 +59,15 @@ type trace struct {
 	phys    float64
 	health  float64
 	carried float64
+
+	// What the world itself was doing at the time. A settlement is not only
+	// its people: it stands on ground it is taking wood and field out of,
+	// and how that went is half of why the people went the way they did.
+	// See world.go.
+	forest, fields, houses, roads   int
+	stock, price, knowledge, safety float64
+	gini, growth                    float64
+	work                            column // the share of the population in each kind of work
 }
 
 // keep takes what every tick has to say, whichever page is up. The moments
@@ -81,6 +90,7 @@ func (v *view) keep(s *observe.Snapshot) {
 	if s.Population == 0 && v.gone == 0 && v.peak > 0 {
 		v.gone = s.Tick
 	}
+	v.discoveries(s)
 }
 
 // plot adds a column to the history, at the same cadence the activity graph
@@ -89,11 +99,21 @@ func (v *view) keep(s *observe.Snapshot) {
 // window would lose the beginning entirely, and the beginning is where a
 // settlement's end was decided.
 func (v *view) plot(s *observe.Snapshot) {
-	v.traces = append(v.traces, trace{
+	t := trace{
 		tick: s.Tick, pop: s.Population,
 		births: s.Vitals.Births, starved: s.Vitals.Starved, failed: s.Vitals.Failed,
 		phys: s.MeanNeeds[0], health: s.MeanHealth, carried: s.MeanFood,
-	})
+		forest: s.Forest, fields: s.Fields, houses: s.Houses, roads: s.Roads,
+		stock: s.FoodStock, price: s.FoodPrice, knowledge: s.Knowledge, safety: s.Safety,
+		gini: s.WealthGini, growth: s.Growth,
+	}
+	// The kinds of work are the column the activity band has just been
+	// given, so the whole-run weave on the world page and the recent one
+	// under the map are the same measurement at two lengths.
+	if len(v.hist) > 0 {
+		t.work = v.hist[len(v.hist)-1]
+	}
+	v.traces = append(v.traces, t)
 	if len(v.traces) <= traceMax {
 		return
 	}
@@ -116,6 +136,14 @@ type bucket struct {
 	pop        int
 	phys       float64
 	born, died int
+	// lo and hi are the stretch of history the column stands for, so that a
+	// page drawing some other measure than the population can take its own
+	// high-water mark over the same stretch. span is how many columns of
+	// history went into it, zero for a column with nothing behind it.
+	lo, hi, span int
+	// work is the mean share of the population in each kind of work over
+	// the stretch, for the whole-run weave on the world page.
+	work column
 }
 
 // fit squeezes the whole kept history into at most w columns. The whole of
@@ -130,11 +158,14 @@ func (v *view) fit(w int) []bucket {
 	for j := range out {
 		lo := j * len(v.traces) / n
 		hi := max((j+1)*len(v.traces)/n, lo+1)
-		b := bucket{phys: 1}
+		b := bucket{phys: 1, lo: lo, hi: hi, span: hi - lo}
 		for i := lo; i < hi; i++ {
 			t := v.traces[i]
 			b.pop = max(b.pop, t.pop)
 			b.phys = min(b.phys, t.phys)
+			for k := range b.work {
+				b.work[k] += t.work[k] / float64(hi-lo)
+			}
 			if i > 0 {
 				p := v.traces[i-1]
 				b.born += t.births - p.births
@@ -235,7 +266,7 @@ func (v *view) drawVitals(sw, sh int) {
 		}
 	}
 
-	puts(sc, 0, sh-1, dim, "d back to the map   space pause  +/- speed  . step  q quit")
+	puts(sc, 0, sh-1, dim, "d back to the map   w the world   space pause  +/- speed  . step  q quit")
 	sc.Show()
 }
 
@@ -446,7 +477,10 @@ func (v *view) Report() string {
 		s.Fields, s.Forest, s.Houses, s.MeanShelter, s.Safety)
 	line("population", "%s", v.sparkline(reportWidth))
 	line("", "%d ticks, full height %d people", v.run(), max(v.peak, 1))
-	b.WriteString("last words\n")
+	// What became of the ground under all that, and then the settlement's
+	// own last words, which are what a report should end on.
+	b.WriteString(v.worldReport())
+	b.WriteString("\nlast words\n")
 	for i := len(s.Chronicle) - 1; i >= 0 && i > len(s.Chronicle)-reportNotes; i-- {
 		fmt.Fprintf(&b, "  t%-7d %s\n", s.Chronicle[i].Tick, s.Chronicle[i].Text)
 	}

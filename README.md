@@ -32,6 +32,17 @@ under the first thing standing between it and a child. A settlement that starved
 and one that simply stopped bearing look identical on the map and nothing alike
 there.
 
+`w` is the same for the ground rather than the people: the wood taken out of
+the map against what was there to begin with, the fields and houses and roads
+that went up, what food cost and how much of it was kept, what the settlement
+knew, how equally it held what it had — each drawn over the whole run, so that
+every figure is read against its own past — and under them the whole run's
+weave of what it has been spending its people on, with everything it ever
+worked out and the tick it got there.
+
+Both pages are also printed in plain words when the run ends, so a settlement
+that is over can still be reported on rather than only restarted.
+
 Run a settlement with no display and print how it went:
 
 ```bash
