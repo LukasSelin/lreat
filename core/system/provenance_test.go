@@ -66,9 +66,10 @@ func TestAHarvestIsJudgedByAllItFed(t *testing.T) {
 		t.Fatal("the sense of what a harvest brings should rise")
 	}
 
-	// A unit that fed a full belly, from an agent used to harvests that
-	// brought more, is a poor harvest: the field is pushed away.
-	a.Larder = []habit.Harvest{{Step: habit.Step{Index: farm, Situation: moment}, Left: 1}}
+	// A mouthful that fed a full belly, from an agent used to harvests that
+	// brought more, is a poor harvest: the field is pushed away. (A full
+	// agent eats only a mouthful, so that is all the harvest holds.)
+	a.Larder = []habit.Harvest{{Step: habit.Step{Index: farm, Situation: moment}, Left: 0.25}}
 	a.Harvest = 0.3
 	before = a.Habits[farm]
 	eat(w, a, 0.95)

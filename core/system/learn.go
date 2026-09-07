@@ -87,12 +87,12 @@ func provenance(a *entity.Agent, p *entity.Plan, r, adv float64, after habit.Led
 	// smaller rewards the same way, and food lost to a thief adds whatever
 	// this plan happened to earn, which is about how theft feels to a farmer.
 	switch delta := after.Food - p.Before.Food; {
-	case delta > 0.3:
+	case delta > 0.2:
 		if len(a.Larder) == habit.LarderCap {
 			settle(a, 0) // the oldest harvest is judged by what it has brought so far
 		}
 		a.Larder = append(a.Larder, habit.Harvest{Step: st, Left: delta})
-	case delta < -0.3:
+	case delta < -0.2:
 		gone := -delta
 		for gone > 0 && len(a.Larder) > 0 {
 			h := &a.Larder[0]

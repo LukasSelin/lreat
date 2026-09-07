@@ -72,10 +72,11 @@ const (
 	Crafting
 	Scholarship
 	Guarding
+	Fishing
 	SkillCount
 )
 
-var skillNames = [SkillCount]string{"farming", "building", "crafting", "scholarship", "guarding"}
+var skillNames = [SkillCount]string{"farming", "building", "crafting", "scholarship", "guarding", "fishing"}
 
 func (s Skill) String() string { return skillNames[s] }
 

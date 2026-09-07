@@ -10,7 +10,7 @@ import (
 )
 
 func TestGatedIsTheCraftsAndLearning(t *testing.T) {
-	want := map[*Def]bool{Craft: true, Teach: true, Study: true}
+	want := map[*Def]bool{Craft: true, Teach: true, Study: true, Fish: true, Hunt: true, Irrigate: true, PlantTrees: true}
 	for _, i := range Gated() {
 		if !want[Catalog[i]] {
 			t.Errorf("%s should not be gated", Catalog[i].Name)

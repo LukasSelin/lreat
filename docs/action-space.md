@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements replace their founders on 22 of 24 seeds with no extinctions (see Robustness below), and farming overtakes foraging as fields and farmers improve (see Harvests below).
+Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements replace their founders on 21 of 24 seeds with no extinctions (see Robustness below), farming overtakes foraging as fields and farmers improve (see Harvests below), and the land pushes back and is answered (see The land below).
 
 ## Why
 
@@ -170,11 +170,47 @@ What the numbers say:
 - **Feuds cluster and persist**, which is the predicted consequence of habits being individual: once an agent has learned that a grudge calls for getting even, it keeps recognising that moment.
 - **Requests are fulfilled at the same rate**, so the contract layer works under recognition without changes.
 
+## The land
+
+The world was static ground the agents drew on without limit. Now it pushes back, and a settlement under pressure finds new ways to live. `core/action/land.go`, `core/system/land.go`, `core/system/discover.go`.
+
+**What the land has to give.** A forest tile carries wild food (`Tile.Wild`) that foraging takes a little of and hunting a lot; a water tile carries fish (`Tile.Fish`); a field carries fertility that each harvest wears down toward a floor, and `Tile.Rich`, the most it can recover to when left fallow. All of it comes back slowly, faster once the settlement has learned forestry. A picked forest still gives something, so a settlement is pushed toward the river and the field rather than into the ground.
+
+**Four answers**, each far out of reach until discovered:
+
+| action | belongs to the moment | takes | gives |
+|---|---|---|---|
+| fish | hungry by the water, skilled at it | fish from the best water beside the bank | food, fishing skill |
+| hunt | hungry with a tool in hand | wild food, three times a forage; wears the tool | more food than a forage from a full forest |
+| irrigate | an industrious farmer with wood to spare and water within eight tiles | a unit of wood | a quarter more the field can hold |
+| plant trees | no wood, and a mind for those who come after | two ticks | a young forest tile, feeding nobody today |
+
+Fishing is a new skill; teaching and serving pass it like the others.
+
+**Discovery is a response.** Each tech needs the settlement to be under the pressure it answers, so different worlds take different paths:
+
+| tech | pressure | knowledge | opens | effect |
+|---|---|---|---|---|
+| fishing | the forest the settlement lives off is picked thin, and there is water near | none | fish | fish yield ×1.5 |
+| trapping | the forest is thin and two people hold tools | none | hunt | hunt yield ×1.5 |
+| irrigation | agriculture known and the fields near the market have gone poor | 10 | irrigate | farm yield ×1.2 |
+| forestry | less than six tenths of the founding forest is left | 10 | plant trees | regrowth ×2 |
+
+"The forest the settlement lives off" is the two dozen forest tiles nearest the market. Foragers go to the nearest forest, so those few tiles are picked bare while the woods beyond stay full, and it is those that say whether the settlement feels the land pushing back. Measured over the whole neighbourhood the forest never thinned and nothing was ever discovered.
+
+Under the value rule the land actions are unavailable until their tech is known or the agent has come within reach of them on its own; the value rule has no reach gate, and without this a starving value-mode agent walked to a river nobody had fished.
+
+**Three things that broke and what they taught.** The first version killed every settlement on every seed, under both rules, and the forest was not the cause: wild food near the market never fell below three quarters. Foragers were sent up to ten tiles for a fuller patch, and that walk each way, on the errand the whole economy runs on, cost more than the fuller patch gave; foragers now go to the nearest forest, thin as it is. Meals had to be whole units, and with fractional yields agents starved holding most of a meal; a meal is now as much as it takes to be full, up to three units, or what there is. And field wear at 0.02 a harvest wore the value rule's fields, farmed without rest, to the floor within a generation; it is 0.006, with fallow recovery at 0.0006 a tick.
+
+Study starts nearer to reach (0.6, from 0.4). Recognition settlements otherwise rarely studied, and every discovery waited on knowledge they did not have.
+
+**What the runs show.** Over 6000 ticks: seed 3 learns fishing at tick 200, before it has learned to farm; seeds 2, 7, and 16 farm first and turn to the river between ticks 1500 and 2100, once the forest they live off is thin, with hundreds to fifteen hundred fishing acts following. Trapping arrives with fishing wherever tools are held. Irrigation and forestry did not fire on these seeds: with wear at 0.006 the fields near the market stay above the 0.45 that counts as poor, and forest reseeding more than replaces what is cleared, so the founding forest is never down by four tenths. Both remain reachable by pioneers through study and teaching, and are used that way (fifty to a hundred irrigations and several hundred plantings per run), but as discoveries they wait for a scarcer world or a larger settlement. On the 24-seed sweep the package leaves survival at 21 of 24 with no extinctions and a median population of 127 to 144.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
 
-- `Reach0` per action. Everyday living (rest, eat, forage, farm, gather, build, sell, buy, socialize, give, steal, retaliate, fulfil) starts at 1. Gated: craft 0.5, guard 0.6, teach 0.3, study 0.4.
+- `Reach0` per action. Everyday living (rest, eat, forage, farm, gather, build, sell, buy, guard, socialize, give, steal, retaliate, fulfil) starts at 1. Gated: craft 0.5, teach 0.3, study 0.6, fish 0.4, hunt 0.5, irrigate 0.3, plant trees 0.3.
 - **Study broadens.** Every gated action comes closer: `Reach += 0.03 * (1 - Reach) * Mods.StudyRate`, so written records make study widen reach twice as fast.
 - **Teaching passes recognition on.** The student's reach for the taught skill's action becomes `max(own, 0.6 * teacher)`, and its habit moves 0.3 of the way toward the teacher's. `ForSkill` maps farming, building, crafting, scholarship, and guarding to farm, build, craft, study, and guard.
 - **Discovery opens.** A `Discovery` has an `Opens` list; masonry opens craft, writing opens study and teach, metallurgy opens craft and guard. Each raises `world.ReachFloor` for that action to 0.8, and every agent is lifted to the floor at its next decision.
@@ -214,6 +250,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 7 | Credit by provenance: larder, roof, and watch; credit carries the advantage; per-action baseline alone; guard fully in reach | done |
 | 8 | Robustness: 48-seed sweeps; shelter read as a lack | done |
 | 9 | Harvests: producing acts judged by all they fed; industrious farm prior; children inherit half their parents' skills | done |
+| 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

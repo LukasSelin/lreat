@@ -30,7 +30,7 @@ const (
 	reachEveryday = 1.0
 	reachGuard    = 1.0
 	reachCraft    = 0.5
-	reachStudy    = 0.4
+	reachStudy    = 0.6
 	reachTeach    = 0.3
 )
 

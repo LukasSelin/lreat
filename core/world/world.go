@@ -41,6 +41,9 @@ type Modifiers struct {
 	StudyRate       float64
 	CraftQuality    float64
 	ShelterDecay    float64
+	FishYield       float64
+	HuntYield       float64
+	Regrowth        float64 // how fast forest, wild food, and fish come back
 }
 
 // DefaultModifiers is the pre-technology baseline.
@@ -51,6 +54,9 @@ func DefaultModifiers() Modifiers {
 		StudyRate:       1,
 		CraftQuality:    1,
 		ShelterDecay:    0.002,
+		FishYield:       1,
+		HuntYield:       1,
+		Regrowth:        1,
 	}
 }
 
@@ -97,6 +103,10 @@ type World struct {
 	// Requests is the open board of work one agent wants another to do.
 	// Nothing here is authored; the request system posts and clears it.
 	Requests []*entity.Request
+
+	// Forest0 is how much forest the world was made with, so that how much
+	// of it a settlement has taken can be told.
+	Forest0 int
 
 	// ReachFloor is how far into reach each action is for everyone here,
 	// by catalog position, raised when the settlement discovers a thing.

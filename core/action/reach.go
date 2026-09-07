@@ -59,6 +59,8 @@ func ForSkill(s entity.Skill) *Def {
 		return Study
 	case entity.Guarding:
 		return Guard
+	case entity.Fishing:
+		return Fish
 	}
 	return nil
 }
