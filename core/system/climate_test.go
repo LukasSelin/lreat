@@ -149,3 +149,34 @@ func TestFoodKeepsInTheColdAndInTheGranary(t *testing.T) {
 		t.Errorf("mild weather keeps %.2f of the usual spoilage, want all of it", got)
 	}
 }
+
+// What an agent carries goes off slowly, and the cold is the whole of the
+// mercy: a January larder beats a June one, and no granary reaches either.
+func TestWhatIsCarriedRotsToo(t *testing.T) {
+	held := func(temp float64, granaries int) float64 {
+		w := fitWorld(13)
+		w.Climate = world.Climate{Temp: temp}
+		for i := 0; i < granaries; i++ {
+			w.Mods.Keeping *= 0.4
+		}
+		a := w.Spawn("a", need.Neutral())
+		a.Inventory[entity.Food] = 10
+		Spoil(w, a)
+		return a.Inventory[entity.Food]
+	}
+	summer, winter := world.Mild+5, world.Bitter
+	if got := held(summer, 0); got >= 10 {
+		t.Errorf("food in hand kept perfectly through a summer: %.4f of 10", got)
+	}
+	if !(held(winter, 0) > held(summer, 0)) {
+		t.Error("a larder keeps no better in the cold, which is the whole point of it")
+	}
+	if held(summer, 3) != held(summer, 0) {
+		t.Error("the settlement's granaries kept an agent's own food, which is the market's business")
+	}
+	// Slowly is the point: a day's spoilage should be nothing beside a
+	// day's eating, or the larder is a tax on carrying food at all.
+	if lost := 10 - held(summer, 0); lost > 0.1 {
+		t.Errorf("a tick took %.4f of ten units, which is not a low rate", lost)
+	}
+}

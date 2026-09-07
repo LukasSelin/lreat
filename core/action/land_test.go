@@ -69,8 +69,11 @@ func TestForagingThinsTheForest(t *testing.T) {
 
 func TestFarmingWearsAFieldAndFallowRestoresIt(t *testing.T) {
 	w, a := shore(t)
+	if !run(w, a, Clear) {
+		t.Fatal("clearing should be possible on open ground")
+	}
 	if !run(w, a, Farm) {
-		t.Fatal("farm should be possible on open ground")
+		t.Fatal("farm should be possible on a cleared field")
 	}
 	f := w.Grid.At(a.Field)
 	rich := f.Rich
@@ -131,7 +134,7 @@ func TestHuntingNeedsToolsAndWearsThem(t *testing.T) {
 
 func TestIrrigationRaisesWhatAFieldCanHold(t *testing.T) {
 	w, a := shore(t)
-	run(w, a, Farm)
+	run(w, a, Clear)
 	f := w.Grid.At(a.Field)
 	if Irrigate.Available(a, w) {
 		t.Fatal("irrigating without wood should not be possible")

@@ -249,3 +249,37 @@ func TestTheWrongedRecogniseAMomentToGetEven(t *testing.T) {
 		t.Fatalf("retaliate ranks %d for the wronged and %d for the charitable", vengeful, forgiving)
 	}
 }
+
+// The cold is one thing and standing out in it is another. A roofed body and
+// an unroofed one read the same weather, so a coordinate that carries only
+// the weather says the same to both, and every act that names it is an act
+// the whole settlement turns to at once. Exposure is the product the world
+// actually charges a body for the season, and it is what lets the same
+// prior send the unroofed to the woods and leave the roofed in the field.
+func TestExposureTellsTheRoofedFromTheUnroofed(t *testing.T) {
+	w := world.New(3)
+	for w.Climate.Chill() < 0.5 {
+		w.Climate.Advance(w.Tick, w.RNG)
+		w.Tick++
+	}
+	roofed, cold := blank(w, "roofed"), blank(w, "cold")
+	roofed.Shelter, cold.Shelter = 1, 0
+
+	warm := Shared(roofed, w)
+	bare := Shared(cold, w)
+	if warm[habit.Chill] != bare[habit.Chill] {
+		t.Fatal("the weather is the same news to everybody")
+	}
+	if !(bare[habit.Exposure] > warm[habit.Exposure]) {
+		t.Fatalf("the unroofed should feel the winter more: %v against %v",
+			bare[habit.Exposure], warm[habit.Exposure])
+	}
+	if warm[habit.Exposure] != 0 {
+		t.Fatalf("a roof should take all of it, not %v", warm[habit.Exposure])
+	}
+	// And in a mild season it says nothing to anybody, roof or no roof.
+	w.Climate.Temp = world.Mild + 5
+	if s := Shared(cold, w); s[habit.Exposure] != 0 {
+		t.Fatalf("there is nothing to be exposed to in mild weather: %v", s[habit.Exposure])
+	}
+}

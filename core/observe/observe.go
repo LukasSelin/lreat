@@ -216,6 +216,7 @@ func habits(w *world.World) (spread, mean, gated float64) {
 	}
 	units := make([][]habit.Signature, action.Count)
 	var gatedN float64
+	w.Room()
 	for i, d := range action.Catalog {
 		units[i] = make([]habit.Signature, 0, len(w.Agents))
 		for _, a := range w.Agents {
@@ -231,7 +232,7 @@ func habits(w *world.World) (spread, mean, gated float64) {
 			}
 		}
 	}
-	mean /= n * action.Count
+	mean /= n * float64(action.Count)
 	if gatedN > 0 {
 		gated /= gatedN
 	}
@@ -250,7 +251,7 @@ func habits(w *world.World) (spread, mean, gated float64) {
 			spread += habit.Norm(d)
 		}
 	}
-	spread /= n * action.Count
+	spread /= n * float64(action.Count)
 	return spread, mean, gated
 }
 

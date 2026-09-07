@@ -71,6 +71,19 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	// alone in naming the warmth, outranked studying for the curious and
 	// getting even for the wronged.
 	s[habit.Chill] = need.Clamp(w.Climate.Chill())
+	// Exposure is the cold this particular body is actually in: the weather
+	// times what it is not sheltered from. It is the same product the world
+	// charges a body for standing out in the winter, and it is here because
+	// a prior is linear and so cannot say "cold and unroofed" with the
+	// weather and the roof as separate coordinates - it can only say "cold"
+	// and "unroofed" and add them. The difference matters. Told only that
+	// it is cold, a settlement sends everybody to the woods in February,
+	// the people who already have roofs included, and stops farming to do
+	// it; told what each body is actually suffering, the roofed keep to
+	// their fields and the ones out in it go for timber. One is a season
+	// the settlement endures together, the other is the season sorting out
+	// who needs to do something about it.
+	s[habit.Exposure] = need.Clamp(w.Climate.Chill() * (1 - a.Shelter))
 	// The moral coordinates are one-sided, as the belief layer defines them:
 	// a norm of 0 is holding nothing, caution of 0 is having learned of no
 	// reprisal, safety of 0 is nobody keeping order. Read that way an
@@ -148,6 +161,7 @@ func Candidates(a *entity.Agent, w *world.World) []Candidate {
 // first use - so several agents may be sized up at once, one per router.
 func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate {
 	Imprint(a)
+	w.Room()
 	for i := range Catalog {
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
 	}
@@ -174,18 +188,18 @@ func Rank(a *entity.Agent, w *world.World) []Candidate {
 	return c
 }
 
-// Imprint seeds an agent's habits and reach from the catalog priors, once.
-// It is lazy because the world cannot see the catalog when it spawns, and
-// a newborn's first decision is the earliest the habits are needed. Agents
-// whose habits were inherited or copied are marked imprinted by whoever
-// gave them.
+// Imprint seeds an agent's habits and reach from the catalog priors, once
+// per slot. It is lazy because the world cannot see the catalog when it
+// spawns, and a newborn's first decision is the earliest the habits are
+// needed. Agents whose habits were inherited or copied are marked
+// imprinted by whoever gave them. A slot given after that is fresh for
+// everyone alive and is seeded here the next time each of them decides.
 func Imprint(a *entity.Agent) {
-	if a.Imprinted {
-		return
+	a.Room()
+	for i := a.Seeded; i < len(Catalog); i++ {
+		a.Habits[i] = Catalog[i].Prior
+		a.Reach[i] = Catalog[i].Reach0
 	}
-	for i, d := range Catalog {
-		a.Habits[i] = d.Prior
-		a.Reach[i] = d.Reach0
-	}
+	a.Seeded = len(Catalog)
 	a.Imprinted = true
 }

@@ -14,11 +14,16 @@ import (
 	"lreat/core/event"
 	"lreat/core/habit"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
 // Def describes one action.
 type Def struct {
+	// Key is the act's name in the ontology, take/timber@wood: what it is
+	// in terms of what it does with what and where. It is what habit
+	// slots are keyed by. Name is what it is called.
+	Key   string
 	Name  string
 	Ticks int
 	// Available reports whether the agent can start the action now.
@@ -35,8 +40,11 @@ type Def struct {
 	// Prior is the kind of moment this action belongs to, the signature every
 	// agent starts from before experience moves its own copy. It is the seed
 	// of recognition-based choice; Expect remains the seed of value-based
-	// choice. See package habit.
+	// choice. See package habit. It is composed from what the act is about
+	// by the ontology; Tuned is the prior written by hand before it was,
+	// kept so the two can be held against each other.
 	Prior habit.Signature
+	Tuned habit.Signature
 	// Reach0 is how far into reach the action starts for a newborn, in
 	// [0,1]. Ordinary living starts at 1. Crafts and learning start lower and
 	// are brought closer by study, teaching, and discovery.
@@ -51,32 +59,107 @@ type Def struct {
 	With func(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent
 }
 
-// Count is the size of the catalog. It is checked at init so that a table
-// indexed by catalog position can be a fixed array everywhere.
-const Count = 29
+// Count is the size of the catalog, set once it is assembled.
+var Count int
 
-// Catalog lists every action in a fixed order. Order matters for
-// determinism, and position is what per-agent habit tables are indexed by.
-// It is assembled in init rather than declared, because some actions reach
-// back into the catalog when they run (study broadens reach, teaching
-// passes it on) and a declaration would make that a cycle.
+// Catalog lists every action in a fixed order: the order of their keys,
+// which is what per-agent habit tables are indexed by. It is what the
+// ontology entails, each act bound to its mechanics below. It is assembled
+// in init rather than declared, because some actions reach back into the
+// catalog when they run (study broadens reach, teaching passes it on) and a
+// declaration would make that a cycle.
 var Catalog []*Def
 
+// instances is what the ontology entailed, by key.
+var instances = func() map[string]ontology.Instance {
+	m := map[string]ontology.Instance{}
+	for _, in := range ontology.Instantiate() {
+		m[in.Key] = in
+	}
+	return m
+}()
+
+// Derived selects the composed prior over the hand-tuned one.
+const Derived = true
+
+// mechanics binds an act the ontology entails to the code that carries it
+// out. Takings, makings, raisings, and exchanges are not listed: one verb
+// carries each, from what the lode and the ground say (see take.go), the
+// recipe (see make.go), the plan (see raise.go), or the terms (see
+// exchange.go), and those named here are named only because the rest of
+// the package refers to them. An act the ontology entails and nothing carries
+// is a catalog that cannot be assembled, and says so at start.
+var mechanics = map[string]*Def{
+	"take/berries@wood":                 Forage,
+	"take/game@wood":                    Hunt,
+	"take/timber@wood":                  GatherWood,
+	"take/fish@water":                   Fish,
+	"take/stone@outcrop":                Quarry,
+	"take/grain@field":                  Farm,
+	"tend/clear@open":                   Clear,
+	"tend/water@field":                  Irrigate,
+	"tend/plant@open":                   PlantTrees,
+	"make/timber>tool@bench":            Craft,
+	"make/stone+timber>tool@forge":      Smelt,
+	"make/provision+timber>meal@hearth": Cook,
+	"raise/timber>dwelling@open":        BuildShelter,
+	"raise/timber+stone>granary@open":   BuildGranary,
+	"raise/timber>tavern@open":          BuildTavern,
+	"raise/timber>road@ground":          Pave,
+	"consume/provision":                 Eat,
+	"dwell/rest":                        Rest,
+	"dwell/meet@tavern>neighbour":       Socialize,
+	"dwell/look":                        Scout,
+	"dwell/guard@market":                Guard,
+	"exchange/material>coin@market":     Sell,
+	"exchange/coin>provision@market":    Buy,
+	"transfer/provision>neighbour":      Give,
+	"transfer/material>requester":       Fulfil,
+	"transfer/provision<holder":         Steal,
+	"pass/practice>pupil":               Teach,
+	"pass/practice>self":                Study,
+	"strike/person>wrongdoer":           Retaliate,
+	"move@dwelling":                     MoveHouse,
+}
+
 func init() {
-	Catalog = []*Def{
-		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
-		Guard, Socialize, Craft, Teach, Study, Pave,
-		Steal, Give, Fulfil, Retaliate,
-		Fish, Hunt, Irrigate, PlantTrees,
-		Cook, Quarry, BuildGranary, Smelt,
-		BuildTavern, MoveHouse, Scout,
+	for _, in := range ontology.Instantiate() {
+		d := mechanics[in.Key]
+		if d == nil {
+			switch in.Schema.Verb {
+			case ontology.Take:
+				d = taking(in)
+			case ontology.Make:
+				d = making(in)
+			case ontology.Raise:
+				d = raising(in)
+			case ontology.Exchange:
+				d = exchanging(in)
+			}
+		}
+		if d == nil {
+			panic("action: nothing carries out " + in.Key)
+		}
+		if d.Key != "" {
+			panic("action: " + d.Name + " bound twice, to " + d.Key + " and " + in.Key)
+		}
+		d.Key = in.Key
+		if habit.Register(in.Key) != len(Catalog) {
+			panic("action: slot for " + in.Key + " is not its catalog position")
+		}
+		Catalog = append(Catalog, d)
 	}
-	if len(Catalog) != Count {
-		panic("action: Catalog length does not match Count")
+	Count = len(Catalog)
+}
+
+// ByKey returns the action with that key, or nil.
+func ByKey(key string) *Def {
+	for _, d := range Catalog {
+		if d.Key == key {
+			return d
+		}
 	}
-	if Count > habit.MaxActions {
-		panic("action: Catalog exceeds habit.MaxActions")
-	}
+	return nil
 }
 
 // ByName returns the action with that name, or nil.
@@ -203,28 +286,7 @@ const forageTake = 0.08
 // the field rather than into the ground.
 func forageYield(wild float64) float64 { return 0.45 + 0.55*wild }
 
-var Forage = &Def{
-	Name: "forage", Ticks: 2, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		// The nearest forest, thin as it may be. Going further for a fuller
-		// patch was tried: the walk each way, on the errand the whole
-		// economy runs on, cost more than the fuller patch gave, and a
-		// forager who stays put and finds less is what turns a settlement
-		// toward the river and the field.
-		return w.Grid.Nearest(a.Pos, searchRadius, isForest)
-	},
-	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: foodValue(a) * forageYield(w.Grid.At(target).Wild)}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if t.Terrain != world.Forest {
-			return // somebody cleared it while we walked
-		}
-		a.Inventory[entity.Food] += forageYield(t.Wild) * (0.6 + 0.8*w.RNG.Float64())
-		t.Wild = max(0, t.Wild-forageTake)
-	},
-}
+var Forage = take("take/berries@wood")
 
 // farmWear is the fertility one farming takes from a field, and wornField
 // the least a field is worn down to. A field farmed without rest goes poor
@@ -232,96 +294,210 @@ var Forage = &Def{
 const (
 	farmWear  = 0.006
 	wornField = 0.1
-	// fieldReach is how far from the door a field may lie. A field is walked
-	// to every day of the season, so it is near or it is nothing; the old
-	// rule let one be looked for forty tiles off, which no one would work.
-	fieldReach = 10
-	// workableSoil is the least fertility worth clearing for.
-	workableSoil = 0.3
 )
 
 func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
 }
 
-// farmSite is the agent's field, or the best ground it can find to clear.
+// fieldTiles is the ground one household works: how many strips a farmer
+// goes on breaking before the holding is as much land as the family needs.
 //
-// The test used to be a threshold - the nearest tile fertile enough - which
-// meant any barely adequate patch beat excellent soil a tile further on, and
-// meant every farmer working from the same anchor cleared the same tile. Now
-// the ground near the door is weighed rather than sieved: richness against
-// the walk out to it, in the same currency the rest of siting is costed in.
-func farmSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+// A house is one tile. A holding is not, and the gap is not small. A year's
+// bread for a family of five is on the order of a tonne of grain. Wheat
+// before the plough of our own age gave perhaps a tonne to the hectare in a
+// good year, a quarter of which went back into the ground as next year's
+// seed, and half the holding lay fallow while the other half bore - so the
+// family needed something like three hectares to hold to eat from one. Set
+// against the sixty square metres they slept under, the field they lived off
+// was hundreds of times the house.
+//
+// This map cannot carry that ratio: at eighty by thirty-six tiles, three
+// hectares to a household would give the world room for a dozen families.
+// What it can carry was measured rather than argued. Three strips a
+// household is half again as much cultivated land on the map and near twice
+// as much per head, for a population two batches of seeds cannot tell from
+// one-tile fields; eight buys a quarter more ground again and costs a
+// fifteenth of the population and a third of the median. See
+// docs/action-space.md.
+const fieldTiles = 3
+
+// fieldSoil is the least fertile ground worth breaking. It is what a farmer
+// asks of the tile they first clear, and of every strip they add after: a
+// holding grows into land that will bear, and stops at the sand.
+const fieldSoil = 0.3
+
+// worked is the strip of a holding a farmer goes to: the nearest one. A
+// holding is one farm and not eight fields - the household works the whole
+// of it in a season and eats the whole of it, so which strip they are
+// standing on when the day's work is done does not matter, and making them
+// cross their own land to reach the best of it only cost them the walk.
+func worked(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if len(a.Parcel) == 0 {
+		return a.Field, a.HasField // a holding of one, from before it was a holding
+	}
+	best, near := a.Parcel[0], entity.Dist(a.Pos, a.Parcel[0])
+	for _, p := range a.Parcel[1:] {
+		if d := entity.Dist(a.Pos, p); d < near {
+			best, near = p, d
+		}
+	}
+	return best, true
+}
+
+// bearing is what a holding has to give: the fertility of the ground taken
+// together, because the harvest comes off all of it. A worn strip is carried
+// by the rest, which is what a holding large enough to rotate is for.
+func bearing(a *entity.Agent, w *world.World) float64 {
+	if len(a.Parcel) == 0 {
+		return 0
+	}
+	sum := 0.0
+	for _, p := range a.Parcel {
+		sum += w.Grid.At(p).Fertility
+	}
+	return sum / float64(len(a.Parcel))
+}
+
+// plough reports whether open ground is worth breaking: soil the crop will
+// come up in, and not the yard of somebody's house. A settlement keeps its
+// built ground - the roofs, and the gaps between them the lanes run along -
+// and the holdings lie outside it, which is where a village puts its fields.
+func plough(w *world.World, p entity.Pos) bool {
+	t := w.Grid.At(p)
+	return t.Buildable() && t.Fertility >= fieldSoil && !w.Grid.HasNeighbor(p, (*world.Tile).Roofed)
+}
+
+// newGround is the best ground worth breaking beside the holding: where the
+// next strip goes when the family has not yet broken all the land it eats.
+// It must be at least as good as what the household already works, because
+// the harvest comes off the holding as a whole - taking on poorer ground
+// would only pull down the crop the family lives on.
+func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	var best entity.Pos
+	found := false
+	fertility := bearing(a, w)
+	for _, p := range a.Parcel {
+		for dy := -1; dy <= 1; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
+				if !w.Grid.In(q) || !plough(w, q) {
+					continue
+				}
+				if t := w.Grid.At(q); t.Fertility >= fertility {
+					best, fertility, found = q, t.Fertility, true
+				}
+			}
+		}
+	}
+	return best, found
+}
+
+// fieldSite is where a farmer goes to make ground into field: the next
+// strip to break if the holding is still short of what the household
+// eats, otherwise nothing. Someone with no field at all takes the nearest
+// open ground near home that will bear a crop - a man with no land takes
+// what he can get, even the strip behind his neighbour's house; it is only
+// in adding to a holding that a farmer leaves the neighbourhood its ground.
+func fieldSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField {
-		return a.Field, true
+		if len(a.Parcel) < fieldTiles {
+			return newGround(a, w)
+		}
+		return entity.Pos{}, false
 	}
 	anchor := a.Pos
 	if a.HasHome {
 		anchor = a.Home
 	}
-	best, bestValue, found := entity.Pos{}, 0.0, false
-	for y := anchor.Y - fieldReach; y <= anchor.Y+fieldReach; y++ {
-		for x := anchor.X - fieldReach; x <= anchor.X+fieldReach; x++ {
-			p := entity.Pos{X: x, Y: y}
-			if !w.Grid.In(p) {
-				continue
-			}
-			t := w.Grid.At(p)
-			if !t.Buildable() || t.Fertility < workableSoil {
-				continue
-			}
-			// What a field is worth is what it grows, against the walk out
-			// to it every day of the season. goodSoil is what a season of
-			// full fertility is reckoned to be worth in tiles of walking,
-			// the same figure a house is sited by.
-			v := goodSoil*t.Fertility - float64(entity.Dist(anchor, p))
-			if !found || v > bestValue {
-				best, bestValue, found = p, v, true
-			}
-		}
-	}
-	if found {
-		return best, found
-	}
-	// Nothing worth clearing within a day's reach of the door. Rather than
-	// give up farming altogether - which is what weighing only the near
-	// ground did, and it left whole settlements with no field at all - take
-	// the nearest ground that will grow anything, however far off.
 	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Buildable() && t.Fertility >= workableSoil
+		return t.Buildable() && t.Fertility >= fieldSoil
 	})
 }
 
-var Farm = &Def{
-	Name: "farm", Ticks: 4, Available: always, Target: farmSite,
+// breakGround turns open ground beside a holding into another strip of it.
+func breakGround(a *entity.Agent, w *world.World) bool {
+	t := w.Grid.At(a.Pos)
+	if !plough(w, a.Pos) || len(a.Parcel) >= fieldTiles {
+		return false
+	}
+	if !w.Grid.HasNeighbor(a.Pos, func(n *world.Tile) bool { return n.Terrain == world.Field && n.Owner == a.ID }) {
+		return false
+	}
+	t.Terrain, t.Owner = world.Field, a.ID
+	a.Parcel = append(a.Parcel, a.Pos)
+	return true
+}
+
+// Clear is the half of farming that makes ground into a field: the first
+// strip of a holding claimed and broken, or the next one added beside it
+// while the household still eats more than it holds. Nothing comes off it
+// yet. It is its own act so that a holding is a thing an agent has, lacks,
+// or is still adding to.
+var Clear = &Def{
+	Name: "clear field", Ticks: 4, Target: fieldSite,
+	Available: func(a *entity.Agent, _ *world.World) bool {
+		return !a.HasField || len(a.Parcel) < fieldTiles
+	},
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		// Instrumental: a strip is worth what its first harvest will be.
 		return need.Levels{
-			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.At(target).Fertility),
+			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.At(target).Fertility) * 0.5,
 			need.Esteem:        0.02,
 		}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t := w.Grid.At(a.Pos)
-		if !a.HasField {
+		if a.HasField {
+			if !breakGround(a, w) {
+				return
+			}
+		} else {
 			if !t.Buildable() {
 				return // claimed by someone else first
 			}
 			t.Terrain = world.Field
 			t.Owner = a.ID
 			a.Field, a.HasField = a.Pos, true
-			w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
+			a.Parcel = []entity.Pos{a.Pos}
 		}
-		if a.Pos != a.Field {
-			return
+		a.AddSkill(entity.Farming, 0.005)
+		a.Needs.Add(need.Esteem, 0.02)
+		w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
+	},
+}
+
+// Farm is the harvest: the household's holding, worked and worn.
+var Farm = &Def{
+	Name: "farm", Ticks: 4,
+	Available: func(a *entity.Agent, _ *world.World) bool { return a.HasField },
+	Target:    worked,
+	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
+		return need.Levels{
+			need.Physiological: foodValue(a) * farmYield(a, w, bearing(a, w)),
+			need.Esteem:        0.02,
 		}
-		yield := farmYield(a, w, t.Fertility)
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		if !a.Holds(a.Pos) {
+			return // the strip went to someone else while we walked
+		}
+		yield := farmYield(a, w, bearing(a, w))
 		// A tool makes the work go further, and wears with it.
 		if a.Inventory[entity.Tools] >= 0.5 {
 			yield *= toolFarming
 			a.Inventory[entity.Tools] -= farmWearTool
 		}
 		a.Inventory[entity.Food] += yield
-		t.Fertility = max(wornField, t.Fertility-farmWear)
+		// One harvest takes one harvest's worth out of the ground however
+		// much ground it came off, so the draw is shared over the holding.
+		// Eight strips are not eight fields' worth of food; they are one
+		// family's, off land that gets a rest between crops.
+		wear := farmWear / float64(len(a.Parcel))
+		for _, p := range a.Parcel {
+			f := w.Grid.At(p)
+			f.Fertility = max(wornField, f.Fertility-wear)
+		}
 		a.AddSkill(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
 	},
@@ -340,33 +516,7 @@ const (
 	armful   = 0.5
 )
 
-var GatherWood = &Def{
-	Name: "gather wood", Ticks: 2, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		return w.Grid.Nearest(a.Pos, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-			return t.Terrain == world.Forest && t.Wood >= 0.3
-		})
-	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		// Instrumental: wood is only worth something if you lack shelter or craft.
-		want := 0.0
-		if a.Inventory[entity.Wood] < raisingTimber {
-			want = 0.1*(1-a.Shelter) + 0.03*a.Skills[entity.Crafting]
-		}
-		return need.Levels{need.Safety: want, need.Esteem: want * 0.3}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if t.Terrain != world.Forest {
-			return
-		}
-		t.Wood -= treeTake
-		a.Inventory[entity.Wood] += armful
-		if t.Wood < 0.1 {
-			t.Terrain, t.Wood = world.Grass, 0
-		}
-	},
-}
+var GatherWood = take("take/timber@wood")
 
 // Raising a house and keeping one are the same act to the person doing it
 // and quite different things to the forest. raisingTimber is the frame: the
@@ -579,62 +729,9 @@ var Pave = &Def{
 	},
 }
 
-var Sell = &Def{
-	Name: "sell", Ticks: 1, Target: atMarket,
-	Available: func(a *entity.Agent, _ *world.World) bool {
-		return a.Inventory[entity.Food] > 4 || a.Inventory[entity.Tools] >= 1 ||
-			a.Inventory[entity.Meals] > 3 || a.Inventory[entity.Stone] > 4
-	},
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		// Savings buy safety; being a seller of note buys a little esteem.
-		return need.Levels{need.Safety: 0.08, need.Esteem: 0.03}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		var earned float64
-		if surplus := a.Inventory[entity.Food] - 3; surplus > 0 {
-			a.Inventory[entity.Food] -= surplus
-			w.Market.Stock[entity.Food] += surplus
-			earned += surplus * w.Market.Price[entity.Food]
-		}
-		if tools := a.Inventory[entity.Tools]; tools > 0 {
-			a.Inventory[entity.Tools] = 0
-			w.Market.Stock[entity.Tools] += tools
-			earned += tools * w.Market.Price[entity.Tools]
-		}
-		if surplus := a.Inventory[entity.Meals] - 2; surplus > 0 {
-			a.Inventory[entity.Meals] -= surplus
-			w.Market.Stock[entity.Meals] += surplus
-			earned += surplus * w.Market.Price[entity.Meals]
-		}
-		if surplus := a.Inventory[entity.Stone] - 3; surplus > 0 {
-			a.Inventory[entity.Stone] -= surplus
-			w.Market.Stock[entity.Stone] += surplus
-			earned += surplus * w.Market.Price[entity.Stone]
-		}
-		a.Wealth += earned
-		a.Needs.Add(need.Esteem, 0.03)
-		w.Emit(event.Traded, a.ID, 0, "%s sold goods for %.1f", a.Name, earned)
-	},
-}
+var Sell = trade("exchange/material>coin@market")
 
-var Buy = &Def{
-	Name: "buy food", Ticks: 1, Target: atMarket,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Food] < 1 &&
-			w.Market.Stock[entity.Food] >= 1 &&
-			a.Wealth >= w.Market.Price[entity.Food]
-	},
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: 0.3}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		p := w.Market.Price[entity.Food]
-		a.Wealth -= p
-		a.Inventory[entity.Food]++
-		w.Market.Stock[entity.Food]--
-		w.Emit(event.Traded, a.ID, 0, "%s bought food for %.2f", a.Name, p)
-	},
-}
+var Buy = trade("exchange/coin>provision@market")
 
 var Guard = &Def{
 	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,
@@ -693,24 +790,7 @@ func craftQuality(a *entity.Agent, w *world.World) float64 {
 	return (0.3 + a.Skills[entity.Crafting]) * w.Mods.CraftQuality
 }
 
-var Craft = &Def{
-	Name: "craft", Ticks: 3, Target: bench,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Wood] >= 1 && hasPlace(bench)(a, w)
-	},
-	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
-		q := craftQuality(a, w)
-		return need.Levels{need.Esteem: 0.15 * q, need.Safety: 0.03 * q}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		q := craftQuality(a, w)
-		a.Inventory[entity.Wood]--
-		a.Inventory[entity.Tools] += q
-		a.Reputation += 0.05 * q
-		a.AddSkill(entity.Crafting, 0.015)
-		a.Needs.Add(need.Esteem, 0.15*q)
-	},
-}
+var Craft = product("make/timber>tool@bench")
 
 var Teach = &Def{
 	Name: "teach", Ticks: 3, Target: towardCompany,

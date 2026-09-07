@@ -2,9 +2,7 @@ package action
 
 import (
 	"lreat/core/entity"
-	"lreat/core/event"
 	"lreat/core/habit"
-	"lreat/core/need"
 	"lreat/core/world"
 )
 
@@ -63,111 +61,15 @@ func rockNear(w *world.World, p entity.Pos, radius int) bool {
 	return ok
 }
 
-var Cook = &Def{
-	Name: "cook", Ticks: 2, Target: hearth,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Food] >= cookBatch && a.Inventory[entity.Wood] >= cookReserve+cookFuel &&
-			hasPlace(hearth)(a, w) && known(a, w, "pottery", "cook")
-	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		// A cooked meal feeds more than a raw one; that difference is what
-		// cooking is worth today.
-		return need.Levels{need.Physiological: (mealNourish - nourished) * cookBatch * foodValue(a) * 4, need.Esteem: 0.02}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		a.Inventory[entity.Food] -= cookBatch
-		a.Inventory[entity.Wood] -= cookFuel
-		a.Inventory[entity.Meals] += cookBatch
-		a.AddSkill(entity.Crafting, 0.005)
-		a.Needs.Add(need.Esteem, 0.02)
-	},
-}
+var Cook = product("make/provision+timber>meal@hearth")
 
 func quarryYield(a *entity.Agent) float64 { return 0.5 + a.Skills[entity.Building] }
 
-var Quarry = &Def{
-	Name: "quarry", Ticks: 3,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Tools] >= 0.5 && known(a, w, "quarrying", "quarry")
-	},
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		return w.Grid.Nearest(a.Pos, searchRadius, isRock)
-	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		// Stone is for building; it is worth the safety of the house it
-		// will go into, if the agent lacks one.
-		return need.Levels{need.Safety: 0.06 * (1 - a.Shelter) * quarryYield(a), need.Esteem: 0.03}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		if w.Grid.At(a.Pos).Terrain != world.Rock {
-			return
-		}
-		a.Inventory[entity.Stone] += quarryYield(a)
-		a.Inventory[entity.Tools] = max(0, a.Inventory[entity.Tools]-quarryWear)
-		a.AddSkill(entity.Building, 0.01)
-		a.Needs.Add(need.Esteem, 0.03)
-	},
-}
+var Quarry = take("take/stone@outcrop")
 
-// granarySite is a plot beside the market. Like a house it wants its own
-// ground around it: a granary the carts cannot get round is no use to the
-// market it keeps food for.
-func granarySite(_ *entity.Agent, w *world.World) (entity.Pos, bool) {
-	if p, ok := w.Grid.Nearest(w.MarketPos, granaryRadius, func(p entity.Pos, _ *world.Tile) bool {
-		return w.Grid.RoomToBuild(p)
-	}); ok {
-		return p, true
-	}
-	return w.Grid.Nearest(w.MarketPos, granaryRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
-}
+var BuildGranary = raise("raise/timber+stone>granary@open")
 
-var BuildGranary = &Def{
-	Name: "build granary", Ticks: 4, Target: granarySite,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Stone] >= granaryStone && a.Inventory[entity.Wood] >= granaryWood && known(a, w, "masonry", "build granary")
-	},
-	Expect: func(_ *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
-		// A granary is a public good: the market keeps what it holds. Its
-		// worth to the builder is standing, and a little safety in a
-		// settlement that will not run short.
-		return need.Levels{need.Esteem: 0.2, need.Safety: 0.05 * w.Mods.Keeping}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if !t.Buildable() {
-			return
-		}
-		t.Structure = world.Granary
-		a.Inventory[entity.Stone] -= granaryStone
-		a.Inventory[entity.Wood] -= granaryWood
-		w.Mods.Keeping *= granaryKeeping
-		a.Reputation += 0.2
-		a.AddSkill(entity.Building, 0.03)
-		a.Needs.Add(need.Esteem, 0.2)
-		w.Emit(event.Built, a.ID, 0, "%s built a granary", a.Name)
-	},
-}
-
-var Smelt = &Def{
-	Name: "smelt", Ticks: 3, Target: forge,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Stone] >= smeltStone && a.Inventory[entity.Wood] >= smeltWood &&
-			hasPlace(forge)(a, w) && known(a, w, "metallurgy", "smelt")
-	},
-	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
-		q := craftQuality(a, w) * smeltYield
-		return need.Levels{need.Esteem: 0.15 * q, need.Safety: 0.03 * q}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		q := craftQuality(a, w) * smeltYield
-		a.Inventory[entity.Stone] -= smeltStone
-		a.Inventory[entity.Wood] -= smeltWood
-		a.Inventory[entity.Tools] += q
-		a.Reputation += 0.08 * q
-		a.AddSkill(entity.Crafting, 0.02)
-		a.Needs.Add(need.Esteem, 0.15*q)
-	},
-}
+var Smelt = product("make/stone+timber>tool@forge")
 
 // Reach at birth for making and keeping. All begin far off.
 const (

@@ -83,12 +83,12 @@ const (
 	// concentrate, no ground wore through to the sixty crossings paving asks
 	// for, and settlements that used to lay eighty tiles of street laid two.
 	//
-	// It is the knob between many small towns and few large ones, and over
-	// 48 seeds it trades one against the other rather than simply improving
-	// things: at 6, median 33 and 4 extinctions; at 8, median 51 and 6; at
-	// 10, median 71 and 8. Survivors sit at 30 of 48 throughout, so what is
-	// being chosen here is the size of a town and not whether there is one.
-	elbowRoom = 10
+	// It is the knob between many small towns and few large ones, and it is
+	// the one figure here the rest of the change is most sensitive to. Over
+	// 24 seeds against the holdings a household now works: at 2, 13
+	// settlements of 24 and a median of 21; at 6, 15 and 37; at 10, 19 and
+	// 123; at 16, 20 and 104; past that it is flat. 16 is taken.
+	elbowRoom = 16
 	// settlingWalk is how many days of a settled life the walk out to a plot
 	// is set against. Worth is counted per day and lasts as long as the
 	// house does; the walk to get there is paid once. Subtracting the one

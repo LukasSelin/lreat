@@ -2,6 +2,7 @@ package action
 
 import (
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"lreat/core/entity"
@@ -33,7 +34,7 @@ func TestStudyBroadensOnlyWhatIsGated(t *testing.T) {
 	w := world.New(1)
 	a := blank(w, "a")
 	Imprint(a)
-	before := a.Reach
+	before := slices.Clone(a.Reach)
 	Broaden(a, w)
 	for i, d := range Catalog {
 		switch {
@@ -88,7 +89,7 @@ func TestChildrenInheritHabitsAndAShareOfReach(t *testing.T) {
 	if !child.Imprinted {
 		t.Fatal("an heir should count as imprinted")
 	}
-	if child.Habits != parent.Habits {
+	if !slices.Equal(child.Habits, parent.Habits) {
 		t.Fatal("without drift a child should copy its parent exactly")
 	}
 	if child.Reach[i] != InheritReach {
@@ -100,7 +101,7 @@ func TestChildrenInheritHabitsAndAShareOfReach(t *testing.T) {
 
 	drifted := blank(w, "drifted")
 	Inherit(drifted, parent, w, rand.New(rand.NewPCG(1, 2)))
-	if drifted.Habits == parent.Habits {
+	if slices.Equal(drifted.Habits, parent.Habits) {
 		t.Fatal("with drift a child should differ from its parent")
 	}
 	for k := habit.Honesty; k <= habit.Caution; k++ {

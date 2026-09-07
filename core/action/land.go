@@ -80,62 +80,32 @@ func fishYield(a *entity.Agent, w *world.World, fish float64) float64 {
 	return (0.3 + 0.7*fish) * (0.7 + 0.6*a.Skills[entity.Fishing]) * w.Mods.FishYield
 }
 
-var Fish = &Def{
-	Name: "fish", Ticks: 2,
-	Available: func(a *entity.Agent, w *world.World) bool { return known(a, w, "fishing", "fish") },
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		return w.Grid.Nearest(a.Pos, searchRadius, bank(w))
-	},
-	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		t := bestWater(w, target)
-		if t == nil {
-			return need.Levels{}
-		}
-		return need.Levels{need.Physiological: foodValue(a) * fishYield(a, w, t.Fish)}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := bestWater(w, a.Pos)
-		if t == nil {
-			return // fished out while we walked
-		}
-		a.Inventory[entity.Food] += fishYield(a, w, t.Fish) * (0.5 + 1.0*w.RNG.Float64())
-		t.Fish = max(0, t.Fish-fishTake)
-		a.AddSkill(entity.Fishing, 0.015)
-	},
-}
+var Fish = take("take/fish@water")
 
 func huntYield(w *world.World, wild float64) float64 {
 	return (0.4 + 1.6*wild) * w.Mods.HuntYield
 }
 
-var Hunt = &Def{
-	Name: "hunt", Ticks: 3,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Tools] >= 0.5 && known(a, w, "trapping", "hunt")
-	},
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		return w.Grid.Nearest(a.Pos, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-			return t.Terrain == world.Forest && t.Wild >= 0.3
-		})
-	},
-	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: foodValue(a) * huntYield(w, w.Grid.At(target).Wild)}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if t.Terrain != world.Forest || t.Wild < 0.1 {
-			return // the game has gone
-		}
-		a.Inventory[entity.Food] += huntYield(w, t.Wild) * (0.5 + 1.0*w.RNG.Float64())
-		t.Wild = max(0, t.Wild-huntTake)
-		a.Inventory[entity.Tools] = max(0, a.Inventory[entity.Tools]-toolWear)
-	},
-}
+var Hunt = take("take/game@wood")
 
 // nearWater reports whether water lies within reach of p.
 func nearWater(w *world.World, p entity.Pos) bool {
 	_, ok := w.Grid.Nearest(p, waterReach, isWater)
 	return ok
+}
+
+// thirsty is the strip of a holding most worth cutting a channel to: the
+// poorest ground the farmer holds that water can be brought to. A holding is
+// watered a strip at a time, the way it was broken.
+func thirsty(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	var best entity.Pos
+	rich := 1.0
+	for _, p := range a.Parcel {
+		if t := w.Grid.At(p); t.Rich < rich && nearWater(w, p) {
+			best, rich = p, t.Rich
+		}
+	}
+	return best, rich < 1
 }
 
 var Irrigate = &Def{
@@ -144,9 +114,10 @@ var Irrigate = &Def{
 		if !a.HasField || a.Inventory[entity.Wood] < irrigationCost || !known(a, w, "irrigation", "irrigate") {
 			return false
 		}
-		return w.Grid.At(a.Field).Rich < 1 && nearWater(w, a.Field)
+		_, ok := thirsty(a, w)
+		return ok
 	},
-	Target: func(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Field, true },
+	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) { return thirsty(a, w) },
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		// Worth what the extra fertility will grow, over a few harvests.
 		return need.Levels{need.Physiological: foodValue(a) * 0.7 * irrigationGain * (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * 3, need.Esteem: 0.03}

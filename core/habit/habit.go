@@ -21,15 +21,54 @@ import (
 )
 
 // Dims is the size of the space.
-const Dims = 20
+const Dims = 21
 
-// MaxActions bounds the catalog so per-agent habit tables can be arrays and
-// iteration order can never depend on a map.
-const MaxActions = 32
+// Slots are places in every agent's tables, one per act, keyed by the
+// act's canonical name. A slot is given once, in the order acts are first
+// registered, and is never reused or renumbered: an act that enters later
+// takes a fresh slot after everything before it, and every table already
+// in use grows to make room. So tables stay dense arrays indexed by slot,
+// and what a slot means never moves under a habit.
+var slots = struct {
+	keys  []string
+	index map[string]int
+}{index: map[string]int{}}
+
+// Register gives key a slot, or returns the one it has.
+func Register(key string) int {
+	if i, ok := slots.index[key]; ok {
+		return i
+	}
+	i := len(slots.keys)
+	slots.keys = append(slots.keys, key)
+	slots.index[key] = i
+	return i
+}
+
+// Slot is the slot key holds, if it holds one.
+func Slot(key string) (int, bool) {
+	i, ok := slots.index[key]
+	return i, ok
+}
+
+// Slots is how many slots have been given.
+func Slots() int { return len(slots.keys) }
+
+// Keys lists every slot's key, by slot.
+func Keys() []string { return append([]string(nil), slots.keys...) }
+
+// Grow extends s to at least n entries, zero-filled, keeping what it had.
+func Grow[T any](s []T, n int) []T {
+	if len(s) >= n {
+		return s
+	}
+	return append(s, make([]T, n-len(s))...)
+}
 
 // The dimensions. The first five are urgencies weighted by personality; the
-// next seven are stock and surroundings, the weather among them, because
-// what a moment calls for turns with the season; five are what the agent
+// next eight are stock and surroundings, the weather among them and what
+// the weather is actually doing to this body, because what a moment calls
+// for turns with the season and turns harder for whoever is out in it; five are what the agent
 // holds to be right and how much reprisal it expects; the last three are
 // patched per candidate action, because how near a thing is, how one feels
 // about the person involved, and how able one believes oneself all depend
@@ -46,6 +85,7 @@ const (
 	Shelter
 	Company
 	Chill
+	Exposure
 	Order
 	Honesty
 	Charity
@@ -60,7 +100,7 @@ const (
 // Names labels each dimension for reports.
 var Names = [Dims]string{
 	"hunger", "unsafe", "lonely", "unproven", "curious",
-	"food", "wood", "wealth", "shelter", "company", "chill", "order",
+	"food", "wood", "wealth", "shelter", "company", "chill", "exposure", "order",
 	"honesty", "charity", "industry", "tradition", "caution",
 	"near", "rapport", "skill",
 }

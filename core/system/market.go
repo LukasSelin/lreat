@@ -45,6 +45,36 @@ func Keeping(w *world.World) float64 {
 	return w.Mods.Keeping * (1 - ColdKeeping*w.Climate.Chill())
 }
 
+// LarderSpoil is the share of what an agent carries that goes off each
+// tick in mild weather. It is a fifth of what the same food loses sitting
+// in the market, and flat across food and meals, because what is carried
+// is eaten within days while the market's stock sits out whole seasons.
+//
+// It was the market's own rates first, and that was far too much: a third
+// again on top of what an agent eats, on the loop the whole economy runs
+// on. Over 24 seeds to 6000 ticks it took the median settlement from 94 to
+// 30 and killed two. The point was never to punish a full larder in June,
+// only to make one in January worth more.
+const LarderSpoil = 0.002
+
+// Larder is what an agent's own food loses this tick. Nothing a granary
+// does reaches it - the settlement's stores keep the settlement's food -
+// so the cold is the whole of its mercy, and in the deep of winter it
+// keeps two and a half times as well as it does in the summer.
+func Larder(w *world.World) float64 {
+	return LarderSpoil * (1 - ColdKeeping*w.Climate.Chill())
+}
+
+// Spoil rots what an agent is carrying.
+func Spoil(w *world.World, a *entity.Agent) {
+	k := Larder(w)
+	for g := range a.Inventory {
+		if perishable[g] {
+			a.Inventory[g] *= 1 - k
+		}
+	}
+}
+
 // MarketStep moves prices against stock and lets goods spoil. Prices lag
 // supply, so gluts and shortages both overshoot, which is what gives traders
 // something to notice.

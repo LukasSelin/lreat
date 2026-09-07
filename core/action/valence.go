@@ -14,6 +14,7 @@ var valences = map[string]belief.Valence{
 
 	// Ordinary work is mildly virtuous to them.
 	"farm":        {belief.Industry: 0.3},
+	"clear field": {belief.Industry: 0.3},
 	"gather wood": {belief.Industry: 0.25},
 	"craft":       {belief.Industry: 0.3},
 	"forage":      {belief.Industry: 0.2},

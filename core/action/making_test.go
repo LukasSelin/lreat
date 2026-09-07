@@ -108,6 +108,7 @@ func TestSmeltingMakesMoreThanCrafting(t *testing.T) {
 
 func TestAToolMakesTheFieldGoFurtherAndWears(t *testing.T) {
 	w, a := workshop(t)
+	run(w, a, Clear)
 	run(w, a, Farm)
 	bare := a.Inventory[entity.Food]
 	a.Inventory[entity.Food] = 0

@@ -252,6 +252,7 @@ func Discover(w *world.World) {
 		}
 		w.Unlock(d.Tech)
 		d.Effect(w)
+		w.Room()
 		for _, name := range d.Opens {
 			if i := action.Index(action.ByName(name)); i >= 0 {
 				w.ReachFloor[i] = max(w.ReachFloor[i], action.Opened)

@@ -47,6 +47,11 @@ func Decay(w *world.World) {
 
 		a.Shelter = math.Max(0, a.Shelter-w.Mods.ShelterDecay)
 
+		// What is carried rots as what is stored does. An agent's larder is
+		// its own: no granary stands behind it, and it keeps by the weather
+		// and by the roof over it.
+		Spoil(w, a)
+
 		// What the weather costs is what the agent stands in it unroofed.
 		// In a mild season it is nothing whatever anyone has built; in the
 		// deep of a hard winter a body without a house burns half again
