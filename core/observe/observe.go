@@ -216,6 +216,7 @@ func habits(w *world.World) (spread, mean, gated float64) {
 	}
 	units := make([][]habit.Signature, action.Count)
 	var gatedN float64
+	w.Room()
 	for i, d := range action.Catalog {
 		units[i] = make([]habit.Signature, 0, len(w.Agents))
 		for _, a := range w.Agents {

@@ -148,6 +148,7 @@ func Candidates(a *entity.Agent, w *world.World) []Candidate {
 // first use - so several agents may be sized up at once, one per router.
 func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate {
 	Imprint(a)
+	w.Room()
 	for i := range Catalog {
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
 	}
@@ -174,18 +175,18 @@ func Rank(a *entity.Agent, w *world.World) []Candidate {
 	return c
 }
 
-// Imprint seeds an agent's habits and reach from the catalog priors, once.
-// It is lazy because the world cannot see the catalog when it spawns, and
-// a newborn's first decision is the earliest the habits are needed. Agents
-// whose habits were inherited or copied are marked imprinted by whoever
-// gave them.
+// Imprint seeds an agent's habits and reach from the catalog priors, once
+// per slot. It is lazy because the world cannot see the catalog when it
+// spawns, and a newborn's first decision is the earliest the habits are
+// needed. Agents whose habits were inherited or copied are marked
+// imprinted by whoever gave them. A slot given after that is fresh for
+// everyone alive and is seeded here the next time each of them decides.
 func Imprint(a *entity.Agent) {
-	if a.Imprinted {
-		return
+	a.Room()
+	for i := a.Seeded; i < len(Catalog); i++ {
+		a.Habits[i] = Catalog[i].Prior
+		a.Reach[i] = Catalog[i].Reach0
 	}
-	for i, d := range Catalog {
-		a.Habits[i] = d.Prior
-		a.Reach[i] = d.Reach0
-	}
+	a.Seeded = len(Catalog)
 	a.Imprinted = true
 }

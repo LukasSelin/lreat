@@ -215,21 +215,27 @@ type Agent struct {
 	Plan     *Plan
 
 	// Habits is what this agent has come to recognise as the kind of moment
-	// each action belongs to, indexed by catalog position. Each starts as a
-	// copy of the action's shared prior and is moved by the agent's own
-	// outcomes, copied by teachers, and inherited with drift by children.
-	// It is the agent's character as revealed in what it does.
-	Habits [habit.MaxActions]habit.Signature
+	// each action belongs to, by habit slot, which is catalog position.
+	// Each starts as a copy of the action's shared prior and is moved by
+	// the agent's own outcomes, copied by teachers, and inherited with
+	// drift by children. It is the agent's character as revealed in what
+	// it does. Room keeps it, Reach, and Baselines as long as there are
+	// slots; see habit.Register.
+	Habits []habit.Signature
 	// Reach is how far into reach each action is for this agent, in [0,1].
 	// Everyday living is fully in reach from birth; crafts and learning
 	// begin far off and are brought closer by study, teaching, and what the
 	// settlement has discovered.
-	Reach [habit.MaxActions]float64
+	Reach []float64
 	// Baseline is the agent's slow-moving sense of what an ordinary outcome
 	// feels like, and Baselines the same for each action on its own.
 	// Lessons are drawn from how an outcome differs from a blend of the two.
 	Baseline  float64
-	Baselines [habit.MaxActions]float64
+	Baselines []float64
+	// Seeded is how many slots have been given a starting habit and reach,
+	// so that a slot given after this agent was imprinted can be told from
+	// one it has lived with.
+	Seeded int
 	// Trace is the short memory of recent actions that share in the next
 	// reward, so that an action that only set up a later gain still learns.
 	Trace habit.Trace
@@ -299,6 +305,16 @@ func (a *Agent) BondWith(to ID) float64 {
 		}
 	}
 	return 0
+}
+
+// Room makes the per-act tables as long as there are slots. A slot given
+// after this agent was born is a fresh, empty one for it, to be seeded
+// from the act's prior the next time it is imprinted.
+func (a *Agent) Room() {
+	n := habit.Slots()
+	a.Habits = habit.Grow(a.Habits, n)
+	a.Reach = habit.Grow(a.Reach, n)
+	a.Baselines = habit.Grow(a.Baselines, n)
 }
 
 // BestSkill returns the agent's strongest skill and its level.

@@ -122,12 +122,12 @@ func init() {
 		}
 		d.Key = in.Key
 		instances[in.Key] = in
+		if habit.Register(in.Key) != len(Catalog) {
+			panic("action: slot for " + in.Key + " is not its catalog position")
+		}
 		Catalog = append(Catalog, d)
 	}
 	Count = len(Catalog)
-	if Count > habit.MaxActions {
-		panic("action: Catalog exceeds habit.MaxActions")
-	}
 }
 
 // ByKey returns the action with that key, or nil.

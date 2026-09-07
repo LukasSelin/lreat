@@ -1,11 +1,11 @@
 package observe
 
 import (
+	"slices"
 	"sort"
 
 	"lreat/core/belief"
 	"lreat/core/entity"
-	"lreat/core/habit"
 	"lreat/core/need"
 	"lreat/core/world"
 )
@@ -90,7 +90,7 @@ type Portrait struct {
 	// Reach is how far into reach each action has come for this agent, by
 	// catalog position. A craft nobody has taught it is out of reach however
 	// well it would fit the moment.
-	Reach [habit.MaxActions]float64
+	Reach []float64
 
 	// Errand is what it is doing now, nil when it is between plans.
 	Errand *Errand
@@ -124,7 +124,7 @@ func Look(w *world.World, id entity.ID) *Portrait {
 		Wealth: a.Wealth, Reputation: a.Reputation, Inventory: a.Inventory,
 		Skills: a.Skills, Efficacy: a.Efficacy,
 		Norms: a.Norms, Caution: a.Caution, Temperament: a.Temperament,
-		Reach: a.Reach,
+		Reach: slices.Clone(a.Reach),
 	}
 	p.Calling, p.Level = a.BestSkill()
 	for t := range p.Urgency {

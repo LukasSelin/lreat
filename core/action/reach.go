@@ -2,6 +2,7 @@ package action
 
 import (
 	"math/rand/v2"
+	"slices"
 
 	"lreat/core/entity"
 	"lreat/core/habit"
@@ -98,7 +99,10 @@ func Pass(teacher, student *entity.Agent, s entity.Skill) {
 // not draw on the RNG for this.
 func Inherit(child, parent *entity.Agent, w *world.World, rng *rand.Rand) {
 	Imprint(parent)
-	child.Habits = parent.Habits
+	child.Room()
+	w.Room()
+	child.Habits = slices.Clone(parent.Habits)
+	child.Seeded = parent.Seeded
 	if rng != nil {
 		for i := range Catalog {
 			for k := range child.Habits[i] {

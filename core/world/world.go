@@ -112,8 +112,9 @@ type World struct {
 	Forest0 int
 
 	// ReachFloor is how far into reach each action is for everyone here,
-	// by catalog position, raised when the settlement discovers a thing.
-	ReachFloor [habit.MaxActions]float64
+	// by habit slot, raised when the settlement discovers a thing. Room
+	// keeps it as long as there are slots.
+	ReachFloor []float64
 	// Deaths counts everyone who has died here.
 	Deaths int
 	// Choices and Entropy record this tick's fit-based decisions: how many
@@ -155,8 +156,12 @@ func NewSized(seed uint64, width, height int) *World {
 		nextID: 1,
 	}
 	w.GenerateTerrain(width, height)
+	w.Room()
 	return w
 }
+
+// Room keeps the reach floor as long as there are slots.
+func (w *World) Room() { w.ReachFloor = habit.Grow(w.ReachFloor, habit.Slots()) }
 
 // Spawn adds an agent on open ground near the market.
 func (w *World) Spawn(name string, p need.Weights) *entity.Agent {
@@ -199,6 +204,7 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 	a.Inventory[entity.Food] = 2
 	w.nextID++
 	w.Agents = append(w.Agents, a)
+	a.Room()
 	return a
 }
 

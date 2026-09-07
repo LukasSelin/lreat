@@ -3,6 +3,7 @@ package system
 import (
 	"fmt"
 	"math"
+	"slices"
 	"testing"
 
 	"lreat/core/action"
@@ -44,7 +45,7 @@ func TestFitModeIsDeterministic(t *testing.T) {
 	}
 	for i, x := range a.Agents {
 		y := b.Agents[i]
-		if x.Habits != y.Habits || x.Reach != y.Reach || x.Baseline != y.Baseline || x.Baselines != y.Baselines {
+		if !slices.Equal(x.Habits, y.Habits) || !slices.Equal(x.Reach, y.Reach) || x.Baseline != y.Baseline || !slices.Equal(x.Baselines, y.Baselines) {
 			t.Fatalf("agent %d learned differently in two identical worlds", x.ID)
 		}
 		for _, h := range x.Habits[:action.Count] {
@@ -107,9 +108,9 @@ func TestPlansMadeOutsideTheBuilderTeachNothing(t *testing.T) {
 	w := fitWorld(5)
 	a := w.SpawnAt("a", need.Neutral(), w.MarketPos)
 	action.Imprint(a)
-	before := a.Habits
+	before := slices.Clone(a.Habits)
 	Learn(a, w, &entity.Plan{Action: "rest"})
-	if a.Habits != before {
+	if !slices.Equal(a.Habits, before) {
 		t.Fatal("a bare plan should carry no lesson")
 	}
 }
