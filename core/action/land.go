@@ -160,7 +160,11 @@ var PlantTrees = &Def{
 		if !t.Buildable() || !w.Grid.HoldsWood(a.Pos) {
 			return
 		}
-		t.Terrain, t.Wood, t.Wild = world.Forest, 0.2, 0.3
+		// What is planted is a planting: no timber and nothing to forage for
+		// years yet. The good of it goes to whoever is here when it is grown,
+		// which is the whole of what the act is for.
+		t.Terrain, t.Wood, t.Wild = world.Forest, 0, 0
+		t.Sow()
 		a.Needs.Add(need.Esteem, 0.02)
 		a.Needs.Add(need.Actualization, 0.02)
 	},

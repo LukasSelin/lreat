@@ -114,6 +114,7 @@ func (g *Grid) Pave(p entity.Pos) bool {
 	}
 	if t.Terrain == Forest {
 		t.Terrain, t.Wood = Grass, 0
+		t.Sow()
 	}
 	// Over water the road is a bridge, so the water stays: the fish go on
 	// swimming under it and the tile is still a river to look at.

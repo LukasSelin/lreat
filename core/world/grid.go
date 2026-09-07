@@ -54,6 +54,11 @@ type Tile struct {
 	// dry, and it is the ground truth the soil is read from.
 	Drain float64
 
+	// Age is how much growing weather what stands on this tile has had, in
+	// growing ticks. It is what makes a thicket different from a wood and a
+	// sown strip different from one in ear; see grow.go.
+	Age float64
+
 	// Traffic is how worn the ground is: it rises with every crossing and
 	// fades when nobody comes that way. It is not a cost - walking a beaten
 	// path is no quicker - it is a record of where the settlement's errands
@@ -239,7 +244,7 @@ func (g *Grid) Raze(p entity.Pos) bool {
 		return false
 	}
 	if t.Terrain == Field {
-		t.Terrain = Grass
+		t.Terrain, t.Age = Grass, 0 // the crop goes with the claim
 	}
 	t.Structure, t.Owner = None, 0
 	return true

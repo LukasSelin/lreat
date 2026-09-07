@@ -34,6 +34,17 @@ func shore(t *testing.T) (*world.World, *entity.Agent) {
 
 // run does the plan for d at its target: the agent is placed there and the
 // act applied, which is what Act does once the walk is over.
+// season lets what grows grow. It is the ripening system.Land runs every
+// tick, which this package cannot call: a wood that has stood a while, a crop
+// that has come on since it was sown.
+func season(w *world.World, ticks float64) {
+	for i := range w.Grid.Tiles {
+		if t := &w.Grid.Tiles[i]; t.Alive() {
+			t.Age += ticks
+		}
+	}
+}
+
 func run(w *world.World, a *entity.Agent, d *Def) bool {
 	if !d.Available(a, w) {
 		return false
@@ -72,12 +83,17 @@ func TestFarmingWearsAFieldAndFallowRestoresIt(t *testing.T) {
 	if !run(w, a, Clear) {
 		t.Fatal("clearing should be possible on open ground")
 	}
+	if Farm.Available(a, w) {
+		t.Fatal("a strip sown this morning should have no crop on it yet")
+	}
+	season(w, world.CropAge)
 	if !run(w, a, Farm) {
-		t.Fatal("farm should be possible on a cleared field")
+		t.Fatal("farm should be possible on a field in ear")
 	}
 	f := w.Grid.At(a.Field)
 	rich := f.Rich
 	for i := 0; i < 10; i++ {
+		season(w, world.CropAge)
 		Farm.Apply(a, w)
 	}
 	if !(f.Fertility < rich) {
@@ -168,8 +184,19 @@ func TestPlantingMakesAForest(t *testing.T) {
 	if after != before+1 {
 		t.Fatalf("planting should add a forest tile: %d -> %d", before, after)
 	}
-	if tile := w.Grid.At(a.Pos); tile.Wild <= 0 || tile.Wood <= 0 {
-		t.Fatal("a young forest should have a little to give")
+	// A planting is a planting. There is nothing on it to forage and nothing
+	// to fell, and the good of it goes to whoever is still here when it has
+	// grown; the brush comes back first and the timber long after.
+	if tile := w.Grid.At(a.Pos); tile.Wild > 0 || tile.Wood > 0 {
+		t.Fatalf("a planting gives %v wild and %v timber the day it is put in", tile.Wild, tile.Wood)
+	}
+	tile := w.Grid.At(a.Pos)
+	season(w, world.BrushAge)
+	if tile.Grown(world.BrushAge) < 1 {
+		t.Fatal("a stand that has stood a brush's lifetime should be grown")
+	}
+	if tile.Grown(world.TimberAge) >= 1 {
+		t.Fatal("timber should take longer than brush to come on")
 	}
 }
 

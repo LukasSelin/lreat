@@ -337,10 +337,13 @@ func worked(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if len(a.Parcel) == 0 {
 		return a.Field, a.HasField // a holding of one, from before it was a holding
 	}
-	best, near := a.Parcel[0], entity.Dist(a.Pos, a.Parcel[0])
+	// The strip in ear, and the nearest of those where two are equally
+	// ready: a farmer goes to the crop, not to the doorstep.
+	best, near, grown := a.Parcel[0], entity.Dist(a.Pos, a.Parcel[0]), ripe(w, a.Parcel[0])
 	for _, p := range a.Parcel[1:] {
-		if d := entity.Dist(a.Pos, p); d < near {
-			best, near = p, d
+		r, d := ripe(w, p), entity.Dist(a.Pos, p)
+		if r > grown || (r == grown && d < near) {
+			best, near, grown = p, d, r
 		}
 	}
 	return best, true
@@ -359,6 +362,25 @@ func bearing(a *entity.Agent, w *world.World) float64 {
 	}
 	return sum / float64(len(a.Parcel))
 }
+
+// ripe is how far along the crop on one strip is. The soil is the holding's
+// and is worked as one - see bearing - but the crop stands on the strip it
+// was sown in, and it is cut strip by strip.
+func ripe(w *world.World, p entity.Pos) float64 {
+	return w.Grid.At(p).Grown(world.CropAge)
+}
+
+// readyCrop is how far a crop must have come before it is worth cutting. A
+// crop half grown is not what anybody does with a field, and where the line
+// sits does not change what a strip gives over a year: the yield is the
+// growth, so half a crop taken twice as often comes to the same bread.
+//
+// What it does decide is what a holding is for. A strip cut is bare ground
+// again and has to come on before it can be cut a second time, so a
+// household with one strip waits and a household with three works them in
+// turn. That is the whole of crop rotation, and nobody had to be told it:
+// the ground says when, and the size of the holding says how often.
+const readyCrop = 0.5
 
 // plough reports whether open ground is worth breaking: soil the crop will
 // come up in, and not the yard of somebody's house. A settlement keeps its
@@ -426,6 +448,7 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 		return false
 	}
 	t.Terrain, t.Owner = world.Field, a.ID
+	t.Sow() // broken ground, sown now, in ear within the quarter
 	a.Parcel = append(a.Parcel, a.Pos)
 	return true
 }
@@ -459,6 +482,7 @@ var Clear = &Def{
 			}
 			t.Terrain = world.Field
 			t.Owner = a.ID
+			t.Sow()
 			a.Field, a.HasField = a.Pos, true
 			a.Parcel = []entity.Pos{a.Pos}
 		}
@@ -471,11 +495,21 @@ var Clear = &Def{
 // Farm is the harvest: the household's holding, worked and worn.
 var Farm = &Def{
 	Name: "farm", Ticks: 4,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.HasField },
-	Target:    worked,
-	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
+	// A field is not a store to draw on at will. There has to be a crop
+	// standing on it, and until there is, the household lives on something
+	// else and the ground is left alone - which is the farming year, and
+	// nobody had to be told to keep it.
+	Available: func(a *entity.Agent, w *world.World) bool {
+		if !a.HasField {
+			return false
+		}
+		p, ok := worked(a, w)
+		return ok && ripe(w, p) >= readyCrop
+	},
+	Target: worked,
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		return need.Levels{
-			need.Physiological: foodValue(a) * farmYield(a, w, bearing(a, w)),
+			need.Physiological: foodValue(a) * farmYield(a, w, bearing(a, w)) * ripe(w, target),
 			need.Esteem:        0.02,
 		}
 	},
@@ -483,7 +517,10 @@ var Farm = &Def{
 		if !a.Holds(a.Pos) {
 			return // the strip went to someone else while we walked
 		}
-		yield := farmYield(a, w, bearing(a, w))
+		// What comes off the strip is what has grown on it since it was last
+		// cut, and cutting it leaves bare ground behind.
+		yield := farmYield(a, w, bearing(a, w)) * ripe(w, a.Pos)
+		w.Grid.At(a.Pos).Sow()
 		// A tool makes the work go further, and wears with it.
 		if a.Inventory[entity.Tools] >= 0.5 {
 			yield *= toolFarming

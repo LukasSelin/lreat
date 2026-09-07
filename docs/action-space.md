@@ -192,6 +192,16 @@ Six seeds, 6000 ticks, 20 founders, against the same seeds with no tree line:
 
 The forest now settles between a sixth and a fifth of the map on every seed instead of anywhere between a seventh and four fifths, and the ground the settlement did not get to keep is the ground it farms. Five of the six seeds gained population; seed 3 lost a third of it, which is inside this system's spread across seeds.
 
+**What grows has an age.** A stand was a stock: a tile carried timber and wild food, and the numbers came back at a fixed rate whatever had happened there. So a thicket a planter put in this spring was the same thing as an old wood with less in it, and a strip cut yesterday was as good to cut again today. `ontology.Living` says which ground carries something growing - a wood and a field; not an outcrop, and not the water, whose fish are a stock that replenishes rather than a crop that has to come on - and `world.Tile.Age` is how much growing weather what stands there has had. It advances with the season, so a wood raised in the autumn stands still until the thaw, and `Tile.Grown` reads it against how long that kind of thing takes: `TimberAge` twenty years, `BrushAge` six, `CropAge` a quarter. Age bounds what a stand grows into and never takes away what is standing - woods grow and hold, they do not go over - and `Tile.Sow` starts one over wherever ground changes hands: a wood seeded, planted, felled to a clearing or paved, a strip broken, a strip cut.
+
+Three things follow, none of them written as a rule of its own:
+
+- **Planting is for those who come after.** A planting now gives nothing at all on the day it goes in - no timber and nothing to forage - and the brush comes back within a few years while the timber takes a lifetime. That is what the act's own comment always claimed and what the numbers now say.
+- **A field is worked in turn.** A crop is cut strip by strip, and a cut strip is bare ground until it comes on again, so a household with three strips works them one after another and one with a single strip waits for it. Crop rotation is not implemented anywhere; it is what a holding is for.
+- **A stand is felled when it is grown.** `Least` for timber went from three tenths to six. A day's felling takes four tenths, so at three a stand was cut to nothing and the tile became a clearing on its first visit - which, with stands that now come on slowly, stripped whole maps: one seed ended with eleven wooded tiles. At six tenths a felling thins a wood and leaves a thicket to grow into one.
+
+Six seeds, 6000 ticks, 20 founders, against the same seeds with no ages on anything: population 400/334/121/177/246/400 against 387/307/153/39/67/281, forest 422-612 tiles against 450-628, and field strips 14-50 against 5-18. The settlements that were struggling are the ones that gained, and they gained on their fields.
+
 **Four answers**, each far out of reach until discovered:
 
 | action | belongs to the moment | takes | gives |

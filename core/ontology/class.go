@@ -34,6 +34,7 @@ const (
 	Wears // a tool: multiplies work and is used up by it
 
 	// Site traits.
+	Living // carries something growing: what stands here came on with age
 	Roofed
 	Owned
 	Public
@@ -52,7 +53,7 @@ const (
 
 var traitNames = map[Trait]string{
 	Edible: "edible", Perishable: "perishable", Burnable: "burnable", Buildable: "buildable",
-	Heavy: "heavy", Wears: "wears", Roofed: "roofed", Owned: "owned", Public: "public",
+	Heavy: "heavy", Wears: "wears", Living: "living", Roofed: "roofed", Owned: "owned", Public: "public",
 	Passable: "passable", Bench: "bench", Hearth: "hearth", Forge: "forge", Desk: "desk",
 	Company: "company", Trade: "trade", Store: "store",
 }
@@ -191,11 +192,22 @@ var (
 	Site   = New("site", nil, 0, habit.Signature{})
 	Ground = New("ground", Site, Passable, habit.Signature{})
 	// Open ground is unclaimed grass: nothing to take, room to build.
-	Open    = at(New("open", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
-	Wood    = at(New("wood", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
+	Open = at(New("open", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
+	// A wood and a field are Living: what a taking draws on there is not a
+	// seam that is simply there, it is a standing crop, and a stand has an
+	// age. A thicket a planter raised this spring is not an old wood, and a
+	// strip cut yesterday is not a strip in ear. What such a site holds is
+	// bounded by how long it has been growing - see world.Tile.Grown - which
+	// is why planting is for those who come after, and why a holding is
+	// worked in turn rather than all at once.
+	//
+	// The other grounds are not. An outcrop is stone and does not grow; the
+	// water's fish come back, but a shoal is a stock that replenishes, not a
+	// crop that has to come on before it can be cut.
+	Wood    = at(New("wood", Ground, Living, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 	Water   = at(New("water", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 	Outcrop = at(New("outcrop", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
-	Field   = at(New("field", Ground, Owned, habit.Signature{}), habit.Signature{habit.Near: 0.5})
+	Field   = at(New("field", Ground, Living|Owned, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 
 	Built = New("built", Site, 0, habit.Signature{})
 	// Lacking a roof is the unsafe, unsheltered moment, and a little more

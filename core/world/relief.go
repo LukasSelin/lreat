@@ -311,7 +311,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		held := t.Structure != None || t.Owner != 0
 		switch {
 		case wet[i] && t.Terrain != Water && !held:
-			t.Terrain, t.Wood, t.Wild = Water, 0, 0
+			t.Terrain, t.Wood, t.Wild, t.Age = Water, 0, 0, 0
 			t.Fish = 0.7 + 0.3*rng.Float64()
 		case !wet[i] && t.Terrain == Water:
 			t.Terrain, t.Fish = Grass, 0

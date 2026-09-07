@@ -99,8 +99,15 @@ var lodes = map[*ontology.Class]lode{
 		Yield: func(a *entity.Agent, w *world.World, fish float64) float64 { return fishYield(a, w, fish) },
 		Luck:  struct{ Lo, Span float64 }{0.5, 1.0}, Skill: entity.Fishing, Skilled: true, Learn: 0.015, Worth: fed,
 	},
+	// A stand is felled when it is grown. Least was three tenths, from when a
+	// wood was a stock that sat near full whatever its age: a day's work
+	// takes four tenths out of a tile, so a stand felled at three left
+	// nothing standing and the tile became a clearing on the first visit.
+	// With stands that come on slowly that emptied whole maps - one seed
+	// ended with eleven wooded tiles left. At six tenths a felling thins a
+	// wood instead of ending it, and a thicket is left to grow into one.
 	ontology.Timber: {
-		Name: "gather wood", Good: entity.Wood, Stock: woodOf, Least: 0.3, Spent: -1, Take: treeTake,
+		Name: "gather wood", Good: entity.Wood, Stock: woodOf, Least: 0.6, Spent: -1, Take: treeTake,
 		Yield: func(*entity.Agent, *world.World, float64) float64 { return armful },
 		Luck:  struct{ Lo, Span float64 }{1, 0},
 		// Instrumental: wood is only worth something if you lack shelter
@@ -116,6 +123,7 @@ var lodes = map[*ontology.Class]lode{
 		Gone: func(t *world.Tile) {
 			if t.Wood < 0.1 {
 				t.Terrain, t.Wood = world.Grass, 0
+				t.Sow() // the stand is gone; what comes back starts from nothing
 			}
 		},
 	},
