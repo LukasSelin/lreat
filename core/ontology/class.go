@@ -198,12 +198,14 @@ var (
 	Field   = at(New("field", Ground, Owned, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 
 	Built = New("built", Site, 0, habit.Signature{})
-	// Lacking a roof is the unsafe, unsheltered moment, a little more so in
-	// the cold. Lacking a granary or a tavern is not a want of the body but
-	// of standing: they belong to those with something to win and a
-	// settlement they mean to stay in.
+	// Lacking a roof is the unsafe, unsheltered moment, and a little more
+	// so for whoever is out in the cold - exposure, not the weather: the
+	// weather is the same news to everybody, and an act that names it is
+	// one the whole settlement turns to at once. Lacking a granary or a
+	// tavern is not a want of the body but of standing: they belong to
+	// those with something to win and a settlement they mean to stay in.
 	Dwelling = at(New("dwelling", Built, Roofed|Owned|Bench|Hearth|Forge|Desk,
-		habit.Signature{habit.Unsafe: 1, habit.Shelter: -1, habit.Chill: 0.3}), habit.Signature{habit.Near: 0.4})
+		habit.Signature{habit.Unsafe: 1, habit.Shelter: -1, habit.Exposure: 0.3}), habit.Signature{habit.Near: 0.4})
 	Market  = at(New("market", Built, Public|Bench|Desk|Trade, habit.Signature{}), habit.Signature{habit.Near: 0.4})
 	Granary = New("granary", Built, Roofed|Public|Store, habit.Signature{habit.Unproven: 0.7, habit.Charity: 0.4, habit.Tradition: 0.4})
 	Tavern  = at(New("tavern", Built, Roofed|Public|Hearth|Company,

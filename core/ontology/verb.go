@@ -209,6 +209,8 @@ var takeDetail = map[*Class]struct {
 	// years a first field has.
 	Grain: {Skill: entity.Farming, Skilled: true, Reach0: reachEveryday, Ticks: 4,
 		Prior: habit.Signature{habit.Hunger: -0.8, habit.Food: 0.5, habit.Industry: 0.7, habit.Skill: 0.3}},
-	Timber: {Reach0: reachEveryday, Ticks: 2},
+	// Felling is winter work whoever does it: the sap is down and there is
+	// least else to do.
+	Timber: {Reach0: reachEveryday, Ticks: 2, Prior: habit.Signature{habit.Chill: 0.3}},
 	Stone:  {Skill: entity.Building, Skilled: true, Reach0: reachQuarry, Ticks: 3, Tech: "quarrying", Prior: habit.Signature{habit.Industry: 0.5, habit.Skill: 0.3}},
 }
