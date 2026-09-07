@@ -12,7 +12,7 @@ import (
 // temperaments the tests set.
 func village(t *testing.T) (*world.World, *entity.Agent, *entity.Agent) {
 	t.Helper()
-	w := world.NewSized(5, 40, 20)
+	w := world.NewSized(5, 60, 20)
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass, Fertility: 0.3, Rich: 0.3}
 	}

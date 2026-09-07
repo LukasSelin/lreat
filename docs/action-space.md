@@ -240,6 +240,18 @@ A social act needs two things the old catalog did not ask for: somebody within r
 
 On 96 seeds, asking social acts to have somewhere to happen took survivors from 92 to 95 and the median population from 231 to 287; the tavern's cost brought the median back to 237.
 
+**Workplaces.** Making things needs somewhere to make them, as meeting needs somewhere to meet. Before, an agent without a house crafted, cooked, smelted, and studied wherever it stood, forest included.
+
+| act | place |
+|---|---|
+| craft | a bench: at home, or a stall at the market |
+| study | a desk: at home, or at the market where the records are; not the tavern |
+| cook | a hearth: at home, or at the tavern |
+| smelt | a forge: at home, and nowhere else |
+| guard | a market within the settlement's reach with somebody at it; an empty square is nothing to guard |
+
+The settlement's reach is twenty tiles from the market. Everything else already had its place: the field, the forest, the bank, the outcrop, the market, the companion's side, the requester's door. On 96 seeds the change leaves survival within the band, 92 against 94, and the median population at 356.
+
 ## Reach
 
 Implemented in `core/action/reach.go`; the constants live there.
@@ -287,6 +299,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 10 | The land: wild food, fish, field wear and fallow; fish, hunt, irrigate, plant trees; fishing, trapping, irrigation, forestry discovered under pressure; meals sized to hunger | done |
 | 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
 | 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
+| 13 | Workplaces: a bench, a desk, a hearth, a forge, and a market worth guarding | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

@@ -103,6 +103,64 @@ func towardCompany(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	return meetingPlace(a, o, w)
 }
 
+// Workplaces. Making things needs somewhere to make them, as meeting needs
+// somewhere to meet: a bench, a hearth, a forge, a quiet corner. An agent
+// with a house has all of these at home. One without has the market for a
+// bench and a desk and the tavern for a hearth, and no forge at all.
+
+// settlementRadius is how far from the market the settlement is taken to
+// reach: the distance within which the market counts as one's own.
+const settlementRadius = 20
+
+// bench is where an agent crafts: at home, or at a stall at the market.
+func bench(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if a.HasHome {
+		return a.Home, true
+	}
+	if entity.Dist(a.Pos, w.MarketPos) <= settlementRadius {
+		return w.MarketPos, true
+	}
+	return entity.Pos{}, false
+}
+
+// hearth is where an agent cooks: at home, or at the tavern.
+func hearth(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if a.HasHome {
+		return a.Home, true
+	}
+	return nearPlace(w, a.Pos, settlementRadius, world.Tavern)
+}
+
+// forge is where an agent smelts: at home, and nowhere else.
+func forge(a *entity.Agent, _ *world.World) (entity.Pos, bool) {
+	if a.HasHome {
+		return a.Home, true
+	}
+	return entity.Pos{}, false
+}
+
+// desk is where an agent studies: at home, or at the market where the
+// records are kept. Not the tavern.
+func desk(a *entity.Agent, w *world.World) (entity.Pos, bool) { return bench(a, w) }
+
+// hasPlace turns a place-finder into an availability check.
+func hasPlace(find func(*entity.Agent, *world.World) (entity.Pos, bool)) func(*entity.Agent, *world.World) bool {
+	return func(a *entity.Agent, w *world.World) bool {
+		_, ok := find(a, w)
+		return ok
+	}
+}
+
+// worthGuarding reports whether there is a market within the settlement's
+// reach with somebody at it to guard. A guard at an empty square in a
+// settlement that has moved on is a guard of nothing.
+func worthGuarding(a *entity.Agent, w *world.World) bool {
+	if entity.Dist(a.Pos, w.MarketPos) > settlementRadius {
+		return false
+	}
+	return w.AgentAt(w.MarketPos, placeRadius, a) != nil
+}
+
 // inTavern reports whether p is in or beside a tavern.
 func inTavern(w *world.World, p entity.Pos) bool {
 	_, ok := nearPlace(w, p, 1, world.Tavern)

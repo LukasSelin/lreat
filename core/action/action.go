@@ -106,13 +106,6 @@ func always(*entity.Agent, *world.World) bool { return true }
 
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
 
-func atHome(a *entity.Agent, _ *world.World) (entity.Pos, bool) {
-	if a.HasHome {
-		return a.Home, true
-	}
-	return a.Pos, true
-}
-
 func atMarket(_ *entity.Agent, w *world.World) (entity.Pos, bool) { return w.MarketPos, true }
 
 // foodValue is how much one more unit of food is worth to the physiological
@@ -533,7 +526,7 @@ var Buy = &Def{
 }
 
 var Guard = &Def{
-	Name: "guard", Ticks: 3, Available: hasCompany, Target: atMarket,
+	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		return need.Levels{
 			need.Safety:    0.12 * (1 - w.Safety),
@@ -590,8 +583,10 @@ func craftQuality(a *entity.Agent, w *world.World) float64 {
 }
 
 var Craft = &Def{
-	Name: "craft", Ticks: 3, Target: atHome,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Wood] >= 1 },
+	Name: "craft", Ticks: 3, Target: bench,
+	Available: func(a *entity.Agent, w *world.World) bool {
+		return a.Inventory[entity.Wood] >= 1 && hasPlace(bench)(a, w)
+	},
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		q := craftQuality(a, w)
 		return need.Levels{need.Esteem: 0.15 * q, need.Safety: 0.03 * q}
@@ -644,13 +639,7 @@ var Teach = &Def{
 }
 
 var Study = &Def{
-	Name: "study", Ticks: 4, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		if a.HasHome {
-			return a.Home, true
-		}
-		return w.MarketPos, true
-	},
+	Name: "study", Ticks: 4, Available: hasPlace(desk), Target: desk,
 	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		return need.Levels{need.Actualization: 0.3, need.Esteem: 0.03}
 	},
