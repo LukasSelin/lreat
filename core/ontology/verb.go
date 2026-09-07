@@ -59,12 +59,16 @@ type Schema struct {
 	Object         *Class
 	CollapseObject bool
 	Inputs         []*Class
-	Output         *Class
-	Site           *Class
-	CollapseSite   bool
-	SiteTrait      Trait
-	Role           *Role
-	Dir            Direction
+	// Optional inputs improve the output without being needed for it: a
+	// stone in the walls of a house. They count for what a material is
+	// wanted for, not for whether the act can start.
+	Optional     []*Class
+	Output       *Class
+	Site         *Class
+	CollapseSite bool
+	SiteTrait    Trait
+	Role         *Role
+	Dir          Direction
 
 	Ticks   int
 	Skill   entity.Skill
@@ -110,8 +114,8 @@ var Schemas = []Schema{
 	{Verb: Tend, Name: "clear", Site: Open, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachEveryday,
 		Prior:   habit.Signature{habit.Food: -0.3, habit.Chill: -0.5, habit.Industry: 0.7, habit.Skill: 0.3},
 		Valence: belief.Valence{belief.Industry: 0.3}},
-	{Verb: Tend, Name: "water", Site: Field, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachWater, Tech: "irrigation",
-		Prior:   habit.Signature{habit.Food: -0.4, habit.Industry: 0.6, habit.Tradition: 0.3, habit.Skill: 0.4},
+	{Verb: Tend, Name: "water", Inputs: []*Class{Timber}, Site: Field, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachWater, Tech: "irrigation",
+		Prior:   habit.Signature{habit.Industry: 0.7, habit.Skill: 0.4},
 		Valence: belief.Valence{belief.Industry: 0.3}},
 	{Verb: Tend, Name: "plant", Site: Open, Ticks: 2, Reach0: reachForest, Tech: "forestry",
 		Prior:   habit.Signature{habit.Wood: -0.5, habit.Charity: 0.4, habit.Tradition: 0.4},
@@ -127,14 +131,14 @@ var Schemas = []Schema{
 		Valence: belief.Valence{belief.Industry: 0.3}},
 
 	// Raising, on ground.
-	{Verb: Raise, Inputs: []*Class{Timber}, Output: Dwelling, Site: Open, Ticks: 3, Skill: entity.Building, Skilled: true, Reach0: reachEveryday,
+	{Verb: Raise, Inputs: []*Class{Timber}, Optional: []*Class{Stone}, Output: Dwelling, Site: Open, Ticks: 3, Skill: entity.Building, Skilled: true, Reach0: reachEveryday,
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Tradition: 0.1}},
 	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Granary, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachGranary, Tech: "masonry",
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
 	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Tavern, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachTavern, Tech: "brewing",
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3}},
-	{Verb: Raise, Inputs: []*Class{Stone}, Output: Road, Site: Ground, CollapseSite: true, Ticks: 2, Reach0: reachPave,
-		Prior:   habit.Signature{habit.Wood: 0.6, habit.Shelter: 0.7, habit.Company: 0.6},
+	{Verb: Raise, Inputs: []*Class{Timber}, Output: Road, Site: Ground, CollapseSite: true, Ticks: 2, Reach0: reachPave,
+		Prior:   habit.Signature{habit.Shelter: 0.7, habit.Company: 0.6, habit.Charity: 0.5, habit.Industry: 0.3},
 		Valence: belief.Valence{belief.Industry: 0.4, belief.Charity: 0.3}},
 
 	// Eating is one act; which provision goes is decided when it is done.
@@ -159,7 +163,7 @@ var Schemas = []Schema{
 
 	// Handing over, and its inverse.
 	{Verb: Transfer, Object: Provision, CollapseObject: true, Role: &Neighbour, Ticks: 1, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Hunger: -0.4, habit.Food: 0.7},
+		Prior:   habit.Signature{habit.Hunger: -0.4, habit.Food: 0.7, habit.Charity: 1},
 		Valence: belief.Valence{belief.Charity: 0.8, belief.Honesty: 0.1}},
 	{Verb: Transfer, Object: Material, CollapseObject: true, Role: &Requester, Ticks: 3, Skilled: true, Reach0: reachEveryday,
 		Valence: belief.Valence{belief.Charity: 0.5, belief.Industry: 0.35}},
@@ -176,23 +180,35 @@ var Schemas = []Schema{
 	{Verb: Strike, Object: Person, Role: &Wrongdoer, Ticks: 1, Reach0: reachEveryday,
 		Valence: belief.Valence{belief.Honesty: 0.6, belief.Charity: -0.4, belief.Tradition: 0.3}},
 
-	{Verb: Move, Site: Dwelling, Ticks: 4, Reach0: reachEveryday},
+	// Moving house is the settled moment: under a roof, with wood past
+	// what it needed, and the will to do something with it. Left to the
+	// verb alone the prior was a bare nearness that fit every moment a
+	// little, and agents moved house instead of living in one.
+	{Verb: Move, Site: Dwelling, Ticks: 4, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Wood: 0.6, habit.Shelter: 0.7, habit.Industry: 0.5, habit.Near: 0.4}},
 }
 
 // takeDetail is what differs between takings of different things: the
-// skill drawn on, the reach at birth, and how long it takes. Anything
-// afforded but unlisted takes the schema's defaults.
+// skill drawn on, the reach at birth, how long it takes, and what the
+// taking itself is like beyond wanting the thing. Anything afforded but
+// unlisted takes the schema's defaults.
 var takeDetail = map[*Class]struct {
 	Skill   entity.Skill
 	Skilled bool
 	Reach0  float64
 	Ticks   int
 	Tech    string
+	Prior   habit.Signature
 }{
 	Berries: {Reach0: reachEveryday, Ticks: 2},
-	Game:    {Reach0: reachHunt, Ticks: 3, Tech: "trapping"},
-	Fish:    {Skill: entity.Fishing, Skilled: true, Reach0: reachFish, Ticks: 2, Tech: "fishing"},
-	Grain:   {Skill: entity.Farming, Skilled: true, Reach0: reachEveryday, Ticks: 4},
-	Timber:  {Reach0: reachEveryday, Ticks: 2},
-	Stone:   {Skill: entity.Building, Skilled: true, Reach0: reachQuarry, Ticks: 3, Tech: "quarrying"},
+	Game:    {Reach0: reachHunt, Ticks: 3, Tech: "trapping", Prior: habit.Signature{habit.Skill: 0.4}},
+	Fish:    {Skill: entity.Fishing, Skilled: true, Reach0: reachFish, Ticks: 2, Tech: "fishing", Prior: habit.Signature{habit.Skill: 0.3}},
+	// A harvest is not what hunger calls for; foraging is. It is what an
+	// industrious person with a field does whether or not the larder is
+	// low, and that tradition is what carries farming through the bad
+	// years a first field has.
+	Grain: {Skill: entity.Farming, Skilled: true, Reach0: reachEveryday, Ticks: 4,
+		Prior: habit.Signature{habit.Hunger: -0.8, habit.Food: 0.5, habit.Industry: 0.7, habit.Skill: 0.3}},
+	Timber: {Reach0: reachEveryday, Ticks: 2},
+	Stone:  {Skill: entity.Building, Skilled: true, Reach0: reachQuarry, Ticks: 3, Tech: "quarrying", Prior: habit.Signature{habit.Industry: 0.5, habit.Skill: 0.3}},
 }

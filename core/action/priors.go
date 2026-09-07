@@ -78,7 +78,7 @@ func init() {
 	Farm.Skilled = uses(entity.Farming)
 	// Clearing is the same moment as farming: it is what farming was before
 	// there was a field.
-	seed(Clear, reachEveryday, Farm.Prior)
+	seed(Clear, reachEveryday, Farm.Tuned)
 	Clear.Skilled = uses(entity.Farming)
 	// Wood is measured against the cost of a house, so "enough wood" reads
 	// as +1 exactly when a shelter can be built. Gathering belongs to the
@@ -178,6 +178,13 @@ func init() {
 }
 
 func seed(d *Def, reach float64, prior habit.Signature) {
+	if d.Key == "" {
+		panic("action: " + d.Name + " seeded before the catalog was assembled")
+	}
+	d.Tuned = prior
 	d.Prior = prior
+	if Derived {
+		d.Prior = instances[d.Key].Prior
+	}
 	d.Reach0 = reach
 }

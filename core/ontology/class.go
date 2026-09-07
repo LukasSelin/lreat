@@ -161,15 +161,17 @@ var (
 	// Provisions are what feeds. They are one class to Consume, which
 	// picks whatever is on hand, and several to Take, because fishing and
 	// foraging and hunting are different habits.
-	Provision = New("provision", Material, Edible, habit.Signature{habit.Hunger: 0.8, habit.Food: -0.8})
+	// A class's prior is its stock coordinate and nothing else: what it is
+	// for comes through Wanting, and what taking it takes is in takeDetail.
+	Provision = New("provision", Material, Edible, habit.Signature{habit.Food: -0.8})
 	Berries   = New("berries", Provision, Perishable, habit.Signature{habit.Chill: -0.3})
-	Game      = New("game", Provision, Perishable, habit.Signature{habit.Skill: 0.4})
-	Fish      = New("fish", Provision, Perishable, habit.Signature{habit.Skill: 0.3})
-	Grain     = New("grain", Provision, 0, habit.Signature{habit.Chill: -0.5, habit.Industry: 0.7, habit.Skill: 0.3})
+	Game      = New("game", Provision, Perishable, habit.Signature{})
+	Fish      = New("fish", Provision, Perishable, habit.Signature{})
+	Grain     = New("grain", Provision, 0, habit.Signature{habit.Chill: -0.5})
 	Meal      = New("meal", Provision, Perishable, habit.Signature{})
 
 	Timber = New("timber", Material, Burnable|Buildable, habit.Signature{habit.Wood: -0.6})
-	Stone  = New("stone", Material, Buildable|Heavy, habit.Signature{habit.Skill: 0.3})
+	Stone  = New("stone", Material, Buildable|Heavy, habit.Signature{})
 	Tool   = New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5})
 	// Coin is a thing so that money can be made, given, and stolen like
 	// anything else. A young settlement barters; coin arrives when
@@ -181,7 +183,7 @@ var (
 	Person = New("person", Thing, 0, habit.Signature{habit.Rapport: 0.5})
 	// Practice is an act itself as the object of another: what is taught
 	// and studied. The ontology contains its own catalog.
-	Practice = New("practice", Thing, 0, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.6})
+	Practice = New("practice", Thing, 0, habit.Signature{})
 )
 
 // Sites: where an act happens.
@@ -189,7 +191,7 @@ var (
 	Site   = New("site", nil, 0, habit.Signature{})
 	Ground = New("ground", Site, Passable, habit.Signature{})
 	// Open ground is unclaimed grass: nothing to take, room to build.
-	Open    = New("open", Ground, 0, habit.Signature{})
+	Open    = at(New("open", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 	Wood    = at(New("wood", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 	Water   = at(New("water", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 	Outcrop = at(New("outcrop", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
@@ -231,8 +233,10 @@ var (
 	Requester = Role{"requester", habit.Signature{habit.Unproven: 0.5, habit.Wealth: -0.5, habit.Industry: 0.5, habit.Skill: 0.5}}
 	// Holder has more of something than they need.
 	Holder = Role{"holder", habit.Signature{habit.Hunger: 1, habit.Food: -1, habit.Rapport: -0.4}}
-	// Pupil reaches less far in some practice than the actor.
-	Pupil = Role{"pupil", habit.Signature{habit.Company: 0.7, habit.Skill: 0.4}}
+	// Pupil reaches less far in some practice than the actor. Teaching is
+	// the moment of having a skill to show and someone to show it to; what
+	// is wanted of the practice is all on this side.
+	Pupil = Role{"pupil", habit.Signature{habit.Unproven: 0.8, habit.Company: 0.7, habit.Charity: 0.3, habit.Rapport: 0.5, habit.Skill: 1}}
 	// Wrongdoer owes the actor for a wrong done.
 	Wrongdoer = Role{"wrongdoer", habit.Signature{habit.Unproven: 0.6, habit.Rapport: 1, habit.Caution: -0.4}}
 )

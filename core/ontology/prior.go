@@ -17,11 +17,11 @@ var VerbPrior = [VerbCount]habit.Signature{
 	Take:     {habit.Near: 0.1},
 	Make:     {habit.Industry: 0.4},
 	Raise:    {habit.Industry: 0.3},
-	Tend:     {habit.Near: 0.4},
+	Tend:     {},
 	Consume:  {habit.Hunger: 1, habit.Near: 0.5},
 	Dwell:    {},
 	Exchange: {habit.Near: 0.4},
-	Transfer: {habit.Charity: 0.6, habit.Near: 0.5},
+	Transfer: {habit.Near: 0.5},
 	Pass:     {},
 	Strike:   {habit.Honesty: 0.2, habit.Charity: -0.5, habit.Near: 0.5},
 	Move:     {},
@@ -39,8 +39,12 @@ var SeizePrior = habit.Signature{habit.Honesty: -1, habit.Charity: -0.6}
 
 // ForShare is how much of the wanting of what a material makes reaches the
 // wanting of the material: timber is wanted for the roof it will be. Only
-// one step is taken, and outputs weigh by how far into reach making them
-// starts, so a newborn wants wood for a house and not for a forge.
+// one step is taken, and only to the one thing nearest to hand, the
+// output whose making starts furthest into reach: a newborn wants wood
+// for a house, and not a little for a house and a little for a forge and
+// a little for everything else it could one day be. Averaging over all of
+// them was tried and it spread the want so thin over so many coordinates
+// that gathering wood fit every moment a little and no moment well.
 const ForShare = 0.6
 
 // Having is the moment of already holding c: its stock coordinates turned
@@ -66,22 +70,20 @@ func Wanting(c *Class, getting bool) habit.Signature {
 			}
 		}
 	}
-	var down habit.Signature
-	var weight float64
+	var nearest *Schema
 	for i := range Schemas {
 		sc := &Schemas[i]
 		if sc.Output == nil || (sc.Verb != Make && sc.Verb != Raise) {
 			continue
 		}
-		for _, in := range sc.Inputs {
-			if c.IsA(in) {
-				add(&down, sc.Output.DerivedPrior(), sc.Reach0)
-				weight += sc.Reach0
+		for _, in := range append(append([]*Class{}, sc.Inputs...), sc.Optional...) {
+			if c.IsA(in) && (nearest == nil || sc.Reach0 > nearest.Reach0) {
+				nearest = sc
 			}
 		}
 	}
-	if weight > 0 {
-		add(&s, down, ForShare/weight)
+	if nearest != nil {
+		add(&s, nearest.Output.DerivedPrior(), ForShare)
 	}
 	return s
 }
@@ -111,7 +113,12 @@ func Compose(sc *Schema, object, site *Class) habit.Signature {
 	}
 	if object != nil {
 		switch {
-		case sc.Verb == Consume, sc.Verb == Transfer && sc.Dir == Give:
+		case sc.Verb == Consume:
+			// Eating belongs to the hungry moment, which is the verb.
+			// Holding food is what makes it possible, not what it is
+			// like; a coordinate for the stock would only sit dead in
+			// the prior and dull its fit to hunger.
+		case sc.Verb == Transfer && sc.Dir == Give:
 			add(&s, Having(object), 1)
 		default:
 			add(&s, Wanting(object, true), 1)

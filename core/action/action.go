@@ -40,8 +40,11 @@ type Def struct {
 	// Prior is the kind of moment this action belongs to, the signature every
 	// agent starts from before experience moves its own copy. It is the seed
 	// of recognition-based choice; Expect remains the seed of value-based
-	// choice. See package habit.
+	// choice. See package habit. It is composed from what the act is about
+	// by the ontology; Tuned is the prior written by hand before it was,
+	// kept so the two can be held against each other.
 	Prior habit.Signature
+	Tuned habit.Signature
 	// Reach0 is how far into reach the action starts for a newborn, in
 	// [0,1]. Ordinary living starts at 1. Crafts and learning start lower and
 	// are brought closer by study, teaching, and discovery.
@@ -67,6 +70,12 @@ var Count int
 // declaration would make that a cycle.
 var Catalog []*Def
 
+// instances is what the ontology entailed, by key, for seeding.
+var instances = map[string]ontology.Instance{}
+
+// Derived selects the composed prior over the hand-tuned one.
+const Derived = true
+
 // mechanics binds each act the ontology entails to the code that carries it
 // out. An act the ontology entails and nothing here carries is a catalog
 // that cannot be assembled, and says so at start.
@@ -86,7 +95,7 @@ var mechanics = map[string]*Def{
 	"raise/timber>dwelling@open":        BuildShelter,
 	"raise/timber+stone>granary@open":   BuildGranary,
 	"raise/timber+stone>tavern@open":    BuildTavern,
-	"raise/stone>road@ground":           Pave,
+	"raise/timber>road@ground":          Pave,
 	"consume/provision":                 Eat,
 	"dwell/rest":                        Rest,
 	"dwell/meet@tavern>neighbour":       Socialize,
@@ -112,6 +121,7 @@ func init() {
 			panic("action: " + d.Name + " bound twice, to " + d.Key + " and " + in.Key)
 		}
 		d.Key = in.Key
+		instances[in.Key] = in
 		Catalog = append(Catalog, d)
 	}
 	Count = len(Catalog)

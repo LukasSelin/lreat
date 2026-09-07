@@ -31,7 +31,7 @@ var golden = map[string]string{
 	"raise/timber>dwelling@open":        "build shelter",
 	"raise/timber+stone>granary@open":   "build granary",
 	"raise/timber+stone>tavern@open":    "build tavern",
-	"raise/stone>road@ground":           "lay road",
+	"raise/timber>road@ground":          "lay road",
 	"consume/provision":                 "eat",
 	"dwell/rest":                        "rest",
 	"dwell/meet@tavern>neighbour":       "socialize",
@@ -101,7 +101,7 @@ func TestInstantiateIsDeterministic(t *testing.T) {
 // does not explain. The floor is where the composition stands today; raise
 // it as the trees improve.
 func TestDerivedPriorsAgree(t *testing.T) {
-	const floor = 0.3
+	const floor = 0.75
 	type row struct {
 		key, name string
 		fit       float64
@@ -113,11 +113,11 @@ func TestDerivedPriorsAgree(t *testing.T) {
 		if d == nil {
 			continue
 		}
-		fit := habit.Cosine(in.Prior, d.Prior)
+		fit := habit.Cosine(in.Prior, d.Tuned)
 		rows = append(rows, row{in.Key, name, fit})
 		if fit < floor {
 			t.Errorf("%-34s vs %-14s fit %.2f\n  derived %s\n  hand    %s",
-				in.Key, name, fit, show(in.Prior), show(d.Prior))
+				in.Key, name, fit, show(in.Prior), show(d.Tuned))
 		}
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].fit < rows[j].fit })

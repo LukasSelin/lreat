@@ -76,13 +76,14 @@ func bind(sc *Schema, obj, site *Class) Instance {
 		Ticks: sc.Ticks, Skill: sc.Skill, Skilled: sc.Skilled, Tech: sc.Tech, Reach0: sc.Reach0,
 		Valence: sc.Valence,
 	}
+	in.Key = key(sc, obj, site)
+	in.Prior = Compose(sc, obj, site)
 	if sc.Verb == Take {
 		if d, ok := takeDetail[obj]; ok {
 			in.Skill, in.Skilled, in.Reach0, in.Ticks, in.Tech = d.Skill, d.Skilled, d.Reach0, d.Ticks, d.Tech
+			add(&in.Prior, d.Prior, 1)
 		}
 	}
-	in.Key = key(sc, obj, site)
-	in.Prior = Compose(sc, obj, site)
 	return in
 }
 
