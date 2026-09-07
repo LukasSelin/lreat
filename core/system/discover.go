@@ -47,7 +47,7 @@ var Discoveries = []Discovery{
 			w.Mods.ShelterDecay *= 0.5
 		},
 		Text:  "builders began working in stone",
-		Opens: []string{"craft", "lay road"},
+		Opens: []string{"craft", "lay road", "build granary"},
 	},
 	{
 		Tech: "writing", Knowledge: 90,
@@ -90,6 +90,23 @@ var Discoveries = []Discovery{
 		Text:      "with the woods cleared, people began to plant them",
 		Opens:     []string{"plant trees"},
 	},
+	// Making and keeping. Pottery answers a glut: food piling up at the
+	// market and spoiling there. Quarrying comes to masons who have stone
+	// near.
+	{
+		Tech: "pottery", Knowledge: 30,
+		Condition: func(w *world.World) bool { return w.Market.Stock[entity.Food] >= 8 },
+		Effect:    func(w *world.World) { w.Mods.Keeping *= 0.7 },
+		Text:      "with food spoiling at the market, potters learned to keep it",
+		Opens:     []string{"cook"},
+	},
+	{
+		Tech: "quarrying", Knowledge: 40,
+		Condition: func(w *world.World) bool { return w.Has("masonry") && rockNear(w) },
+		Effect:    func(w *world.World) { w.Mods.BuildEfficiency *= 1.2 },
+		Text:      "masons learned to cut stone from the outcrops",
+		Opens:     []string{"quarry"},
+	},
 	{
 		Tech: "metallurgy", Knowledge: 200,
 		Condition: func(w *world.World) bool {
@@ -100,7 +117,7 @@ var Discoveries = []Discovery{
 			w.Mods.FarmYield *= 1.3
 		},
 		Text:  "smiths learned to work metal",
-		Opens: []string{"craft", "guard"},
+		Opens: []string{"craft", "guard", "smelt"},
 	},
 }
 
@@ -196,6 +213,12 @@ func forestGone(w *world.World) bool {
 	}
 	now := w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest })
 	return float64(now) < 0.6*float64(w.Forest0)
+}
+
+// rockNear reports whether there is stone to cut near the market.
+func rockNear(w *world.World) bool {
+	_, ok := w.Grid.Nearest(w.MarketPos, nearMarket, func(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Rock })
+	return ok
 }
 
 // tooled counts agents holding at least a tool's worth of tools.

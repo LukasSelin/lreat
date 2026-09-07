@@ -16,6 +16,7 @@ func TestGatedIsTheCraftsAndLearning(t *testing.T) {
 	want := map[*Def]bool{
 		Craft: true, Teach: true, Study: true, Pave: true,
 		Fish: true, Hunt: true, Irrigate: true, PlantTrees: true,
+		Cook: true, Quarry: true, BuildGranary: true, Smelt: true,
 	}
 	for _, i := range Gated() {
 		if !want[Catalog[i]] {

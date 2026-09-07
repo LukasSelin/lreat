@@ -28,6 +28,7 @@ var moveCost = [...]float64{
 	Field:  1.3,
 	Forest: 2.2,
 	Water:  3.5,
+	Rock:   1.8,
 }
 
 // structureCost is the effort of entering a tile that has been built on, and
@@ -45,10 +46,11 @@ var moveCost = [...]float64{
 // somebody decides to lay them, the toll stays where a growing city can
 // carry it.
 var structureCost = [...]float64{
-	None:   0, // unused: terrain decides
-	House:  1.3,
-	Market: 1,
-	Road:   0.5,
+	None:    0, // unused: terrain decides
+	House:   1.3,
+	Granary: 1.3,
+	Market:  1,
+	Road:    0.5,
 }
 
 // roadDrain is how much of the ordinary bodily cost a tick of walking on a

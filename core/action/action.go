@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 22
+const Count = 26
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -68,6 +68,7 @@ func init() {
 		Guard, Socialize, Craft, Teach, Study, Pave,
 		Steal, Give, Fulfil, Retaliate,
 		Fish, Hunt, Irrigate, PlantTrees,
+		Cook, Quarry, BuildGranary, Smelt,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -138,28 +139,49 @@ var Rest = &Def{
 // that could only eat one unit at a sitting would, with a larder full,
 // still go hungry between the sittings it finds time for.
 const (
-	mouthful  = 0.25 // the least worth stopping to eat
-	feast     = 3.0  // the most eaten at one sitting
-	nourished = 0.35 // what one unit restores
+	mouthful    = 0.25 // the least worth stopping to eat
+	feast       = 3.0  // the most eaten at one sitting
+	nourished   = 0.35 // what one unit of raw food restores
+	mealNourish = 0.5  // what one cooked meal restores
 )
 
-// helping is how much an agent would eat now: enough to be full, within
-// what it has and what a sitting can hold.
-func helping(a *entity.Agent) float64 {
-	want := (1 - a.Needs[need.Physiological]) / nourished
-	return min(a.Inventory[entity.Food], max(mouthful, min(feast, want)))
+// Edible is everything an agent could eat, raw and cooked.
+func Edible(a *entity.Agent) float64 { return a.Inventory[entity.Food] + a.Inventory[entity.Meals] }
+
+// helping is what an agent would eat now: cooked meals first, then raw
+// food, enough to be full, within what it has and what a sitting can hold.
+// It returns the meals and the raw food taken, and what they restore.
+func helping(a *entity.Agent) (meals, raw, restores float64) {
+	room := 1 - a.Needs[need.Physiological]
+	budget := feast
+	meals = min(a.Inventory[entity.Meals], min(budget, room/mealNourish))
+	room -= meals * mealNourish
+	budget -= meals
+	raw = min(a.Inventory[entity.Food], min(budget, max(0, room/nourished)))
+	if meals+raw < mouthful {
+		// Not hungry enough to be worth the sitting, but there is something:
+		// take a mouthful of whichever there is.
+		if a.Inventory[entity.Meals] >= mouthful {
+			meals, raw = mouthful, 0
+		} else {
+			meals, raw = 0, min(mouthful, a.Inventory[entity.Food])
+		}
+	}
+	return meals, raw, meals*mealNourish + raw*nourished
 }
 
 var Eat = &Def{
 	Name: "eat", Ticks: 1, Target: here,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Food] >= mouthful },
+	Available: func(a *entity.Agent, _ *world.World) bool { return Edible(a) >= mouthful },
 	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: nourished * helping(a)}
+		_, _, restores := helping(a)
+		return need.Levels{need.Physiological: restores}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		take := helping(a)
-		a.Inventory[entity.Food] -= take
-		a.Needs.Add(need.Physiological, nourished*take)
+		meals, raw, restores := helping(a)
+		a.Inventory[entity.Meals] -= meals
+		a.Inventory[entity.Food] -= raw
+		a.Needs.Add(need.Physiological, restores)
 	},
 }
 
@@ -244,7 +266,13 @@ var Farm = &Def{
 		if a.Pos != a.Field {
 			return
 		}
-		a.Inventory[entity.Food] += farmYield(a, w, t.Fertility)
+		yield := farmYield(a, w, t.Fertility)
+		// A tool makes the work go further, and wears with it.
+		if a.Inventory[entity.Tools] >= 0.5 {
+			yield *= toolFarming
+			a.Inventory[entity.Tools] -= farmWearTool
+		}
+		a.Inventory[entity.Food] += yield
 		t.Fertility = max(wornField, t.Fertility-farmWear)
 		a.AddSkill(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
@@ -316,7 +344,13 @@ var BuildShelter = &Def{
 			w.Emit(event.Built, a.ID, 0, "%s built a house", a.Name)
 		}
 		a.Inventory[entity.Wood] -= 2
-		a.Shelter = need.Clamp(a.Shelter + shelterGain(a, w))
+		gain := shelterGain(a, w)
+		// A stone in the walls makes a house that stands.
+		if a.Inventory[entity.Stone] >= 1 {
+			a.Inventory[entity.Stone]--
+			gain = min(1-a.Shelter, gain*stoneHouse)
+		}
+		a.Shelter = need.Clamp(a.Shelter + gain)
 		a.AddSkill(entity.Building, 0.02)
 		a.Needs.Add(need.Esteem, 0.05)
 	},
@@ -417,7 +451,8 @@ var Pave = &Def{
 var Sell = &Def{
 	Name: "sell", Ticks: 1, Target: atMarket,
 	Available: func(a *entity.Agent, _ *world.World) bool {
-		return a.Inventory[entity.Food] > 4 || a.Inventory[entity.Tools] >= 1
+		return a.Inventory[entity.Food] > 4 || a.Inventory[entity.Tools] >= 1 ||
+			a.Inventory[entity.Meals] > 3 || a.Inventory[entity.Stone] > 4
 	},
 	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		// Savings buy safety; being a seller of note buys a little esteem.
@@ -434,6 +469,16 @@ var Sell = &Def{
 			a.Inventory[entity.Tools] = 0
 			w.Market.Stock[entity.Tools] += tools
 			earned += tools * w.Market.Price[entity.Tools]
+		}
+		if surplus := a.Inventory[entity.Meals] - 2; surplus > 0 {
+			a.Inventory[entity.Meals] -= surplus
+			w.Market.Stock[entity.Meals] += surplus
+			earned += surplus * w.Market.Price[entity.Meals]
+		}
+		if surplus := a.Inventory[entity.Stone] - 3; surplus > 0 {
+			a.Inventory[entity.Stone] -= surplus
+			w.Market.Stock[entity.Stone] += surplus
+			earned += surplus * w.Market.Price[entity.Stone]
 		}
 		a.Wealth += earned
 		a.Needs.Add(need.Esteem, 0.03)
