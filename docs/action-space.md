@@ -25,7 +25,7 @@ Shared dimensions, computed once per agent per decision:
 | dim | name | source | mapping |
 |---|---|---|---|
 | 0-4 | hunger, unsafe, lonely, unproven, curious | `need.Urgencies(a.Needs)[t] * a.Personality[t]` | `2*clamp01(x) - 1` |
-| 5 | food | `Inventory[Food]` | `2*clamp01(food/4) - 1` (same knee as `foodValue`) |
+| 5 | food | `Inventory[Food]` | `2*clamp01(food/16) - 1` (a fortnight's eating; see the knees in `situation.go`) |
 | 6 | wood | `Inventory[Wood]` | `2*clamp01(wood/2) - 1` (the cost of a house, so +1 means "can build") |
 | 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
 | 8 | shelter | `Shelter` | `shelter - 1`, a lack: half a house is half a house short |
@@ -39,7 +39,7 @@ Per-candidate dimensions, patched for each action being weighed:
 
 | dim | name | source |
 |---|---|---|
-| 17 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 30)` |
+| 17 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 6)` |
 | 18 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
 | 19 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
 
@@ -89,7 +89,7 @@ What stayed, because none of it is reinforcement: the recognition space and the 
 
 ### What it cost, and what was rewritten
 
-Measured with `cmd/tune`: 20 founders, 6000 ticks, counting settlements that replaced their founders (population at least 20 at the end), extinctions, and the median and mean final population. Batches of 24 or 48 seeds while screening; the last line is 96 seeds, the second half of them never looked at while tuning.
+Measured with `cmd/tune`: 20 founders, 6000 ticks, counting settlements that replaced their founders (population at least 20 at the end), extinctions, and the median and mean final population. Batches of 24 or 48 seeds while screening; the last two lines are 96 seeds, the second half of them never looked at while tuning. The first four lines were measured before the ontology and the household field, on the tree the learner ran on, and are kept as the record of what taking it out cost; the last two are this tree.
 
 | variant | lasted | extinct | median | mean |
 |---|---|---|---|---|
@@ -97,20 +97,20 @@ Measured with `cmd/tune`: 20 founders, 6000 ticks, counting settlements that rep
 | the value rule, unchanged | 10/12 | 1 | - | 86 |
 | recognition, learning removed, priors untouched | 0/24 | 9 in the first 12 | 0 | 1 |
 | priors rewritten to carry it | 13/24 | 1 | 24 | 24 |
-| **plus the knees retuned** (adopted) | **91/96** | **0** | **91** | **117** |
+| the same, on this tree, before the knees | 85/96 | 1 | 70 | 77 |
+| **plus the knees retuned** (adopted) | **93/96** | **0** | **87** | **106** |
 
 The untuned number is the honest measure of how much the learner was doing: with the priors as they stood, every settlement died. What brought it back, in the order it was worth:
 
-- **A larder is for the week that has not happened yet.** The food knee - how much food reads as plenty - was four units, the point past which one more unit does nothing for today's hunger. Nobody with two units in the basket went out, and the settlement lived hand to mouth on 1.5 units a head while the learner's settlements sat on 23. Read at twelve, a fertile adult is fed well enough to think of a child half the time instead of a third. Median 25 → 58 over 48 seeds, and no more extinctions.
-- **An errand is judged on the ground people live on.** The near knee - the travel cost at which a target reads as far as can be - was thirty, about the width of the map, so a target three times as far as another read as only a little worse and agents spent their lives walking. Read at ten, everything past the near ground reads the same and the choice between two errands is made where it matters. Lasted 35/48 → 44/48, median 43 → 98. It is the single most valuable number in the file.
+- **An errand is judged on the ground people live on.** The near knee - the travel cost at which a target reads as far as can be - was thirty, about the width of the map, so a target three times as far as another read as only a little worse and agents spent their lives walking. Read at six, everything past the near ground reads the same and the choice between two errands is made where it matters. On its own: 39 settlements in 48 replaced their founders, then 46. It is the single most valuable number in the file, and it was worth as much again after the ontology and the household field as before them.
+- **A larder is for the week that has not happened yet.** The food knee - how much food reads as plenty - was four units, the point past which one more unit does nothing for today's hunger. Nobody with two units in the basket went out, and the settlement lived hand to mouth on 1.5 units a head while the learner's settlements sat on 23. Read at sixteen the same person keeps working. Before the ontology it was the bigger of the two, taking the median from 25 to 58 on its own; on this tree it is worth about half that, and the two together carry the median from 63 to 87.
 - **Founders differ from one another.** Habits drift N(0, 0.15) at birth. Twenty founders reading every moment identically have no division of labour to fall into. Extinctions 9 → 4 on the first twelve seeds.
-- **Public order is read as a lack**, the way shelter already was: `order - 1`, so an ungoverned settlement reads -1 and a well-kept one reads 0. Read one-sided it was silent exactly when it mattered, and guarding - whose prior names the ungoverned moment - never happened in a settlement that had never had a watch. This is the change that let a settlement hold order at all.
-- **Hunger is answered by farming as well as by foraging.** The old farm prior said nothing of hunger on purpose: under learning, harvests judged farming by what a first poor field fed and learned it away before agriculture arrived. With no learner to be misled there is nothing to protect farming from, and a prior that only industrious people recognise leaves a settlement foraging its woods bare. Farm names hunger at 0.8 and forage at 0.7, so a person with a field works it and a person without goes to the trees. Lasted 4/12 → 8/12, extinct 0.
-- **Rest is the quiet moment** rather than a mild hunger (see Writing priors), and **eating is hunger and nearness alone**. Eating named the larder for a while, which was wrong twice over: on a twelve-unit reading a hungry person with two units by them read the moment as one for foraging, and what the larder is for was never the question - `Available` already settles whether there is anything to eat.
+- **Public order is read as a lack**, the way shelter already was: `order - 1`, so an ungoverned settlement reads -1 and a well-kept one reads 0. Read one-sided it was silent exactly when it mattered, and guarding - whose moment is the ungoverned one - never happened in a settlement that had never had a watch. This is the change that let a settlement hold order at all. It is loud enough that in a place which has never kept any, standing a watch fits nearly any moment; that is the intended reading, and it is why `TestLonelyAgentWithCompanySocializes` gives its world some order before asking what a lonely evening calls for.
+- **Rest is the quiet moment** rather than a mild hunger (see Writing priors), and **eating is hunger and nearness alone**. Eating named the larder for a while, which was wrong twice over: on a sixteen-unit reading a hungry person with two units by them read the moment as one for foraging, and what the larder is for was never the question - `Available` already settles whether there is anything to eat. Both live in the ontology now, on `dwell/rest` and on the `Consume` verb.
 
 Two of the five are knees rather than priors, and that is the lesson worth keeping: **without a learner, what an agent counts as enough is a design parameter, and it is the one that decides whether a settlement produces a surplus.** The learner used to discover it - a full larder went on feeding a family for a fortnight, and the field that filled it was thanked - so the knee could be written for how a single meal feels. With the learner gone it has to be written for the week.
 
-What this buys: 91 of 96 settlements replace their founders, none die out, the median ends at 91 people against the learner's 79, and the settlement feeds itself well enough that half of its fertile adults are in a state to raise a child at any moment. The rule that never learns now has the higher ceiling, but it is a ceiling in a different place: it is written down, in five numbers and twenty-five priors, and moving it means moving them.
+What this buys: 93 of 96 settlements replace their founders, none die out, the median ends at 87 people against the learner's 79, and about half of the settlement's fertile adults are fed, safe and held well enough to raise a child at any moment. The rule that never learns now has the higher ceiling, but it is a ceiling in a different place: it is written down, in a handful of numbers and the trees the priors are composed from, and moving it means moving them.
 
 ### Measuring a change
 ### Measuring a change

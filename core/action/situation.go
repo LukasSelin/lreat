@@ -31,28 +31,28 @@ func bipolar(x float64) float64 { return 2*need.Clamp(x) - 1 }
 // something to be short of until there is a house's worth of it, which is
 // what makes gathering toward a house a thing an agent will keep at for days.
 //
-// The food knee is three meals' worth of surplus, not one. Read against four
+// The food knee is a fortnight's eating, not a day's. Read against four
 // units - the point past which one more unit is worth nothing to eat today -
 // a settlement lived hand to mouth: two units in the basket read as half
 // plenty, nobody went out, and a fertile adult was fed well enough to think
 // of a child about a third of the time. What a larder is for is the week
-// that has not happened yet, and read at twelve the same person keeps
-// working. Over 48 seeds that one number took the median settlement from 25
-// to 58 and ended extinctions.
+// that has not happened yet, and read at sixteen the same person keeps
+// working.
 //
-// The near knee is a day's walk across the settlement, not across the map.
-// Read at thirty, an errand three times as far as another read as only a
-// little worse, and agents spent their lives walking; read at ten,
-// everything beyond the near ground reads as far as can be and the choice
-// between two errands is decided on the ground people actually live on. It
-// is worth more than any other single number here: 35 settlements in 48
-// became 44, and the median trebled.
+// The near knee is the ground people live on, not the width of the map.
+// Read at thirty an errand three times as far as another read as only a
+// little worse, and agents spent their lives walking; read at six,
+// everything past the near ground reads as far as can be and the choice
+// between two errands is decided where it is actually made. It is the most
+// valuable number in the file: on its own it took settlements that replaced
+// their founders from 39 in 48 to 46, and with the food knee beside it the
+// median settlement roughly doubled.
 const (
-	foodKnee   = 12
+	foodKnee   = 16
 	woodKnee   = raisingTimber
 	wealthKnee = 20
 	// nearKnee is the travel cost at which a target reads as far as can be.
-	nearKnee = 10
+	nearKnee = 6
 )
 
 // Shared is the part of the situation that is the same for every candidate.
