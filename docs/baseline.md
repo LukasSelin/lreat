@@ -88,3 +88,40 @@ smelt                 9   0.0%
 born 0.15 inherit 0.05 temp 0.15
 gates: fed 0.49 safe 0.28 held 0.62 all 0.136 food 2.17 hungry-with-food 0.24 | lasted 23/24 extinct 0 mean 157.4 median 139 | phys 0.60 safe 0.47 belng 0.57 estm 0.53
 ```
+
+## How much of that is chance
+
+The same code on two further batches of twenty-four seeds, which `-offset`
+draws from a stretch of the seed space the baseline never touched:
+
+```bash
+go run ./cmd/tune -seeds 24 -ticks 6000 -offset 24 -quiet
+go run ./cmd/tune -seeds 24 -ticks 6000 -offset 48 -quiet
+```
+
+```
+offset  0: gates: fed 0.49 safe 0.28 held 0.62 all 0.136 food 2.17 hungry-with-food 0.24 | lasted 23/24 extinct 0 mean 157.4 median 139 | phys 0.60 safe 0.47 belng 0.57 estm 0.53
+offset 24: gates: fed 0.48 safe 0.24 held 0.59 all 0.110 food 2.01 hungry-with-food 0.23 | lasted 20/24 extinct 0 mean 116.2 median 122 | phys 0.57 safe 0.46 belng 0.60 estm 0.53
+offset 48: gates: fed 0.48 safe 0.25 held 0.67 all 0.122 food 2.10 hungry-with-food 0.24 | lasted 20/24 extinct 2 mean 96.5 median 75 | phys 0.57 safe 0.49 belng 0.59 estm 0.53
+```
+
+Nothing changed between those three but which seeds were drawn, and the mean
+population went 157, 116, 97. Twenty-four seeds is not enough to say anything
+with it, and neither is the median, which went 139, 122, 75. A settlement that
+runs away is worth as much as the twenty that did not, and one of them lands in
+every few batches.
+
+What holds still is the per-agent side. `fed` moved 0.01 across all three, the
+mean needs 0.01 to 0.03, `all` 0.11 to 0.14, and `lasted` and `extinct` a couple
+of settlements. So:
+
+| reading | moved by chance | worth believing at |
+|---|---|---|
+| fed, and the four mean needs | 0.01-0.03 | 0.05 |
+| gates all | 0.026 | 0.04 |
+| lasted, extinct | 3 of 24, 2 of 24 | 5 of 24 |
+| mean and median population | 60% of itself | a second batch that agrees |
+
+A change that only moves the population numbers has not been shown to do
+anything. Run it again on `-offset 24` before believing it, and say in the
+commit that both batches agreed.

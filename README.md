@@ -49,7 +49,9 @@ What that batch prints on master is checked in at
 [docs/baseline.md](docs/baseline.md), so a change is judged against a file
 rather than against a batch run to find out where master already stood. Take the
 one run that measures the change once it is settled, and refresh the file in the
-commit that lands it.
+commit that lands it. The `baseline` skill in
+[.claude/skills](.claude/skills/baseline/SKILL.md) is that procedure written
+out, including which of the numbers are steady enough to believe.
 
 All three take `-seed` and `-agents`. A seed plus a command log reproduces a run
 exactly, however the goroutines happen to interleave.
