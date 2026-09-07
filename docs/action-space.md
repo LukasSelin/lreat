@@ -344,3 +344,43 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 | bridges | 1535 | 0.63% |
 
 Better on both counts, which is unusual for a change made for the look of the thing.
+
+## Watching one agent decide
+
+Everything above is measured over settlements, and a settlement is the one
+thing a fit-based choice cannot be read off. A decision here is a draw from a
+softmax over every action available in the moment; what it leaves behind is a
+plan, and a plan is only the winner's name. Tuning a prior meant guessing
+from the aggregate which candidate it had beaten, and the map — hundreds of
+figures walking — shows the choices and not one reason for any of them.
+
+So the world will follow one agent at a time (`World.Watch`). While it does,
+every decision that agent makes is kept whole (`world.Deliberation`): each
+action it had before it, where it would have been done, how well it fitted
+the moment, how far into reach it still was, and the odds the draw actually
+ran on — `habit.Softmax` over the same fits `habit.Sample` drew from, at the
+same temperature, which is `Rules.Temperature` divided by how pressing the
+moment was. The value rule is watchable too and says so, since a score per
+tick is not read the way a fit is.
+
+Three things kept it from being a change to the simulation rather than a
+window on it:
+
+- **One agent.** Keeping this for everybody would cost every tick something
+  to be read for nobody, and following somebody else forgets the last one.
+- **Written on the way past.** Deliberations ride home from the parallel
+  deciding phase inside `decision`, beside the plan and the entropy, and are
+  filed in agent order. Watching an agent must not decide what a run does or
+  when it does it, and `TestWatchingChangesNothing` holds a watched run
+  against an unwatched one.
+- **Nothing inside may read it.** No agent knows what anyone weighed,
+  including itself. It is for the operator, and `observe.Look` — a whole
+  agent, including what it can do against what it believes it can do — is
+  frankly omniscient in the same way the rest of the watch command is.
+
+In `cmd/watch`, tab or a click picks a figure out of the crowd and opens it up
+beside the map; the last decision is shown as the candidates it beat, with
+the odds, over the run of choices behind it. A run of choices is what says
+whether an agent is getting anywhere or turning on the spot between the same
+two errands — which is the thing the aggregate graph, by construction,
+averages away.
