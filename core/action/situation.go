@@ -152,7 +152,20 @@ func rapport(a *entity.Agent, w *world.World, d *Def, o *entity.Agent) float64 {
 // Fit is how well a candidate's situation matches the agent's habit for it,
 // less how far out of reach the action still is.
 func Fit(a *entity.Agent, i int, s habit.Signature) float64 {
-	return habit.Cosine(s, a.Habits[i]) - habit.ReachPenalty*(1-a.Reach[i])
+	// The store coordinates count toward how well the moment matches the
+	// habit, not toward how big the moment is. They are read per
+	// candidate, and a candidate is not further from its habit for being
+	// about something the agent is short of: with them in the norm, an
+	// act that moves nothing had the longer moment and lost on cosine to
+	// one that does, whatever either was about.
+	h := a.Habits[i]
+	shape := s
+	shape[habit.Lack], shape[habit.Stock] = 0, 0
+	ns, nh := habit.Norm(shape), habit.Norm(h)
+	if ns < habit.Epsilon || nh < habit.Epsilon {
+		return -habit.ReachPenalty * (1 - a.Reach[i])
+	}
+	return max(-1, min(1, habit.Dot(s, h)/(ns*nh))) - habit.ReachPenalty*(1-a.Reach[i])
 }
 
 // Candidate is one action the agent could take now, with everything the
