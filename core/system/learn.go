@@ -34,7 +34,7 @@ func Learn(a *entity.Agent, w *world.World, p *entity.Plan) {
 	adv := habit.Advantage(r, expectation(a, p.Index))
 	a.Baseline += habit.BaselineRate * (r - a.Baseline)
 	a.Baselines[p.Index] += habit.ActionBaselineRate * (r - a.Baselines[p.Index])
-	provenance(a, p, adv, after)
+	provenance(a, p, r, adv, after)
 
 	a.Trace.Push(habit.Step{Index: p.Index, Situation: p.Situation})
 	for k, st := range a.Trace {
@@ -48,43 +48,62 @@ func Learn(a *entity.Agent, w *world.World, p *entity.Plan) {
 	a.Reach[p.Index] = min(1, a.Reach[p.Index]+habit.ReachGain)
 }
 
+// settle judges the i-th harvest by all it brought against what producing
+// acts usually bring, credits the act that made it, and forgets it. This
+// is where a field that feeds three meals learns it did better than the
+// forest that fed one, and where a poor field learns it did worse.
+func settle(a *entity.Agent, i int) {
+	h := a.Larder[i]
+	credit(a, h.Step, habit.Advantage(h.Returned, a.Harvest))
+	a.Harvest += habit.HarvestRate * (h.Returned - a.Harvest)
+	a.Larder = append(a.Larder[:i], a.Larder[i+1:]...)
+}
+
 // expectation is what the agent has come to expect of an outcome of act i:
 // a blend of that act's usual outcome and outcomes in general.
 func expectation(a *entity.Agent, i int) float64 {
 	return habit.BaselineMix*a.Baselines[i] + (1-habit.BaselineMix)*a.Baseline
 }
 
-// credit hands an advantage to an earlier act by provenance: the meal was
-// better or worse than meals usually are, and the act that made it possible
-// learns from that. Credit carries the advantage, not the reward, on
-// purpose. A raw reward is always good news, and an act thanked for every
-// meal drifts onto the average moment and fits everything; an advantage is
-// bad news for the forage that fed a full belly, so production learns to
-// stop when the larder is full.
+// credit hands an advantage to an earlier act by provenance. Credit carries
+// an advantage, not a reward, on purpose: a raw reward is always good news,
+// and an act thanked for every meal drifts onto the average moment and fits
+// everything. An advantage can be bad news, and is what lets one way of
+// getting food be recognised as better than another.
 func credit(a *entity.Agent, st habit.Step, adv float64) {
 	h := &a.Habits[st.Index]
 	habit.Update(h, st.Situation, adv, habit.ProvenanceWeight, habit.Eta)
 	habit.ClampNorm(h, habit.MinNorm, habit.MaxNorm)
 }
 
-// provenance keeps the larder and the roof, and pays credit from them. adv
-// is the advantage of the plan that just ended.
-func provenance(a *entity.Agent, p *entity.Plan, adv float64, after habit.Ledger) {
+// provenance keeps the larder and the roof, and pays credit from them. r and
+// adv are the reward and the advantage of the plan that just ended.
+func provenance(a *entity.Agent, p *entity.Plan, r, adv float64, after habit.Ledger) {
 	st := habit.Step{Index: p.Index, Situation: p.Situation}
-	// Food that came in remembers this act; food that went out thanks the
-	// act that brought it, with this act's reward. Eating is the case that
-	// matters; selling and giving pass on their smaller rewards the same way,
-	// and food lost to a thief thanks its producer with whatever this plan
-	// happened to earn, which is about how theft feels to a farmer.
+	// Food that came in is a harvest that remembers this act. Food that went
+	// out adds this plan's reward to the harvests it came from, oldest
+	// first, and a harvest whose last unit has gone is judged by all it
+	// brought. Eating is the case that matters; selling and giving add their
+	// smaller rewards the same way, and food lost to a thief adds whatever
+	// this plan happened to earn, which is about how theft feels to a farmer.
 	switch delta := after.Food - p.Before.Food; {
-	case delta > 0.3:
-		for n := max(1, int(delta+0.5)); n > 0 && len(a.Larder) < habit.LarderCap; n-- {
-			a.Larder = append(a.Larder, st)
+	case delta > 0.2:
+		if len(a.Larder) == habit.LarderCap {
+			settle(a, 0) // the oldest harvest is judged by what it has brought so far
 		}
-	case delta < -0.3:
-		for n := max(1, int(-delta+0.5)); n > 0 && len(a.Larder) > 0; n-- {
-			credit(a, a.Larder[0], adv)
-			a.Larder = a.Larder[1:]
+		a.Larder = append(a.Larder, habit.Harvest{Step: st, Left: delta})
+	case delta < -0.2:
+		gone := -delta
+		for gone > 0 && len(a.Larder) > 0 {
+			h := &a.Larder[0]
+			take := min(h.Left, gone)
+			h.Returned += r * take / -delta
+			h.Left -= take
+			gone -= take
+			if h.Left > 0.05 {
+				break
+			}
+			settle(a, 0)
 		}
 	}
 	// A roof raised remembers this act, and so does a watch kept. Safety

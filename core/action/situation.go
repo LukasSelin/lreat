@@ -38,7 +38,14 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	s[habit.Food] = bipolar(a.Inventory[entity.Food] / foodKnee)
 	s[habit.Wood] = bipolar(a.Inventory[entity.Wood] / woodKnee)
 	s[habit.Wealth] = bipolar(a.Wealth / wealthKnee)
-	s[habit.Shelter] = bipolar(a.Shelter)
+	// Shelter is read as a lack, not around a midpoint: half a house is
+	// still half a house short, and a roof that is not kept up rots to
+	// nothing. Read around a midpoint the unsheltered moment only began once
+	// a house had mostly rotted, safety sat below what a birth needs except
+	// in the spike after each rebuild, and a settlement lived or died on
+	// how many such spikes fell in its founders' fertile years. Over 48
+	// seeds this took survivors from 35 to 40 and extinctions from 2 to 0.
+	s[habit.Shelter] = a.Shelter - 1
 	if w.Neighbor(a, reachRadius) != nil {
 		s[habit.Company] = 1
 	} else {

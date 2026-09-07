@@ -22,14 +22,22 @@ const (
 	Road
 )
 
-// Tile is one cell of the world. Fertility comes from the river; Wood is the
-// standing timber on a forest tile and is what gathering consumes.
+// Tile is one cell of the world. Fertility comes from the river and is worn
+// down by farming; Rich is the most it can recover to. Wood is the standing
+// timber on a forest tile and is what gathering consumes; Wild is what the
+// forest has to give in food, berries and game, and is what foraging and
+// hunting consume. Fish is what a water tile has to give. All of them
+// regrow, slowly, so the land pushes back against a settlement that takes
+// too much and yields to one that leaves it be.
 type Tile struct {
 	Terrain   Terrain
 	Structure Structure
 	Owner     entity.ID
 	Fertility float64
+	Rich      float64
 	Wood      float64
+	Wild      float64
+	Fish      float64
 
 	// Traffic is how worn the ground is: it rises with every crossing and
 	// fades when nobody comes that way. It is not a cost - walking a beaten

@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 18
+const Count = 22
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -67,6 +67,7 @@ func init() {
 		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
 		Guard, Socialize, Craft, Teach, Study, Pave,
 		Steal, Give, Fulfil, Retaliate,
+		Fish, Hunt, Irrigate, PlantTrees,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -131,35 +132,77 @@ var Rest = &Def{
 	},
 }
 
+// A meal is as much as it takes to be full, up to a few units, or what there
+// is. Yields from the land are fractional, so an agent that could only eat
+// whole units would starve with most of a meal in its pack; and an agent
+// that could only eat one unit at a sitting would, with a larder full,
+// still go hungry between the sittings it finds time for.
+const (
+	mouthful  = 0.25 // the least worth stopping to eat
+	feast     = 3.0  // the most eaten at one sitting
+	nourished = 0.35 // what one unit restores
+)
+
+// helping is how much an agent would eat now: enough to be full, within
+// what it has and what a sitting can hold.
+func helping(a *entity.Agent) float64 {
+	want := (1 - a.Needs[need.Physiological]) / nourished
+	return min(a.Inventory[entity.Food], max(mouthful, min(feast, want)))
+}
+
 var Eat = &Def{
 	Name: "eat", Ticks: 1, Target: here,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Food] >= 1 },
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: 0.35}
+	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Food] >= mouthful },
+	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
+		return need.Levels{need.Physiological: nourished * helping(a)}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		a.Inventory[entity.Food]--
-		a.Needs.Add(need.Physiological, 0.35)
+		take := helping(a)
+		a.Inventory[entity.Food] -= take
+		a.Needs.Add(need.Physiological, nourished*take)
 	},
 }
 
 func isForest(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Forest }
 
+// forageTake is how much of a forest's wild food one forage consumes.
+const forageTake = 0.08
+
+// forageYield is what a forest with this much left gives. A picked forest
+// still gives something, so a settlement is pushed toward the river and
+// the field rather than into the ground.
+func forageYield(wild float64) float64 { return 0.45 + 0.55*wild }
+
 var Forage = &Def{
 	Name: "forage", Ticks: 2, Available: always,
 	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+		// The nearest forest, thin as it may be. Going further for a fuller
+		// patch was tried: the walk each way, on the errand the whole
+		// economy runs on, cost more than the fuller patch gave, and a
+		// forager who stays put and finds less is what turns a settlement
+		// toward the river and the field.
 		return w.Grid.Nearest(a.Pos, searchRadius, isForest)
 	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: foodValue(a) * 1.0}
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		return need.Levels{need.Physiological: foodValue(a) * forageYield(w.Grid.At(target).Wild)}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		if w.Grid.At(a.Pos).Terrain != world.Forest {
+		t := w.Grid.At(a.Pos)
+		if t.Terrain != world.Forest {
 			return // somebody cleared it while we walked
 		}
-		a.Inventory[entity.Food] += 1.0 * (0.6 + 0.8*w.RNG.Float64())
+		a.Inventory[entity.Food] += forageYield(t.Wild) * (0.6 + 0.8*w.RNG.Float64())
+		t.Wild = max(0, t.Wild-forageTake)
 	},
 }
+
+// farmWear is the fertility one farming takes from a field, and wornField
+// the least a field is worn down to. A field farmed without rest goes poor
+// in a few dozen harvests and comes back over a long fallow.
+const (
+	farmWear  = 0.006
+	wornField = 0.1
+)
 
 func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
@@ -202,6 +245,7 @@ var Farm = &Def{
 			return
 		}
 		a.Inventory[entity.Food] += farmYield(a, w, t.Fertility)
+		t.Fertility = max(wornField, t.Fertility-farmWear)
 		a.AddSkill(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
 	},

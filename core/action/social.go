@@ -284,6 +284,9 @@ func serve(doer, client *entity.Agent, w *world.World, s entity.Skill) {
 	case entity.Farming:
 		client.Inventory[entity.Food] += (0.8 + 2*level) * w.Mods.FarmYield
 		doer.AddSkill(entity.Farming, 0.01)
+	case entity.Fishing:
+		client.Inventory[entity.Food] += (0.6 + 1.5*level) * w.Mods.FishYield
+		doer.AddSkill(entity.Fishing, 0.015)
 	}
 	client.Needs.Add(need.Belonging, 0.05)
 }
