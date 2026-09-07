@@ -101,3 +101,9 @@ func soil(t *world.Tile, m *ontology.Class) store {
 	}
 	return bottomless{}
 }
+
+// price is what the market asks for a material.
+func price(w *world.World, m *ontology.Class) float64 {
+	g, _ := good(m)
+	return w.Market.Price[g]
+}

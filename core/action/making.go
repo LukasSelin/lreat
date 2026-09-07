@@ -65,7 +65,7 @@ var Cook = product("make/provision+timber>meal@hearth")
 
 func quarryYield(a *entity.Agent) float64 { return 0.5 + a.Skills[entity.Building] }
 
-var Quarry = take("take/stone@outcrop")
+var Quarry = mover("take/stone@outcrop")
 
 var BuildGranary = raise("raise/timber+stone>granary@open")
 
