@@ -1,6 +1,9 @@
 package world
 
-import "lreat/core/ontology"
+import (
+	"lreat/core/clock"
+	"lreat/core/ontology"
+)
 
 // What grows on a tile takes time to come on, and that time is not the same
 // for everything growing. Timber is the slow one: a stand a planter raised is
@@ -9,13 +12,21 @@ import "lreat/core/ontology"
 // a clearing being made. A crop is the fast one: sown, in ear within the
 // quarter, and gone again the moment it is cut.
 //
-// These are growing ticks rather than ticks: what is measured is how much
+// These are growing days rather than days: what is measured is how much
 // growing weather a stand has had, so a wood raised in the autumn stands
 // still until the thaw. See system.Land, which advances them.
+//
+// They are what the regrowth rates in system.Land were tuned against, and
+// the pair has to be read together: an age says what a stand may hold, a
+// rate says how fast it fills toward it, and it is the slower of the two
+// that a settlement actually feels. Lengthening the year did not lengthen
+// these, and that is deliberate - the day is what the land renews by and
+// the day is what people take by, so the balance between them is the one
+// thing the calendar must not touch.
 const (
-	TimberAge = 20 * Year
-	BrushAge  = 6 * Year
-	CropAge   = Season
+	TimberAge = 6 * clock.Year
+	BrushAge  = 2 * clock.Year
+	CropAge   = clock.Month
 )
 
 // living is where the ontology's Living sites are to be found on the map. It

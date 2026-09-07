@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"lreat/core/action"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -128,8 +129,8 @@ func TestIntensitySharpensWithNeed(t *testing.T) {
 // the reach constants. They log the same tallies so the two modes can be
 // compared.
 //
-// They run long enough for the founders to die of old age, so passing means
-// the settlement replaced itself. What carries a settlement is the priors:
+// They run a generation - long enough for the founders to die of old age -
+// so passing means the settlement replaced itself. What carries a settlement is the priors:
 // the moments each act is written to belong to, inherited and taught but
 // never revised by experience. See docs/action-space.md.
 //
@@ -137,6 +138,11 @@ func TestIntensitySharpensWithNeed(t *testing.T) {
 // settlement lasts turns on how many births fall in its founders' fertile
 // years, and a single seed can land on either side of that edge. The claim
 // is that recognition settlements usually last and never simply vanish.
+
+// generation is the horizon these run to: longer than a life, so that a
+// settlement still standing at the end is one that replaced the people who
+// founded it rather than one whose founders have not died yet.
+const generation = 50 * clock.Year
 
 func TestCityDevelopsByRecognition(t *testing.T) {
 	seeds := []uint64{1, 2, 3}
@@ -150,7 +156,7 @@ func TestCityDevelopsByRecognition(t *testing.T) {
 				t.Parallel()
 				w := fitWorld(seed)
 				populate(w, 20)
-				Run(w, 6000)
+				Run(w, generation)
 				s := observe.Take(w)
 				results[i] = outcome{len(w.Agents), s.Deaths, s.Houses, s.Fields, len(w.Techs())}
 				t.Logf("seed %d: pop %d, died %d, houses %d, fields %d, techs %v", seed, s.Population, s.Deaths, s.Houses, s.Fields, w.Techs())
@@ -176,7 +182,7 @@ func TestCityDevelopsByRecognition(t *testing.T) {
 		t.Fatalf("only %d of %d settlements replaced their founders", lasted, len(seeds))
 	}
 	if techs == 0 {
-		t.Fatal("no settlement discovered anything in 6000 ticks")
+		t.Fatal("no settlement discovered anything in a lifetime")
 	}
 }
 
@@ -185,7 +191,7 @@ func TestSocialLifeEmergesByRecognition(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, 6000)
+	Run(w, 15*clock.Year)
 	counts := map[event.Kind]int{}
 	for _, e := range w.Log.All() {
 		counts[e.Kind]++
@@ -221,7 +227,7 @@ func TestFeudsFormByRecognition(t *testing.T) {
 				for j := 0; j < 20; j++ {
 					w.Spawn("a", w.RandomPersonality())
 				}
-				Run(w, 4000)
+				Run(w, 10*clock.Year)
 				for _, e := range w.Log.All() {
 					if e.Kind == event.Avenged {
 						avenged[i]++

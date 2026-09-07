@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"lreat/core/action"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -30,7 +31,7 @@ type row struct {
 func main() {
 	seeds := flag.Int("seeds", 24, "seeds to run")
 	offset := flag.Int("offset", 0, "first seed minus one, for an independent batch")
-	ticks := flag.Int("ticks", 6000, "ticks per run")
+	ticks := flag.Int("ticks", 60*clock.Year, "days per run")
 	agents := flag.Int("agents", 20, "starting population")
 	value := flag.Bool("value", false, "use the value rule")
 	born := flag.Float64("born", action.BornNoise, "drift on a founder's habits")

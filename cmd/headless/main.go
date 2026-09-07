@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"lreat/core/clock"
 	"lreat/core/event"
 	"lreat/core/observe"
 	"lreat/core/system"
@@ -23,13 +24,13 @@ var names = []string{
 
 func main() {
 	seed := flag.Uint64("seed", 1, "world seed")
-	ticks := flag.Int("ticks", 5000, "ticks to simulate")
+	ticks := flag.Int("ticks", 50*clock.Year, "days to simulate")
 	agents := flag.Int("agents", 20, "starting population")
-	every := flag.Int("every", 250, "report interval in ticks")
+	every := flag.Int("every", 5*clock.Year, "report interval in days")
 	showMap := flag.Bool("map", false, "print the map at each report")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of recognition; 0 always takes the best fit")
-	pave := flag.Int("pave", 0, "lay streets through the settlement every N ticks (0 never)")
+	pave := flag.Int("pave", 0, "lay streets through the settlement every N days (0 never)")
 	workers := flag.Int("workers", system.Workers, "goroutines to decide over (1 decides one agent at a time)")
 	flag.Parse()
 	system.Workers = *workers
@@ -41,8 +42,8 @@ func main() {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
 
-	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %6s %5s | %s\n",
-		"tick", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "wood", "frnd", "feud", "reach", "sprd", "open", "season", "deg", "doing")
+	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %-18s %5s | %s\n",
+		"day", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "wood", "frnd", "feud", "reach", "sprd", "open", "date", "deg", "doing")
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
@@ -85,5 +86,5 @@ func report(s observe.Snapshot) {
 	fmt.Printf("%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %6s %5.1f | %s\n",
 		s.Tick, s.Population, s.Deaths, n[0], n[1], n[2], n[3], n[4], s.MeanHealth, s.MeanAge, s.Elders,
 		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Forest, s.Friendships, s.Feuds,
-		s.GatedReach, s.HabitSpread, s.ChoiceEntropy, s.Season, s.Temp, strings.Join(doing, " "))
+		s.GatedReach, s.HabitSpread, s.ChoiceEntropy, s.Date, s.Temp, strings.Join(doing, " "))
 }

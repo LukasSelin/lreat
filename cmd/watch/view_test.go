@@ -146,7 +146,7 @@ func TestCardShowsTheFollowedAgent(t *testing.T) {
 	v.draw()
 
 	text := screenText(sc)
-	for _, want := range []string{"Ada", "farming", "farm", "forage", "62%", "tick 9"} {
+	for _, want := range []string{"Ada", "farming", "farm", "forage", "62%", "spring 10, year 1"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("the card does not show %q:\n%s", want, text)
 		}

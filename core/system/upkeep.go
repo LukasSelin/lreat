@@ -1,6 +1,7 @@
 package system
 
 import (
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/world"
@@ -14,13 +15,13 @@ import (
 // way, and the land under it can never be put to anything else. Ruin is what
 // gives a settlement the room to be something other than what it first was.
 const (
-	// leftToFall is the per-tick chance that a building nobody keeps falls
-	// in, and leftToWeeds the chance a field nobody works goes back to
-	// grass. About three hundred ticks either way: long enough that a house
-	// outlives its builder and an heir could take it on, short enough that a
-	// settlement is not walled in by its dead.
-	leftToFall  = 1.0 / 300
-	leftToWeeds = 1.0 / 300
+	// leftToFall is the daily chance that a building nobody keeps falls in,
+	// and leftToWeeds the chance a field nobody works goes back to grass.
+	// About three years either way: long enough that a house outlives its
+	// builder and an heir could take it on, short enough that a settlement
+	// is not walled in by its dead.
+	leftToFall  = 1.0 / (3 * clock.Year)
+	leftToWeeds = 1.0 / (3 * clock.Year)
 )
 
 // Upkeep lets what nobody keeps fall down. A tile belongs to whoever built

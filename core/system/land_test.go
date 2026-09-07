@@ -3,6 +3,7 @@ package system
 import (
 	"testing"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/world"
 )
@@ -33,7 +34,7 @@ func TestTheWoodsCreepBackAndThenStop(t *testing.T) {
 	}
 	start := woods(w)
 
-	for i := 0; i < 6000; i++ {
+	for i := 0; i < 15*clock.Year; i++ {
 		w.Tick++
 		w.Climate.Advance(w.Tick, w.RNG)
 		Land(w)

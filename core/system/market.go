@@ -3,6 +3,7 @@ package system
 import (
 	"math"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/world"
@@ -119,8 +120,9 @@ const (
 	// distance at which people would stop calling it their market.
 	marketDrift = 10
 	// marketEvery is how often the question is asked. Moving a market is a
-	// generation's work, not a morning's.
-	marketEvery = 200
+	// generation's work, not a morning's, so the question comes round once
+	// a year.
+	marketEvery = clock.Year
 )
 
 // middle is the settlement's centre of gravity: the mean of its roofs, or of

@@ -3,6 +3,8 @@ package world
 import (
 	"math"
 	"math/rand/v2"
+
+	"lreat/core/clock"
 )
 
 // The climate. A settlement that is founded in one weather and lives in it
@@ -16,12 +18,12 @@ import (
 // The place is temperate. Midsummer is warm and midwinter bites without
 // being fatal on its own; what kills is a winter met without a roof.
 
-// Year is the length of a year in ticks, and Season a quarter of it. A life
-// of Lifespan ticks is some fifty of these, so a run long enough to develop
-// sees dozens of winters.
+// The year and its quarters come from the calendar; see package clock. They
+// are named here as well because everything the weather does is said against
+// them.
 const (
-	Year   = 100
-	Season = Year / 4
+	Year   = clock.Year
+	Season = clock.Season
 )
 
 // The shape of the year. MeanTemp is the annual mean in degrees, Swing half
@@ -38,10 +40,10 @@ const (
 // process's timescale is shed - and Shock the standard deviation of what is
 // added, chosen so the anomaly settles at a standard deviation of Wander.
 const (
-	driftTime   = 800.0 // ticks, eight years
-	driftWander = 1.2   // degrees
-	spellTime   = 6.0   // ticks
-	spellWander = 2.5   // degrees
+	driftTime   = 8.0 * clock.Year // a run of kind or unkind decades
+	driftWander = 1.2              // degrees
+	spellTime   = 1.0 * clock.Week // a warm week, a cold snap
+	spellWander = 2.5              // degrees
 )
 
 var (
@@ -133,14 +135,7 @@ func ramp(x, lo, hi float64) float64 {
 	return (x - lo) / (hi - lo)
 }
 
-// Names of the four seasons, from the one tick zero falls in.
-var seasons = [4]string{"spring", "summer", "autumn", "winter"}
-
-// SeasonOf names the quarter of the year tick falls in.
-func SeasonOf(tick int) string {
-	q := (tick % Year) / Season
-	if q < 0 {
-		q += 4
-	}
-	return seasons[q]
-}
+// SeasonOf names the quarter of the year tick falls in. It is the calendar's
+// answer; this is here so that callers reading the weather need not reach
+// past it for the date.
+func SeasonOf(tick int) clock.Quarter { return clock.SeasonOf(tick) }

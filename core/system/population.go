@@ -5,6 +5,7 @@ import (
 
 	"lreat/core/action"
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -12,11 +13,16 @@ import (
 )
 
 const (
-	// StarvationTicks is how long an agent survives at the bottom of the
-	// physiological tier.
-	StarvationTicks = 60
-	// BirthChance is the per-tick probability that a thriving agent has a child.
-	BirthChance = 0.006
+	// Starvation is how long an agent survives at the bottom of the
+	// physiological tier. Two months of it is the end.
+	Starvation = 2 * clock.Month
+	// BirthChance is the daily probability that a thriving agent has a
+	// child. It is written against the year because what has to stay fixed
+	// as the calendar changes is how many children a fertile life brings,
+	// not how many a day does: about three chances in five a year, over the
+	// twenty-three fertile years, for a parent whose lower three tiers are
+	// all met at once - which is rare.
+	BirthChance = 0.6 / clock.Year
 	// MaxPopulation caps growth so runs stay bounded.
 	MaxPopulation = 400
 	// InheritedSkill is the share of a parent's skills a child is born with,
@@ -32,7 +38,7 @@ const (
 func Population(w *world.World) {
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
-		if a.Starving > StarvationTicks {
+		if a.Starving > Starvation {
 			w.Deaths++
 			w.Emit(event.Died, a.ID, 0, "%s starved", a.Name)
 			continue
@@ -43,7 +49,7 @@ func Population(w *world.World) {
 		age := a.Age(w.Tick)
 		if w.RNG.Float64() < entity.Frailty(age)*(1.5-need.Clamp(a.Health)) {
 			w.Deaths++
-			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, age)
+			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, clock.Years(age))
 			continue
 		}
 		alive = append(alive, a)

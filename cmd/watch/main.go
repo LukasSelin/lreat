@@ -24,6 +24,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/observe"
@@ -41,10 +42,12 @@ var names = []string{
 const (
 	panelWidth = 38
 	// The activity graph runs under the map at the map's own width. Each
-	// column is the mean of graphTicks ticks; graphMax columns are kept so
-	// a wider map simply shows more of the same history.
+	// column is the mean of graphTicks days; graphMax columns are kept so
+	// a wider map simply shows more of the same history. At twenty days a
+	// column a map-wide graph covers some four years, which is the span a
+	// settlement's changes of habit actually show up over.
 	graphHeight = 6
-	graphTicks  = 5
+	graphTicks  = 20
 	graphMax    = 320
 	// The settlement's figures sit in two columns of label and
 	// right-aligned number, both halves the same shape so the numbers line
@@ -348,7 +351,11 @@ func (v *view) draw() {
 	if v.paused {
 		state = "PAUSED"
 	}
-	put(bold, "tick %-7d pop %-5d %s", s.Tick, s.Population, state)
+	// The date rather than the tick count: what a settlement is living
+	// through is a year and a season, and the raw day is only useful for
+	// lining a run up against a log.
+	put(bold, "%-20s pop %-5d %s", s.Date, s.Population, state)
+	put(dim, "day %d", s.Tick)
 	line++
 	for _, t := range need.Tiers() {
 		put(tcell.StyleDefault, "%-13s %s %.2f", t, bar(s.MeanNeeds[t], 12), s.MeanNeeds[t])
@@ -391,7 +398,7 @@ func (v *view) draw() {
 	// thing on the panel that moves on its own schedule rather than the
 	// settlement's, and the growth figure says what the season is doing to
 	// the land.
-	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Season, s.Temp, s.Growth)
+	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Date.Season, s.Temp, s.Growth)
 	techs := "none yet"
 	if len(s.Techs) > 0 {
 		parts := make([]string, len(s.Techs))
@@ -430,7 +437,7 @@ func (v *view) draw() {
 		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
 	}
 	v.drawGraph(0, s.Map.H+1, s.Map.W)
-	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d ticks →", min(len(v.hist), s.Map.W)*graphTicks))
+	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d days →", min(len(v.hist), s.Map.W)*graphTicks))
 	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  r pave")
 	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  q quit")
 	sc.Show()
@@ -569,7 +576,7 @@ func (v *view) drawCard(x int, line *int, bottom int) {
 		return
 	}
 	last := p.Thinking[len(p.Thinking)-1]
-	put(bold, "weighed at tick %d  open %.2f", last.Tick, last.Entropy)
+	put(bold, "weighed on %s  open %.2f", clock.At(last.Tick), last.Entropy)
 	for i, c := range last.Weighed {
 		if i >= 5 && !c.Chosen {
 			continue

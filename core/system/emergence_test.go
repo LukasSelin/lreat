@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/event"
 	"lreat/core/need"
 	"lreat/core/observe"
@@ -20,7 +21,7 @@ func TestSocialLifeEmerges(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, 6000)
+	Run(w, 15*clock.Year)
 
 	counts := map[event.Kind]int{}
 	for _, e := range w.Log.All() {

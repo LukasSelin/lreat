@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"lreat/core/action"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -41,12 +42,12 @@ func TestChildrenAreBornRecognising(t *testing.T) {
 	action.Imprint(parent)
 	parent.Reach[action.Index(action.Craft)] = 1
 	born := 0
-	for i := 0; i < 5000 && born == 0; i++ {
+	for i := 0; i < 12*clock.Year && born == 0; i++ {
 		Population(w)
 		born = len(w.Agents) - 1
 	}
 	if born == 0 {
-		t.Skip("no birth in 5000 ticks on this seed")
+		t.Skip("no birth in twelve years on this seed")
 	}
 	child := w.Agents[1]
 	if !child.Imprinted {
@@ -60,7 +61,7 @@ func TestChildrenAreBornRecognising(t *testing.T) {
 func TestDeathsAreCounted(t *testing.T) {
 	w := fitWorld(13)
 	a := w.Spawn("a", need.Neutral())
-	a.Starving = StarvationTicks + 1
+	a.Starving = Starvation + 1
 	Population(w)
 	if w.Deaths != 1 || len(w.Agents) != 0 {
 		t.Fatalf("deaths = %d, agents = %d", w.Deaths, len(w.Agents))

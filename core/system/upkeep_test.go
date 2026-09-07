@@ -3,6 +3,7 @@ package system
 import (
 	"testing"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/world"
 )
@@ -30,18 +31,18 @@ func TestAnEmptyHouseFallsIn(t *testing.T) {
 	tile := w.Grid.At(home)
 	tile.Terrain, tile.Structure, tile.Owner = world.Grass, world.House, entity.ID(999)
 	fell := 0
-	for i := 0; i < 4000 && w.Grid.At(home).Structure == world.House; i++ {
+	for i := 0; i < 20*clock.Year && w.Grid.At(home).Structure == world.House; i++ {
 		Upkeep(w)
 		fell = i
 	}
 	if w.Grid.At(home).Structure != world.None {
-		t.Fatal("an empty house was still standing after four thousand ticks")
+		t.Fatal("an empty house was still standing after twenty years")
 	}
 	if !w.Grid.At(home).Buildable() {
 		t.Fatalf("the ground under a fallen house is not open again: %+v", *w.Grid.At(home))
 	}
-	if fell < 20 {
-		t.Fatalf("an empty house fell in after %d ticks; ruin should take a while", fell)
+	if fell < clock.Season {
+		t.Fatalf("an empty house fell in after %d days; ruin should take a while", fell)
 	}
 }
 
@@ -53,7 +54,7 @@ func TestAnUnworkedFieldGoesBackToGrass(t *testing.T) {
 	p := entity.Pos{X: 6, Y: 6}
 	tile := w.Grid.At(p)
 	tile.Terrain, tile.Owner, tile.Fertility = world.Field, entity.ID(999), 0.5
-	for i := 0; i < 4000 && w.Grid.At(p).Terrain == world.Field; i++ {
+	for i := 0; i < 20*clock.Year && w.Grid.At(p).Terrain == world.Field; i++ {
 		Upkeep(w)
 	}
 	if got := w.Grid.At(p); got.Terrain != world.Grass || got.Owner != 0 || got.Fertility != 0.5 {

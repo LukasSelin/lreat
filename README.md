@@ -26,22 +26,44 @@ and everything it weighed before setting out. `esc` drops it, `q` quits.
 Run a settlement with no display and print how it went:
 
 ```bash
-go run ./cmd/headless -ticks 5000 -every 250 -map
+go run ./cmd/headless -ticks 18000 -every 1800 -map
 ```
 
 Run a batch of seeds and compare the outcomes, which is how one set of priors is
 judged against another — a single seed is a coin toss:
 
 ```bash
-go run ./cmd/tune -seeds 24 -ticks 6000
+go run ./cmd/tune -seeds 24 -ticks 21600
 ```
 
-All three take `-seed` and `-agents`. A seed plus a command log reproduces a run
-exactly, however the goroutines happen to interleave.
+All three take `-seed` and `-agents`, and count in ticks, which are days: the
+defaults above are fifty and sixty years. A seed plus a command log reproduces a
+run exactly, however the goroutines happen to interleave.
 
 ```bash
 go test ./...
 ```
+
+## How time works
+
+A tick is a day. That is the only convention, and `core/clock` is the only place
+that says so: a week is seven days, a month thirty, a season ninety, a year four
+seasons. Everything with a duration is written against those units rather than as
+a bare number of ticks — a request stands eighty days, an unkept house falls in
+about three years, a body is grown at five and old at fifty — so the calendar can
+be changed in one place and the world follows it.
+
+It was not always so. A year used to be a hundred ticks and a season
+twenty-five, which is shorter than a walk across the map: a settler who set out
+for a plot in the spring arrived in the autumn, and nobody could sow, cut and
+store within a season because a season was shorter than an errand. Seasons that
+nobody can act inside are weather, not seasons. A season is ninety days now, so
+it holds a journey, a harvest, and the storing of one.
+
+The one place the calendar is deliberately compressed is a life. Five years to
+grow up and fifty-two to a lifetime is not a human childhood; it is what lets a
+run somebody will sit through turn a settlement over three or four times, which
+is the only way to see whether what one generation believed outlived it.
 
 ## How choosing works
 
@@ -67,8 +89,9 @@ carry on their own now.
 
 | package | what it holds |
 |---|---|
+| `core/clock` | the calendar: a tick is a day, and every duration in the world is said against it |
 | `core/world` | the complete simulation state: terrain, climate, roads, growth, erosion |
-| `core/system` | the per-tick rules, each a function over the world, run in a fixed order |
+| `core/system` | the rules of a day, each a function over the world, run in a fixed order |
 | `core/entity` | agents and the plain-struct components they carry |
 | `core/need` | the leaky hierarchy of needs that drives every agent |
 | `core/habit` | the space in which a moment is recognised; a leaf package |
