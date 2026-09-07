@@ -14,6 +14,16 @@ import (
 // values, so an act that belongs to dishonest moments is one an honest agent
 // rarely recognises as fitting.
 //
+// THE PRIORS WRITTEN HERE NO LONGER RUN. What an agent starts from is
+// composed by core/ontology from what the act is about (see prior.go
+// there), and seed keeps what is written here as Def.Tuned, the record of
+// what each act was tuned to by hand, held against the composed prior in
+// the ontology's golden test. To change what an act recognises, change the
+// classes, traits, roles, or the schema's residue in core/ontology; a
+// change made here alone is a change to the test's expectation and to
+// nothing an agent does. Exposure went in here first and did nothing for
+// a merge, which is why this note is in capitals.
+//
 // Coordinates are in [-1, 1]. Unmentioned coordinates are 0, which means the
 // act does not care. Fit is by direction, so a prior should name only the
 // coordinates that predict its moment: every extra coordinate dilutes the
