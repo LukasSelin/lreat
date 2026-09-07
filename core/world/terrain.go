@@ -28,17 +28,11 @@ func (w *World) GenerateTerrain(width, height int) {
 	// share is fixed rather than the score, because how wet a map is depends
 	// on the shape of it and a settlement needs roughly the same timber
 	// whatever ground it was given.
-	slopes := make([]float64, len(g.Tiles))
-	for i := range g.Tiles {
-		slopes[i] = g.Slope(entity.Pos{X: i % width, Y: i / width})
-	}
-	steepAt := quantile(slopes, 0.9)
+	g.readWoods()
 	wooded := make([]float64, 0, len(g.Tiles))
 	score := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
-		damp := clamp01(1 - g.Tiles[i].Drain/(2*FloodDepth))
-		steep := clamp01(slopes[i] / math.Max(1e-12, steepAt))
-		score[i] = damp*(1-0.6*steep) + 0.35*w.RNG.Float64()
+		score[i] = g.WoodsAt(entity.Pos{X: i % width, Y: i / width}) + 0.35*w.RNG.Float64()
 		if g.Tiles[i].Terrain == Grass {
 			wooded = append(wooded, score[i])
 		}
@@ -58,14 +52,16 @@ func (w *World) GenerateTerrain(width, height int) {
 	// off rather than soaks into. Scored and shared the same way, because an
 	// outcrop is a comparison with the rest of the map, not a measurement.
 	heights := make([]float64, len(g.Tiles))
+	slopes := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
 		heights[i] = g.Tiles[i].Height
+		slopes[i] = g.Slope(entity.Pos{X: i % width, Y: i / width})
 	}
 	highAt := quantile(heights, 0.6)
 	bare := make([]float64, len(g.Tiles))
 	open := make([]float64, 0, len(g.Tiles))
 	for i := range g.Tiles {
-		bare[i] = clamp01(slopes[i]/math.Max(1e-12, steepAt)) +
+		bare[i] = clamp01(slopes[i]/math.Max(1e-12, g.steepAt)) +
 			clamp01((heights[i]-highAt)/math.Max(1e-12, Relief-highAt))
 		if g.Tiles[i].Terrain == Grass {
 			open = append(open, bare[i])

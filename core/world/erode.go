@@ -154,6 +154,10 @@ func (w *World) Erode() {
 	g.carve(w.RNG)
 	g.height()
 	g.resoil()
+	// The ground has moved, so the tree line has moved with it: what was a
+	// dry shoulder may now be damp enough to hold a wood, and what the water
+	// has cut into may not.
+	g.readWoods()
 }
 
 // SoilDepth is how many metres of ground make the difference between land

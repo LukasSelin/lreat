@@ -177,6 +177,19 @@ The world was static ground the agents drew on without limit. Now it pushes back
 
 **What the land has to give.** A forest tile carries wild food (`Tile.Wild`) that foraging takes a little of and hunting a lot; a water tile carries fish (`Tile.Fish`); a field carries fertility that each harvest wears down toward a floor, and `Tile.Rich`, the most it can recover to when left fallow. All of it comes back slowly, faster once the settlement has learned forestry. A picked forest still gives something, so a settlement is pushed toward the river and the field rather than into the ground.
 
+**The tree line.** A wood spreads: three tiles a tick are checked for a seed from a wooded neighbour, and a planter can raise one anywhere. With nothing to say where a wood can stand, that has one ending. On seed 2 over 6000 ticks the forest went from 689 tiles to 2217 - three quarters of the whole map, and all of the dry land - while the fields went from 42 strips to 1, because a field can only be broken on open ground and there was none left. Five of six seeds ended with the map wooded and the settlement living off the forest floor.
+
+The answer is the one the map already used to place its founding woods: trees stand where the ground is damp enough to grow them and gentle enough to hold the soil, and that reading, `Grid.WoodsAt`, is now a line as well as a score. The wettest, gentlest `woodsShare` of the land - a fifth - will hold a wood, and nothing else will; `Grid.HoldsWood` is asked before a seed takes and before a planting does, and the line is re-read whenever the weather moves the ground under it. Standing woods are never touched, whatever ground they are on: a wood is a fact about the map, and what is governed is where a new one may start.
+
+Six seeds, 6000 ticks, 20 founders, against the same seeds with no tree line:
+
+| | forest tiles at 6000 | field strips | population |
+|---|---|---|---|
+| no tree line | 392-2373 | 0-9 | 9, 13, 18, 39, 128, 137 |
+| tree line | 450-613 | 5-11 | 16, 35, 87, 131, 317, 370 |
+
+The forest now settles between a sixth and a fifth of the map on every seed instead of anywhere between a seventh and four fifths, and the ground the settlement did not get to keep is the ground it farms. Five of the six seeds gained population; seed 3 lost a third of it, which is inside this system's spread across seeds.
+
 **Four answers**, each far out of reach until discovered:
 
 | action | belongs to the moment | takes | gives |

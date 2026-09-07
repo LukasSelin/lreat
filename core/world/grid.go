@@ -93,6 +93,14 @@ type Grid struct {
 	W, H  int
 	Tiles []Tile
 
+	// steepAt and woodsLine are the map's measure of its own ground: what
+	// counts as steep on it, and how well a tile must suit trees before one
+	// will take there. Both are read by readWoods; woodsRead says whether
+	// they have been. See woods.go.
+	steepAt   float64
+	woodsLine float64
+	woodsRead bool
+
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
 	// something else needs a Router of its own.
