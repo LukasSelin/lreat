@@ -27,12 +27,12 @@ func main() {
 	agents := flag.Int("agents", 20, "starting population")
 	every := flag.Int("every", 250, "report interval in ticks")
 	showMap := flag.Bool("map", false, "print the map at each report")
-	fit := flag.Bool("fit", false, "agents choose by recognition rather than by expected value")
-	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of fit-based choice; 0 always takes the best fit")
+	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
+	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of recognition; 0 always takes the best fit")
 	flag.Parse()
 
 	w := world.New(*seed)
-	w.Rules.Fit = *fit
+	w.Rules.Fit = !*value
 	w.Rules.Temperature = *temp
 	for i := 0; i < *agents; i++ {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())

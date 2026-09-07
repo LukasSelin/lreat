@@ -23,8 +23,10 @@ func Learn(a *entity.Agent, w *world.World, p *entity.Plan) {
 	action.Imprint(a)
 	after := habit.Ledger{Needs: a.Needs}
 	r := habit.Reward(p.Before, after, a.Personality)
-	adv := habit.Advantage(r, a.Baseline)
+	expected := habit.BaselineMix*a.Baselines[p.Index] + (1-habit.BaselineMix)*a.Baseline
+	adv := habit.Advantage(r, expected)
 	a.Baseline += habit.BaselineRate * (r - a.Baseline)
+	a.Baselines[p.Index] += habit.ActionBaselineRate * (r - a.Baselines[p.Index])
 
 	a.Trace.Push(habit.Step{Index: p.Index, Situation: p.Situation})
 	for k, st := range a.Trace {

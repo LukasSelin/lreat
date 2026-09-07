@@ -25,7 +25,7 @@ import (
 // begin far off and are brought closer by study, teaching, and discovery.
 const (
 	reachEveryday = 1.0
-	reachGuard    = 0.6
+	reachGuard    = 0.8
 	reachCraft    = 0.5
 	reachStudy    = 0.4
 	reachTeach    = 0.3
@@ -53,15 +53,22 @@ func init() {
 	seed(Forage, reachEveryday, habit.Signature{
 		habit.Hunger: 0.8, habit.Food: -0.8, habit.Near: 0.6,
 	})
+	// Farming is not what hunger calls for; foraging is. Farming is what an
+	// industrious person with a field nearby does whether or not the larder
+	// is low, which is the only way a larder ever fills past today.
 	seed(Farm, reachEveryday, habit.Signature{
-		habit.Hunger: 0.5, habit.Food: -0.6, habit.Industry: 0.5, habit.Near: 0.4, habit.Skill: 0.3,
+		habit.Food: -0.3, habit.Industry: 0.7, habit.Near: 0.5, habit.Skill: 0.4,
 	})
 	Farm.Skilled = uses(entity.Farming)
+	// Wood is measured against the cost of a house, so "enough wood" reads
+	// as +1 exactly when a shelter can be built. Gathering belongs to the
+	// unsheltered moment more than to the empty-handed one; building to the
+	// unsheltered moment with the wood in hand.
 	seed(GatherWood, reachEveryday, habit.Signature{
-		habit.Unsafe: 0.5, habit.Wood: -1, habit.Shelter: -0.5, habit.Near: 0.5,
+		habit.Unsafe: 0.6, habit.Wood: -0.6, habit.Shelter: -0.6, habit.Near: 0.5,
 	})
 	seed(BuildShelter, reachEveryday, habit.Signature{
-		habit.Unsafe: 1, habit.Wood: 0.8, habit.Shelter: -1,
+		habit.Unsafe: 1, habit.Wood: 1, habit.Shelter: -1,
 	})
 	BuildShelter.Skilled = uses(entity.Building)
 	seed(Sell, reachEveryday, habit.Signature{

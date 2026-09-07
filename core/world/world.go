@@ -60,9 +60,10 @@ type Rules struct {
 	Temperature float64
 }
 
-// DefaultRules is value-based choice, the original decision rule.
+// DefaultRules is recognition. The value rule, the original, stays behind
+// the flag for comparison.
 func DefaultRules() Rules {
-	return Rules{Fit: false, Temperature: 0.15}
+	return Rules{Fit: true, Temperature: 0.15}
 }
 
 // MarketState is a single shared marketplace with a stock and a price per good.

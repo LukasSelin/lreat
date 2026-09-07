@@ -106,6 +106,16 @@ const (
 	TraceLen = 3
 	// BaselineRate is how fast an agent's sense of an ordinary outcome moves.
 	BaselineRate = 0.02
+	// ActionBaselineRate is the same for its sense of an ordinary outcome of
+	// one particular act, which it sees less often.
+	ActionBaselineRate = 0.05
+	// BaselineMix is how much of the expectation a lesson is judged against
+	// is the act's own. Against the act's own baseline a lesson is about
+	// when the act pays; against the agent's general one it is about
+	// whether it pays at all. Both are wanted: the first stops eating from
+	// being reinforced at a nearly full belly, the second lets a uniformly
+	// poor act be given up.
+	BaselineMix = 0.5
 	// AdvantageClamp bounds the size of one lesson.
 	AdvantageClamp = 0.5
 	// ReachGain is how much doing an action brings it further into reach.

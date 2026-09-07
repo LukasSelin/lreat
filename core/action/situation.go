@@ -22,7 +22,7 @@ func bipolar(x float64) float64 { return 2*need.Clamp(x) - 1 }
 // nothing past four units, two wood build a shelter, twenty coins is rich.
 const (
 	foodKnee   = 4
-	woodKnee   = 3
+	woodKnee   = 2
 	wealthKnee = 20
 	// nearKnee is the travel cost at which a target reads as far as can be.
 	nearKnee = 30

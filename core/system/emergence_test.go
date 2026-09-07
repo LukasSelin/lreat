@@ -7,7 +7,6 @@ import (
 	"lreat/core/event"
 	"lreat/core/need"
 	"lreat/core/observe"
-	"lreat/core/world"
 )
 
 // TestSocialLifeEmerges runs a settlement with no player and no scripted
@@ -17,7 +16,7 @@ import (
 // them. It logs the tallies, which is the fastest way to see the effect of a
 // tuning change.
 func TestSocialLifeEmerges(t *testing.T) {
-	w := world.New(31)
+	w := valueWorld(31)
 	for i := 0; i < 25; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
@@ -60,7 +59,7 @@ func TestSocialLifeEmerges(t *testing.T) {
 // TestNormsDriftTogether checks that living side by side makes people more
 // alike. Culture has to be able to form, or nothing above the individual can.
 func TestNormsDriftTogether(t *testing.T) {
-	w := world.New(32)
+	w := valueWorld(32)
 	a := w.Spawn("a", need.Neutral())
 	b := w.SpawnAt("b", need.Neutral(), a.Pos)
 	a.Norms = belief.Norms{belief.Honesty: 1, belief.Charity: 1, belief.Industry: 1, belief.Tradition: 1}

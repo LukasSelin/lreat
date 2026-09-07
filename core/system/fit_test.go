@@ -13,10 +13,19 @@ import (
 	"lreat/core/world"
 )
 
-// fitWorld is a seeded world whose agents choose by recognition.
+// fitWorld is a seeded world whose agents choose by recognition, which is
+// the default; valueWorld is one whose agents choose by expected value, the
+// original rule. The tests written for that rule use valueWorld so both
+// rules stay covered.
 func fitWorld(seed uint64) *world.World {
 	w := world.New(seed)
 	w.Rules.Fit = true
+	return w
+}
+
+func valueWorld(seed uint64) *world.World {
+	w := world.New(seed)
+	w.Rules.Fit = false
 	return w
 }
 
@@ -34,7 +43,7 @@ func TestFitModeIsDeterministic(t *testing.T) {
 	}
 	for i, x := range a.Agents {
 		y := b.Agents[i]
-		if x.Habits != y.Habits || x.Reach != y.Reach || x.Baseline != y.Baseline {
+		if x.Habits != y.Habits || x.Reach != y.Reach || x.Baseline != y.Baseline || x.Baselines != y.Baselines {
 			t.Fatalf("agent %d learned differently in two identical worlds", x.ID)
 		}
 		for _, h := range x.Habits[:action.Count] {

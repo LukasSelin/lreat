@@ -19,7 +19,7 @@ func populate(w *world.World, n int) {
 }
 
 func TestDeterminism(t *testing.T) {
-	a, b := world.New(42), world.New(42)
+	a, b := valueWorld(42), valueWorld(42)
 	populate(a, 15)
 	populate(b, 15)
 	Run(a, 1500)
@@ -55,7 +55,7 @@ func equalSnapshots(a, b observe.Snapshot) bool {
 }
 
 func TestHungryAgentSeeksFood(t *testing.T) {
-	w := world.New(1)
+	w := valueWorld(1)
 	populate(w, 3)
 	a := w.Agents[0]
 	a.Needs = need.Levels{0.05, 0.9, 0.9, 0.9, 0.9}
@@ -73,7 +73,7 @@ func TestHungryAgentSeeksFood(t *testing.T) {
 }
 
 func TestSatedAgentClimbsThePyramid(t *testing.T) {
-	w := world.New(1)
+	w := valueWorld(1)
 	populate(w, 3)
 	a := w.Agents[0]
 	a.Needs = need.Levels{1, 1, 1, 1, 0.1}
@@ -86,7 +86,7 @@ func TestSatedAgentClimbsThePyramid(t *testing.T) {
 
 func TestLonelyButHungryAgentStillEats(t *testing.T) {
 	// The leak lets belonging register, but hunger must win when it is severe.
-	w := world.New(1)
+	w := valueWorld(1)
 	populate(w, 3)
 	a := w.Agents[0]
 	a.Needs = need.Levels{0.1, 0.8, 0.0, 0.8, 0.8}
@@ -123,7 +123,7 @@ func TestDistanceDiscountsActions(t *testing.T) {
 }
 
 func TestAgentsWalkBeforeActing(t *testing.T) {
-	w := world.New(1)
+	w := valueWorld(1)
 	a := w.Spawn("a", need.Neutral())
 	target := entity.Pos{X: a.Pos.X + 5, Y: a.Pos.Y}
 	// Walking speed belongs to the terrain and the body; this test is about
@@ -150,7 +150,7 @@ func TestAgentsWalkBeforeActing(t *testing.T) {
 }
 
 func TestCityDevelopsWithoutAPlayer(t *testing.T) {
-	w := world.New(7)
+	w := valueWorld(7)
 	populate(w, 20)
 	Run(w, 6000)
 	if len(w.Agents) == 0 {

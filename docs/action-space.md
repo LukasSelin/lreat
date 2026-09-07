@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: phases 0 to 5 implemented (habit package, catalog hygiene, agent state, situations and priors, fit chooser and learning, reach and inheritance and metrics). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`, or `-fit` and `-temp` on the headless runner.
+Status: all six phases implemented. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered.
 
 ## Why
 
@@ -24,7 +24,7 @@ Shared dimensions, computed once per agent per decision:
 |---|---|---|---|
 | 0-4 | hunger, unsafe, lonely, unproven, curious | `need.Urgencies(a.Needs)[t] * a.Personality[t]` | `2*clamp01(x) - 1` |
 | 5 | food | `Inventory[Food]` | `2*clamp01(food/4) - 1` (same knee as `foodValue`) |
-| 6 | wood | `Inventory[Wood]` | `2*clamp01(wood/3) - 1` |
+| 6 | wood | `Inventory[Wood]` | `2*clamp01(wood/2) - 1` (the cost of a house, so +1 means "can build") |
 | 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
 | 8 | shelter | `Shelter` | `2*shelter - 1` |
 | 9 | company | `w.Neighbor(a, 8) != nil` | +1 or -1 |
@@ -79,8 +79,8 @@ At every plan end, whether or not `Apply` ran (a plan whose `Available` went fal
 
 ```
 r   = Σ_t (Needs_after[t] - Needs_before[t]) * Urgency_at_decision[t] * Personality[t]
-adv = clamp(r - Baseline, -0.5, 0.5)
-Baseline += 0.02 * (r - Baseline)
+adv = clamp(r - (0.5*Baselines[index] + 0.5*Baseline), -0.5, 0.5)
+Baseline += 0.02 * (r - Baseline);  Baselines[index] += 0.05 * (r - Baselines[index])
 Trace.Push(index, S_at_decision)             // keep 3, newest first
 for k, step in Trace:
     H[step.Index] += 0.10 * 0.5^k * adv * (step.Situation - H[step.Index])   // learnable dims only
@@ -89,9 +89,21 @@ clamp |H[index]| to [0.2, 2]
 Reach[index] = min(1, Reach[index] + 0.02)                                   // doing is learning
 ```
 
-The reward uses urgencies from the moment of the decision, so an outcome is judged by what the agent wanted then. The baseline is global per agent, not per action, so uniformly poor actions are learned away. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
+The reward uses urgencies from the moment of the decision, so an outcome is judged by what the agent wanted then. The expectation a lesson is judged against blends two baselines. Against the act's own baseline a lesson is about *when* the act pays, which stops eating from being reinforced at a nearly full belly; against the agent's general baseline it is about *whether* it pays, which lets a uniformly poor act be given up. With only the general baseline (phases 4 and 5) every positive reward reinforced, and the eat habit drifted toward barely-hungry moments. Long actions carry more decay in `r`, which is the old time cost re-emerging from physics rather than from a formula.
 
 The trace is what keeps the economy alive under a needs-only reward. Farm and forage never touch needs, only the larder. When a later eat pays +0.35, the trace hands half of that to the previous plan and a quarter to the one before. If liveness runs still show farming being learned away, the documented fallback is to add stock terms to `r`. That would move a value judgement into learning, which is the agreed place for it, but it has been rejected for now.
+
+### Second tuning pass and the subsistence finding (phase 6)
+
+Flipping the default broke one test: on seed 21 nobody posted a request in 3000 ticks. Diagnostics showed why. Wealth stayed at zero because nobody sold; nobody sold because food per agent never rose above about half a unit; and that was because the farm prior said "hungry and out of food", so agents farmed only when hungry and foraged the rest of the time. Three changes, all inside the design:
+
+- **The farm prior no longer mentions hunger.** Foraging is what hunger calls for. Farming is what an industrious person with a field nearby does, whether or not the larder is low. That is the only moment in which a larder ever fills past today.
+- **Wood is measured against the cost of a house**, so "enough wood" reads as +1 exactly when a shelter can be built, and the gather and build priors are worded around the unsheltered moment.
+- **Per-action baselines** (above), so that a good outcome for an act is judged against that act's usual outcome.
+
+After these, seed 21 reaches 41 fulfilled requests per 500 ticks by tick 2000 and wealth grows; the social seed keeps its request rate (276 asked, 230 fulfilled) with theft at 293 and giving at 222.
+
+What did not move is safety, and with it growth. Agents forage every 17 ticks and gather wood a tenth as often, houses rot faster than they are rebuilt, and mean safety sits near 0.3 against 0.5 under the value rule, below the 0.6 a birth requires. The cause is structural. Under the leaky hierarchy a moderately hungry agent has its safety urgency damped, so it chases food; recognition has no notion that a field is more efficient than the forest, so it chases food the slow way; and a needs-only reward gives no credit for surplus, so nothing it learns changes that. **Recognition with a needs-only reward produces a subsistence society: fed, housed after a fashion, social, literate in time, and not growing.** Whether that is a bug or the point is a design call. The two levers left, both rejected so far, are an efficiency or stock term in the reward, and a longer credit horizon (a trace of 8 at 0.75 was tried and made requests collapse, because it spread each meal's credit over everything).
 
 ### First side-by-side run
 
@@ -159,6 +171,6 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 3 | `action.Shared`, `action.Situation`, `action.Candidates`, `action.Rank`, `action.Imprint`; priors and `Reach0` for all 17 actions; canonical-moment ranking tests | done |
 | 4 | `system.Recognise` sampling in `Decide`, `system.Learn` at every plan end in `Act`, `system.Commit` as the one plan builder (used by `sim.Intend`), headless `-fit` and `-temp`; fit-mode determinism and liveness tests | done |
 | 5 | `action.Broaden`, `action.Pass`, `Discovery.Opens` and `world.ReachFloor`, `action.Inherit` at birth; `HabitSpread`, `GatedReach`, `ChoiceEntropy`, `Deaths` in snapshot, headless, TUI; moral coordinates one-sided | done |
-| 6 | Flip `DefaultRules` to fit; port choose tests to ordering twins via `action.Rank`; keep value mode behind the flag; second tuning pass on theft and growth | next |
+| 6 | `DefaultRules` is recognition; headless `-value`; value-rule tests run through `valueWorld`; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

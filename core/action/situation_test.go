@@ -188,3 +188,64 @@ func TestSituationIsPerCandidate(t *testing.T) {
 		}
 	}
 }
+
+// Twins of the value-rule tests in core/system, asserting order under
+// recognition rather than the choice the old rule made.
+
+func TestLonelyButHungryAgentStillEatsByFit(t *testing.T) {
+	w := world.New(11)
+	a := blank(w, "a")
+	blank(w, "o")
+	a.Needs = need.Levels{0.1, 0.8, 0.0, 0.8, 0.8}
+	a.Inventory[entity.Food] = 2
+	if r := Rank(a, w); r[0].Def != Eat {
+		t.Fatalf("hungry lonely agent ranked %v", names(r))
+	}
+}
+
+func TestCautionMakesTheftFitWorse(t *testing.T) {
+	rank := func(caution float64) int {
+		w := world.New(12)
+		thief := blank(w, "thief")
+		victim := blank(w, "victim")
+		victim.Pos = entity.Pos{X: thief.Pos.X + 1, Y: thief.Pos.Y}
+		victim.Inventory[entity.Food] = 3
+		thief.Needs[need.Physiological] = 0.05
+		thief.Inventory[entity.Food] = 0
+		thief.Norms[belief.Honesty] = 0
+		thief.Caution = caution
+		return position(Rank(thief, w), Steal)
+	}
+	lawless, policed := rank(0), rank(1)
+	if !(lawless < policed) {
+		t.Fatalf("steal ranks %d where nothing is enforced and %d where it is", lawless, policed)
+	}
+}
+
+func TestTheWrongedRecogniseAMomentToGetEven(t *testing.T) {
+	setup := func(charity float64) (*world.World, *entity.Agent) {
+		w := world.New(13)
+		victim := blank(w, "victim")
+		thief := blank(w, "thief")
+		thief.Pos = victim.Pos
+		for _, a := range []*entity.Agent{victim, thief} {
+			a.Needs = need.Levels{1, 0.9, 0.9, 0.5, 0.9}
+			a.Inventory[entity.Food] = 3
+			a.Shelter = 1
+		}
+		victim.Norms[belief.Charity] = charity
+		victim.Judge(thief.ID, -0.6, w.Tick)
+		return w, victim
+	}
+	w, victim := setup(0)
+	r := Rank(victim, w)
+	if r[0].Def != Retaliate {
+		t.Fatalf("a wronged agent with nothing better to do ranked %v", names(r))
+	}
+	vengeful := position(r, Retaliate)
+	w, saint := setup(1)
+	forgiving := position(Rank(saint, w), Retaliate)
+	if !(vengeful < forgiving) {
+		t.Fatalf("retaliate ranks %d for the wronged and %d for the charitable", vengeful, forgiving)
+	}
+}

@@ -197,8 +197,10 @@ type Agent struct {
 	// settlement has discovered.
 	Reach [habit.MaxActions]float64
 	// Baseline is the agent's slow-moving sense of what an ordinary outcome
-	// feels like. Lessons are drawn from how an outcome differs from it.
-	Baseline float64
+	// feels like, and Baselines the same for each action on its own.
+	// Lessons are drawn from how an outcome differs from a blend of the two.
+	Baseline  float64
+	Baselines [habit.MaxActions]float64
 	// Trace is the short memory of recent actions that share in the next
 	// reward, so that an action that only set up a later gain still learns.
 	Trace habit.Trace
