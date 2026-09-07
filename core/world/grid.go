@@ -186,3 +186,27 @@ func (t *Tile) Roofed() bool {
 func (g *Grid) RoomToBuild(p entity.Pos) bool {
 	return g.In(p) && g.At(p).Buildable() && !g.HasNeighbor(p, (*Tile).Roofed)
 }
+
+// Raze takes down what stands on p and gives the ground back: the tile keeps
+// its terrain and loses its building and its owner, and a field goes back to
+// grass. The market is the one thing that cannot come down, being the root
+// of everything else. A settlement that could only ever add to itself would
+// be stuck for good with every choice its founders made on ground they had
+// only just arrived on, so what has been built has to be able to go.
+func (g *Grid) Raze(p entity.Pos) bool {
+	if !g.In(p) {
+		return false
+	}
+	t := g.At(p)
+	if t.Structure == Market {
+		return false
+	}
+	if t.Structure == None && t.Owner == 0 {
+		return false
+	}
+	if t.Terrain == Field {
+		t.Terrain = Grass
+	}
+	t.Structure, t.Owner = None, 0
+	return true
+}
