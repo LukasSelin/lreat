@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"lreat/core/entity"
-	"lreat/core/need"
 	"lreat/core/world"
 )
 
@@ -45,27 +44,32 @@ func Keeping(w *world.World) float64 {
 	return w.Mods.Keeping * (1 - ColdKeeping*w.Climate.Chill())
 }
 
-// RoofKeeping is how much of a private larder's spoilage a roof of one's
-// own stops. A house is not a granary and a granary is not a house: the
-// settlement's stores keep the market's food, and what keeps an agent's is
-// the weather and whatever it has built over its own head.
-const RoofKeeping = 0.5
+// LarderSpoil is the share of what an agent carries that goes off each
+// tick in mild weather. It is a fifth of what the same food loses sitting
+// in the market, and flat across food and meals, because what is carried
+// is eaten within days while the market's stock sits out whole seasons.
+//
+// It was the market's own rates first, and that was far too much: a third
+// again on top of what an agent eats, on the loop the whole economy runs
+// on. Over 24 seeds to 6000 ticks it took the median settlement from 94 to
+// 30 and killed two. The point was never to punish a full larder in June,
+// only to make one in January worth more.
+const LarderSpoil = 0.002
 
-// Larder is the share of the usual spoilage the food in an agent's own
-// hands suffers. Nothing carried is kept for ever now, which is what makes
-// a full larder in June worth less than the same larder in January and
-// gives the cold something to be good for close to home.
-func Larder(w *world.World, a *entity.Agent) float64 {
-	return (1 - ColdKeeping*w.Climate.Chill()) * (1 - RoofKeeping*need.Clamp(a.Shelter))
+// Larder is what an agent's own food loses this tick. Nothing a granary
+// does reaches it - the settlement's stores keep the settlement's food -
+// so the cold is the whole of its mercy, and in the deep of winter it
+// keeps two and a half times as well as it does in the summer.
+func Larder(w *world.World) float64 {
+	return LarderSpoil * (1 - ColdKeeping*w.Climate.Chill())
 }
 
-// Spoil rots what an agent is carrying, by the same rates the market's
-// stock rots at.
+// Spoil rots what an agent is carrying.
 func Spoil(w *world.World, a *entity.Agent) {
-	k := Larder(w, a)
+	k := Larder(w)
 	for g := range a.Inventory {
 		if perishable[g] {
-			a.Inventory[g] *= 1 - spoilage[g]*k
+			a.Inventory[g] *= 1 - k
 		}
 	}
 }

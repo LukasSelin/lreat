@@ -150,38 +150,33 @@ func TestFoodKeepsInTheColdAndInTheGranary(t *testing.T) {
 	}
 }
 
-// What an agent carries rots as what the market holds does, and by the same
-// two mercies: the weather, and a roof of one's own. No granary stands
-// behind a private larder.
+// What an agent carries goes off slowly, and the cold is the whole of the
+// mercy: a January larder beats a June one, and no granary reaches either.
 func TestWhatIsCarriedRotsToo(t *testing.T) {
-	held := func(temp, shelter float64, granaries int) float64 {
+	held := func(temp float64, granaries int) float64 {
 		w := fitWorld(13)
 		w.Climate = world.Climate{Temp: temp}
 		for i := 0; i < granaries; i++ {
 			w.Mods.Keeping *= 0.4
 		}
 		a := w.Spawn("a", need.Neutral())
-		a.Shelter = shelter
 		a.Inventory[entity.Food] = 10
 		Spoil(w, a)
 		return a.Inventory[entity.Food]
 	}
 	summer, winter := world.Mild+5, world.Bitter
-	if got := held(summer, 0, 0); got >= 10 {
+	if got := held(summer, 0); got >= 10 {
 		t.Errorf("food in hand kept perfectly through a summer: %.4f of 10", got)
 	}
-	if !(held(winter, 0, 0) > held(summer, 0, 0)) {
-		t.Error("a larder keeps no better in the cold")
+	if !(held(winter, 0) > held(summer, 0)) {
+		t.Error("a larder keeps no better in the cold, which is the whole point of it")
 	}
-	if !(held(summer, 1, 0) > held(summer, 0, 0)) {
-		t.Error("a roof keeps nothing over a larder")
-	}
-	if held(summer, 0, 3) != held(summer, 0, 0) {
+	if held(summer, 3) != held(summer, 0) {
 		t.Error("the settlement's granaries kept an agent's own food, which is the market's business")
 	}
-	// Best kept is under a roof in the depth of winter, which is what makes
-	// an autumn worth carrying into February.
-	if !(held(winter, 1, 0) > held(winter, 0, 0) && held(winter, 1, 0) > held(summer, 1, 0)) {
-		t.Error("a roof in winter is not the best a larder gets")
+	// Slowly is the point: a day's spoilage should be nothing beside a
+	// day's eating, or the larder is a tax on carrying food at all.
+	if lost := 10 - held(summer, 0); lost > 0.1 {
+		t.Errorf("a tick took %.4f of ten units, which is not a low rate", lost)
 	}
 }
