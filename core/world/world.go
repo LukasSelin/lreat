@@ -322,6 +322,22 @@ func (w *World) Emit(kind event.Kind, actor, target entity.ID, format string, ar
 	})
 }
 
+// EmitAt records an event that came out of a particular act on a particular
+// tile, so that a reader can count what a settlement did and where without
+// reading the sentence it was told in. act is an ontology key.
+func (w *World) EmitAt(kind event.Kind, actor, target entity.ID, act string, where entity.Pos, format string, args ...any) {
+	w.Log.Append(event.Event{
+		Tick:   w.Tick,
+		Kind:   kind,
+		Actor:  actor,
+		Target: target,
+		Act:    act,
+		Where:  where,
+		Placed: true,
+		Text:   fmt.Sprintf(format, args...),
+	})
+}
+
 // Has reports whether a technology has been discovered.
 func (w *World) Has(t Tech) bool { return w.techs[t] }
 

@@ -370,7 +370,7 @@ func moving(in ontology.Instance) *Def {
 	var parts []*ontology.Class
 	for _, c := range ontology.Material.Family() {
 		if _, ok := mv.Each[c]; ok && c.IsA(object) {
-			if _, carried := good(c); carried {
+			if _, carried := world.GoodOf(c); carried {
 				parts = append(parts, c)
 			}
 		}

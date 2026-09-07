@@ -60,3 +60,35 @@ func TestAnUnworkedFieldGoesBackToGrass(t *testing.T) {
 		t.Fatalf("an abandoned field came back as %+v, want open grass still worth 0.5", *got)
 	}
 }
+
+// A lapsed claim costs the world no luck.
+//
+// This is the one thing about ruin that is not about ruin. What is claimed
+// and neither lived in nor sown goes at once, and a certainty needs no
+// draw - so wither settles what becomes of a tile before it spends any
+// chance on it. If it drew anyway, the number would be thrown away and
+// every later draw in the run would come out somewhere else: the same seed
+// would be a different settlement three generations on. Nothing in the
+// world's own state would look wrong, which is why it is asserted here.
+func TestALapsedClaimCostsNoLuck(t *testing.T) {
+	w := world.New(3)
+	for i, p := range []entity.Pos{{X: 3, Y: 3}, {X: 4, Y: 3}, {X: 5, Y: 3}} {
+		tile := w.Grid.At(p)
+		tile.Terrain, tile.Structure, tile.Owner = world.Grass, world.None, entity.ID(900+i)
+	}
+	before := w.RNG.Float64()
+	w2 := world.New(3)
+	for i, p := range []entity.Pos{{X: 3, Y: 3}, {X: 4, Y: 3}, {X: 5, Y: 3}} {
+		tile := w2.Grid.At(p)
+		tile.Terrain, tile.Structure, tile.Owner = world.Grass, world.None, entity.ID(900+i)
+	}
+	Upkeep(w2)
+	if got := w2.RNG.Float64(); got != before {
+		t.Fatalf("razing three lapsed claims spent the world's luck: next draw %v, want %v", got, before)
+	}
+	for _, p := range []entity.Pos{{X: 3, Y: 3}, {X: 4, Y: 3}, {X: 5, Y: 3}} {
+		if w2.Grid.At(p).Owner != 0 {
+			t.Fatalf("a claim nobody is left to press at %v is still standing", p)
+		}
+	}
+}

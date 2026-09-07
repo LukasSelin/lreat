@@ -86,12 +86,12 @@ var recipes = map[string]recipe{
 func making(in ontology.Instance) *Def {
 	r, ok := recipes[in.Key]
 	place, ok2 := workplaces[in.Schema.SiteTrait]
-	_, ok3 := good(in.Schema.Output)
+	_, ok3 := world.GoodOf(in.Schema.Output)
 	if !ok || !ok2 || !ok3 || len(r.Amounts) != len(in.Schema.Inputs) {
 		return nil
 	}
 	for _, c := range in.Schema.Inputs {
-		if _, ok := good(c); !ok {
+		if _, ok := world.GoodOf(c); !ok {
 			return nil
 		}
 	}
@@ -101,7 +101,7 @@ func making(in ontology.Instance) *Def {
 	d.Available = func(a *entity.Agent, w *world.World) bool {
 		for i, m := range takes {
 			wants := r.Amounts[i]
-			if g, _ := good(m); g == r.Reserve.Good {
+			if g, _ := world.GoodOf(m); g == r.Reserve.Good {
 				wants += r.Reserve.Amount
 			}
 			if mine, _ := pack(a, m); mine.Held() < wants {

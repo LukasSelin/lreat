@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"lreat/core/entity"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -28,7 +29,7 @@ func till(w *world.World, a *entity.Agent) bool {
 	if run(w, a, Clear) {
 		return true
 	}
-	season(w, world.CropAge) // the crop comes on between one harvest and the next
+	season(w, ontology.Crop.Full()) // the crop comes on between one harvest and the next
 	return run(w, a, Farm)
 }
 
@@ -76,7 +77,7 @@ func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 	for i, p := range holding {
 		before[i] = w.Grid.At(p).Fertility
 	}
-	season(w, world.CropAge)
+	season(w, ontology.Crop.Full())
 	if !run(w, a, Farm) {
 		t.Fatal("a farmer with a holding should always have somewhere to work")
 	}
@@ -138,7 +139,7 @@ func TestAHoldingIsWorkedStripByStrip(t *testing.T) {
 
 	// Every strip in ear: the farmer takes them one after another and never
 	// the same one twice.
-	season(w, world.CropAge)
+	season(w, ontology.Crop.Full())
 	worked := map[entity.Pos]int{}
 	for range holding {
 		if !Farm.Available(a, w) {
@@ -156,7 +157,7 @@ func TestAHoldingIsWorkedStripByStrip(t *testing.T) {
 	if Farm.Available(a, w) {
 		t.Fatal("a holding cut to the ground still offers a harvest")
 	}
-	season(w, world.CropAge)
+	season(w, ontology.Crop.Full())
 	if !Farm.Available(a, w) {
 		t.Fatal("a season on, the holding should be in ear again")
 	}
