@@ -1,8 +1,8 @@
 // Command watch is a live terminal view of a settlement developing, in the
-// spirit of Dwarf Fortress. The map is on the left, aggregate state and a
-// graph of what the settlement is spending itself on over time on the right.
-// It is an omniscient view for insight while tuning; the player's own view
-// will be far narrower.
+// spirit of Dwarf Fortress. The map is on the left with aggregate state
+// beside it, and under the map a woven band of what the settlement has been
+// spending itself on, running the map's whole width. It is an omniscient
+// view for insight while tuning; the player's own view will be far narrower.
 //
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // r lays streets through the settlement, q quits.
@@ -32,11 +32,12 @@ var names = []string{
 
 const (
 	panelWidth = 38
-	// The activity graph: graphWidth columns of history, each one the mean
-	// of graphTicks ticks, stacked graphHeight rows high.
-	graphWidth  = panelWidth - 2
-	graphHeight = 8
+	// The activity graph runs under the map at the map's own width. Each
+	// column is the mean of graphTicks ticks; graphMax columns are kept so
+	// a wider map simply shows more of the same history.
+	graphHeight = 6
 	graphTicks  = 5
+	graphMax    = 320
 )
 
 func main() {
@@ -131,8 +132,8 @@ func (v *view) record(s *observe.Snapshot) {
 		}
 	}
 	v.hist = append(v.hist, col)
-	if len(v.hist) > graphWidth {
-		v.hist = v.hist[len(v.hist)-graphWidth:]
+	if len(v.hist) > graphMax {
+		v.hist = v.hist[len(v.hist)-graphMax:]
 	}
 	v.acc, v.accTotal, v.accTicks = column{}, 0, 0
 }
@@ -199,8 +200,9 @@ func (v *view) draw() {
 	}
 	s := v.snap
 	sw, sh := sc.Size()
-	if sw < s.Map.W+panelWidth || sh < s.Map.H {
-		puts(sc, 0, 0, tcell.StyleDefault, fmt.Sprintf("terminal too small: need %dx%d, have %dx%d", s.Map.W+panelWidth, s.Map.H, sw, sh))
+	needH := s.Map.H + graphHeight + 3 // map, the legend, the graph, its span, the keys
+	if sw < s.Map.W+panelWidth || sh < needH {
+		puts(sc, 0, 0, tcell.StyleDefault, fmt.Sprintf("terminal too small: need %dx%d, have %dx%d", s.Map.W+panelWidth, needH, sw, sh))
 		sc.Show()
 		return
 	}
@@ -251,38 +253,47 @@ func (v *view) draw() {
 	}
 	put(tcell.StyleDefault, "techs: %s", trim(techs, panelWidth-9))
 	line++
-	put(bold, "doing")
-	puts(sc, px+6, line-1, dim, fmt.Sprintf("%d ticks →", graphWidth*graphTicks))
-	v.drawGraph(px, line)
-	line += graphHeight
-	// The legend is fixed: every kind of work, always in the same order on
-	// the same row in the same colour, whether anyone is doing it or not.
-	// A legend that reshuffles itself is one more thing moving on a panel
-	// meant to be read at a glance, and the colours have to mean the same
-	// thing from one frame to the next for the bands above to be legible.
+	// What everyone is doing goes under the map rather than in the panel:
+	// given the map's whole width it is hundreds of ticks of history at
+	// once, and the eye reads a weave of bands widening and giving way far
+	// better than it reads a column of numbers.
+	//
+	// The legend is fixed: every kind of work always in the same place in
+	// the same colour, whether anyone is doing it or not. A legend that
+	// reshuffles itself is one more thing moving on a view meant to be read
+	// at a glance, and the colours have to mean the same thing from one
+	// frame to the next for the weave under them to be legible at all.
 	var counts [len(ascii.Groups)]int
 	for _, a := range s.Activity {
 		counts[ascii.GroupOf(a.Action)] += a.Agents
 	}
+	cell := s.Map.W / len(ascii.Groups)
 	for i, g := range ascii.Groups {
-		puts(sc, px, line, palette[g.Color], "█")
+		lx := i * cell
+		puts(sc, lx, s.Map.H, palette[g.Color], "█")
 		style := tcell.StyleDefault
 		if counts[i] == 0 {
 			style = dim
 		}
-		puts(sc, px+2, line, style, fmt.Sprintf("%-7s %3d", g.Name, counts[i]))
-		line++
+		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
 	}
+	v.drawGraph(0, s.Map.H+1, s.Map.W)
+	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d ticks →", min(len(v.hist), s.Map.W)*graphTicks))
 	puts(sc, px, sh-1, dim, "space pause  +/- speed  . step  r pave  q quit")
 	sc.Show()
 }
 
-// drawGraph stacks the kinds of work as bands over time, oldest column on
-// the left, the full height being everyone with a plan. What a single-tick
-// list could never show is here: whether a band is widening.
-func (v *view) drawGraph(x, y int) {
-	for i, col := range v.hist {
-		cx := x + graphWidth - len(v.hist) + i
+// drawGraph weaves the kinds of work into a w-wide band of history, oldest
+// column on the left, the full height being the whole population and the gap
+// at the top those with nothing planned. What a single-tick list could never
+// show is here: whether a band is widening.
+func (v *view) drawGraph(x, y, w int) {
+	hist := v.hist
+	if len(hist) > w {
+		hist = hist[len(hist)-w:] // only what fits, the recent past
+	}
+	for i, col := range hist {
+		cx := x + w - len(hist) + i
 		for r := 0; r < graphHeight; r++ {
 			share := (float64(graphHeight-r) - 0.5) / float64(graphHeight)
 			var cum float64
