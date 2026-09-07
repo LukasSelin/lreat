@@ -20,9 +20,26 @@ var decay = [need.Count]float64{
 // that health is a record of how an agent has lived, not of what it ate today.
 const HealthRate = 0.01
 
+// ColdDrain is what the bitterest cold costs a body per tick with no roof
+// over it, on top of the ordinary drain. A roof takes all of it: what makes
+// winter dangerous is not the cold but being caught out in it, and a
+// settlement that has built for itself hardly feels the season in its
+// larder. A seventh of the ordinary drain is enough to make an unhoused
+// winter tell; at half again the ordinary drain, which is what it was first
+// set to, winter did not press on the unhoused, it pressed on the
+// settlement, and the population fell with it. Nobody is fully roofed all
+// the time - shelter rots - so this is a cost everyone pays a little of.
+const ColdDrain = 0.003
+
+// ColdCondition is how much of a body's condition the same exposure takes.
+// It works through health, which moves at a hundredth of the rate needs do,
+// so a winter outdoors shows up as a body that is still slower come spring.
+const ColdCondition = 0.2
+
 // Decay drains needs, lets shelter rot, and relaxes safety toward what the
 // agent's circumstances actually provide.
 func Decay(w *world.World) {
+	chill := w.Climate.Chill()
 	for _, a := range w.Agents {
 		for t := range decay {
 			a.Needs.Add(need.Tier(t), -decay[t])
@@ -30,10 +47,17 @@ func Decay(w *world.World) {
 
 		a.Shelter = math.Max(0, a.Shelter-w.Mods.ShelterDecay)
 
+		// What the weather costs is what the agent stands in it unroofed.
+		// In a mild season it is nothing whatever anyone has built; in the
+		// deep of a hard winter a body without a house burns half again
+		// what it otherwise would just staying warm.
+		exposure := chill * (1 - a.Shelter)
+		a.Needs.Add(need.Physiological, -ColdDrain*exposure)
+
 		// Health follows nourishment and housing, at a hundredth of the rate
 		// they move themselves. A lean week barely shows; a lean season
 		// leaves a body that walks slower and tires sooner.
-		condition := 0.35 + 0.45*need.Clamp(a.Needs[need.Physiological]) + 0.2*a.Shelter
+		condition := 0.35 + 0.45*need.Clamp(a.Needs[need.Physiological]) + 0.2*a.Shelter - ColdCondition*exposure
 		a.Health = need.Clamp(a.Health + (condition-a.Health)*HealthRate)
 
 		// Safety is derived: housing, public order, and savings each matter.

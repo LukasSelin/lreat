@@ -16,7 +16,7 @@ Three commitments, agreed up front:
 
 ## The space
 
-`core/habit` defines a 19-dimensional space. Every coordinate is roughly in [-1, 1] with 0 meaning neutral.
+`core/habit` defines a 20-dimensional space. Every coordinate is roughly in [-1, 1] with 0 meaning neutral.
 
 Shared dimensions, computed once per agent per decision:
 
@@ -28,17 +28,18 @@ Shared dimensions, computed once per agent per decision:
 | 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
 | 8 | shelter | `Shelter` | `shelter - 1`, a lack: half a house is half a house short |
 | 9 | company | `w.Neighbor(a, 8) != nil` | +1 or -1 |
-| 10 | order | `w.Safety` | `safety`, one-sided |
-| 11-14 | honesty, charity, industry, tradition | `Norms` | `n`, one-sided, frozen |
-| 15 | caution | `Caution` | `c`, one-sided, frozen |
+| 10 | chill | `w.Climate.Chill()` | `chill`, one-sided: 0 through the mild half of the year, 1 at the bottom of a hard winter |
+| 11 | order | `w.Safety` | `safety`, one-sided |
+| 12-15 | honesty, charity, industry, tradition | `Norms` | `n`, one-sided, frozen |
+| 16 | caution | `Caution` | `c`, one-sided, frozen |
 
 Per-candidate dimensions, patched for each action being weighed:
 
 | dim | name | source |
 |---|---|---|
-| 16 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 30)` |
-| 17 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
-| 18 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
+| 17 | near | `1 - 2*clamp01(TravelCost(a.Pos, target) / Vigor() / 30)` |
+| 18 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
+| 19 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
 
 Personality is folded into the urgency dimensions rather than kept separate. The moral coordinates and order are one-sided because the belief layer defines them that way: a norm of 0 is holding nothing, caution of 0 is having learned of no reprisal, safety of 0 is nobody keeping order. Read on that scale an ordinary agent minds a wrong about half as much as a saint, which is what conscience charges in the value rule. Centred at 0.5 they fell silent for everyone but the extremes, and theft ran wild (see the comparison below). The moral dimensions are frozen: they are the same across every candidate an agent weighs, so if habits could learn them every habit would soon carry the agent's own norms and the dimension would cancel out of the choice. Values belong to the agent. Habits learn situations.
 
@@ -443,3 +444,60 @@ the odds, over the run of choices behind it. A run of choices is what says
 whether an agent is getting anywhere or turning on the spot between the same
 two errands — which is the thing the aggregate graph, by construction,
 averages away.
+
+## The turning year
+
+The world had one weather and kept it for ever. Now it has a temperate year, and the settlement has a season to get through rather than a steady state to sit in. `core/world/climate.go`, `core/system/climate.go`.
+
+**The shape of it.** A year is 100 ticks, so a life is some fifty years and a run long enough to develop sees dozens of winters. Temperature is a sine about a mean of 10 degrees with a swing of 12, putting midsummer at 22 and midwinter at -2, and two AR(1) wanderings sit on top of it: a slow one, eight years to shed an anomaly and a standard deviation of 1.2 degrees, which makes a decade kind or unkind, and a fast one, six ticks and 2.5 degrees, which makes the warm week and the cold snap. Tick zero is early spring, so founders arrive with a growing season in front of them rather than behind them. It costs two draws from `World.RNG` a tick and nothing else, so a seed and a command log still reproduce a run exactly.
+
+**Three things read it**, and the whole of the feature is in the three:
+
+| reader | what the season does |
+|---|---|
+| `system.Land` | forest, wild food, fish, fallow and reseeding all keep the season's hours. `Climate.Growth()` is two thirds of the old flat rate in the depth of winter and a third again as much at midsummer, and averages exactly 1 over a year, so the land tuning that came before the seasons still holds: what changed is when a forest grows, not how much it grows in a year. |
+| `system.Decay` | cold costs a body `Chill * (1 - Shelter)`, in the larder and, at a hundredth of the rate, in its health. A roof takes all of it. What makes winter dangerous is not the cold, it is being caught out in it. |
+| `habit.Chill` | the twentieth dimension. Farming and foraging name the warmth, gathering wood and building name the cold, so the same settlement does different work in February and in June without anyone being told to. |
+| `system.MarketStep` | perishables keep better in the cold. `Keeping` is what the granaries stop and what the weather stops on top of it, and at the bottom of a hard winter food spoils at two fifths of its usual rate. |
+
+**What it cost, measured.** Twenty-four seeds, 4000 ticks, 20 founders, population at the end:
+
+| | median | mean | extinctions |
+|---|---|---|---|
+| no seasons | 128 | 132 | 0 |
+| seasons that nothing reads | 140 | 144 | 0 |
+| first build: no winter growth, chill read bipolar | 21 | 28 | 1 |
+| the same, chill read one-sided | 51 | 69 | 1 |
+| winter at 0.35 of full growth, no keeping | 69 | 87 | 0 |
+| shipped: winter at 0.5, and the cold keeps food | 60 | 86 | 1 |
+
+The second row is the control, and it is the one that made the rest legible. The weather draws from `World.RNG` whether or not anything reads it, which reshuffles every downstream draw in the simulation, so a seasoned run and an unseasoned run of the same seed are different worlds and cannot be compared one to one. A climate that turns and draws and that nothing reads costs nothing: 140 against 128 is the same number twice. Everything below the control is winter, not noise.
+
+**Two things had to give, and a third was a plain mistake.**
+
+- **A winter that stops the forest dead is a siege, not a season.** Nothing in this world can put a summer by: the larder is a few meals and they spoil. At zero winter growth the median settlement fell to 21 and one seed died outright, which is the first extinction this sweep has seen. `WinterGrowth` is 0.35 of full growth now - about half the old flat rate once the year is renormalised - and the year is lean in its cold half rather than empty.
+- **Cold has to press on the unhoused, not on the settlement.** `ColdDrain` began at 0.010, half again the ordinary drain of 0.02. That is a cost the whole population pays, because shelter rots and nobody is fully roofed all the time. At 0.005, a quarter of the ordinary drain at its very worst, an unhoused winter tells and a housed one does not.
+- **The chill coordinate must be silent in mild weather.** Read bipolar, +1 in the cold and -1 in the warmth, it was never silent: an ordinary spring read as a strong -1 in every situation vector, and farming, alone in naming the warmth, outranked studying for the curious and getting even for the wronged. Two `core/action` tests caught it. Chill is one-sided now, like order and caution: 0 through the mild half of the year, rising to 1 at the bottom of a hard winter. It taxes farming in February and nothing in June. Between those two readings, with identical physics, the median settlement went from 21 to 51 - the habit layer earning its keep, and the largest single effect measured here.
+
+**Four thousand ticks was the wrong horizon to tune against.** At 4000 the floor at 0.5 and the floor at 0.35 gave the same median, 71 against 69, and it looked as though the depth of the winter cost nothing. It does not show at 4000 because a settlement that has stopped breeding still has its founders. Run to 6000, which is what `TestCityDevelopsByRecognition` runs, seed 1 died outright at 0.35: seventeen founders, not one birth in 2500 ticks, and then old age. Births need physiological, safety and belonging all above their thresholds at once, and physiological's is a cliff at 0.7. A settlement whose mean sits at 0.55 to 0.68 does not breed slowly, it does not breed. That cliff is why a small per-tick cost buys a large population effect, and why measuring at a horizon shorter than a generation hides it.
+
+**Somewhere to put a summer.** The answer to a lean winter is not a milder winter, it is a store. Perishables now keep better in the cold - `ColdKeeping` stops three fifths of their spoilage at the bottom of the year - and a granary keeps more of them than it did, 0.4 of the usual spoilage per granary against 0.5. A cold store is the oldest one there is, and it is the one thing in this world that gets better as the weather gets worse: what the year takes from the settlement in the growing it stops doing, it gives a little of back in the keeping. On the deep season it was the difference between seed 1 ending at 0 and ending at 17.
+
+| 6000 ticks, six seeds | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| winter 0.35, drain 0.005, no keeping | 0 | 400 | 400 | 99 | 400 | 203 |
+| winter 0.35, drain 0.005, keeping | 17 | 400 | 281 | 8 | 399 | 400 |
+| shipped: winter 0.5, drain 0.003, keeping | 43 | 364 | 399 | 113 | 167 | 142 |
+
+Keeping saves the deep winter but leaves two settlements hanging on by their fingernails, at 17 and at 8. The shipped season leaves none: it is a two-to-one year rather than a three-to-one one, still a season you can watch on the map, and it costs nothing to read.
+
+**The tail, and what the season really costs.** Twenty-four seeds to 6000 ticks, seasoned against unseasoned:
+
+| | median | weakest four | extinctions |
+|---|---|---|---|
+| no seasons | 350 | 4, 16, 24, 82 | 0 |
+| shipped | 224 | 0, 0, 0, 30 | 3 |
+
+The unseasoned world has no extinctions in 24 seeds and the seasoned one has three, so the season does turn near-misses into deaths; that is the cost, stated plainly. Two of the three - 13 and 22 - are the same worlds that come second and third from bottom without it, at 16 and 24, which is a settlement that never got going either way. The third, seed 23, ends at 82 unseasoned, and it is the one that says the season killed something that would otherwise have lived. Against that, seed 21 is the weakest unseasoned world of all at 4 and comes through the seasoned run at 86: on this tail the draw order matters as much as the weather, as the control row showed. The median is the honest headline, and it falls from 350 to 224. A year with a lean half in it carries fewer people, and the population a settlement can hold is the population its worst season can hold.
+
+**What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
