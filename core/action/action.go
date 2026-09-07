@@ -311,7 +311,20 @@ func shelterGain(a *entity.Agent, w *world.World) float64 {
 	return math.Min(1-a.Shelter, 0.4*w.Mods.BuildEfficiency*(0.5+a.Skills[entity.Building]))
 }
 
-// buildSite is the agent's house, or open ground near what they care about:
+// plotNear is the closest place to anchor where a house can stand with its
+// own ground around it. A settlement that builds wall to wall has nowhere
+// left to put a street, so a plot is looked for first and open ground only
+// taken as it comes when the neighbourhood has run out of room.
+func plotNear(w *world.World, anchor entity.Pos) (entity.Pos, bool) {
+	if p, ok := w.Grid.Nearest(anchor, searchRadius, func(p entity.Pos, _ *world.Tile) bool {
+		return w.Grid.RoomToBuild(p)
+	}); ok {
+		return p, true
+	}
+	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+}
+
+// buildSite is the agent's house, or a plot near what they care about:
 // the market for the safety-minded, their field for everyone else.
 func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
@@ -321,7 +334,16 @@ func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField && a.Personality[need.Safety] < 1 {
 		anchor = a.Field
 	}
-	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+	return plotNear(w, anchor)
+}
+
+// roomNearby reports whether a plot with its own ground around it is still
+// to be had within reach of p.
+func roomNearby(w *world.World, p entity.Pos) bool {
+	_, ok := w.Grid.Nearest(p, searchRadius, func(q entity.Pos, _ *world.Tile) bool {
+		return w.Grid.RoomToBuild(q)
+	})
+	return ok
 }
 
 var BuildShelter = &Def{
@@ -336,6 +358,12 @@ var BuildShelter = &Def{
 		if !a.HasHome {
 			t := w.Grid.At(a.Pos)
 			if !t.Buildable() {
+				return
+			}
+			// Somebody may have built next door during the walk over. Go
+			// looking again rather than raise a wall against theirs, unless
+			// there is no plot left within reach to go looking for.
+			if !w.Grid.RoomToBuild(a.Pos) && roomNearby(w, a.Pos) {
 				return
 			}
 			t.Structure = world.House

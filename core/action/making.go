@@ -102,8 +102,15 @@ var Quarry = &Def{
 	},
 }
 
-// granarySite is open ground beside the market.
+// granarySite is a plot beside the market. Like a house it wants its own
+// ground around it: a granary the carts cannot get round is no use to the
+// market it keeps food for.
 func granarySite(_ *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if p, ok := w.Grid.Nearest(w.MarketPos, granaryRadius, func(p entity.Pos, _ *world.Tile) bool {
+		return w.Grid.RoomToBuild(p)
+	}); ok {
+		return p, true
+	}
 	return w.Grid.Nearest(w.MarketPos, granaryRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
 }
 
