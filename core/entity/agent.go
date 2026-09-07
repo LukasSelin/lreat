@@ -5,6 +5,8 @@
 package entity
 
 import (
+	"math/rand/v2"
+
 	"lreat/core/belief"
 	"lreat/core/habit"
 	"lreat/core/need"
@@ -107,6 +109,14 @@ type Plan struct {
 	Remaining int
 	Total     int
 
+	// Route is the way to Target that was cheapest when the plan was made,
+	// the tiles still to be walked, nearest first. It is worked out once, at
+	// the moment of deciding, rather than asked again every tick: the same
+	// inertia that keeps an agent on a plan keeps it on the way it set out
+	// by. Somebody may pave a better street while it is walking, and it will
+	// not notice until its next errand takes it that way.
+	Route []Pos
+
 	// Index is the catalog position of Action, so the outcome can be
 	// credited to the right habit without a name lookup.
 	Index int
@@ -126,6 +136,16 @@ type Agent struct {
 	ID   ID
 	Name string
 	Born int
+
+	// Luck is the agent's own stream of chance, seeded when it is born. An
+	// agent draws from this rather than from the world's one stream so that
+	// what it decides depends on what it has drawn before and not on who
+	// else happened to draw in between. That is what lets a whole population
+	// decide at the same time and still come out the same as if they had
+	// gone one at a time - and it is why only deciding may run in parallel:
+	// Luck covers choosing, while acting on the choice still draws on the
+	// world.
+	Luck *rand.Rand
 
 	Needs       need.Levels
 	Personality need.Weights

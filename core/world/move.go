@@ -25,9 +25,18 @@ var moveCost = [...]float64{
 // as open grass. A house is a wall and a hearth rather than a thoroughfare,
 // so crossing one is slower than walking round it. A road is the only thing
 // built purely to be walked on, and it is the fastest ground on the map.
+//
+// The house toll is deliberately mild. Recognition reads distance straight
+// off the ground - a costly walk makes an errand read as a poor fit, rather
+// than merely dividing its worth as the value rule does - so a settlement
+// that grows dear to cross degrades the very judgement its people make, and
+// the worse it gets the more it builds. At 1.6 that loop was enough to stop
+// a settlement replacing its founders. Roads are the answer to it; until
+// somebody decides to lay them, the toll stays where a growing city can
+// carry it.
 var structureCost = [...]float64{
 	None:   0, // unused: terrain decides
-	House:  1.6,
+	House:  1.3,
 	Market: 1,
 	Road:   0.5,
 }
@@ -67,19 +76,44 @@ func (g *Grid) MoveDrain(p entity.Pos) float64 {
 // only where fording beats going round, and joins a road that runs its way
 // even when the road starts off to one side. Ties keep the straight-line
 // step, so runs repeat.
-func (g *Grid) StepToward(from, to entity.Pos) entity.Pos {
+func (r *Router) StepToward(from, to entity.Pos) entity.Pos {
+	g := r.g
 	if from == to || !g.In(to) {
 		return from
 	}
 	stop := int32(to.Y*g.W + to.X)
-	return g.route(&g.scratch, from, stop, entity.StepToward(from, to)).Step(to)
+	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Step(to)
+}
+
+// StepToward routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) StepToward(from, to entity.Pos) entity.Pos {
+	return g.ownRouter().StepToward(from, to)
+}
+
+// Path is the cheapest way from one tile to another, from excluded and to
+// included. It is what an agent is given to walk when it settles on a plan,
+// so that the way is worked out once rather than re-asked at every step.
+func (r *Router) Path(from, to entity.Pos) []entity.Pos {
+	g := r.g
+	if from == to || !g.In(to) {
+		return nil
+	}
+	stop := int32(to.Y*g.W + to.X)
+	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Path(to)
+}
+
+// Path routes on the grid's own router, for callers working one at a time.
+func (g *Grid) Path(from, to entity.Pos) []entity.Pos {
+	return g.ownRouter().Path(from, to)
 }
 
 // TravelCost is the ticks of walking from one tile to another along the route
 // the agent would actually take. Deciding uses it in place of raw distance,
 // so a target across the water is judged as far as the wading makes it, and
 // one along a street as near as the paving makes it.
-func (g *Grid) TravelCost(from, to entity.Pos) float64 {
+func (r *Router) TravelCost(from, to entity.Pos) float64 {
+	g := r.g
 	if from == to {
 		return 0
 	}
@@ -87,5 +121,11 @@ func (g *Grid) TravelCost(from, to entity.Pos) float64 {
 		return math.Inf(1)
 	}
 	stop := int32(to.Y*g.W + to.X)
-	return g.route(&g.scratch, from, stop, entity.StepToward(from, to)).Cost(to)
+	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Cost(to)
+}
+
+// TravelCost routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) TravelCost(from, to entity.Pos) float64 {
+	return g.ownRouter().TravelCost(from, to)
 }
