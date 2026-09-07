@@ -488,6 +488,13 @@ The second row is the control, and it is the one that made the rest legible. The
 
 Keeping saves the deep winter but leaves two settlements hanging on by their fingernails, at 17 and at 8. The shipped season leaves none: it is a two-to-one year rather than a three-to-one one, still a season you can watch on the map, and it costs nothing to read.
 
-**The tail.** Run the shipped rules over 24 seeds to 6000 ticks and the median is 224, with eight settlements at the population cap and three - seeds 13, 22 and 23 - gone. Whether the season is what killed those three is not established here. They are the same worlds that come last without it: seed 22 ends with 12 people at 4000 under no seasons at all, and seed 23 goes from 20 to 3 on a climate that turns and that nothing reads, purely from the reshuffled draw order. On the marginal tail these runs are luck, and a claim about them would need the unseasoned 24 measured at the same horizon, which has not been done. The claim made here is about the median and about the seeds that were going to make it.
+**The tail, and what the season really costs.** Twenty-four seeds to 6000 ticks, seasoned against unseasoned:
+
+| | median | weakest four | extinctions |
+|---|---|---|---|
+| no seasons | 350 | 4, 16, 24, 82 | 0 |
+| shipped | 224 | 0, 0, 0, 30 | 3 |
+
+The unseasoned world has no extinctions in 24 seeds and the seasoned one has three, so the season does turn near-misses into deaths; that is the cost, stated plainly. Two of the three - 13 and 22 - are the same worlds that come second and third from bottom without it, at 16 and 24, which is a settlement that never got going either way. The third, seed 23, ends at 82 unseasoned, and it is the one that says the season killed something that would otherwise have lived. Against that, seed 21 is the weakest unseasoned world of all at 4 and comes through the seasoned run at 86: on this tail the draw order matters as much as the weather, as the control row showed. The median is the honest headline, and it falls from 350 to 224. A year with a lean half in it carries fewer people, and the population a settlement can hold is the population its worst season can hold.
 
 **What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
