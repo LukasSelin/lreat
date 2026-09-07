@@ -99,6 +99,12 @@ type Portrait struct {
 	Known, Friends, Feuds, Hearsay int
 	Ties                           []Tie
 
+	// Where it knows. Places is the ground this one has stood on and thought
+	// worth remembering, best first; it is the whole of what it has to site
+	// a house or a field out of, so a settler with a short list here is a
+	// settler who has not been anywhere.
+	Places []entity.Place
+
 	// Thinking is the run of decisions this agent has been watched making,
 	// oldest first, empty until the world is told to watch it. See
 	// world.World.Watch.
@@ -138,6 +144,8 @@ func Look(w *world.World, id entity.ID) *Portrait {
 		}
 	}
 	p.Known = len(a.Bonds)
+	p.Places = append([]entity.Place(nil), a.Places...)
+	sort.SliceStable(p.Places, func(i, j int) bool { return p.Places[i].Worth > p.Places[j].Worth })
 	for i := range a.Bonds {
 		b := &a.Bonds[i]
 		if b.Met == 0 {

@@ -16,6 +16,7 @@ func Step(w *world.World) {
 	Decide(w)
 	Act(w)
 	MarketStep(w)
+	MoveMarket(w)
 	Population(w)
 	Upkeep(w)
 	Discover(w)

@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 28
+const Count = 29
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -69,7 +69,7 @@ func init() {
 		Steal, Give, Fulfil, Retaliate,
 		Fish, Hunt, Irrigate, PlantTrees,
 		Cook, Quarry, BuildGranary, Smelt,
-		BuildTavern, MoveHouse,
+		BuildTavern, MoveHouse, Scout,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -232,13 +232,25 @@ var Forage = &Def{
 const (
 	farmWear  = 0.006
 	wornField = 0.1
+	// fieldReach is how far from the door a field may lie. A field is walked
+	// to every day of the season, so it is near or it is nothing; the old
+	// rule let one be looked for forty tiles off, which no one would work.
+	fieldReach = 10
+	// workableSoil is the least fertility worth clearing for.
+	workableSoil = 0.3
 )
 
 func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
 }
 
-// farmSite is the agent's field, or the best unclaimed ground near home.
+// farmSite is the agent's field, or the best ground it can find to clear.
+//
+// The test used to be a threshold - the nearest tile fertile enough - which
+// meant any barely adequate patch beat excellent soil a tile further on, and
+// meant every farmer working from the same anchor cleared the same tile. Now
+// the ground near the door is weighed rather than sieved: richness against
+// the walk out to it, in the same currency the rest of siting is costed in.
 func farmSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField {
 		return a.Field, true
@@ -247,8 +259,36 @@ func farmSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
 		anchor = a.Home
 	}
+	best, bestValue, found := entity.Pos{}, 0.0, false
+	for y := anchor.Y - fieldReach; y <= anchor.Y+fieldReach; y++ {
+		for x := anchor.X - fieldReach; x <= anchor.X+fieldReach; x++ {
+			p := entity.Pos{X: x, Y: y}
+			if !w.Grid.In(p) {
+				continue
+			}
+			t := w.Grid.At(p)
+			if !t.Buildable() || t.Fertility < workableSoil {
+				continue
+			}
+			// What a field is worth is what it grows, against the walk out
+			// to it every day of the season. goodSoil is what a season of
+			// full fertility is reckoned to be worth in tiles of walking,
+			// the same figure a house is sited by.
+			v := goodSoil*t.Fertility - float64(entity.Dist(anchor, p))
+			if !found || v > bestValue {
+				best, bestValue, found = p, v, true
+			}
+		}
+	}
+	if found {
+		return best, found
+	}
+	// Nothing worth clearing within a day's reach of the door. Rather than
+	// give up farming altogether - which is what weighing only the near
+	// ground did, and it left whole settlements with no field at all - take
+	// the nearest ground that will grow anything, however far off.
 	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Buildable() && t.Fertility >= 0.3
+		return t.Buildable() && t.Fertility >= workableSoil
 	})
 }
 
@@ -374,17 +414,20 @@ func plotNear(w *world.World, anchor entity.Pos) (entity.Pos, bool) {
 	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
 }
 
-// buildSite is the agent's house, or a plot near what they care about:
-// the market for the safety-minded, their field for everyone else.
+// buildSite is the agent's house, or the best plot it knows of.
+//
+// It used to be a plot near what the agent cared about, and what it was taken
+// to care about was the market - a position nobody in the settlement had
+// chosen and every one of them was measured from. Since the anchor was shared
+// and the search was deterministic, every homeless agent alive was handed the
+// same tile on the same tick and queued for it. Siting now runs off what the
+// agent has personally walked over, which no two of them have the same list
+// of, and off what that ground is actually worth. See ground.go.
 func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
 		return a.Home, true
 	}
-	anchor := w.MarketPos
-	if a.HasField && a.Personality[need.Safety] < 1 {
-		anchor = a.Field
-	}
-	return plotNear(w, anchor)
+	return KnownPlot(a, w)
 }
 
 // roomNearby reports whether a plot with its own ground around it is still

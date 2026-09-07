@@ -112,5 +112,12 @@ func Inherit(child, parent *entity.Agent, w *world.World, rng *rand.Rand) {
 	for i := range Catalog {
 		child.Reach[i] = max(w.ReachFloor[i], InheritReach*parent.Reach[i])
 	}
+	// A child is shown the country it grows up in. Without this every
+	// generation would be born knowing nowhere and would have to walk the
+	// neighbourhood again before it could site anything, which is not how
+	// anybody learns where the good ground is. It has to be a fresh slice:
+	// Habits and Reach are arrays and copy on assignment, but a shared slice
+	// would give parent and child one backing store to append into.
+	child.Places = parent.CopyPlaces()
 	child.Imprinted = true
 }

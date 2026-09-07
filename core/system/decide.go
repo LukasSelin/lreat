@@ -380,10 +380,16 @@ func Act(w *world.World) {
 				a.Pos = step
 				a.Plan.Route = a.Plan.Route[1:]
 				w.Grid.Tread(step)
+				// Walking is how anybody learns what the country is like.
+				// There is no survey and nobody is told: an agent knows the
+				// ground it has stood on and no other, and everything it
+				// ever sites is sited out of that. See action.Notice.
+				action.Notice(a, w)
 			}
 			continue
 		}
 		a.Travel = 0
+		action.Notice(a, w)
 		a.Plan.Remaining--
 		if a.Plan.Remaining > 0 {
 			continue

@@ -39,47 +39,46 @@ const (
 )
 
 // homeCost is how poorly a house at p serves the life its owner leads: the
-// walk to the market, the walk to their field, and the traffic that comes
-// through the door because the house sits on a way people want.
+// walk to their field, and the ground itself, which is worth what living on
+// it is worth and is counted in the same tiles of walking.
+//
+// It used to open with the walk to the market. That was the last place in the
+// simulation where the shape of a settlement was written down rather than
+// arrived at: wherever the map generator had put the market, every house for
+// the rest of time was pulled toward it, and a town could not grow anywhere
+// else however good the ground was. What holds a settlement together now is
+// in LandWorth - people are worth more to each other than to any building -
+// and the market earns whatever pull it has by being somewhere people go.
 func homeCost(a *entity.Agent, w *world.World, p entity.Pos) float64 {
-	c := float64(entity.Dist(p, w.MarketPos))
+	c := -LandWorth(w, p)
 	if a.HasField {
 		c += float64(entity.Dist(p, a.Field))
 	}
-	return c + inTheWay*w.Grid.At(p).Traffic/wornEnough
+	return c
 }
 
-// betterPlot is the plot near home that would serve its owner better by
-// enough to be worth the move. Every plot in reach is weighed rather than the
-// first one found, because a move is only ever worth making toward the best
-// of them; ties go to the tile nearest the top left, so a run repeats.
+// betterPlot is the best plot its owner knows of, if it would serve them
+// better by enough to be worth the move.
+//
+// It used to weigh every tile in a square twenty-one across, which was both
+// expensive and a kind of omniscience: a householder considering a move had
+// the whole neighbourhood in front of them, surveyed, including ground they
+// had never once walked. A move now runs off the same list of remembered
+// places a first house is sited from, which is a shorter list and an honest
+// one - you move somewhere you have been.
 func betterPlot(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if !a.HasHome {
 		return entity.Pos{}, false
 	}
-	// No plot can cost less than the walk from the market to the field,
-	// since a house has to be somewhere on the way between them, so a home
-	// already that good is one nothing in reach can beat and there is
-	// nothing to weigh. Most people in a settled place are in that position
-	// most of the time, and this is what keeps the act cheap to consider.
 	bestCost := homeCost(a, w, a.Home) - worthMoving
-	floor := 0.0
-	if a.HasField {
-		floor = float64(entity.Dist(w.MarketPos, a.Field))
-	}
-	if bestCost <= floor {
-		return entity.Pos{}, false
-	}
 	best, found := entity.Pos{}, false
-	for y := a.Home.Y - movingRadius; y <= a.Home.Y+movingRadius; y++ {
-		for x := a.Home.X - movingRadius; x <= a.Home.X+movingRadius; x++ {
-			p := entity.Pos{X: x, Y: y}
-			if !w.Grid.RoomToBuild(p) {
-				continue
-			}
-			if c := homeCost(a, w, p); c < bestCost {
-				best, bestCost, found = p, c, true
-			}
+	for i := range a.Places {
+		p := a.Places[i].Pos
+		if entity.Dist(a.Home, p) > movingRadius || !w.Grid.RoomToBuild(p) {
+			continue
+		}
+		if c := homeCost(a, w, p); c < bestCost {
+			best, bestCost, found = p, c, true
 		}
 	}
 	return best, found

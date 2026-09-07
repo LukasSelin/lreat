@@ -206,7 +206,13 @@ type Agent struct {
 
 	Starving int // consecutive ticks at the bottom of the physiological tier
 	Bonds    []Bond
-	Plan     *Plan
+	// Places is the ground this agent has stood on and thought worth
+	// remembering. It is the whole of what it knows of the country: an agent
+	// sites a house, a field, and a move out of this list and nothing else,
+	// so where a settlement grows is decided by where its people have
+	// actually walked. See place.go.
+	Places []Place
+	Plan   *Plan
 
 	// Habits is what this agent has come to recognise as the kind of moment
 	// each action belongs to, indexed by catalog position. Each starts as a
