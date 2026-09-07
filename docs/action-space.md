@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements now replace their founders: on seed 7 the population goes from 20 to 65 over 6000 ticks with all four techs; seeds 31 and 1 reach 63 and 114; seed 21 survives but shrinks to 13, the weak case to watch.
+Status: all six phases implemented, plus credit by provenance. **Recognition is the default rule.** The value rule stays behind `world.Rules.Fit = false`, or `-value` on the headless runner, and its tests run through a `valueWorld` helper so both rules stay covered. Recognition settlements replace their founders on 40 of 48 seeds (see Robustness below).
 
 ## Why
 
@@ -26,7 +26,7 @@ Shared dimensions, computed once per agent per decision:
 | 5 | food | `Inventory[Food]` | `2*clamp01(food/4) - 1` (same knee as `foodValue`) |
 | 6 | wood | `Inventory[Wood]` | `2*clamp01(wood/2) - 1` (the cost of a house, so +1 means "can build") |
 | 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
-| 8 | shelter | `Shelter` | `2*shelter - 1` |
+| 8 | shelter | `Shelter` | `shelter - 1`, a lack: half a house is half a house short |
 | 9 | company | `w.Neighbor(a, 8) != nil` | +1 or -1 |
 | 10 | order | `w.Safety` | `safety`, one-sided |
 | 11-14 | honesty, charity, industry, tradition | `Norms` | `n`, one-sided, frozen |
@@ -113,6 +113,27 @@ After these, seed 21 reaches 41 fulfilled requests per 500 ticks by tick 2000 an
 
 What did not move is safety, and with it growth. Agents forage every 17 ticks and gather wood a tenth as often, houses rot faster than they are rebuilt, and mean safety sits near 0.3 against 0.5 under the value rule, below the 0.6 a birth requires. The cause is structural. Under the leaky hierarchy a moderately hungry agent has its safety urgency damped, so it chases food; recognition has no notion that a field is more efficient than the forest, so it chases food the slow way; and a needs-only reward gives no credit for surplus, so nothing it learns changes that. **Recognition with a needs-only reward produces a subsistence society: fed, housed after a fashion, social, literate in time, and not growing.** Whether that is a bug or the point is a design call. The two levers left, both rejected so far, are an efficiency or stock term in the reward, and a longer credit horizon (a trace of 8 at 0.75 was tried and made requests collapse, because it spread each meal's credit over everything).
 
+### Robustness
+
+Single seeds are a coin toss near the edge. Whether a settlement lasts turns on how many births fall in its founders' fertile years, and that turns on safety crossing 0.6 at the moment of a roll, so the same change can send one seed from 0 to 144 and another the other way. Ranking a change on one or two seeds is meaningless; the method that worked is a batch of 24 seeds, in parallel, counting settlements that replaced their founders (population at least 20 at tick 6000), extinctions, and the median population, confirmed on a second independent batch:
+
+```bash
+go build -o /tmp/h.exe ./cmd/headless && seq 1 24 | xargs -P 8 -I{} sh -c '/tmp/h.exe -seed {} -ticks 6000 -every 6000 | grep "^  6000" | awk -v s={} "{print s, \$2}"' | sort -n
+```
+
+| variant | seeds 1-24 | seeds 25-48 |
+|---|---|---|
+| committed after provenance | 16 survived, 2 extinct, median 42 | 19 survived, 0 extinct, median 43 |
+| **shelter read as a lack** (adopted) | 20 survived, 0 extinct, median 118 | 20 survived, 0 extinct, median 77 |
+| plus unsheltered gather and build priors | 21 survived, 1 extinct, median 78 | |
+| plus eat at milder hunger | 16 survived, 2 extinct, median 94 | |
+| order with a midpoint, guard prior on it | worse on every seed tried | |
+| guard prior less repelled by order | 4 extinctions in 8 seeds | |
+
+What the winning change is about. Safety urgency is gone by the time safety reaches 0.4, a birth needs 0.6, and a house rots at 0.002 per tick. Read around a midpoint, the shelter coordinate only called for gathering and building once a house had mostly rotted, so shelter sat near 0.2 in both rules and safety only crossed 0.6 in the spike after a rebuild. Read as a lack, half a house is still a moment that calls for wood, houses are kept nearer 0.5, and the spikes are no longer what a settlement lives or dies on.
+
+What did not work is as telling. Anything that made disorder a louder call to stand guard, whether through the mapping or the guard prior, starved settlements at their posts. The milder eat prior, meant to keep agents above the birth mark, undid the gain. And seed 21, the seed that started this, is still on the edge: 13 before, 10 after, 63 under a variant that was worse overall. It is not a special seed, it is an ordinary one that fell on the wrong side of a knife edge, and the fix was to blunt the edge for everyone rather than to tune for it.
+
 ### First side-by-side run
 
 Same seeds, same populations, same tick counts; the two modes are different RNG streams so this is a comparison of character, not of trajectories. Phase 4, before any tuning.
@@ -180,6 +201,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 4 | `system.Recognise` sampling in `Decide`, `system.Learn` at every plan end in `Act`, `system.Commit` as the one plan builder (used by `sim.Intend`), headless `-fit` and `-temp`; fit-mode determinism and liveness tests | done |
 | 5 | `action.Broaden`, `action.Pass`, `Discovery.Opens` and `world.ReachFloor`, `action.Inherit` at birth; `HabitSpread`, `GatedReach`, `ChoiceEntropy`, `Deaths` in snapshot, headless, TUI; moral coordinates one-sided | done |
 | 7 | Credit by provenance: larder, roof, and watch; credit carries the advantage; per-action baseline alone; guard fully in reach | done |
+| 8 | Robustness: 48-seed sweeps; shelter read as a lack | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
