@@ -8,7 +8,10 @@ import (
 	"lreat/core/world"
 )
 
-func TestRestAndMealsStepUnderARoofThatIsRightThere(t *testing.T) {
+// Nobody walks to be comfortable. Resting and eating happen where the agent
+// stands, whether or not a roof is a step away: the walk was worth more than
+// the roof once the year had a lean half in it. See comfortRadius.
+func TestRestAndMealsHappenWhereTheAgentStands(t *testing.T) {
 	w, a, _ := village(t)
 	a.Inventory[entity.Food] = 2
 	for _, d := range []*Def{Rest, Eat} {
@@ -19,29 +22,16 @@ func TestRestAndMealsStepUnderARoofThatIsRightThere(t *testing.T) {
 	a.Home, a.HasHome = entity.Pos{X: 18, Y: 11}, true
 	w.Grid.At(a.Home).Structure = world.House
 	for _, d := range []*Def{Rest, Eat} {
-		if p, _ := d.Target(a, w); p != a.Home {
-			t.Fatalf("%s with home a step away should happen at home, got %v", d.Name, p)
+		if p, _ := d.Target(a, w); p != a.Pos {
+			t.Fatalf("%s with home a step away should still happen here, got %v", d.Name, p)
 		}
 	}
-	a.Pos = entity.Pos{X: 18, Y: 14}
-	if p, _ := Rest.Target(a, w); p != a.Pos {
-		t.Fatal("a rest is not worth even a short walk home")
-	}
-}
-
-func TestTemperamentPicksBetweenHearthAndTavern(t *testing.T) {
-	w, a, _ := village(t)
-	a.Home, a.HasHome = entity.Pos{X: 18, Y: 11}, true
-	w.Grid.At(a.Home).Structure = world.House
-	tavern := entity.Pos{X: 19, Y: 11}
-	w.Grid.At(tavern).Structure = world.Tavern
-	a.Temperament.Warmth = 0.9
-	if p, _ := Rest.Target(a, w); p != tavern {
-		t.Fatalf("the warm rest at the tavern, got %v", p)
-	}
-	a.Temperament.Warmth = 0.1
-	if p, _ := Rest.Target(a, w); p != a.Home {
-		t.Fatalf("the cool rest at home, got %v", p)
+	// Standing on the roof is the whole of it: the comfort is where you are.
+	a.Pos = a.Home
+	for _, d := range []*Def{Rest, Eat} {
+		if p, _ := d.Target(a, w); p != a.Home {
+			t.Fatalf("%s at home should happen at home, got %v", d.Name, p)
+		}
 	}
 }
 

@@ -251,7 +251,13 @@ On 96 seeds, asking social acts to have somewhere to happen took survivors from 
 | smelt | a forge: at home, and nowhere else |
 | guard | a market within the settlement's reach with somebody at it; an empty square is nothing to guard |
 
-**Comfort.** Resting and eating happen wherever the agent is, since a body that must be fed cannot be made to walk home first; but if home or the tavern is a single step away, the agent steps in, the warm to the tavern and the cool to their own hearth. A rest under a roof restores 0.05 against 0.03 in the open, and a meal in company at the tavern is a little belonging. The radius is one step for a reason worth keeping: recognition reads distance as poor fit, so a meal sent a few tiles off fits worse exactly when it should happen, and a one-tick act becomes a walk for the starving. At four tiles the preference killed two thirds of settlements over 96 seeds (33 survived, 23 extinct); at two it cost a dozen (80); at one it costs nothing (91, median 394).
+**Comfort.** Resting and eating happen where the agent stands, and a roof underfoot is worth having: a rest under one restores 0.05 against 0.03 in the open, and a meal in company at the tavern is a little belonging. Nobody walks to get either.
+
+The radius was one step, and the walk was free: recognition reads distance as poor fit, so a meal sent a few tiles off fits worse exactly when it should happen, and at four tiles the preference killed two thirds of settlements over 96 seeds (33 survived, 23 extinct), at two it cost a dozen (80), and at one it cost nothing (91, median 394). Then the year began to turn, and the slack that had paid for the step was gone. A one-tick act with a one-tick walk in front of it is twice the act, and a body in a lean February cannot afford the second tick - which is what this act's own reasoning said before it was given a target: a body that must be fed cannot be made to walk home first. With the seasons in, over 24 seeds to 6000 ticks, a radius of one leaves the median settlement at 73 and kills four; at zero the median is 152 and one dies; the seasoned world with no comfort at all sits at 89. Sending only `Eat` back to where it stands recovers most of it (135) and is the smaller change, but the walk earns nothing for `Rest` either once nobody is walking to eat.
+
+Two things went with the radius. The temperament fork in `comfort` - the warm to the tavern, the cool to the hearth - can no longer decide anything, since only the tile underfoot is ever a candidate; it is kept against a radius that can afford to be walked again. And `TestTemperamentPicksBetweenHearthAndTavern` is gone, because it asserted a choice that is no longer reachable.
+
+This is the first case in this document of two changes that each measure clean and are wrong together. Comfort was measured in a world with no winter and the seasons were measured before comfort existed; both passed, and their merge killed seed 3 outright. Neither author could have seen it alone.
 
 The settlement's reach is twenty tiles from the market. Everything else already had its place: the field, the forest, the bank, the outcrop, the market, the companion's side, the requester's door. On 96 seeds the change leaves survival within the band, 92 against 94, and the median population at 356.
 
@@ -303,7 +309,7 @@ Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit
 | 11 | Making and keeping: stone and meals; cook, quarry, build granary, smelt; pottery and quarrying; tools on the farm; stone houses; 96-seed comparisons | done |
 | 12 | Places: company within reach, meetings at market, house, or tavern by temperament; brewing and taverns | done |
 | 13 | Workplaces: a bench, a desk, a hearth, a forge, and a market worth guarding | done |
-| 14 | Comfort: rest and meals step under a roof when one is a step away | done |
+| 14 | Comfort: rest and meals are better under a roof, and nobody walks to one | done |
 | 6 | Recognition is the default (reverted once after the aging merge, restored with provenance); headless `-value`; value-rule tests run through `valueWorld`; recognition twins at full length; ordering twins for every value-rule choice test in `core/action/situation_test.go`; per-action baselines, industrious farm prior, wood knee at the house cost, guard reach 0.8 | done |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

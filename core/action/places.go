@@ -166,13 +166,21 @@ func worthGuarding(a *entity.Agent, w *world.World) bool {
 // walk they prefer a roof, home or the tavern by temperament, and are the
 // better for it.
 
-// comfortRadius is how far an agent will go to rest or eat under a roof: a
-// single step. Recognition reads distance as poor fit, so a meal sent a few
-// tiles off fits worse exactly when it should happen, and a one-tick act
-// becomes a walk for the starving. At four tiles this preference killed
-// two thirds of settlements over 96 seeds; at two it cost a dozen; at one
-// it costs nothing.
-const comfortRadius = 1
+// comfortRadius is how far an agent will go to rest or eat under a roof.
+// It is zero: nobody walks to be comfortable, and the roof is worth
+// something only to whoever is already standing under one.
+//
+// It was one step, and one step was free in a world with no winter - at
+// four tiles the preference killed two thirds of settlements over 96
+// seeds, at two it cost a dozen, at one it cost nothing. The seasons took
+// that slack away. A one-tick act preceded by a one-tick walk is twice the
+// act, and a body in a lean February cannot afford the second tick, which
+// is what the act's own reasoning already said: a body that must be fed
+// cannot be made to walk home first. Over 24 seeds to 6000 ticks, with the
+// seasons in, a radius of one left the median settlement at 73 and killed
+// four; at zero the median is 152 and one dies. The seasoned column
+// without any of this is 89.
+const comfortRadius = 0
 
 // comfort is where an agent would rest or eat: home or the tavern if either
 // is close, the warm preferring the tavern and the cool their own hearth;
@@ -185,6 +193,11 @@ func comfort(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 		return entity.Pos{}, false
 	}
 	tavern := func() (entity.Pos, bool) { return nearPlace(w, a.Pos, comfortRadius, world.Tavern) }
+	// The warm would rather take it at the tavern and the cool at their own
+	// hearth. At a radius of zero this never decides anything - only the
+	// tile underfoot is ever a candidate, and it can be one roof or the
+	// other but not both - so the preference is kept rather than exercised,
+	// against a radius that can afford to be walked again.
 	order := []func() (entity.Pos, bool){home, tavern}
 	if outgoing(a) {
 		order = []func() (entity.Pos, bool){tavern, home}
