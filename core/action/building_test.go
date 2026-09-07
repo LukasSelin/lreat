@@ -27,7 +27,7 @@ func settle(t *testing.T, w *world.World, n int) {
 	for i := 0; i < n; i++ {
 		a := blank(w, "settler")
 		a.Pos = w.MarketPos
-		a.Inventory[entity.Wood] = 4
+		a.Inventory[entity.Wood] = raisingTimber + 1
 		if !run(w, a, BuildShelter) {
 			t.Fatalf("settler %d could not build", i)
 		}
@@ -68,5 +68,60 @@ func TestACrowdedSettlementStillGetsARoof(t *testing.T) {
 	settle(t, w, 1)
 	if w.Grid.At(gap).Structure != world.House {
 		t.Fatal("the last open tile in a crowded settlement went unbuilt")
+	}
+}
+
+// A house is the largest thing anybody in a settlement makes, and it should
+// read that way against a day's work in the woods. Before these prices a
+// single tree housed a family twice over and everyone was under a roof
+// within the first season; the frame has to be worth several trees, and
+// several days of felling, or the founding years have no scarcity in them at
+// all. Keeping the roof on afterwards is the opposite kind of act: an armful
+// and an afternoon, so that owning a house does not become its own treadmill.
+func TestAFrameCostsSeveralTreesAndAPatchDoesNot(t *testing.T) {
+	// A forest tile carries one length of standing timber, and treeTake is
+	// what one day's felling brings down of it.
+	perTree := armful / treeTake
+	if trees := raisingTimber / perTree; trees < 3 {
+		t.Fatalf("a house's frame takes %.1f trees; it should take several", trees)
+	}
+	if days := raisingTimber / armful; days < 8 {
+		t.Fatalf("a house's frame takes %.0f days in the woods; it should take many", days)
+	}
+	if roofingTimber > armful {
+		t.Fatalf("patching a roof costs %v, more than the %v a day carries home", roofingTimber, armful)
+	}
+	// Wood has to stay something to be short of right up to the frame's
+	// price, or nobody ever stands in front of enough timber to raise one.
+	if woodKnee != raisingTimber || cookReserve != raisingTimber {
+		t.Fatalf("wood knee %v and cook reserve %v should both be the frame's price %v",
+			woodKnee, cookReserve, raisingTimber)
+	}
+}
+
+// Raising and keeping are one act to the builder and two prices to the
+// forest: the frame is charged once, and only from somebody who has no house.
+func TestRaisingIsChargedOnceAndKeepingIsCheap(t *testing.T) {
+	w, _ := shore(t)
+	a := blank(w, "a")
+	a.Pos = w.MarketPos
+	a.Inventory[entity.Wood] = roofingTimber
+	if BuildShelter.Available(a, w) {
+		t.Fatal("an armful should not raise a house")
+	}
+	a.Inventory[entity.Wood] = raisingTimber
+	if !run(w, a, BuildShelter) {
+		t.Fatal("a frame's worth of timber should raise one")
+	}
+	if !a.HasHome || a.Inventory[entity.Wood] != 0 {
+		t.Fatalf("after raising: home %v, wood %v", a.HasHome, a.Inventory[entity.Wood])
+	}
+	a.Inventory[entity.Wood] = roofingTimber
+	before := a.Shelter
+	if !run(w, a, BuildShelter) {
+		t.Fatal("an armful should patch the roof of a house that stands")
+	}
+	if !(a.Shelter > before) || a.Inventory[entity.Wood] != 0 {
+		t.Fatalf("after patching: shelter %v from %v, wood %v", a.Shelter, before, a.Inventory[entity.Wood])
 	}
 }
