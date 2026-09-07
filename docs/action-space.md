@@ -511,7 +511,7 @@ The second row is the control, and it is the one that made the rest legible. The
 
 Keeping saves the deep winter but leaves two settlements hanging on by their fingernails, at 17 and at 8. The shipped season leaves none: it is a two-to-one year rather than a three-to-one one, still a season you can watch on the map, and it costs nothing to read.
 
-**What the season costs, on the ground it now runs on.** Everything above was measured on the flat map, before the terrain underneath was rebuilt. Re-measured on the ground of "The land underneath", 24 seeds to 6000 ticks, against a control in which the year turns and draws from `World.RNG` but `Growth` returns 1 and `Chill` returns 0:
+**What the season costs, on the ground it ran on then.** Everything above was measured on the flat map, before the terrain underneath was rebuilt. Re-measured on the ground of "The land underneath", 24 seeds to 6000 ticks, against a control in which the year turns and draws from `World.RNG` but `Growth` returns 1 and `Chill` returns 0:
 
 | | median | mean | extinctions | settlements at the cap |
 |---|---|---|---|---|
@@ -522,6 +522,17 @@ Keeping saves the deep winter but leaves two settlements hanging on by their fin
 Two things to take from this and one not to. The season costs the median settlement a great deal - 378 to 89 - and it costs it in growth rather than in survival: the control has the same two extinctions the shipped rules do. On this map extinctions are the terrain's doing, not the winter's; the flat map's tidier story, no deaths without seasons and three with, did not survive the ground being rebuilt underneath it.
 
 What not to take from it is the third row. A milder winter is not obviously better: the median rises, the mean falls, the extinctions double and fewer settlements reach the cap, which is four metrics disagreeing. The distribution is bimodal - a settlement either takes off and pins at the cap or founders under twenty - so the median mostly reports which side of that split the middle seeds fell, and 24 seeds cannot separate 0.5 from 0.6. Nor can the per-seed columns be compared: changing `WinterGrowth` changes `growthNorm`, which shifts every float after it and re-rolls the world, so seed 4 at 0.5 and seed 4 at 0.6 are not the same settlement in different weather. 0.5 is kept because it is the deeper season and nothing measured argues against it.
+
+**And what it costs now.** That reading did not last either. A house came to cost a forest, the weather began to move the ground, and a household's bread was given the ground it takes; measured again on the tree those landed in, the same pair reads:
+
+| 24 seeds, 6000 ticks | median | mean | extinctions | under twenty | largest |
+|---|---|---|---|---|---|
+| the year turns, nothing reads it | 108 | 119 | 0 | 0 | 206 |
+| the season live | 94 | 79 | 0 | 5 | 167 |
+
+The season costs about a seventh of the median where a tree earlier it cost three quarters, and the reason is not the season: the whole distribution has changed shape. It used to be two humps - a third of the seeds pinned at the four-hundred cap and the rest floundering near zero - which is why its median jumped about so much that 0.5 and 0.6 could not be told apart. Now nothing reaches the cap, nothing dies, and both columns sit in a single band between forty and two hundred. Whatever did that belongs to the three changes above rather than to the weather.
+
+What the season does on this ground is thin the weak without killing them: the mean falls from 119 to 79 while the median barely moves, five settlements come in under twenty where the control has none, and seventeen of twenty-four seeds end lower. That is the shape the feature was for. It also retires the extinction question this section spent so long on - neither column loses a settlement now - and with it the ceiling that `WinterGrowth` was being tuned against. If the depth of the winter is ever revisited, it should be re-argued from this distribution and not from the one above.
 
 **What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
 
