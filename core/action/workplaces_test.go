@@ -28,7 +28,7 @@ func TestAHomelessCrafterWorksAtTheMarketNotInTheWoods(t *testing.T) {
 func TestCookingNeedsAHearth(t *testing.T) {
 	w, a, _ := village(t)
 	w.Unlock("pottery")
-	a.Inventory[entity.Food], a.Inventory[entity.Wood] = 3, 3
+	a.Inventory[entity.Food], a.Inventory[entity.Wood] = 3, cookReserve+cookFuel
 	if Cook.Available(a, w) {
 		t.Fatal("no house and no tavern is no hearth")
 	}

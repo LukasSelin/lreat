@@ -153,11 +153,17 @@ type Agent struct {
 	Needs       need.Levels
 	Personality need.Weights
 
-	Pos      Pos
-	Home     Pos
-	HasHome  bool
+	Pos     Pos
+	Home    Pos
+	HasHome bool
+
+	// Field is the first furrow a farmer broke and the tile the household is
+	// anchored to; Parcel is the whole holding, that furrow and every strip
+	// broken beside it since. A house is one tile and a holding is many,
+	// because a family eats far more ground than it sleeps on.
 	Field    Pos
 	HasField bool
+	Parcel   []Pos
 
 	Inventory [GoodCount]float64
 	Skills    [SkillCount]float64
@@ -309,4 +315,14 @@ func (a *Agent) BestSkill() (Skill, float64) {
 // AddSkill raises a skill and clamps it to [0,1].
 func (a *Agent) AddSkill(s Skill, d float64) {
 	a.Skills[s] = need.Clamp(a.Skills[s] + d)
+}
+
+// Holds reports whether p is ground this agent has broken and works.
+func (a *Agent) Holds(p Pos) bool {
+	for _, q := range a.Parcel {
+		if q == p {
+			return true
+		}
+	}
+	return false
 }

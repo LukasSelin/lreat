@@ -114,28 +114,19 @@ func foodValue(a *entity.Agent) float64 {
 	return 0.25 * math.Max(0, 1-a.Inventory[entity.Food]/4)
 }
 
-// A rest restores a little of the body, and more under a roof.
-const (
-	restGain = 0.03
-	roofGain = 0.05
-)
+// A rest restores a little of the body. A rest that restored more under a
+// roof was tried: the reward reinforced an idle act, and under a seasoned
+// year the median settlement fell by a third. Rest is a fallback and stays
+// one.
+const restGain = 0.03
 
-// Rest is the fallback. It is always available and barely worth anything,
-// though it is worth more at home or in the tavern, which is where an agent
-// goes for it when either is close.
+// Rest is the fallback. It is always available and barely worth anything.
 var Rest = &Def{
-	Name: "rest", Ticks: 1, Available: always, Target: comfort,
-	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		if underRoof(a, w, target) {
-			return need.Levels{need.Physiological: roofGain}
-		}
+	Name: "rest", Ticks: 1, Available: always, Target: here,
+	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		return need.Levels{need.Physiological: restGain}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		if underRoof(a, w, a.Pos) {
-			a.Needs.Add(need.Physiological, roofGain)
-			return
-		}
 		a.Needs.Add(need.Physiological, restGain)
 	},
 }
@@ -181,7 +172,7 @@ func helping(a *entity.Agent) (meals, raw, restores float64) {
 const tableCheer = 0.03
 
 var Eat = &Def{
-	Name: "eat", Ticks: 1, Target: comfort,
+	Name: "eat", Ticks: 1, Target: here,
 	Available: func(a *entity.Agent, _ *world.World) bool { return Edible(a) >= mouthful },
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		_, _, restores := helping(a)
@@ -247,54 +238,201 @@ func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
 }
 
-// farmSite is the agent's field, or the best unclaimed ground near home.
+// fieldTiles is the ground one household works: how many strips a farmer
+// goes on breaking before the holding is as much land as the family needs.
+//
+// A house is one tile. A holding is not, and the gap is not small. A year's
+// bread for a family of five is on the order of a tonne of grain. Wheat
+// before the plough of our own age gave perhaps a tonne to the hectare in a
+// good year, a quarter of which went back into the ground as next year's
+// seed, and half the holding lay fallow while the other half bore - so the
+// family needed something like three hectares to hold to eat from one. Set
+// against the sixty square metres they slept under, the field they lived off
+// was hundreds of times the house.
+//
+// This map cannot carry that ratio: at eighty by thirty-six tiles, three
+// hectares to a household would give the world room for a dozen families.
+// What it can carry was measured rather than argued. Three strips a
+// household is half again as much cultivated land on the map and near twice
+// as much per head, for a population two batches of seeds cannot tell from
+// one-tile fields; eight buys a quarter more ground again and costs a
+// fifteenth of the population and a third of the median. See
+// docs/action-space.md.
+const fieldTiles = 3
+
+// fieldSoil is the least fertile ground worth breaking. It is what a farmer
+// asks of the tile they first clear, and of every strip they add after: a
+// holding grows into land that will bear, and stops at the sand.
+const fieldSoil = 0.3
+
+// worked is the strip of a holding a farmer goes to: the nearest one. A
+// holding is one farm and not eight fields - the household works the whole
+// of it in a season and eats the whole of it, so which strip they are
+// standing on when the day's work is done does not matter, and making them
+// cross their own land to reach the best of it only cost them the walk.
+func worked(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if len(a.Parcel) == 0 {
+		return a.Field, a.HasField // a holding of one, from before it was a holding
+	}
+	best, near := a.Parcel[0], entity.Dist(a.Pos, a.Parcel[0])
+	for _, p := range a.Parcel[1:] {
+		if d := entity.Dist(a.Pos, p); d < near {
+			best, near = p, d
+		}
+	}
+	return best, true
+}
+
+// bearing is what a holding has to give: the fertility of the ground taken
+// together, because the harvest comes off all of it. A worn strip is carried
+// by the rest, which is what a holding large enough to rotate is for.
+func bearing(a *entity.Agent, w *world.World) float64 {
+	if len(a.Parcel) == 0 {
+		return 0
+	}
+	sum := 0.0
+	for _, p := range a.Parcel {
+		sum += w.Grid.At(p).Fertility
+	}
+	return sum / float64(len(a.Parcel))
+}
+
+// plough reports whether open ground is worth breaking: soil the crop will
+// come up in, and not the yard of somebody's house. A settlement keeps its
+// built ground - the roofs, and the gaps between them the lanes run along -
+// and the holdings lie outside it, which is where a village puts its fields.
+func plough(w *world.World, p entity.Pos) bool {
+	t := w.Grid.At(p)
+	return t.Buildable() && t.Fertility >= fieldSoil && !w.Grid.HasNeighbor(p, (*world.Tile).Roofed)
+}
+
+// newGround is the best ground worth breaking beside the holding: where the
+// next strip goes when the family has not yet broken all the land it eats.
+// It must be at least as good as what the household already works, because
+// the harvest comes off the holding as a whole - taking on poorer ground
+// would only pull down the crop the family lives on.
+func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	var best entity.Pos
+	found := false
+	fertility := bearing(a, w)
+	for _, p := range a.Parcel {
+		for dy := -1; dy <= 1; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
+				if !w.Grid.In(q) || !plough(w, q) {
+					continue
+				}
+				if t := w.Grid.At(q); t.Fertility >= fertility {
+					best, fertility, found = q, t.Fertility, true
+				}
+			}
+		}
+	}
+	return best, found
+}
+
+// farmSite is where a farmer goes to work: the next strip to break if the
+// holding is still short of what the household eats, otherwise the richest
+// strip they hold. Someone with no field at all takes the nearest open
+// ground near home that will bear a crop - a man with no land takes what he
+// can get, even the strip behind his neighbour's house; it is only in adding
+// to a holding that a farmer leaves the neighbourhood its ground.
 func farmSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField {
-		return a.Field, true
+		if len(a.Parcel) < fieldTiles {
+			if p, ok := newGround(a, w); ok {
+				return p, true
+			}
+		}
+		return worked(a, w)
 	}
 	anchor := a.Pos
 	if a.HasHome {
 		anchor = a.Home
 	}
 	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Buildable() && t.Fertility >= 0.3
+		return t.Buildable() && t.Fertility >= fieldSoil
 	})
+}
+
+// breakGround turns open ground beside a holding into another strip of it.
+func breakGround(a *entity.Agent, w *world.World) bool {
+	t := w.Grid.At(a.Pos)
+	if !plough(w, a.Pos) || len(a.Parcel) >= fieldTiles {
+		return false
+	}
+	if !w.Grid.HasNeighbor(a.Pos, func(n *world.Tile) bool { return n.Terrain == world.Field && n.Owner == a.ID }) {
+		return false
+	}
+	t.Terrain, t.Owner = world.Field, a.ID
+	a.Parcel = append(a.Parcel, a.Pos)
+	return true
 }
 
 var Farm = &Def{
 	Name: "farm", Ticks: 4, Available: always, Target: farmSite,
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		fertility := w.Grid.At(target).Fertility
+		if a.Holds(target) {
+			fertility = bearing(a, w)
+		}
 		return need.Levels{
-			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.At(target).Fertility),
+			need.Physiological: foodValue(a) * farmYield(a, w, fertility),
 			need.Esteem:        0.02,
 		}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t := w.Grid.At(a.Pos)
-		if !a.HasField {
+		switch {
+		case !a.HasField:
 			if !t.Buildable() {
 				return // claimed by someone else first
 			}
 			t.Terrain = world.Field
 			t.Owner = a.ID
 			a.Field, a.HasField = a.Pos, true
+			a.Parcel = []entity.Pos{a.Pos}
 			w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
+		case !a.Holds(a.Pos):
+			// Standing on the edge of the holding with more land to break:
+			// this harvest comes off ground that was grass this morning.
+			if !breakGround(a, w) {
+				return
+			}
 		}
-		if a.Pos != a.Field {
-			return
-		}
-		yield := farmYield(a, w, t.Fertility)
+		yield := farmYield(a, w, bearing(a, w))
 		// A tool makes the work go further, and wears with it.
 		if a.Inventory[entity.Tools] >= 0.5 {
 			yield *= toolFarming
 			a.Inventory[entity.Tools] -= farmWearTool
 		}
 		a.Inventory[entity.Food] += yield
-		t.Fertility = max(wornField, t.Fertility-farmWear)
+		// One harvest takes one harvest's worth out of the ground however
+		// much ground it came off, so the draw is shared over the holding.
+		// Eight strips are not eight fields' worth of food; they are one
+		// family's, off land that gets a rest between crops.
+		wear := farmWear / float64(len(a.Parcel))
+		for _, p := range a.Parcel {
+			f := w.Grid.At(p)
+			f.Fertility = max(wornField, f.Fertility-wear)
+		}
 		a.AddSkill(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
 	},
 }
+
+// A day in the woods and what it is worth. Felling is the slow half of every
+// building: treeTake is how much standing timber one day's work brings down,
+// and armful how much of that a person can drag home before the light goes.
+// Most of a tree is left where it falls. When an armful was three lengths of
+// wood a single tree housed a family twice over, everybody was under a roof
+// inside the first season, and the forest was decoration rather than the
+// thing a settlement is built out of. At half a length the woods are what a
+// house is made of, and a settlement's shape follows the treeline.
+const (
+	treeTake = 0.4
+	armful   = 0.5
+)
 
 var GatherWood = &Def{
 	Name: "gather wood", Ticks: 2, Available: always,
@@ -306,7 +444,7 @@ var GatherWood = &Def{
 	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
 		// Instrumental: wood is only worth something if you lack shelter or craft.
 		want := 0.0
-		if a.Inventory[entity.Wood] < 2 {
+		if a.Inventory[entity.Wood] < raisingTimber {
 			want = 0.1*(1-a.Shelter) + 0.03*a.Skills[entity.Crafting]
 		}
 		return need.Levels{need.Safety: want, need.Esteem: want * 0.3}
@@ -316,12 +454,41 @@ var GatherWood = &Def{
 		if t.Terrain != world.Forest {
 			return
 		}
-		t.Wood -= 0.4
-		a.Inventory[entity.Wood] += 1.5
+		t.Wood -= treeTake
+		a.Inventory[entity.Wood] += armful
 		if t.Wood < 0.1 {
 			t.Terrain, t.Wood = world.Grass, 0
 		}
 	},
+}
+
+// Raising a house and keeping one are the same act to the person doing it
+// and quite different things to the forest. raisingTimber is the frame: the
+// walls and the roof beams, a winter's felling, more wood than anybody
+// carries about with them and so a thing that has to be gathered toward on
+// purpose over many days. roofingTimber is what patching that roof takes
+// afterwards, which is exactly one day in the woods: an armful, carried home
+// and nailed on the same evening.
+//
+// Before they were told apart a house cost what a repair costs, and a
+// settlement of twenty was housed to the last person inside two hundred
+// ticks, on wood nobody had to go looking for. Charging the frame properly
+// while leaving the patching cheap is what puts the founding years back:
+// people live rough among half-built walls for a good while, the ones with
+// a roof keep it easily, and where the houses go is decided by where the
+// timber was rather than by where the first day's walk happened to end.
+const (
+	raisingTimber = 6
+	roofingTimber = armful
+)
+
+// timberToBuild is what the next day's building costs this agent: a frame if
+// they have no house, a course of repair if they have.
+func timberToBuild(a *entity.Agent) float64 {
+	if a.HasHome {
+		return roofingTimber
+	}
+	return raisingTimber
 }
 
 func shelterGain(a *entity.Agent, w *world.World) float64 {
@@ -366,12 +533,19 @@ func roomNearby(w *world.World, p entity.Pos) bool {
 var BuildShelter = &Def{
 	Name: "build shelter", Ticks: 3, Target: buildSite,
 	Available: func(a *entity.Agent, _ *world.World) bool {
-		return a.Inventory[entity.Wood] >= 2 && a.Shelter < 0.95
+		return a.Inventory[entity.Wood] >= timberToBuild(a) && a.Shelter < 0.95
 	},
 	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		return need.Levels{need.Safety: shelterGain(a, w) * 0.8, need.Esteem: 0.05}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
+		// The frame is charged for here rather than up front, because a
+		// raising that finds the plot taken is a wasted walk and not a
+		// wasted winter's timber.
+		cost := timberToBuild(a)
+		if a.Inventory[entity.Wood] < cost {
+			return
+		}
 		if !a.HasHome {
 			t := w.Grid.At(a.Pos)
 			if !t.Buildable() {
@@ -388,7 +562,7 @@ var BuildShelter = &Def{
 			a.Home, a.HasHome = a.Pos, true
 			w.Emit(event.Built, a.ID, 0, "%s built a house", a.Name)
 		}
-		a.Inventory[entity.Wood] -= 2
+		a.Inventory[entity.Wood] -= cost
 		gain := shelterGain(a, w)
 		// A stone in the walls makes a house that stands.
 		if a.Inventory[entity.Stone] >= 1 {
@@ -401,16 +575,19 @@ var BuildShelter = &Def{
 	},
 }
 
-// pavingWood is the timber one length of road takes. It is half a house, so
-// laying a way is a smaller commitment than raising a roof but competes with
-// it for the same wood. A bridge takes more, because it has to hold itself up
-// over the water, and it is the one piece of road worth walking a long way to
-// build: a river is otherwise something a settlement can only put up with.
-// A bridge costs what a house costs. More was tried, and the economy has no
-// room for it: an agent gathers toward the roof it wants and spends the
-// timber as soon as it has enough, so nobody in a settlement ever holds more
-// than about two and a half lengths of wood at once. A bridge dearer than a
-// house is one nobody can ever afford.
+// pavingWood is the timber one length of road takes: two days in the woods,
+// a small fraction of a house, so laying a way is a far smaller commitment
+// than raising a roof while competing with it for the same wood. A bridge
+// takes twice that, because it has to hold itself up over the water, and it
+// is the one piece of road worth walking a long way to build: a river is
+// otherwise something a settlement can only put up with.
+//
+// These were once set against a house that cost two lengths of timber, when
+// an agent spent its wood the moment it had any and nobody ever held more
+// than about two and a half lengths at once. A frame now costs six and gets
+// saved up for, so both are cheap against it on purpose: the roads are what
+// a settled person does with the wood left over, not what they choose
+// instead of a roof.
 const (
 	pavingWood = 1
 	bridgeWood = 2

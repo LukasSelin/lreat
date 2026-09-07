@@ -26,11 +26,12 @@ func workshop(t *testing.T) (*world.World, *entity.Agent) {
 
 func TestCookingTurnsFoodAndFuelIntoMeals(t *testing.T) {
 	w, a := workshop(t)
-	a.Inventory[entity.Food], a.Inventory[entity.Wood] = 3, 3
+	spare := cookReserve + cookFuel
+	a.Inventory[entity.Food], a.Inventory[entity.Wood] = 3, spare
 	if !run(w, a, Cook) {
 		t.Fatal("cooking should be possible with a batch of food and fuel to spare")
 	}
-	if a.Inventory[entity.Meals] != cookBatch || a.Inventory[entity.Food] != 3-cookBatch || a.Inventory[entity.Wood] != 3-cookFuel {
+	if a.Inventory[entity.Meals] != cookBatch || a.Inventory[entity.Food] != 3-cookBatch || a.Inventory[entity.Wood] != spare-cookFuel {
 		t.Fatalf("after cooking: meals %v food %v wood %v", a.Inventory[entity.Meals], a.Inventory[entity.Food], a.Inventory[entity.Wood])
 	}
 	a.Inventory[entity.Wood] = cookReserve
@@ -122,12 +123,12 @@ func TestAToolMakesTheFieldGoFurtherAndWears(t *testing.T) {
 
 func TestStoneMakesABetterHouse(t *testing.T) {
 	w, a := workshop(t)
-	a.Inventory[entity.Wood] = 2
+	a.Inventory[entity.Wood] = raisingTimber
 	run(w, a, BuildShelter)
 	wood := a.Shelter
 	b := w.SpawnAt("b", need.Neutral(), entity.Pos{X: 4, Y: 4})
 	b.Skills[entity.Building] = a.Skills[entity.Building]
-	b.Inventory[entity.Wood], b.Inventory[entity.Stone] = 2, 1
+	b.Inventory[entity.Wood], b.Inventory[entity.Stone] = raisingTimber, 1
 	run(w, b, BuildShelter)
 	if !(b.Shelter > wood) {
 		t.Fatalf("a stone house should be better: %v vs %v", b.Shelter, wood)
