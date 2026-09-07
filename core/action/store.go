@@ -93,6 +93,12 @@ func shelf(w *world.World, m *ontology.Class) (store, bool) {
 	return cell{&w.Market.Stock[g]}, true
 }
 
+// stock is soil resolved once for a material rather than once per tile: what
+// the ground holds of m as a number on a tile, or nil where the ground has
+// no stock of it and is bottomless. It is for the searches that ask the same
+// question of the whole map.
+func stock(m *ontology.Class) func(*world.Tile) *float64 { return stocks[m] }
+
 // soil is what a tile holds of m, given that the ground it stands for
 // holds it at all: its stock, or a bottomless store where it has none.
 func soil(t *world.Tile, m *ontology.Class) store {

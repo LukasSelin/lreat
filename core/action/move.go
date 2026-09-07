@@ -325,6 +325,9 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 			return far{}, false
 		}
 		m, t := parts[0], terms[parts[0]]
+		// What the ground holds of this material, looked up once here rather
+		// than on every tile the search below walks over.
+		held := stock(m)
 		return far{
 			Find: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 				return w.Grid.Nearest(a.Pos, searchRadius, func(p entity.Pos, tile *world.Tile) bool {
@@ -332,7 +335,11 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 						return false
 					}
 					drawn := g.Drawn(w, p)
-					return drawn != nil && soil(drawn, m).Held() >= t.Least
+					if drawn == nil {
+						return false
+					}
+					// Ground with no stock of it holds no end of it.
+					return held == nil || *held(drawn) >= t.Least
 				})
 			},
 			Store: func(_ *entity.Agent, w *world.World, p entity.Pos, m *ontology.Class, _ int) store {
