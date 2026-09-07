@@ -151,6 +151,17 @@ var Schemas = []Schema{
 	{Verb: Dwell, Name: "meet", Site: Tavern, Role: &Neighbour, Ticks: 2, Reach0: reachEveryday,
 		Prior:   habit.Signature{habit.Lonely: 0.5},
 		Valence: belief.Valence{belief.Charity: 0.1, belief.Tradition: 0.15}},
+	// Going to look is presence too, and the presence it turns into a need
+	// is presence somewhere one has not been. It carries no site on purpose.
+	// Every other site class contributes its At to the composed prior, and
+	// open ground's At is a nearness; scouting is the one act in the catalog
+	// whose moment says nothing whatever about how far off the target is,
+	// and a Near in its prior is not a small error - it is the act inverted.
+	// What is left is the moment itself: no roof of one's own, fed enough to
+	// spare the day, and some curiosity surviving the tiers underneath it.
+	{Verb: Dwell, Name: "look", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Shelter: -0.7, habit.Hunger: -0.5, habit.Curious: 0.4}},
+
 	{Verb: Dwell, Name: "guard", Site: Market, Ticks: 3, Skill: entity.Guarding, Skilled: true, Reach0: reachEveryday,
 		Prior:   habit.Signature{habit.Unsafe: 0.6, habit.Company: 0.5, habit.Order: -1, habit.Charity: 0.4, habit.Tradition: 0.3},
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.4}},

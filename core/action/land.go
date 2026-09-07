@@ -80,13 +80,13 @@ func fishYield(a *entity.Agent, w *world.World, fish float64) float64 {
 	return (0.3 + 0.7*fish) * (0.7 + 0.6*a.Skills[entity.Fishing]) * w.Mods.FishYield
 }
 
-var Fish = take("take/fish@water")
+var Fish = mover("take/fish@water")
 
 func huntYield(w *world.World, wild float64) float64 {
 	return (0.4 + 1.6*wild) * w.Mods.HuntYield
 }
 
-var Hunt = take("take/game@wood")
+var Hunt = mover("take/game@wood")
 
 // nearWater reports whether water lies within reach of p.
 func nearWater(w *world.World, p entity.Pos) bool {

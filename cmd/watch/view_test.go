@@ -46,6 +46,53 @@ func TestPanelShowsHealth(t *testing.T) {
 	}
 }
 
+// The settlement's figures are a grid: whatever the numbers are, each
+// label sits in its own column, so the panel can be read down as well as
+// across.
+func TestPanelFiguresLineUp(t *testing.T) {
+	w := world.NewSized(1, 40, 12)
+	for i := 0; i < 8; i++ {
+		w.Spawn("a", need.Neutral())
+	}
+
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(120, 40)
+
+	s := observe.Take(w)
+	v := &view{screen: sc, snap: &s}
+	v.draw()
+
+	px := s.Map.W + 2
+	rows := strings.Split(screenText(sc), "\n")
+	for _, pair := range [][2]string{
+		{"mean age", "elders"},
+		{"friends", "feuds"},
+		{"houses", "fields"},
+		{"forest", "roads"},
+		{"food price", "safety"},
+		{"knowledge", "gini"},
+		{"reach", "spread"},
+	} {
+		row := ""
+		for _, r := range rows {
+			if runes := []rune(r); len(runes) > px && strings.HasPrefix(string(runes[px:]), pair[0]) {
+				row = string(runes[px:])
+				break
+			}
+		}
+		if row == "" {
+			t.Fatalf("no panel row starts with %q", pair[0])
+		}
+		if got := strings.Index(row, pair[1]); got != statCol {
+			t.Errorf("%q sits at column %d on the %q row, want %d", pair[1], got, pair[0], statCol)
+		}
+	}
+}
+
 // What everyone is doing is shown as history, not as this tick's answer:
 // a column stands for several ticks, so a band lasts long enough to read.
 func TestActivityGraphKeepsHistory(t *testing.T) {

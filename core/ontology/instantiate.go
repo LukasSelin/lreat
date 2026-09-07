@@ -35,7 +35,7 @@ func Instantiate() []Instance {
 		sc := &Schemas[i]
 		for _, obj := range objects(sc) {
 			for _, site := range sites(sc) {
-				if sc.Verb == Take && !Yields(site, obj) {
+				if sc.Verb == Take && !Held(site, obj) {
 					continue
 				}
 				out = append(out, bind(sc, obj, site))

@@ -198,9 +198,10 @@ Three things follow, none of them written as a rule of its own:
 
 - **Planting is for those who come after.** A planting now gives nothing at all on the day it goes in - no timber and nothing to forage - and the brush comes back within a few years while the timber takes a lifetime. That is what the act's own comment always claimed and what the numbers now say.
 - **A field is worked in turn.** A crop is cut strip by strip, and a cut strip is bare ground until it comes on again, so a household with three strips works them one after another and one with a single strip waits for it. Crop rotation is not implemented anywhere; it is what a holding is for.
+- **A harvest is a harvest.** A strip can only be cut once a crop, so what comes off it is the standing crop rather than an afternoon's picking: `harvestBounty` is 1.8, the ratio between the old cadence (a farm every four or five ticks) and the new one (a household of three strips cutting one about every eight). Without it the value rule's settlements starved outright on seed 7, which had carried fifty people.
 - **A stand is felled when it is grown.** `Least` for timber went from three tenths to six. A day's felling takes four tenths, so at three a stand was cut to nothing and the tile became a clearing on its first visit - which, with stands that now come on slowly, stripped whole maps: one seed ended with eleven wooded tiles. At six tenths a felling thins a wood and leaves a thicket to grow into one.
 
-Six seeds, 6000 ticks, 20 founders, against the same seeds with no ages on anything: population 400/334/121/177/246/400 against 387/307/153/39/67/281, forest 422-612 tiles against 450-628, and field strips 14-50 against 5-18. The settlements that were struggling are the ones that gained, and they gained on their fields.
+Six seeds, 6000 ticks, 20 founders, against the same seeds with no ages on anything: population 400/351/201/399/186/341 against 217/400/232/26/34/350, and field strips 23-44 against 4-17. Under the value rule, seed 7 goes from 56 to 106 and seed 3 from 47 to 96. The settlements that were struggling are the ones that gained, and they gained on their fields.
 
 **Four answers**, each far out of reach until discovered:
 
@@ -567,6 +568,66 @@ What the season does on this ground is thin the weak without killing them: the m
 
 **What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
 
+## Where a settlement goes
+
+Until this section every siting decision in the catalog was one call: `Grid.Nearest`, which returns the first tile in a fixed ring order that passes a boolean test. Two faults, and they compounded.
+
+The **anchor was shared**. `buildSite` measured from `w.MarketPos`, a position the map generator picked before anybody lived there. Since the anchor was the same for everybody and the search was deterministic, every homeless agent alive was handed the identical `entity.Pos` on the same tick and queued for it. There is no per-agent variation anywhere in a `Target`: the noise in this simulation is in *which* action is chosen, never *where*.
+
+The **test was legality**. `RoomToBuild` asks whether a tile is open ground with open ground round it. The land carries `Fertility`, `Drain`, `Height` and standing `Wood` - the same readings that found the market itself in `terrain.go` - and not one was ever consulted about a house. Excellent ground one tile further out lost to any bare patch of grass.
+
+And agents were **omniscient**: `Nearest` reads the whole grid, so there was nothing to explore and no reason to go anywhere.
+
+### What replaced it
+
+`entity.Places` is a memory of ground, capped at `MaxPlaces` and evicted worst-first, exactly as `Bonds` is a memory of people. `action.Notice` appraises the tile under an agent's feet on every step it takes, so knowledge follows footsteps and nothing else. `KnownPlot` sites a house out of that list plus the ground underfoot; `farmSite` and `betterPlot` work the same way. There is no scan and no anchor. Two agents standing side by side, having led different lives, disagree about where to build.
+
+Worth is one figure in tiles of walking saved a day, so it adds to `homeCost` and `worthMoving`, which were already in that currency. It splits in two, and the split is load-bearing:
+
+- **`landWorth`** - soil, drainage, footing, water, timber, wear. All of it changes slowly or not at all, which is what makes it worth remembering for years. This is what a `Place` holds.
+- **`companyWorth`** - the share of the settlement living within reach. This is looked at fresh every time and never remembered. When it was frozen into the memory alongside the soil, an agent who had once walked past a spot on a day five people happened to be standing near it remembered that spot as excellent for ever, and went and built there alone years later. Settlements scattered into hamlets that never met.
+
+`companyWorth` is what holds a town together now, and it names nobody. Ground is worth more for the people already on it; where those people are is where earlier people chose to build; and the first of them chose on the strength of the land. Where a town goes is an outcome rather than a constant. The market, which half the catalog still reads from, follows the town instead of holding it: see `MoveMarket`.
+
+### What it cost, and what it bought
+
+24 seeds, 20 founders, 6000 ticks, survivor = 20 or more alive at the end:
+
+| | survivors | extinctions | median | road tiles |
+|---|---|---|---|---|
+| market-anchored siting | 24 | 0 | 153 | 54 |
+| ground judged | 20 | 0 | 115 | 71 |
+
+Four settlements of twenty-four, and about a quarter of the median, for a
+third more street. The cost is real and is not explained away here.
+
+The street is worth looking at, because nothing here paves anything:
+`elbowRoom` keeps a gap beside every house, the gaps line up into lanes,
+errands wear the lanes, and somebody eventually recognises worn ground as
+calling for a road. A town that chooses its own ground lays a third more
+street than one handed its plots in ring order.
+
+`elbowRoom` is what the rest of this is most sensitive to, and it has to be
+re-measured whenever the ground is. Against the holdings alone it read best
+at 16; once the woods were kept off the slopes and a loaded agent could no
+longer swim a river, best at 10. Below that the houses close up and there is
+nowhere left to put a street. What it chooses is how tightly a town packs.
+
+Note that the comparison is statistical only and cannot be otherwise. Adding
+an act changes how many draws `action.Inherit` takes at every birth, which
+re-rolls every trajectory after the first one; no seed is the same settlement
+before and after. Single seeds are wildly bimodal here - seed 5 ends at 62
+with twenty founders and at 4 with twenty-five, on identical rules - so
+nothing below 24 seeds says anything at all. See the warning under Pitfalls
+recorded.
+
+### Scouting, and why it is gated so hard
+
+`scout` is the only act in the catalog whose prior says nothing about `habit.Near`. Every other errand wants its target close and loses fit as the walk grows; this one does not mind. So when everything an agent knows of is used up and all that is left is far away, going to look is what is left standing - which is the pressure that makes anybody explore, without a line anywhere saying "explore when the neighbourhood is exhausted".
+
+Ungated it was catastrophic - this was measured before the holdings and the ontology, but the reason survives both and is worth writing down: **recognition does not divide by how long a thing takes.** The value rule scored `worth/cost` with travel in the cost; fit reads distance only through one coordinate of a cosine. An act whose moment keeps arriving is therefore taken however much of the day it eats. Scouting was a seventh of everything anybody did, the founding party spent its first years walking in opposite directions, and belonging never came near what a birth asks for. Over 16 seeds: 2 survivors and 7 extinctions, against 11 and 0 with the act simply switched off.
+
+Three things were tried. Paying only for what is actually found changed nothing measurable. Halving the range recovered a third of it. What worked was gating availability on `worthLooking`: **you go looking while you have nowhere to live and nothing good in mind, and you stop when you have either.** That took 16 seeds back to 13 survivors and 1 extinction, level with the old rule. Letting the housed scout as well cost 8 of those 13 - a person with a roof already has what looking is for, and a town whose people wander is not a town.
 ## What a household eats
 
 A field was one tile, the same ground a house stands on, and that is not what a family lives off.

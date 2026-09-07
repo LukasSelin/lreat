@@ -83,11 +83,10 @@ var instances = func() map[string]ontology.Instance {
 const Derived = true
 
 // mechanics binds an act the ontology entails to the code that carries it
-// out. Takings, makings, raisings, exchanges, and transfers are not
-// listed: one verb carries each, from what the lode and the ground say
-// (see take.go), the recipe (see make.go), the plan (see raise.go), the
-// terms (see exchange.go), or the hand (see transfer.go), and those named
-// here are named only because the rest of the package refers to them. An act the ontology entails and nothing carries
+// out. Moves, makings, and raisings are not listed: one interpreter
+// carries each, from the move (see move.go), the recipe (see make.go), or
+// the plan (see raise.go), and those named here are named only because
+// the rest of the package refers to them. An act the ontology entails and nothing carries
 // is a catalog that cannot be assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
@@ -109,6 +108,7 @@ var mechanics = map[string]*Def{
 	"consume/provision":                 Eat,
 	"dwell/rest":                        Rest,
 	"dwell/meet@tavern>neighbour":       Socialize,
+	"dwell/look":                        Scout,
 	"dwell/guard@market":                Guard,
 	"exchange/material>coin@market":     Sell,
 	"exchange/coin>provision@market":    Buy,
@@ -126,16 +126,12 @@ func init() {
 		d := mechanics[in.Key]
 		if d == nil {
 			switch in.Schema.Verb {
-			case ontology.Take:
-				d = taking(in)
+			case ontology.Take, ontology.Exchange, ontology.Transfer:
+				d = moving(in)
 			case ontology.Make:
 				d = making(in)
 			case ontology.Raise:
 				d = raising(in)
-			case ontology.Exchange:
-				d = exchanging(in)
-			case ontology.Transfer:
-				d = transferring(in)
 			}
 		}
 		if d == nil {
@@ -287,7 +283,7 @@ const forageTake = 0.08
 // the field rather than into the ground.
 func forageYield(wild float64) float64 { return 0.45 + 0.55*wild }
 
-var Forage = take("take/berries@wood")
+var Forage = mover("take/berries@wood")
 
 // farmWear is the fertility one farming takes from a field, and wornField
 // the least a field is worn down to. A field farmed without rest goes poor
@@ -297,8 +293,17 @@ const (
 	wornField = 0.1
 )
 
+// harvestBounty is what a harvest brings in over what a day's picking used
+// to. A strip can only be cut once a crop, so what comes off it is the whole
+// standing crop rather than an afternoon's work: a household of three strips
+// cuts one about every eight ticks where it used to farm every four or five,
+// and without this the same people are fed half as often. It is the ratio of
+// those two cadences, measured rather than argued - at 1 the value rule's
+// settlements starved outright on seed 7, which had carried fifty people.
+const harvestBounty = 1.8
+
 func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
-	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
+	return harvestBounty * (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
 }
 
 // fieldTiles is the ground one household works: how many strips a farmer
@@ -554,7 +559,7 @@ const (
 	armful   = 0.5
 )
 
-var GatherWood = take("take/timber@wood")
+var GatherWood = mover("take/timber@wood")
 
 // Raising a house and keeping one are the same act to the person doing it
 // and quite different things to the forest. raisingTimber is the frame: the
@@ -602,17 +607,20 @@ func plotNear(w *world.World, anchor entity.Pos) (entity.Pos, bool) {
 	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
 }
 
-// buildSite is the agent's house, or a plot near what they care about:
-// the market for the safety-minded, their field for everyone else.
+// buildSite is the agent's house, or the best plot it knows of.
+//
+// It used to be a plot near what the agent cared about, and what it was taken
+// to care about was the market - a position nobody in the settlement had
+// chosen and every one of them was measured from. Since the anchor was shared
+// and the search was deterministic, every homeless agent alive was handed the
+// same tile on the same tick and queued for it. Siting now runs off what the
+// agent has personally walked over, which no two of them have the same list
+// of, and off what that ground is actually worth. See ground.go.
 func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
 		return a.Home, true
 	}
-	anchor := w.MarketPos
-	if a.HasField && a.Personality[need.Safety] < 1 {
-		anchor = a.Field
-	}
-	return plotNear(w, anchor)
+	return KnownPlot(a, w)
 }
 
 // roomNearby reports whether a plot with its own ground around it is still
@@ -764,9 +772,9 @@ var Pave = &Def{
 	},
 }
 
-var Sell = trade("exchange/material>coin@market")
+var Sell = mover("exchange/material>coin@market")
 
-var Buy = trade("exchange/coin>provision@market")
+var Buy = mover("exchange/coin>provision@market")
 
 var Guard = &Def{
 	Name: "guard", Ticks: 3, Available: worthGuarding, Target: atMarket,

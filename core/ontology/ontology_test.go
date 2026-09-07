@@ -35,6 +35,7 @@ var golden = map[string]string{
 	"consume/provision":                 "eat",
 	"dwell/rest":                        "rest",
 	"dwell/meet@tavern>neighbour":       "socialize",
+	"dwell/look":                        "scout",
 	"dwell/guard@market":                "guard",
 	"exchange/material>coin@market":     "sell",
 	"exchange/coin>provision@market":    "buy food",

@@ -131,6 +131,15 @@ func (c *Class) Leaves() []*Class {
 	return out
 }
 
+// Family is c and every class under it, in declaration order.
+func (c *Class) Family() []*Class {
+	out := []*Class{c}
+	for _, k := range c.children {
+		out = append(out, k.Family()...)
+	}
+	return out
+}
+
 // Children are the classes directly under c.
 func (c *Class) Children() []*Class { return c.children }
 

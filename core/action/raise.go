@@ -98,19 +98,17 @@ func raising(in ontology.Instance) *Def {
 	if !ok || !ok2 || len(p.Amounts) != len(in.Schema.Inputs) {
 		return nil
 	}
-	takes := make([]entity.Good, len(in.Schema.Inputs))
-	for i, c := range in.Schema.Inputs {
-		g, ok := goods[c]
-		if !ok {
+	for _, c := range in.Schema.Inputs {
+		if _, ok := good(c); !ok {
 			return nil
 		}
-		takes[i] = g
 	}
+	takes := in.Schema.Inputs
 	tech := world.Tech(in.Tech)
 	d := &Def{Name: p.Name, Ticks: in.Ticks, Target: p.Site}
 	d.Available = func(a *entity.Agent, w *world.World) bool {
-		for i, g := range takes {
-			if a.Inventory[g] < p.Amounts[i] {
+		for i, m := range takes {
+			if mine, _ := pack(a, m); mine.Held() < p.Amounts[i] {
 				return false
 			}
 		}
@@ -128,8 +126,9 @@ func raising(in ontology.Instance) *Def {
 			return // somebody got there first
 		}
 		t.Structure = structure
-		for i, g := range takes {
-			a.Inventory[g] -= p.Amounts[i]
+		for i, m := range takes {
+			mine, _ := pack(a, m)
+			mine.Move(-p.Amounts[i])
 		}
 		if p.Done != nil {
 			p.Done(w)

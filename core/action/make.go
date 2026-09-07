@@ -14,15 +14,6 @@ import (
 // is worth. An act the ontology entails for a schema with a recipe needs
 // no code of its own.
 
-// goods is what a material is in an agent's pack.
-var goods = map[*ontology.Class]entity.Good{
-	ontology.Provision: entity.Food,
-	ontology.Timber:    entity.Wood,
-	ontology.Stone:     entity.Stone,
-	ontology.Tool:      entity.Tools,
-	ontology.Meal:      entity.Meals,
-}
-
 // workplaces is where an act placed by trait is done. A dwelling has all
 // of them; the market lends a bench and a desk, the tavern a hearth.
 var workplaces = map[ontology.Trait]func(*entity.Agent, *world.World) (entity.Pos, bool){
@@ -95,27 +86,25 @@ var recipes = map[string]recipe{
 func making(in ontology.Instance) *Def {
 	r, ok := recipes[in.Key]
 	place, ok2 := workplaces[in.Schema.SiteTrait]
-	gives, ok3 := goods[in.Schema.Output]
+	_, ok3 := good(in.Schema.Output)
 	if !ok || !ok2 || !ok3 || len(r.Amounts) != len(in.Schema.Inputs) {
 		return nil
 	}
-	takes := make([]entity.Good, len(in.Schema.Inputs))
-	for i, c := range in.Schema.Inputs {
-		g, ok := goods[c]
-		if !ok {
+	for _, c := range in.Schema.Inputs {
+		if _, ok := good(c); !ok {
 			return nil
 		}
-		takes[i] = g
 	}
+	takes, gives := in.Schema.Inputs, in.Schema.Output
 	tech := world.Tech(in.Tech)
 	d := &Def{Name: r.Name, Ticks: in.Ticks, Target: place}
 	d.Available = func(a *entity.Agent, w *world.World) bool {
-		for i, g := range takes {
+		for i, m := range takes {
 			wants := r.Amounts[i]
-			if g == r.Reserve.Good {
+			if g, _ := good(m); g == r.Reserve.Good {
 				wants += r.Reserve.Amount
 			}
-			if a.Inventory[g] < wants {
+			if mine, _ := pack(a, m); mine.Held() < wants {
 				return false
 			}
 		}
@@ -129,10 +118,12 @@ func making(in ontology.Instance) *Def {
 	}
 	d.Apply = func(a *entity.Agent, w *world.World) {
 		yield := r.Yield(a, w)
-		for i, g := range takes {
-			a.Inventory[g] -= r.Amounts[i]
+		for i, m := range takes {
+			mine, _ := pack(a, m)
+			mine.Move(-r.Amounts[i])
 		}
-		a.Inventory[gives] += yield
+		made, _ := pack(a, gives)
+		made.Move(yield)
 		a.Reputation += r.Renown * yield
 		a.AddSkill(r.Skill, r.Learn)
 		a.Needs.Add(need.Esteem, r.Worth(a, w, yield)[need.Esteem])
