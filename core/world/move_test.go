@@ -13,10 +13,63 @@ func TestStepTowardPrefersEasierGround(t *testing.T) {
 	if p := g.StepToward(from, to); p != (entity.Pos{X: 3, Y: 4}) && p != (entity.Pos{X: 3, Y: 6}) {
 		t.Fatalf("step = %v, want a detour around the forest", p)
 	}
-	g.At(entity.Pos{X: 3, Y: 4}).Terrain = Forest
-	g.At(entity.Pos{X: 3, Y: 6}).Terrain = Forest
+	for y := 0; y < 10; y++ {
+		g.At(entity.Pos{X: 3, Y: y}).Terrain = Forest
+	}
 	if p := g.StepToward(from, to); p != (entity.Pos{X: 3, Y: 5}) {
-		t.Fatalf("step = %v, want the straight line when every way is equally hard", p)
+		t.Fatalf("step = %v, want the straight line when there is no way round", p)
+	}
+}
+
+// A road is the fastest ground there is, so a walker leaves the straight line
+// to get on one and stays on it as long as it is going their way.
+func TestStepTowardTakesTheRoad(t *testing.T) {
+	g := NewGrid(20, 9)
+	from, to := entity.Pos{X: 1, Y: 4}, entity.Pos{X: 18, Y: 4}
+	for x := 0; x < 20; x++ {
+		g.At(entity.Pos{X: x, Y: 2}).Structure = Road
+	}
+	straight := entity.Pos{X: 2, Y: 4}
+	if p := g.StepToward(from, to); p == straight {
+		t.Fatalf("step = %v, want a step toward the road at y=2", p)
+	}
+	onRoad := entity.Pos{X: 5, Y: 2}
+	if p := g.StepToward(onRoad, to); p != (entity.Pos{X: 6, Y: 2}) {
+		t.Fatalf("step from the road = %v, want to stay on it", p)
+	}
+}
+
+// Paving is what makes a route cheap: the same walk costs half as much once
+// there is a road under it.
+func TestRoadsHalveTheCostOfWalking(t *testing.T) {
+	g := NewGrid(12, 3)
+	from, to := entity.Pos{X: 0, Y: 1}, entity.Pos{X: 8, Y: 1}
+	overGrass := g.TravelCost(from, to)
+	for x := 0; x < 12; x++ {
+		g.Pave(entity.Pos{X: x, Y: 1})
+	}
+	paved := g.TravelCost(from, to)
+	if paved >= overGrass/1.5 {
+		t.Fatalf("paved travel cost = %v, grass %v; want the road markedly cheaper", paved, overGrass)
+	}
+	if d := g.MoveDrain(to); d >= 1 {
+		t.Fatalf("road drain = %v, want less than ordinary ground", d)
+	}
+	if d := g.MoveDrain(entity.Pos{X: 8, Y: 0}); d != 1 {
+		t.Fatalf("unpaved drain = %v, want 1", d)
+	}
+}
+
+// A house is somewhere to live, not a way through. Walking across one costs
+// more than walking round it, which is what stops the settlement being a
+// shortcut for everybody crossing it.
+func TestHousesAreNotThoroughfares(t *testing.T) {
+	g := NewGrid(5, 5)
+	p := entity.Pos{X: 2, Y: 2}
+	open := g.MoveCost(p)
+	g.At(p).Structure = House
+	if built := g.MoveCost(p); built <= open {
+		t.Fatalf("crossing a house costs %v, open ground %v; want the house dearer", built, open)
 	}
 }
 

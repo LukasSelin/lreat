@@ -23,6 +23,7 @@ const (
 	Field
 	House
 	Market
+	Road
 	AgentFood
 	AgentBuild
 	AgentTrade
@@ -80,6 +81,8 @@ func tileCell(t *world.Tile) Cell {
 		return Cell{Ch: '#', Color: House}
 	case world.Market:
 		return Cell{Ch: 'M', Color: Market}
+	case world.Road:
+		return Cell{Ch: '+', Color: Road}
 	}
 	switch t.Terrain {
 	case world.Water:

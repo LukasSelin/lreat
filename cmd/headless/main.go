@@ -27,6 +27,7 @@ func main() {
 	agents := flag.Int("agents", 20, "starting population")
 	every := flag.Int("every", 250, "report interval in ticks")
 	showMap := flag.Bool("map", false, "print the map at each report")
+	pave := flag.Int("pave", 0, "lay streets through the settlement every N ticks (0 never)")
 	flag.Parse()
 
 	w := world.New(*seed)
@@ -34,11 +35,17 @@ func main() {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
 
-	fmt.Printf("%6s %4s | %5s %5s %5s %5s %5s | %5s | %5s %5s %6s | %4s %4s | %4s %4s | %s\n",
-		"tick", "pop", "phys", "safe", "belng", "estm", "actl", "hlth", "gini", "price", "knowl", "hous", "fild", "frnd", "feud", "doing")
+	fmt.Printf("%6s %4s | %5s %5s %5s %5s %5s | %5s | %5s %5s %6s | %4s %4s %4s | %4s %4s | %s\n",
+		"tick", "pop", "phys", "safe", "belng", "estm", "actl", "hlth", "gini", "price", "knowl", "hous", "road", "fild", "frnd", "feud", "doing")
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
+		// Roads are a material the settlement can have. Wanting one is not yet
+		// anybody's decision to make, so the operator spawns them on a timer
+		// and the table shows what changes.
+		if *pave > 0 && w.Tick%*pave == 0 {
+			w.PaveStreets()
+		}
 		if w.Tick%*every == 0 || w.Tick == *ticks {
 			s := observe.Take(w)
 			report(s)
@@ -69,7 +76,7 @@ func report(s observe.Snapshot) {
 		doing = append(doing, fmt.Sprintf("%s:%d", a.Action, a.Agents))
 	}
 	n := s.MeanNeeds
-	fmt.Printf("%6d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f | %5.2f %5.2f %6.1f | %4d %4d | %4d %4d | %s\n",
+	fmt.Printf("%6d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f | %5.2f %5.2f %6.1f | %4d %4d %4d | %4d %4d | %s\n",
 		s.Tick, s.Population, n[0], n[1], n[2], n[3], n[4], s.MeanHealth,
-		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Fields, s.Friendships, s.Feuds, strings.Join(doing, " "))
+		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Friendships, s.Feuds, strings.Join(doing, " "))
 }

@@ -3,7 +3,8 @@
 // feed of notable events on the right. It is an omniscient view for insight
 // while tuning; the player's own view will be far narrower.
 //
-// Keys: space pauses, + and - change speed, . steps once while paused, q quits.
+// Keys: space pauses, + and - change speed, . steps once while paused,
+// r lays streets through the settlement, q quits.
 package main
 
 import (
@@ -127,6 +128,11 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 		r.SetSpeed(v.speed)
 	case ev.Rune() == '.':
 		r.StepOnce()
+	case ev.Rune() == 'r':
+		// Lay the streets by hand. Roads are a material the settlement can
+		// have; deciding to want one is not yet anybody's to make, so for now
+		// the observer spawns them and watches what changes.
+		r.Send(sim.Func(func(w *world.World) { w.PaveStreets() }))
 	}
 	v.draw()
 	return true
@@ -141,6 +147,7 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),
 	ascii.House:       tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
 	ascii.Market:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
+	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
 	ascii.AgentFood:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
 	ascii.AgentBuild:  tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
 	ascii.AgentTrade:  tcell.StyleDefault.Foreground(tcell.ColorLime).Bold(true),
@@ -196,6 +203,7 @@ func (v *view) draw() {
 	put(healthStyle(s.MeanHealth), "%-13s %s %.2f", "health", bar(s.MeanHealth, 12), s.MeanHealth)
 	line++
 	put(tcell.StyleDefault, "houses %-4d fields %-4d forest %d", s.Houses, s.Fields, s.Forest)
+	put(tcell.StyleDefault, "roads  %-4d", s.Roads)
 	put(tcell.StyleDefault, "safety %.2f  food price %.2f", s.Safety, s.FoodPrice)
 	put(tcell.StyleDefault, "knowledge %.0f  gini %.2f", s.Knowledge, s.WealthGini)
 	put(tcell.StyleDefault, "friends %-4d feuds %-4d hearsay %d", s.Friendships, s.Feuds, s.Hearsay)
@@ -237,7 +245,7 @@ func (v *view) draw() {
 		}
 		put(style, "%s", trim(fmt.Sprintf("%6d %s", e.Tick, e.Text), panelWidth-2))
 	}
-	puts(sc, px, sh-1, dim, "space pause  +/- speed  . step  q quit")
+	puts(sc, px, sh-1, dim, "space pause  +/- speed  . step  r pave  q quit")
 	sc.Show()
 }
 

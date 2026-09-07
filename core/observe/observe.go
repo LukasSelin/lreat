@@ -67,9 +67,9 @@ type Snapshot struct {
 	Feuds       int
 	Hearsay     int
 
-	Houses, Fields, Forest int
-	Map                    *MapView
-	Notable                []event.Event // this tick's events other than routine completions
+	Houses, Fields, Forest, Roads int
+	Map                           *MapView
+	Notable                       []event.Event // this tick's events other than routine completions
 }
 
 // Take builds a Snapshot. It must run on the simulation goroutine.
@@ -85,6 +85,7 @@ func Take(w *world.World) Snapshot {
 		Houses:     w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.House }),
 		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Field }),
 		Forest:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest }),
+		Roads:      w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road }),
 
 		OpenRequests: len(w.Requests),
 	}

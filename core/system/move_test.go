@@ -89,3 +89,44 @@ func TestHealthFollowsFeedingAndHousing(t *testing.T) {
 		t.Fatalf("a starving unhoused agent held health %.2f, want it worn down", lean.Health)
 	}
 }
+
+// The point of a road is what it saves whoever walks it. The same errand down
+// a street should arrive sooner and take less out of the walker, which is what
+// makes paving worth the labour and what will make a settlement's streets show
+// up in the condition of its people.
+func TestTheSameErrandIsCheaperOnAStreet(t *testing.T) {
+	walk := func(paved bool) (int, float64) {
+		w := world.NewSized(3, 30, 5)
+		for i := range w.Grid.Tiles {
+			w.Grid.Tiles[i].Terrain = world.Grass
+		}
+		to := entity.Pos{X: 20, Y: 2}
+		if paved {
+			for x := 0; x < 30; x++ {
+				w.Grid.Pave(entity.Pos{X: x, Y: 2})
+			}
+		}
+		a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 0, Y: 2})
+		a.Vitality, a.Health = 1, 1
+		a.Needs[need.Physiological] = 1
+		a.Plan = &entity.Plan{Action: "rest", Target: to, Remaining: 1, Total: 1}
+		ticks := 0
+		for a.Pos != to && ticks < 200 {
+			Act(w)
+			ticks++
+		}
+		if a.Pos != to {
+			t.Fatalf("the walker never arrived (paved=%v)", paved)
+		}
+		return ticks, 1 - a.Needs[need.Physiological]
+	}
+
+	openTicks, openSpent := walk(false)
+	roadTicks, roadSpent := walk(true)
+	if roadTicks >= openTicks {
+		t.Fatalf("the walk took %d ticks on the road and %d over grass; want the road quicker", roadTicks, openTicks)
+	}
+	if roadSpent >= openSpent {
+		t.Fatalf("the walk cost %.4f on the road and %.4f over grass; want the road cheaper", roadSpent, openSpent)
+	}
+}

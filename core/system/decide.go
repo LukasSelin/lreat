@@ -28,9 +28,10 @@ func Score(a *entity.Agent, gain need.Levels, urgency [need.Count]float64) float
 
 // Choose picks the best available action for an agent and where to do it.
 // Scores are divided by total time, travel included, so a quick fix nearby
-// beats a slow one far away. Travel is costed over the terrain in the way,
-// so the shape of the ground, not just distance, is how the map shapes
-// behavior.
+// beats a slow one far away. Travel is costed over the ground in the way, on
+// the route the agent would really walk, so the shape of the land and what
+// has been built on it — a river across the way, a street running to the
+// market — is how the map shapes behavior.
 func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 	urgency := need.Urgencies(a.Needs)
 	best, bestPos, bestScore := action.Rest, a.Pos, math.Inf(-1)
@@ -73,7 +74,9 @@ func Decide(w *world.World) {
 // ordinary body. Hard ground is slow and tiring in the same measure: a tile
 // that takes three ticks to cross also takes three ticks of hunger with it.
 // A stronger frame both keeps a faster pace and spends less per tick, so the
-// same errand costs a hale agent noticeably less than a worn one.
+// same errand costs a hale agent noticeably less than a worn one. Paving
+// discounts the tick as well as shortening the walk, so an errand down a
+// street is cheap on both counts.
 const Exertion = 0.006
 
 // Act moves agents toward their targets, then advances and applies plans.
@@ -85,10 +88,20 @@ func Act(w *world.World) {
 		if a.Pos != a.Plan.Target {
 			next := w.Grid.StepToward(a.Pos, a.Plan.Target)
 			a.Travel += a.Vigor()
-			a.Needs.Add(need.Physiological, -Exertion/a.Endurance())
-			if cost := w.Grid.MoveCost(next); a.Travel >= cost {
+			a.Needs.Add(need.Physiological, -Exertion*w.Grid.MoveDrain(next)/a.Endurance())
+			// A tick buys a budget of walking, and the agent spends all of it
+			// it can. Over ordinary ground that is the one tile it always
+			// was; on ground cheap enough to cross for less than the budget —
+			// which is to say on a road — it is more than one, and that is
+			// where the speed of a street comes from.
+			for a.Pos != a.Plan.Target {
+				cost := w.Grid.MoveCost(next)
+				if a.Travel < cost || next == a.Pos {
+					break
+				}
 				a.Travel -= cost
 				a.Pos = next
+				next = w.Grid.StepToward(a.Pos, a.Plan.Target)
 			}
 			continue
 		}
