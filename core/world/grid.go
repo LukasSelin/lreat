@@ -55,9 +55,10 @@ func (t *Tile) Buildable() bool {
 }
 
 // Pavable reports whether a road may be laid on this tile. Roads go over open
-// ground, through woods, which they clear, and across water, where the road
-// is a bridge. They do not take another building's place or run over land
-// somebody has claimed.
+// ground, through woods, which they clear, over outcrops, which the quarrymen
+// go on cutting from underneath, and across water, where the road is a
+// bridge. They do not take another building's place or run over land somebody
+// has claimed.
 func (t *Tile) Pavable() bool {
 	return t.Structure == None && t.Owner == 0
 }
