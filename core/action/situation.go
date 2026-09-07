@@ -190,6 +190,11 @@ func Candidates(a *entity.Agent, w *world.World) []Candidate {
 // first use - so several agents may be sized up at once, one per router.
 func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate {
 	Imprint(a)
+	// One spread of the ground around the agent serves every errand it is
+	// about to weigh: they all start where it stands, and none of them is
+	// read past the near knee.
+	r.Survey(a.Pos, a.Load(), nearKnee*a.Vigor(w.Tick))
+	defer r.Forget()
 	w.Room()
 	for i := range Catalog {
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])

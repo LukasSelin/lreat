@@ -186,10 +186,16 @@ func (g *Grid) Path(from, to entity.Pos) []entity.Pos {
 func (r *Router) TravelCost(from, to entity.Pos) float64 {
 	g := r.g
 	if from == to {
+		r.load = 0
 		return 0
 	}
 	if !g.In(to) {
+		r.load = 0
 		return math.Inf(1)
+	}
+	if r.surveyed && from == r.spreadFrom && (r.load > SwimLoad) == r.spreadLaden {
+		r.load = 0
+		return r.fromSurvey(to)
 	}
 	stop := int32(to.Y*g.W + to.X)
 	return r.route(&r.scratch, from, stop, entity.StepToward(from, to)).Cost(to)
