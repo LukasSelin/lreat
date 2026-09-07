@@ -21,7 +21,7 @@ import (
 )
 
 // Dims is the size of the space.
-const Dims = 20
+const Dims = 21
 
 // Slots are places in every agent's tables, one per act, keyed by the
 // act's canonical name. A slot is given once, in the order acts are first
@@ -66,8 +66,9 @@ func Grow[T any](s []T, n int) []T {
 }
 
 // The dimensions. The first five are urgencies weighted by personality; the
-// next seven are stock and surroundings, the weather among them, because
-// what a moment calls for turns with the season; five are what the agent
+// next eight are stock and surroundings, the weather among them and what
+// the weather is actually doing to this body, because what a moment calls
+// for turns with the season and turns harder for whoever is out in it; five are what the agent
 // holds to be right and how much reprisal it expects; the last three are
 // patched per candidate action, because how near a thing is, how one feels
 // about the person involved, and how able one believes oneself all depend
@@ -84,6 +85,7 @@ const (
 	Shelter
 	Company
 	Chill
+	Exposure
 	Order
 	Honesty
 	Charity
@@ -98,7 +100,7 @@ const (
 // Names labels each dimension for reports.
 var Names = [Dims]string{
 	"hunger", "unsafe", "lonely", "unproven", "curious",
-	"food", "wood", "wealth", "shelter", "company", "chill", "order",
+	"food", "wood", "wealth", "shelter", "company", "chill", "exposure", "order",
 	"honesty", "charity", "industry", "tradition", "caution",
 	"near", "rapport", "skill",
 }

@@ -83,16 +83,38 @@ func init() {
 	// Wood is measured against the cost of a house, so "enough wood" reads
 	// as +1 exactly when a shelter can be built. Gathering belongs to the
 	// unsheltered moment more than to the empty-handed one; building to the
-	// unsheltered moment with the wood in hand. Both lean into the cold,
-	// which is when a roof is worth having and when there is least else to
-	// do: the coordinate is mild, because a house is worth building in any
-	// weather and a settlement that waited for frost to start would spend
-	// the winter it was building for outdoors.
+	// unsheltered moment with the wood in hand.
+	//
+	// What both lean into is exposure and not the weather itself. The cold
+	// alone is the same news to everybody, so an act that names it is an act
+	// the whole settlement turns to at once: told it is February, the people
+	// who already have roofs put down their tools and go to the woods with
+	// everyone else, and the settlement eats its winter stores while the
+	// timber piles up in the hands of people who do not need it. Told
+	// instead what each body is actually standing in, the same coordinate
+	// sorts them: whoever is out in the cold goes for wood, whoever is under
+	// a roof stays in the field. That is the difference between a settlement
+	// that suffers a winter and one that houses itself over one.
+	//
+	// The weather itself stays on gathering at a mild weight, because
+	// felling is winter work whoever does it - the sap is down and there is
+	// least else to do - and off building altogether: a house is worth
+	// raising in any weather, and a settlement that waited for the frost to
+	// start would spend the winter it was building for outdoors.
+	//
+	// Exposure is weighted as lightly as it is because the hours it moves
+	// have to come from somewhere, and where they come from is the fields.
+	// Leant on harder it houses more people and feeds fewer: at 0.5 the
+	// share with no house falls to 32% and the median population falls with
+	// it from 42 to 29. At 0.3 the settlement gets most of the housing for
+	// the smallest part of the harvest, and that is the whole of why this
+	// number is small rather than round.
 	seed(GatherWood, reachEveryday, habit.Signature{
-		habit.Unsafe: 0.6, habit.Wood: -0.6, habit.Shelter: -0.6, habit.Chill: 0.3, habit.Near: 0.5,
+		habit.Unsafe: 0.6, habit.Wood: -0.6, habit.Shelter: -0.6,
+		habit.Chill: 0.3, habit.Exposure: 0.3, habit.Near: 0.5,
 	})
 	seed(BuildShelter, reachEveryday, habit.Signature{
-		habit.Unsafe: 1, habit.Wood: 1, habit.Shelter: -1, habit.Chill: 0.3,
+		habit.Unsafe: 1, habit.Wood: 1, habit.Shelter: -1, habit.Exposure: 0.3,
 	})
 	BuildShelter.Skilled = uses(entity.Building)
 	seed(Sell, reachEveryday, habit.Signature{
