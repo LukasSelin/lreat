@@ -584,21 +584,23 @@ Worth is one figure in tiles of walking saved a day, so it adds to `homeCost` an
 
 | | survivors | extinctions | median | road tiles |
 |---|---|---|---|---|
-| market-anchored siting | 21 | 0 | 134 | 41 |
-| ground judged | 20 | 1 | 104 | 84 |
+| market-anchored siting | 24 | 0 | 153 | 54 |
+| ground judged | 20 | 0 | 115 | 71 |
 
-Near enough level on survival, a little smaller in the median, and twice the
-street. The roads are the part worth looking at, because nothing here paves
-anything: `elbowRoom` keeps a gap beside every house, the gaps line up into
-lanes, errands wear the lanes, and somebody eventually recognises worn ground
-as calling for a road. A town that chooses its own ground lays twice the
-street of one that was handed its plots in ring order.
+Four settlements of twenty-four, and about a quarter of the median, for a
+third more street. The cost is real and is not explained away here.
 
-`elbowRoom` is what the rest of this is most sensitive to, and it is worth
-knowing how much. At 2 the houses close up and the median falls to 21 with 13
-settlements of 24 surviving; at 6, 37 and 15; at 10, 123 and 19; at 16, 104
-and 20; past 16 it is flat. What it chooses is how tightly a town packs, and
-a town with no gaps in it has nowhere to put a street.
+The street is worth looking at, because nothing here paves anything:
+`elbowRoom` keeps a gap beside every house, the gaps line up into lanes,
+errands wear the lanes, and somebody eventually recognises worn ground as
+calling for a road. A town that chooses its own ground lays a third more
+street than one handed its plots in ring order.
+
+`elbowRoom` is what the rest of this is most sensitive to, and it has to be
+re-measured whenever the ground is. Against the holdings alone it read best
+at 16; once the woods were kept off the slopes and a loaded agent could no
+longer swim a river, best at 10. Below that the houses close up and there is
+nowhere left to put a street. What it chooses is how tightly a town packs.
 
 Note that the comparison is statistical only and cannot be otherwise. Adding
 an act changes how many draws `action.Inherit` takes at every birth, which

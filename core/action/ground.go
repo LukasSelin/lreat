@@ -84,11 +84,13 @@ const (
 	// for, and settlements that used to lay eighty tiles of street laid two.
 	//
 	// It is the knob between many small towns and few large ones, and it is
-	// the one figure here the rest of the change is most sensitive to. Over
-	// 24 seeds against the holdings a household now works: at 2, 13
-	// settlements of 24 and a median of 21; at 6, 15 and 37; at 10, 19 and
-	// 123; at 16, 20 and 104; past that it is flat. 16 is taken.
-	elbowRoom = 16
+	// the one figure here the rest of the change is most sensitive to. It
+	// also has to be re-measured whenever the ground does, which is worth
+	// knowing: over 24 seeds it read best at 16 against the holdings alone,
+	// and best at 10 once the woods were kept off the slopes and a loaded
+	// agent could no longer swim. At 10 now: 20 settlements of 24, no
+	// extinctions, median 115, and 71 tiles of street to master's 54.
+	elbowRoom = 10
 	// settlingWalk is how many days of a settled life the walk out to a plot
 	// is set against. Worth is counted per day and lasts as long as the
 	// house does; the walk to get there is paid once. Subtracting the one
