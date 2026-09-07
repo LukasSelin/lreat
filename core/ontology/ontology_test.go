@@ -35,6 +35,7 @@ var golden = map[string]string{
 	"consume/provision":                 "eat",
 	"dwell/rest":                        "rest",
 	"dwell/meet@tavern>neighbour":       "socialize",
+	"dwell/look":                        "scout",
 	"dwell/guard@market":                "guard",
 	"exchange/material>coin@market":     "sell",
 	"exchange/coin>provision@market":    "buy food",
@@ -190,4 +191,21 @@ func trim(v float64) string {
 		return "0"
 	}
 	return s
+}
+
+// The ground that carries something growing says so, and the ground that
+// does not says that too: a wood and a field have a standing crop with an age
+// to it, an outcrop is stone, and a shoal of fish is a stock rather than a
+// crop that has to come on before it can be cut.
+func TestWoodsAndFieldsAreLiving(t *testing.T) {
+	for _, c := range []*ontology.Class{ontology.Wood, ontology.Field} {
+		if !c.Has(ontology.Living) {
+			t.Errorf("%s carries a standing crop and is not living", c.Path())
+		}
+	}
+	for _, c := range []*ontology.Class{ontology.Open, ontology.Water, ontology.Outcrop, ontology.Road, ontology.Dwelling, ontology.Market} {
+		if c.Has(ontology.Living) {
+			t.Errorf("%s is not something that grows", c.Path())
+		}
+	}
 }

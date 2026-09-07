@@ -80,13 +80,13 @@ func fishYield(a *entity.Agent, w *world.World, fish float64) float64 {
 	return (0.3 + 0.7*fish) * (0.7 + 0.6*a.Skills[entity.Fishing]) * w.Mods.FishYield
 }
 
-var Fish = take("take/fish@water")
+var Fish = mover("take/fish@water")
 
 func huntYield(w *world.World, wild float64) float64 {
 	return (0.4 + 1.6*wild) * w.Mods.HuntYield
 }
 
-var Hunt = take("take/game@wood")
+var Hunt = mover("take/game@wood")
 
 // nearWater reports whether water lies within reach of p.
 func nearWater(w *world.World, p entity.Pos) bool {
@@ -160,7 +160,11 @@ var PlantTrees = &Def{
 		if !t.Buildable() || !w.Grid.HoldsWood(a.Pos) {
 			return
 		}
-		t.Terrain, t.Wood, t.Wild = world.Forest, 0.2, 0.3
+		// What is planted is a planting: no timber and nothing to forage for
+		// years yet. The good of it goes to whoever is here when it is grown,
+		// which is the whole of what the act is for.
+		t.Terrain, t.Wood, t.Wild = world.Forest, 0, 0
+		t.Sow()
 		a.Needs.Add(need.Esteem, 0.02)
 		a.Needs.Add(need.Actualization, 0.02)
 	},

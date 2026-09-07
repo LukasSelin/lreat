@@ -3,6 +3,7 @@ package system
 import (
 	"testing"
 
+	"lreat/core/entity"
 	"lreat/core/world"
 )
 
@@ -44,5 +45,41 @@ func TestTheWoodsCreepBackAndThenStop(t *testing.T) {
 	}
 	if share := float64(grown) / float64(land); share > 0.3 {
 		t.Fatalf("the woods took %.2f of the land, want them to stop at the tree line", share)
+	}
+}
+
+// A planting is not a wood. What goes in the ground gives nothing on the day
+// it is put there; the brush under it comes back within a few years and the
+// timber takes a lifetime, which is what makes planting an act for whoever
+// comes after.
+func TestAPlantedStandComesOnBrushFirst(t *testing.T) {
+	w := world.New(4)
+	// A steady growing season and no age of weather, so that what is
+	// measured is the stand and not the map moving under it.
+	w.Tick = 1
+	w.Climate = world.Climate{Temp: world.Thrive}
+	p := entity.Pos{X: w.MarketPos.X, Y: w.MarketPos.Y}
+	tile := w.Grid.At(p)
+	tile.Terrain, tile.Structure, tile.Wood, tile.Wild = world.Forest, world.None, 0, 0
+	tile.Sow()
+
+	for i := 0; i < 20; i++ {
+		Land(w)
+	}
+	if tile.Wood > 0.05 || tile.Wild > 0.05 {
+		t.Fatalf("a planting gives %.2f timber and %.2f wild food in its first year", tile.Wood, tile.Wild)
+	}
+	for i := 0; i < world.BrushAge; i++ {
+		Land(w)
+	}
+	brush, timber := tile.Wild, tile.Wood
+	if brush < 0.8 {
+		t.Fatalf("brush is only %.2f grown after its whole span", brush)
+	}
+	if timber >= brush {
+		t.Fatalf("timber (%.2f) came on as fast as brush (%.2f)", timber, brush)
+	}
+	if timber <= 0 {
+		t.Fatal("the stand has made no timber at all")
 	}
 }

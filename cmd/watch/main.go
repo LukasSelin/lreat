@@ -46,6 +46,12 @@ const (
 	graphHeight = 6
 	graphTicks  = 5
 	graphMax    = 320
+	// The settlement's figures sit in two columns of label and
+	// right-aligned number, both halves the same shape so the numbers line
+	// up down the panel.
+	statLabel = 10
+	statValue = 6
+	statCol   = statLabel + statValue + 2
 )
 
 func main() {
@@ -352,17 +358,40 @@ func (v *view) draw() {
 	// to the population's bodies.
 	put(healthStyle(s.MeanHealth), "%-13s %s %.2f", "health", bar(s.MeanHealth, 12), s.MeanHealth)
 	line++
-	put(tcell.StyleDefault, "mean age %-5d elders %d", s.MeanAge, s.Elders)
-	put(tcell.StyleDefault, "houses %-4d fields %-4d forest %d", s.Houses, s.Fields, s.Forest)
-	put(tcell.StyleDefault, "roads  %-4d", s.Roads)
-	put(tcell.StyleDefault, "safety %.2f  food price %.2f", s.Safety, s.FoodPrice)
-	// The weather gets a line of its own: it is the one thing on the panel
-	// that moves on its own schedule rather than the settlement's, and the
-	// growth figure says what the season is doing to the land.
+	// The settlement's figures are laid out as a grid rather than a run of
+	// sentences: dim label on the left, number right-aligned against a
+	// fixed column, two to a line, and the lines in the order of what they
+	// are about — the people, then their land, then their dealings, then
+	// what is getting through to them. Read this way the eye runs down a
+	// column of numbers instead of picking each one out of the middle of a
+	// phrase, and a figure that has moved since the last glance is still in
+	// the place it was before.
+	stat := func(l1, v1, l2, v2 string) {
+		puts(sc, px, line, dim, l1)
+		puts(sc, px+statLabel, line, tcell.StyleDefault, fmt.Sprintf("%*s", statValue, v1))
+		if l2 != "" {
+			puts(sc, px+statCol, line, dim, l2)
+			puts(sc, px+statCol+statLabel, line, tcell.StyleDefault, fmt.Sprintf("%*s", statValue, v2))
+		}
+		line++
+	}
+	n := func(v int) string { return fmt.Sprintf("%d", v) }
+	f := func(v float64) string { return fmt.Sprintf("%.2f", v) }
+
+	stat("mean age", n(s.MeanAge), "elders", n(s.Elders))
+	stat("friends", n(s.Friendships), "feuds", n(s.Feuds))
+	stat("hearsay", n(s.Hearsay), "", "")
+	stat("houses", n(s.Houses), "fields", n(s.Fields))
+	stat("forest", n(s.Forest), "roads", n(s.Roads))
+	stat("food price", f(s.FoodPrice), "safety", f(s.Safety))
+	stat("knowledge", fmt.Sprintf("%.0f", s.Knowledge), "gini", f(s.WealthGini))
+	stat("reach", f(s.GatedReach), "spread", f(s.HabitSpread))
+	stat("open", f(s.ChoiceEntropy), "", "")
+	// The weather keeps a line of its own, out of the grid: it is the one
+	// thing on the panel that moves on its own schedule rather than the
+	// settlement's, and the growth figure says what the season is doing to
+	// the land.
 	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Season, s.Temp, s.Growth)
-	put(tcell.StyleDefault, "knowledge %.0f  gini %.2f", s.Knowledge, s.WealthGini)
-	put(tcell.StyleDefault, "friends %-4d feuds %-4d hearsay %d", s.Friendships, s.Feuds, s.Hearsay)
-	put(tcell.StyleDefault, "reach %.2f  spread %.2f  open %.2f", s.GatedReach, s.HabitSpread, s.ChoiceEntropy)
 	techs := "none yet"
 	if len(s.Techs) > 0 {
 		parts := make([]string, len(s.Techs))

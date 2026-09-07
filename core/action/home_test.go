@@ -20,25 +20,67 @@ func householder(t *testing.T, w *world.World, home entity.Pos) *entity.Agent {
 	return a
 }
 
-// A house that suits its owner is a house they stay in.
-func TestNobodyMovesOutOfAGoodHouse(t *testing.T) {
-	w, _ := shore(t)
-	a := householder(t, w, entity.Pos{X: 8, Y: 2}) // next door to the market
-	if p, ok := MoveHouse.Target(a, w); ok {
-		t.Fatalf("a householder beside the market moved to %v", p)
+// knows walks the agent over each plot so that it has been appraised and
+// carried home, which is the only way anybody comes to know anywhere.
+func knows(w *world.World, a *entity.Agent, ps ...entity.Pos) {
+	here := a.Pos
+	for _, p := range ps {
+		a.Pos = p
+		Notice(a, w)
+	}
+	a.Pos = here
+}
+
+// tilth sets the ground at p and all round it, since an appraisal reads the
+// best field a door could open onto rather than the dirt under the floor.
+func tilth(w *world.World, p entity.Pos, v float64) {
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
+			if w.Grid.In(q) {
+				t := w.Grid.At(q)
+				t.Fertility, t.Rich = v, v
+			}
+		}
 	}
 }
 
-// The far side of the settlement is worth leaving for the near side.
-func TestAHouseMovesTowardTheLifeItsOwnerLeads(t *testing.T) {
+// richen makes the ground at p worth living on, which on this flat test map
+// is entirely a matter of soil.
+func richen(w *world.World, p entity.Pos) { tilth(w, p, 1) }
+
+// A house on ground as good as anything its owner knows of is a house they
+// stay in. Nobody moves for the sake of moving.
+func TestNobodyMovesOutOfAGoodHouse(t *testing.T) {
 	w, _ := shore(t)
-	a := householder(t, w, entity.Pos{X: 0, Y: 5})
+	home := entity.Pos{X: 8, Y: 2}
+	richen(w, home)
+	a := householder(t, w, home)
+	knows(w, a, entity.Pos{X: 2, Y: 4}, entity.Pos{X: 3, Y: 5})
+	if p, ok := MoveHouse.Target(a, w); ok {
+		t.Fatalf("a householder on the best ground they know moved to %v", p)
+	}
+}
+
+// Better ground is worth moving onto - but only ground the owner has been
+// over. A house is not sited off a survey nobody carried out.
+func TestAHouseMovesOntoBetterGround(t *testing.T) {
+	w, _ := shore(t)
+	good := entity.Pos{X: 3, Y: 4}
+	richen(w, good)
+	home := entity.Pos{X: 0, Y: 5}
+	tilth(w, home, 0)
+	a := householder(t, w, home)
+	if _, ok := MoveHouse.Target(a, w); ok {
+		t.Fatal("a householder moved onto ground they had never seen")
+	}
+	knows(w, a, good)
 	p, ok := MoveHouse.Target(a, w)
 	if !ok {
-		t.Fatal("a householder in the far corner found nowhere better")
+		t.Fatal("a householder who has seen better ground found nowhere better")
 	}
-	if entity.Dist(p, w.MarketPos) >= entity.Dist(a.Home, w.MarketPos)-worthMoving {
-		t.Fatalf("moved to %v, no nearer the market than %v was", p, a.Home)
+	if p != good {
+		t.Fatalf("moved to %v, want the good ground at %v", p, good)
 	}
 }
 
@@ -48,6 +90,8 @@ func TestAHouseInTheWayStepsAside(t *testing.T) {
 	w, _ := shore(t)
 	home := entity.Pos{X: 8, Y: 2}
 	a := householder(t, w, home)
+	aside := entity.Pos{X: 8, Y: 4}
+	knows(w, a, aside)
 	if _, ok := MoveHouse.Target(a, w); ok {
 		t.Fatal("the house moved before anyone had walked through it")
 	}
@@ -68,7 +112,11 @@ func TestAHouseInTheWayStepsAside(t *testing.T) {
 func TestMovingCarriesTheRoofAndFreesTheOldGround(t *testing.T) {
 	w, _ := shore(t)
 	old := entity.Pos{X: 0, Y: 5}
+	good := entity.Pos{X: 3, Y: 4}
+	richen(w, good)
+	tilth(w, old, 0)
 	a := householder(t, w, old)
+	knows(w, a, good)
 	shelter, wood := a.Shelter, a.Inventory[entity.Wood]
 	if !run(w, a, MoveHouse) {
 		t.Fatal("a householder in the far corner could not move")

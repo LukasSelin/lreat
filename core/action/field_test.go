@@ -28,6 +28,7 @@ func till(w *world.World, a *entity.Agent) bool {
 	if run(w, a, Clear) {
 		return true
 	}
+	season(w, world.CropAge) // the crop comes on between one harvest and the next
 	return run(w, a, Farm)
 }
 
@@ -75,6 +76,7 @@ func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 	for i, p := range holding {
 		before[i] = w.Grid.At(p).Fertility
 	}
+	season(w, world.CropAge)
 	if !run(w, a, Farm) {
 		t.Fatal("a farmer with a holding should always have somewhere to work")
 	}
@@ -117,5 +119,45 @@ func TestAHoldingDoesNotPloughUpTheNeighbourhood(t *testing.T) {
 		if w.Grid.HasNeighbor(p, (*world.Tile).Roofed) {
 			t.Fatalf("a strip was broken at %v, against a neighbour's wall", p)
 		}
+	}
+}
+
+// A strip cut is bare ground, and bare ground is not cut again. A household
+// with a holding works it in turn - the strip in ear, then the next - and one
+// with a single strip waits for it. Nobody was told to rotate a crop; it
+// falls out of the crop taking a season to come on.
+func TestAHoldingIsWorkedStripByStrip(t *testing.T) {
+	w, a := shore(t)
+	for i := 0; i < 3*fieldTiles; i++ {
+		till(w, a)
+	}
+	holding := held(t, w, a)
+	if len(holding) < 2 {
+		t.Fatal("this wants a holding of more than one strip")
+	}
+
+	// Every strip in ear: the farmer takes them one after another and never
+	// the same one twice.
+	season(w, world.CropAge)
+	worked := map[entity.Pos]int{}
+	for range holding {
+		if !Farm.Available(a, w) {
+			t.Fatalf("a holding in ear should be workable; worked %d of %d strips", len(worked), len(holding))
+		}
+		if !run(w, a, Farm) {
+			t.Fatal("a ripe strip should be there to work")
+		}
+		worked[a.Pos]++
+	}
+	if len(worked) != len(holding) {
+		t.Fatalf("the farmer worked %d strips of a holding of %d: %v", len(worked), len(holding), worked)
+	}
+	// And with the whole holding just cut, there is nothing to come back to.
+	if Farm.Available(a, w) {
+		t.Fatal("a holding cut to the ground still offers a harvest")
+	}
+	season(w, world.CropAge)
+	if !Farm.Available(a, w) {
+		t.Fatal("a season on, the holding should be in ear again")
 	}
 }
