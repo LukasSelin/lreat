@@ -120,6 +120,12 @@ type World struct {
 	Choices int
 	Entropy float64
 
+	// watched is the agent whose deliberations are being kept, and thoughts
+	// is what it has been weighing. Both are for observation only; see
+	// watch.go.
+	watched  entity.ID
+	thoughts []Deliberation
+
 	techs     map[Tech]bool
 	nextID    entity.ID
 	nextReqID entity.RequestID
