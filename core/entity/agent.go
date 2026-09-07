@@ -132,6 +132,16 @@ type Agent struct {
 	Reputation float64
 	Shelter    float64 // quality of housing in [0,1]; decays
 
+	// Vitality is the body an agent was born with: how much effort it can
+	// carry, around 1 and rarely far from it. It is drawn at birth and
+	// inherited with drift, so bodies vary the way personalities do, by a
+	// little and across generations.
+	Vitality float64
+	// Health is present condition in [0,1]. It follows how well the agent is
+	// fed and housed, but slowly, so it reads as a constitution worn down or
+	// built back up over a long stretch rather than a second hunger bar.
+	Health float64
+
 	// Temperament is how the agent approaches other people, independent of
 	// what it needs from them.
 	Temperament Temperament
@@ -160,6 +170,27 @@ type Agent struct {
 	Starving int // consecutive ticks at the bottom of the physiological tier
 	Bonds    []Bond
 	Plan     *Plan
+}
+
+// ordinaryBody is the vitality of an agent constructed without one, as
+// tooling and tests sometimes do. Treating it as average keeps a bodyless
+// agent moving normally instead of standing still forever.
+const ordinaryBody = 1
+
+// Endurance is how well the agent's frame carries effort: a larger store to
+// spend walking out of. It is the body it was born with, condition aside.
+func (a *Agent) Endurance() float64 {
+	if a.Vitality <= 0 {
+		return ordinaryBody
+	}
+	return a.Vitality
+}
+
+// Vigor is the pace the agent can actually keep, its frame discounted by the
+// condition that frame is currently in. A hale agent covers hard ground
+// faster; a worn-down one labours over the same tile.
+func (a *Agent) Vigor() float64 {
+	return a.Endurance() * (0.6 + 0.4*need.Clamp(a.Health))
 }
 
 // AddBond strengthens (or creates) the bond to another agent.

@@ -122,6 +122,8 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 		Personality: p,
 		Norms:       belief.RandomNorms(w.RNG),
 		Temperament: entity.RandomTemperament(w.RNG),
+		Vitality:    w.RandomVitality(),
+		Health:      0.9,
 	}
 	// Everyone starts believing they are unremarkable. Confidence is earned
 	// by doing, and can outrun or lag the skill it is meant to describe.
@@ -142,6 +144,31 @@ func (w *World) RandomPersonality() need.Weights {
 		p[i] = clampWeight(1 + w.RNG.NormFloat64()*0.3)
 	}
 	return p
+}
+
+// RandomVitality draws a body around the ordinary one. The spread is narrow
+// on purpose: bodies differ, but a settlement's fortunes should turn on what
+// people want and believe, not on who was born strong.
+func (w *World) RandomVitality() float64 {
+	return clampVitality(1 + w.RNG.NormFloat64()*0.12)
+}
+
+// InheritVitality returns a child's body derived from a parent's.
+func (w *World) InheritVitality(v float64) float64 {
+	if v <= 0 {
+		return w.RandomVitality()
+	}
+	return clampVitality(v + w.RNG.NormFloat64()*0.08)
+}
+
+func clampVitality(v float64) float64 {
+	if v < 0.7 {
+		return 0.7
+	}
+	if v > 1.3 {
+		return 1.3
+	}
+	return v
 }
 
 // Mutate returns a child's personality derived from a parent's.

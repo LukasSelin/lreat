@@ -77,6 +77,7 @@ func TestSatedAgentClimbsThePyramid(t *testing.T) {
 	populate(w, 3)
 	a := w.Agents[0]
 	a.Needs = need.Levels{1, 1, 1, 1, 0.1}
+	a.Personality = need.Neutral()
 	a.Inventory[entity.Food] = 4
 	if d, _ := Choose(a, w); d != action.Study {
 		t.Fatalf("agent with every lower tier met chose %q, want study", d.Name)
@@ -125,8 +126,10 @@ func TestAgentsWalkBeforeActing(t *testing.T) {
 	w := world.New(1)
 	a := w.Spawn("a", need.Neutral())
 	target := entity.Pos{X: a.Pos.X + 5, Y: a.Pos.Y}
-	// Walking speed belongs to the terrain; this test is about the order of
-	// walking and acting, so clear the route to one tick per tile.
+	// Walking speed belongs to the terrain and the body; this test is about
+	// the order of walking and acting, so clear the route and give the walker
+	// an ordinary frame in good condition: one tick per tile.
+	a.Vitality, a.Health = 1, 1
 	for x := a.Pos.X; x <= target.X; x++ {
 		w.Grid.At(entity.Pos{X: x, Y: a.Pos.Y}).Terrain = world.Grass
 	}

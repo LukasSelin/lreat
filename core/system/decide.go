@@ -42,7 +42,7 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 		if !ok {
 			continue
 		}
-		cost := float64(d.Ticks) + w.Grid.TravelCost(a.Pos, target)
+		cost := float64(d.Ticks) + w.Grid.TravelCost(a.Pos, target)/a.Vigor()
 		// Conscience sits beside need rather than inside it. It is not scaled
 		// by urgency, so a principle holds until hunger grows big enough to
 		// outweigh it, and then it gives way.
@@ -69,9 +69,11 @@ func Decide(w *world.World) {
 	}
 }
 
-// Exertion is the physiological cost of one tick's worth of walking. Hard
-// ground is slow and tiring in the same measure: a tile that takes three ticks
-// to cross also takes three ticks of hunger with it.
+// Exertion is the physiological cost of one tick's worth of walking, for an
+// ordinary body. Hard ground is slow and tiring in the same measure: a tile
+// that takes three ticks to cross also takes three ticks of hunger with it.
+// A stronger frame both keeps a faster pace and spends less per tick, so the
+// same errand costs a hale agent noticeably less than a worn one.
 const Exertion = 0.006
 
 // Act moves agents toward their targets, then advances and applies plans.
@@ -82,8 +84,8 @@ func Act(w *world.World) {
 		}
 		if a.Pos != a.Plan.Target {
 			next := w.Grid.StepToward(a.Pos, a.Plan.Target)
-			a.Travel++
-			a.Needs.Add(need.Physiological, -Exertion)
+			a.Travel += a.Vigor()
+			a.Needs.Add(need.Physiological, -Exertion/a.Endurance())
 			if cost := w.Grid.MoveCost(next); a.Travel >= cost {
 				a.Travel -= cost
 				a.Pos = next

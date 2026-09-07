@@ -16,6 +16,10 @@ var decay = [need.Count]float64{
 	need.Actualization: 0.003,
 }
 
+// HealthRate is how fast condition follows circumstance. It is slow enough
+// that health is a record of how an agent has lived, not of what it ate today.
+const HealthRate = 0.01
+
 // Decay drains needs, lets shelter rot, and relaxes safety toward what the
 // agent's circumstances actually provide.
 func Decay(w *world.World) {
@@ -25,6 +29,12 @@ func Decay(w *world.World) {
 		}
 
 		a.Shelter = math.Max(0, a.Shelter-w.Mods.ShelterDecay)
+
+		// Health follows nourishment and housing, at a hundredth of the rate
+		// they move themselves. A lean week barely shows; a lean season
+		// leaves a body that walks slower and tires sooner.
+		condition := 0.35 + 0.45*need.Clamp(a.Needs[need.Physiological]) + 0.2*a.Shelter
+		a.Health = need.Clamp(a.Health + (condition-a.Health)*HealthRate)
 
 		// Safety is derived: housing, public order, and savings each matter.
 		target := 0.5*a.Shelter + 0.35*w.Safety + 0.15*math.Min(a.Wealth/20, 1)

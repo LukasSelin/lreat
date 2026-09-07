@@ -49,6 +49,7 @@ func Population(w *world.World) {
 		child := w.SpawnAt(fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
 		child.Inventory[entity.Food] = 1
 		child.Shelter = a.Shelter * 0.8
+		child.Vitality = w.InheritVitality(a.Vitality)
 		// Values are inherited, not drawn fresh. This is what lets a
 		// settlement keep a character across generations.
 		child.Norms = belief.Inherit(a.Norms, w.RNG)
