@@ -488,13 +488,16 @@ The second row is the control, and it is the one that made the rest legible. The
 
 Keeping saves the deep winter but leaves two settlements hanging on by their fingernails, at 17 and at 8. The shipped season leaves none: it is a two-to-one year rather than a three-to-one one, still a season you can watch on the map, and it costs nothing to read.
 
-**The tail, and what the season really costs.** Twenty-four seeds to 6000 ticks, seasoned against unseasoned:
+**What the season costs, on the ground it now runs on.** Everything above was measured on the flat map, before the terrain underneath was rebuilt. Re-measured on the ground of "The land underneath", 24 seeds to 6000 ticks, against a control in which the year turns and draws from `World.RNG` but `Growth` returns 1 and `Chill` returns 0:
 
-| | median | weakest four | extinctions |
-|---|---|---|---|
-| no seasons | 350 | 4, 16, 24, 82 | 0 |
-| shipped | 224 | 0, 0, 0, 30 | 3 |
+| | median | mean | extinctions | settlements at the cap |
+|---|---|---|---|---|
+| the year turns, nothing reads it | 378 | 273 | 2 | 11 |
+| shipped, winter at 0.5 | 89 | 185 | 2 | 8 |
+| winter at 0.6 | 136 | 172 | 4 | 6 |
 
-The unseasoned world has no extinctions in 24 seeds and the seasoned one has three, so the season does turn near-misses into deaths; that is the cost, stated plainly. Two of the three - 13 and 22 - are the same worlds that come second and third from bottom without it, at 16 and 24, which is a settlement that never got going either way. The third, seed 23, ends at 82 unseasoned, and it is the one that says the season killed something that would otherwise have lived. Against that, seed 21 is the weakest unseasoned world of all at 4 and comes through the seasoned run at 86: on this tail the draw order matters as much as the weather, as the control row showed. The median is the honest headline, and it falls from 350 to 224. A year with a lean half in it carries fewer people, and the population a settlement can hold is the population its worst season can hold.
+Two things to take from this and one not to. The season costs the median settlement a great deal - 378 to 89 - and it costs it in growth rather than in survival: the control has the same two extinctions the shipped rules do. On this map extinctions are the terrain's doing, not the winter's; the flat map's tidier story, no deaths without seasons and three with, did not survive the ground being rebuilt underneath it.
+
+What not to take from it is the third row. A milder winter is not obviously better: the median rises, the mean falls, the extinctions double and fewer settlements reach the cap, which is four metrics disagreeing. The distribution is bimodal - a settlement either takes off and pins at the cap or founders under twenty - so the median mostly reports which side of that split the middle seeds fell, and 24 seeds cannot separate 0.5 from 0.6. Nor can the per-seed columns be compared: changing `WinterGrowth` changes `growthNorm`, which shifts every float after it and re-rolls the world, so seed 4 at 0.5 and seed 4 at 0.6 are not the same settlement in different weather. 0.5 is kept because it is the deeper season and nothing measured argues against it.
 
 **What is left on the table.** A seasoned settlement is smaller than an unseasoned one, and it should be: a year with a lean half in it is a harder world, and the population it carries is the population its worst season carries. The store is only a market store, though. An agent's own larder still does not spoil and still holds almost nothing, and nothing in the habit layer has yet learned to sell into a granary in August and buy out of it in February. Whether recognition can learn a habit whose reward is a season away is the interesting question here, and this package does not answer it.
