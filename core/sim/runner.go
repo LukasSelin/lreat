@@ -41,7 +41,9 @@ func (c Intend) Apply(w *world.World) {
 	if !ok {
 		return
 	}
-	a.Plan = &entity.Plan{Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks}
+	// Through the same builder as everyone else, so that what the player
+	// does teaches the player's habits.
+	system.Commit(a, w, d, target)
 }
 
 // Func adapts a closure into a Command, for tooling and tests.

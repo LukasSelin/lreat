@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: phases 0 to 3 implemented (habit package, catalog hygiene, agent state, situations and priors). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`.
+Status: phases 0 to 4 implemented (habit package, catalog hygiene, agent state, situations and priors, fit chooser and learning). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`, or `-fit` and `-temp` on the headless runner.
 
 ## Why
 
@@ -93,6 +93,23 @@ The reward uses urgencies from the moment of the decision, so an outcome is judg
 
 The trace is what keeps the economy alive under a needs-only reward. Farm and forage never touch needs, only the larder. When a later eat pays +0.35, the trace hands half of that to the previous plan and a quarter to the one before. If liveness runs still show farming being learned away, the documented fallback is to add stock terms to `r`. That would move a value judgement into learning, which is the agreed place for it, but it has been rejected for now.
 
+### First side-by-side run
+
+Same seeds, same populations, same tick counts; the two modes are different RNG streams so this is a comparison of character, not of trajectories. Phase 4, before any tuning.
+
+| test | value mode | fit mode |
+|---|---|---|
+| seed 7, 20 agents, 6000 ticks | pop 40, 4 starved, 36 houses, 3 techs | pop 22, 0 starved, 22 houses, 3 techs |
+| seed 31, 25 agents, 6000 ticks | 148 asked, 134 fulfilled, 9 stolen, 84 given | 105 asked, 103 fulfilled, 510 stolen, 39 given |
+| seed 1, 20 agents, 4000 ticks | 7 stolen, 31 avenged, 1 feud | 397 avenged, 45 feuds |
+
+What the numbers say:
+
+- **Nobody starves, but nobody thrives.** Mean physiological need sits near 0.55 in fit mode against 0.85 in value mode, and the population barely grows. Agents under recognition satisfy the pressing need and stop; value maximisers overshoot into surplus, which is what feeds births. The eligibility trace did keep farming and foraging alive with a needs-only reward.
+- **Theft is fifty times more common.** The moral coordinates are centred so that a norm of 0.5 reads as 0, which makes them silent for the average agent, whereas value mode charges everyone conscience in proportion to their honesty. Add that stealing works, and that the trace hands the meal's reward back to the theft, and the steal habit is reinforced for anyone who tries it. This is the first tuning target: either the moral coordinates need a centre that reflects what most people hold (a value judgement about the population, made once), or remorse needs to land harder as a need change, or the steal prior needs more of the situation on its side than hunger alone.
+- **Feuds cluster and persist**, which is the predicted consequence of habits being individual: once an agent has learned that a grudge calls for getting even, it keeps recognising that moment.
+- **Requests are fulfilled at the same rate**, so the contract layer works under recognition without changes.
+
 ## Reach
 
 - `Reach0` per action. Everyday living (rest, eat, forage, farm, gather, build, sell, buy, socialize, give, steal, retaliate, fulfil) starts at 1. Gated: craft 0.5, guard 0.6, teach 0.3, study 0.4.
@@ -129,8 +146,8 @@ New metrics for `observe.Snapshot`: `HabitSpread` (mean distance of unit habits 
 | 1 | `core/habit`: space, cosine, sampling, update, ledger, trace, tests | done |
 | 2 | Agent `Habits`, `Reach`, `Baseline`, `Trace`, `Imprinted`; Plan `Index`, `Situation`, `Before`, `Started`; `world.Rules` | done |
 | 3 | `action.Shared`, `action.Situation`, `action.Candidates`, `action.Rank`, `action.Imprint`; priors and `Reach0` for all 17 actions; canonical-moment ranking tests | done |
-| 4 | Fit chooser in `system.Decide`, learning at plan end in `system.Act`, `sim.Intend` through the shared builder, headless `-fit` and `-temp` flags | next |
-| 5 | Reach growth from study, teach, discovery; inheritance at birth; metrics in snapshot, headless, TUI | |
+| 4 | `system.Recognise` sampling in `Decide`, `system.Learn` at every plan end in `Act`, `system.Commit` as the one plan builder (used by `sim.Intend`), headless `-fit` and `-temp`; fit-mode determinism and liveness tests | done |
+| 5 | Reach growth from study, teach, discovery; inheritance at birth; metrics in snapshot, headless, TUI; first tuning pass on theft | next |
 | 6 | Flip `DefaultRules` to fit; port choose tests to ordering twins via a `Rank` helper; keep value mode behind the flag | |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.
