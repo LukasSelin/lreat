@@ -62,6 +62,7 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 // Decide gives every idle agent a plan, by value or by fit as the world's
 // rules say.
 func Decide(w *world.World) {
+	w.Choices, w.Entropy = 0, 0
 	for _, a := range w.Agents {
 		if a.Plan != nil {
 			continue
@@ -90,7 +91,10 @@ func Recognise(a *entity.Agent, w *world.World) *action.Candidate {
 	for i := range cs {
 		eff[i] = cs[i].Fit
 	}
-	i := habit.Sample(w.RNG, eff, w.Rules.Temperature/Intensity(a))
+	temp := w.Rules.Temperature / Intensity(a)
+	w.Choices++
+	w.Entropy += habit.Entropy(eff, temp)
+	i := habit.Sample(w.RNG, eff, temp)
 	return &cs[i]
 }
 

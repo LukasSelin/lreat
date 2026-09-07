@@ -3,6 +3,7 @@ package system
 import (
 	"fmt"
 
+	"lreat/core/action"
 	"lreat/core/belief"
 	"lreat/core/entity"
 	"lreat/core/event"
@@ -27,6 +28,7 @@ func Population(w *world.World) {
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
 		if a.Starving > StarvationTicks {
+			w.Deaths++
 			w.Emit(event.Died, a.ID, 0, "%s starved", a.Name)
 			continue
 		}
@@ -54,6 +56,15 @@ func Population(w *world.World) {
 		// settlement keep a character across generations.
 		child.Norms = belief.Inherit(a.Norms, w.RNG)
 		child.Temperament = entity.InheritTemperament(a.Temperament, w.RNG)
+		// Habits pass down too: what a parent has come to recognise as
+		// calling for what, the child starts out recognising. Under
+		// recognition they drift a little; under value they are copied, so
+		// that rule's runs draw nothing extra from the RNG.
+		if w.Rules.Fit {
+			action.Inherit(child, a, w, w.RNG)
+		} else {
+			action.Inherit(child, a, w, nil)
+		}
 		// Parent and child start as intimates, not strangers: the bond is
 		// strong, warm, and already counts as a meeting.
 		for _, pair := range [][2]*entity.Agent{{child, a}, {a, child}} {

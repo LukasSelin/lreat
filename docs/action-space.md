@@ -1,6 +1,6 @@
 # Fit-based action space
 
-Status: phases 0 to 4 implemented (habit package, catalog hygiene, agent state, situations and priors, fit chooser and learning). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`, or `-fit` and `-temp` on the headless runner.
+Status: phases 0 to 5 implemented (habit package, catalog hygiene, agent state, situations and priors, fit chooser and learning, reach and inheritance and metrics). Value-based choice remains the default until the fit chooser is tuned. Switch: `world.Rules.Fit`, or `-fit` and `-temp` on the headless runner.
 
 ## Why
 
@@ -28,9 +28,9 @@ Shared dimensions, computed once per agent per decision:
 | 7 | wealth | `Wealth` | `2*clamp01(wealth/20) - 1` |
 | 8 | shelter | `Shelter` | `2*shelter - 1` |
 | 9 | company | `w.Neighbor(a, 8) != nil` | +1 or -1 |
-| 10 | order | `w.Safety` | `2*safety - 1` |
-| 11-14 | honesty, charity, industry, tradition | `Norms` | `2n - 1`, frozen |
-| 15 | caution | `Caution` | `2c - 1`, frozen |
+| 10 | order | `w.Safety` | `safety`, one-sided |
+| 11-14 | honesty, charity, industry, tradition | `Norms` | `n`, one-sided, frozen |
+| 15 | caution | `Caution` | `c`, one-sided, frozen |
 
 Per-candidate dimensions, patched for each action being weighed:
 
@@ -40,7 +40,7 @@ Per-candidate dimensions, patched for each action being weighed:
 | 17 | rapport | `Anticipate(a, other)` for actions done to a person; sign flipped for retaliate; 0 otherwise |
 | 18 | skill | `2*Efficacy[def.Skill] - 1` for skilled actions; 0 otherwise. Belief, not truth. |
 
-Personality is folded into the urgency dimensions rather than kept separate. The moral dimensions are frozen: they are the same across every candidate an agent weighs, so if habits could learn them every habit would soon carry the agent's own norms and the dimension would cancel out of the choice. Values belong to the agent. Habits learn situations.
+Personality is folded into the urgency dimensions rather than kept separate. The moral coordinates and order are one-sided because the belief layer defines them that way: a norm of 0 is holding nothing, caution of 0 is having learned of no reprisal, safety of 0 is nobody keeping order. Read on that scale an ordinary agent minds a wrong about half as much as a saint, which is what conscience charges in the value rule. Centred at 0.5 they fell silent for everyone but the extremes, and theft ran wild (see the comparison below). The moral dimensions are frozen: they are the same across every candidate an agent weighs, so if habits could learn them every habit would soon carry the agent's own norms and the dimension would cancel out of the choice. Values belong to the agent. Habits learn situations.
 
 Dropped on purpose: health (tracks hunger and shelter), tools (sell and craft are hard-gated), market price, knowledge (global and unbounded).
 
@@ -103,20 +103,31 @@ Same seeds, same populations, same tick counts; the two modes are different RNG 
 | seed 31, 25 agents, 6000 ticks | 148 asked, 134 fulfilled, 9 stolen, 84 given | 105 asked, 103 fulfilled, 510 stolen, 39 given |
 | seed 1, 20 agents, 4000 ticks | 7 stolen, 31 avenged, 1 feud | 397 avenged, 45 feuds |
 
+After the first tuning pass (moral coordinates one-sided, phase 5):
+
+| test | fit mode, tuned |
+|---|---|
+| seed 7 | pop 18, 2 starved, 20 houses, 3 techs, mean physiological 0.71 |
+| seed 31 | 216 asked, 202 fulfilled, 310 stolen, 214 given, 298 avenged |
+| seed 1 | 94 avenged, 4 feuds |
+
 What the numbers say:
 
 - **Nobody starves, but nobody thrives.** Mean physiological need sits near 0.55 in fit mode against 0.85 in value mode, and the population barely grows. Agents under recognition satisfy the pressing need and stop; value maximisers overshoot into surplus, which is what feeds births. The eligibility trace did keep farming and foraging alive with a needs-only reward.
-- **Theft is fifty times more common.** The moral coordinates are centred so that a norm of 0.5 reads as 0, which makes them silent for the average agent, whereas value mode charges everyone conscience in proportion to their honesty. Add that stealing works, and that the trace hands the meal's reward back to the theft, and the steal habit is reinforced for anyone who tries it. This is the first tuning target: either the moral coordinates need a centre that reflects what most people hold (a value judgement about the population, made once), or remorse needs to land harder as a need change, or the steal prior needs more of the situation on its side than hunger alone.
+- **Theft was fifty times more common, now thirty.** Before tuning the moral coordinates were centred so that a norm of 0.5 read as 0, which made them silent for the average agent, whereas value mode charges everyone conscience in proportion to their honesty. Reading them one-sided, as the belief layer defines them, cut theft by two fifths, multiplied giving by five, and collapsed feuds from 45 to 4 on seed 1. What remains is honest dynamics: stealing works, the trace hands the meal's reward back to the theft, and guilt lands as an esteem loss that a hungry agent barely weighs. A society with a self-centred reward and no enforcement steals. The remaining levers are the steal prior itself and how hard remorse lands, both left for phase 6.
 - **Feuds cluster and persist**, which is the predicted consequence of habits being individual: once an agent has learned that a grudge calls for getting even, it keeps recognising that moment.
 - **Requests are fulfilled at the same rate**, so the contract layer works under recognition without changes.
 
 ## Reach
 
+Implemented in `core/action/reach.go`; the constants live there.
+
 - `Reach0` per action. Everyday living (rest, eat, forage, farm, gather, build, sell, buy, socialize, give, steal, retaliate, fulfil) starts at 1. Gated: craft 0.5, guard 0.6, teach 0.3, study 0.4.
-- Study raises reach of gated actions: `Reach += 0.03 * (1 - Reach) * Mods.StudyRate`.
-- Teach: the student's reach for the taught skill's action becomes `max(own, 0.6 * teacher)`, and its habit lerps 0.3 toward the teacher's.
-- Discoveries gain an `Opens` list and raise a world reach floor for those actions.
-- Births copy the parent's habits with N(0, 0.05) noise on learnable dims and `Reach = max(floor, 0.7 * parent)`.
+- **Study broadens.** Every gated action comes closer: `Reach += 0.03 * (1 - Reach) * Mods.StudyRate`, so written records make study widen reach twice as fast.
+- **Teaching passes recognition on.** The student's reach for the taught skill's action becomes `max(own, 0.6 * teacher)`, and its habit moves 0.3 of the way toward the teacher's. `ForSkill` maps farming, building, crafting, scholarship, and guarding to farm, build, craft, study, and guard.
+- **Discovery opens.** A `Discovery` has an `Opens` list; masonry opens craft, writing opens study and teach, metallurgy opens craft and guard. Each raises `world.ReachFloor` for that action to 0.8, and every agent is lifted to the floor at its next decision.
+- **Children inherit.** A child takes its parent's habits with N(0, 0.05) drift on the learnable coordinates and `Reach = max(floor, 0.7 * parent)`. Under the value rule the copy is exact so that rule draws nothing extra from the RNG.
+- Doing an action raises its own reach by 0.02 in the learning step.
 
 Reach is the "distance gate": a far action is one whose signature the agent cannot yet reach, and study, teaching, and discovery bring it closer. Because it is a penalty on fit rather than a lock, a curious agent can occasionally reach a far action early. Pioneers fall out of the sampling.
 
@@ -129,7 +140,7 @@ Reach is the "distance gate": a far action is one whose signature the agent cann
 - **Determinism** holds: habit tables are arrays, one RNG draw per decision, fixed catalog order. Fit mode and value mode are different RNG streams for the same seed, so comparison is statistical, not trajectory-level.
 - **Player.** `sim.Intend` must build plans through the same builder, so player commands teach the player's habits.
 
-New metrics for `observe.Snapshot`: `HabitSpread` (mean distance of unit habits from the population mean; 0 means collapse), `MeanReach`, `GatedReach`, `Starved` (cumulative), `ChoiceEntropy`. One extra column pair in headless, one line in the TUI.
+Metrics in `observe.Snapshot`: `HabitSpread` (mean distance of each agent's unit habit from the population's mean unit habit, over all actions; 0 means everyone recognises the same moments the same way), `MeanReach`, `GatedReach` (over the four gated actions), `ChoiceEntropy` (mean entropy in nats of the tick's sampled decisions; 0 in value mode), `Deaths` (cumulative). Headless prints them as `died`, `reach`, `sprd`, `open`; the TUI has one line for them.
 
 ## Pitfalls recorded
 
@@ -147,7 +158,7 @@ New metrics for `observe.Snapshot`: `HabitSpread` (mean distance of unit habits 
 | 2 | Agent `Habits`, `Reach`, `Baseline`, `Trace`, `Imprinted`; Plan `Index`, `Situation`, `Before`, `Started`; `world.Rules` | done |
 | 3 | `action.Shared`, `action.Situation`, `action.Candidates`, `action.Rank`, `action.Imprint`; priors and `Reach0` for all 17 actions; canonical-moment ranking tests | done |
 | 4 | `system.Recognise` sampling in `Decide`, `system.Learn` at every plan end in `Act`, `system.Commit` as the one plan builder (used by `sim.Intend`), headless `-fit` and `-temp`; fit-mode determinism and liveness tests | done |
-| 5 | Reach growth from study, teach, discovery; inheritance at birth; metrics in snapshot, headless, TUI; first tuning pass on theft | next |
-| 6 | Flip `DefaultRules` to fit; port choose tests to ordering twins via a `Rank` helper; keep value mode behind the flag | |
+| 5 | `action.Broaden`, `action.Pass`, `Discovery.Opens` and `world.ReachFloor`, `action.Inherit` at birth; `HabitSpread`, `GatedReach`, `ChoiceEntropy`, `Deaths` in snapshot, headless, TUI; moral coordinates one-sided | done |
+| 6 | Flip `DefaultRules` to fit; port choose tests to ordering twins via `action.Rank`; keep value mode behind the flag; second tuning pass on theft and growth | next |
 
 Tests under fit mode assert ordering (which action ranks first), not the sampled outcome. `TestHungerEventuallyOverwhelmsPrinciple` is about magnitude and stays value-mode only. The four liveness tests run in both modes from phase 4 onward so tuning is visible before the default flips.

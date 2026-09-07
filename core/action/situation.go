@@ -44,11 +44,17 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	} else {
 		s[habit.Company] = -1
 	}
-	s[habit.Order] = bipolar(w.Safety)
+	// The moral coordinates are one-sided, as the belief layer defines them:
+	// a norm of 0 is holding nothing, caution of 0 is having learned of no
+	// reprisal, safety of 0 is nobody keeping order. Read that way an
+	// ordinary agent minds a wrong about half as much as a saint, which is
+	// what conscience in the value rule charges too. Centred at 0.5 they
+	// would fall silent for everyone but the extremes.
+	s[habit.Order] = need.Clamp(w.Safety)
 	for n := range a.Norms {
-		s[habit.Honesty+n] = bipolar(a.Norms[n])
+		s[habit.Honesty+n] = need.Clamp(a.Norms[n])
 	}
-	s[habit.Caution] = bipolar(a.Caution)
+	s[habit.Caution] = need.Clamp(a.Caution)
 	return s
 }
 
@@ -101,6 +107,9 @@ type Candidate struct {
 // choice chooses them, including any randomness that involves.
 func Candidates(a *entity.Agent, w *world.World) []Candidate {
 	Imprint(a)
+	for i := range Catalog {
+		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
+	}
 	shared := Shared(a, w)
 	out := make([]Candidate, 0, Count)
 	for i, d := range Catalog {

@@ -13,6 +13,7 @@ import (
 	"lreat/core/belief"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/habit"
 	"lreat/core/need"
 )
 
@@ -89,6 +90,16 @@ type World struct {
 	// Requests is the open board of work one agent wants another to do.
 	// Nothing here is authored; the request system posts and clears it.
 	Requests []*entity.Request
+
+	// ReachFloor is how far into reach each action is for everyone here,
+	// by catalog position, raised when the settlement discovers a thing.
+	ReachFloor [habit.MaxActions]float64
+	// Deaths counts everyone who has died here.
+	Deaths int
+	// Choices and Entropy record this tick's fit-based decisions: how many
+	// were made and how open they were in total, for observation.
+	Choices int
+	Entropy float64
 
 	techs     map[Tech]bool
 	nextID    entity.ID

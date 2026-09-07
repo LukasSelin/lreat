@@ -57,13 +57,17 @@ const Count = 17
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
-var Catalog = []*Def{
-	Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
-	Guard, Socialize, Craft, Teach, Study,
-	Steal, Give, Fulfil, Retaliate,
-}
+// It is assembled in init rather than declared, because some actions reach
+// back into the catalog when they run (study broadens reach, teaching
+// passes it on) and a declaration would make that a cycle.
+var Catalog []*Def
 
 func init() {
+	Catalog = []*Def{
+		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
+		Guard, Socialize, Craft, Teach, Study,
+		Steal, Give, Fulfil, Retaliate,
+	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
 	}
@@ -422,6 +426,7 @@ var Teach = &Def{
 		Introduce(o, a, w.Tick)
 		skill, level := a.BestSkill()
 		o.AddSkill(skill, 0.04)
+		Pass(a, o, skill)
 		// The student now knows what the teacher can do, and thinks a little
 		// better of them for the trouble taken.
 		o.Rate(a.ID, skill, level, w.Tick)
@@ -449,6 +454,7 @@ var Study = &Def{
 	Apply: func(a *entity.Agent, w *world.World) {
 		w.Knowledge += (0.2 + a.Skills[entity.Scholarship]) * w.Mods.StudyRate
 		a.AddSkill(entity.Scholarship, 0.02)
+		Broaden(a, w)
 		a.Needs.Add(need.Actualization, 0.3)
 		a.Needs.Add(need.Esteem, 0.03)
 	},

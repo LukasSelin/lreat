@@ -63,7 +63,7 @@ func TestSharedReflectsValuesAndStock(t *testing.T) {
 	a.Caution = 0
 	a.Inventory[entity.Food] = 4
 	s := Shared(a, w)
-	if s[habit.Honesty] != 1 || s[habit.Caution] != -1 || s[habit.Food] != 1 {
+	if s[habit.Honesty] != 1 || s[habit.Charity] != 0.5 || s[habit.Caution] != 0 || s[habit.Food] != 1 {
 		t.Fatalf("shared = %v", s)
 	}
 	if s[habit.Company] != -1 {

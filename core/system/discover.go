@@ -1,6 +1,7 @@
 package system
 
 import (
+	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/world"
@@ -15,6 +16,8 @@ type Discovery struct {
 	Condition func(w *world.World) bool
 	Effect    func(w *world.World)
 	Text      string
+	// Opens names actions the discovery puts within everyone's reach.
+	Opens []string
 }
 
 // skilled counts agents with at least level in a skill.
@@ -43,13 +46,15 @@ var Discoveries = []Discovery{
 			w.Mods.BuildEfficiency *= 1.6
 			w.Mods.ShelterDecay *= 0.5
 		},
-		Text: "builders began working in stone",
+		Text:  "builders began working in stone",
+		Opens: []string{"craft"},
 	},
 	{
 		Tech: "writing", Knowledge: 90,
 		Condition: func(w *world.World) bool { return skilled(w, entity.Scholarship, 0.3) >= 3 },
 		Effect:    func(w *world.World) { w.Mods.StudyRate *= 2 },
 		Text:      "scholars started keeping written records",
+		Opens:     []string{"study", "teach"},
 	},
 	{
 		Tech: "metallurgy", Knowledge: 200,
@@ -60,7 +65,8 @@ var Discoveries = []Discovery{
 			w.Mods.CraftQuality *= 2
 			w.Mods.FarmYield *= 1.3
 		},
-		Text: "smiths learned to work metal",
+		Text:  "smiths learned to work metal",
+		Opens: []string{"craft", "guard"},
 	},
 }
 
@@ -75,6 +81,11 @@ func Discover(w *world.World) {
 		}
 		w.Unlock(d.Tech)
 		d.Effect(w)
+		for _, name := range d.Opens {
+			if i := action.Index(action.ByName(name)); i >= 0 {
+				w.ReachFloor[i] = max(w.ReachFloor[i], action.Opened)
+			}
+		}
 		w.Emit(event.Discovered, 0, 0, "%s: %s", d.Tech, d.Text)
 	}
 }
