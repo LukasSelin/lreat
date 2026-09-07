@@ -93,11 +93,13 @@ type Grid struct {
 	W, H  int
 	Tiles []Tile
 
-	// steepAt and woodsLine are the map's measure of its own ground: what
-	// counts as steep on it, and how well a tile must suit trees before one
-	// will take there. Both are read by readWoods; woodsRead says whether
-	// they have been. See woods.go.
+	// steepAt, steepLine and woodsLine are the map's measure of its own
+	// ground: what counts as steep on it, the slope above which nothing
+	// wooded will hold, and how well a tile must suit trees before one will
+	// take there. All are read by readWoods; woodsRead says whether they
+	// have been. See woods.go.
 	steepAt   float64
+	steepLine float64
 	woodsLine float64
 	woodsRead bool
 

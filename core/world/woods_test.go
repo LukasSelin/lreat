@@ -56,3 +56,46 @@ func TestWoodsStopWhereTheGroundDries(t *testing.T) {
 		t.Fatalf("the wood reaches x=%d up the slope, want about a fifth of 20", edge)
 	}
 }
+
+// Steep ground holds no wood however damp it is. A bank the water has cut
+// into is wet to the roots and still on its way downhill, and before the
+// slope was a limit rather than a discount the woods climbed straight up it.
+func TestSteepGroundHoldsNoWood(t *testing.T) {
+	g := NewGrid(20, 20)
+	for i := range g.Tiles {
+		// A flat plain with one gully cut across it, damp everywhere: only
+		// the slope tells the tiles apart.
+		if x := i % 20; x >= 17 {
+			g.Tiles[i].Height = float64(x-16) * 20
+		}
+	}
+	g.readWoods()
+	flat, bank := entity.Pos{X: 5, Y: 10}, entity.Pos{X: 17, Y: 10}
+	if g.TooSteep(flat) || !g.HoldsWood(flat) {
+		t.Fatal("the flat damp ground will not hold a wood")
+	}
+	if !g.TooSteep(bank) {
+		t.Fatalf("the bank falls %.2f a tile and is not too steep", g.Slope(bank))
+	}
+	if g.HoldsWood(bank) {
+		t.Fatal("a wood takes on the bank")
+	}
+	if s := g.WoodsAt(bank); s != 0 {
+		t.Fatalf("ground too steep for a wood scores %v, want nothing", s)
+	}
+}
+
+// The founding woods keep off the steep ground too: the map is made with the
+// same reading that governs what grows on it later.
+func TestNoFoundingWoodStandsOnSteepGround(t *testing.T) {
+	for seed := uint64(1); seed <= 4; seed++ {
+		g := New(seed).Grid
+		for i := range g.Tiles {
+			p := entity.Pos{X: i % g.W, Y: i / g.W}
+			if g.Tiles[i].Terrain == Forest && g.TooSteep(p) {
+				t.Fatalf("seed %d: a founding wood stands on a slope of %.3f, over the line at %.3f",
+					seed, g.Slope(p), g.steepLine)
+			}
+		}
+	}
+}

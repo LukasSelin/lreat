@@ -181,6 +181,8 @@ The world was static ground the agents drew on without limit. Now it pushes back
 
 The answer is the one the map already used to place its founding woods: trees stand where the ground is damp enough to grow them and gentle enough to hold the soil, and that reading, `Grid.WoodsAt`, is now a line as well as a score. The wettest, gentlest `woodsShare` of the land - a fifth - will hold a wood, and nothing else will; `Grid.HoldsWood` is asked before a seed takes and before a planting does, and the line is re-read whenever the weather moves the ground under it. Standing woods are never touched, whatever ground they are on: a wood is a fact about the map, and what is governed is where a new one may start.
 
+**Slope is a limit, not a discount.** Dampness and steepness both enter `WoodsAt`, but they entered it the same way: steep ground scored less and a damp enough bank cleared the line anyway, so woods climbed the sides of the gullies the water had just cut. A tree needs ground to stand its roots in, and ground that steep is on its way downhill. `Grid.TooSteep` reads the steepest `woodsSteep` of the map - a fifth - and nothing wooded takes there, whatever its dampness: the score is zero rather than discounted, the founding woods are placed by the same reading, and it is re-read with the tree line after every age of weather. Across six seeds it lifted the population from 16/35/87/131/317/370 to 39/67/153/281/307/387 and left the forest where it was, between 426 and 628 tiles.
+
 Six seeds, 6000 ticks, 20 founders, against the same seeds with no tree line:
 
 | | forest tiles at 6000 | field strips | population |

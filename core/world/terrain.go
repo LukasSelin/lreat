@@ -40,7 +40,8 @@ func (w *World) GenerateTerrain(width, height int) {
 	treeLine := quantile(wooded, 1-forestShare)
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		if t.Terrain != Grass || score[i] < treeLine {
+		p := entity.Pos{X: i % width, Y: i / width}
+		if t.Terrain != Grass || score[i] < treeLine || g.TooSteep(p) {
 			continue
 		}
 		t.Terrain = Forest
