@@ -81,10 +81,27 @@ func (t *Tile) Bridged() bool {
 	return t.Structure == Road && t.Terrain == Water
 }
 
+// Deep reports whether crossing this tile means swimming: water with nothing
+// built over it. A bridge is not deep, because the walker is on the road and
+// the water is underneath.
+func (t *Tile) Deep() bool {
+	return t.Terrain == Water && t.Structure == None
+}
+
 // Grid is the world map, row-major.
 type Grid struct {
 	W, H  int
 	Tiles []Tile
+
+	// steepAt, steepLine and woodsLine are the map's measure of its own
+	// ground: what counts as steep on it, the slope above which nothing
+	// wooded will hold, and how well a tile must suit trees before one will
+	// take there. All are read by readWoods; woodsRead says whether they
+	// have been. See woods.go.
+	steepAt   float64
+	steepLine float64
+	woodsLine float64
+	woodsRead bool
 
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as

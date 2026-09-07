@@ -41,8 +41,8 @@ func main() {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
 
-	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s | %4s %4s | %5s %5s %5s | %6s %5s | %s\n",
-		"tick", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "frnd", "feud", "reach", "sprd", "open", "season", "deg", "doing")
+	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %6s %5s | %s\n",
+		"tick", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "wood", "frnd", "feud", "reach", "sprd", "open", "season", "deg", "doing")
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
@@ -82,8 +82,8 @@ func report(s observe.Snapshot) {
 		doing = append(doing, fmt.Sprintf("%s:%d", a.Action, a.Agents))
 	}
 	n := s.MeanNeeds
-	fmt.Printf("%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %6s %5.1f | %s\n",
+	fmt.Printf("%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %6s %5.1f | %s\n",
 		s.Tick, s.Population, s.Deaths, n[0], n[1], n[2], n[3], n[4], s.MeanHealth, s.MeanAge, s.Elders,
-		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Friendships, s.Feuds,
+		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Forest, s.Friendships, s.Feuds,
 		s.GatedReach, s.HabitSpread, s.ChoiceEntropy, s.Season, s.Temp, strings.Join(doing, " "))
 }

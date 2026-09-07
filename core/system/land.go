@@ -67,6 +67,13 @@ func Land(w *world.World) {
 		if !t.Buildable() || !g.HasNeighbor(p, isForest) {
 			continue
 		}
+		// Seed falls everywhere and takes where the ground will hold it. A
+		// wood that spread wherever a seed landed closed over the whole map
+		// and left nowhere to break a field; a wood that stops at the tree
+		// line comes back over what was cleared and no further.
+		if !g.HoldsWood(p) {
+			continue
+		}
 		// Seed falls in the growing season, not on frozen ground.
 		if w.RNG.Float64() < reseedChance*w.Climate.Growth() {
 			t.Terrain, t.Wood, t.Wild = world.Forest, 0.2, 0.3

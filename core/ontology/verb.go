@@ -177,7 +177,7 @@ var Schemas = []Schema{
 	{Verb: Exchange, Inputs: []*Class{Coin}, Output: Provision, Site: Market, Ticks: 1, Reach0: reachEveryday},
 
 	// Handing over, and its inverse.
-	{Verb: Transfer, Object: Provision, CollapseObject: true, Role: &Neighbour, Ticks: 1, Reach0: reachEveryday,
+	{Verb: Transfer, Object: Provision, CollapseObject: true, Role: &Needy, Ticks: 1, Reach0: reachEveryday,
 		Prior:   habit.Signature{habit.Hunger: -0.4, habit.Food: 0.7, habit.Charity: 1},
 		Valence: belief.Valence{belief.Charity: 0.8, belief.Honesty: 0.1}},
 	{Verb: Transfer, Object: Material, CollapseObject: true, Role: &Requester, Ticks: 3, Skilled: true, Reach0: reachEveryday,

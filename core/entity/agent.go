@@ -292,6 +292,20 @@ func (a *Agent) Vigor(tick int) float64 {
 	return a.Endurance(tick) * (0.6 + 0.4*need.Clamp(a.Health))
 }
 
+// Load is the weight an agent is carrying, in units of goods. Every good
+// weighs the same per unit: a sack of grain and a length of timber are both
+// an armful, and nothing in the world yet turns on one being heavier than
+// the other. What the number is for is the water — see world.SwimLoad.
+func (a *Agent) Load() float64 {
+	total := 0.0
+	for _, q := range a.Inventory {
+		if q > 0 {
+			total += q
+		}
+	}
+	return total
+}
+
 // AddBond strengthens (or creates) the bond to another agent.
 func (a *Agent) AddBond(to ID, delta float64) {
 	for i := range a.Bonds {

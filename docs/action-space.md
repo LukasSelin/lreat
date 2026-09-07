@@ -177,6 +177,21 @@ The world was static ground the agents drew on without limit. Now it pushes back
 
 **What the land has to give.** A forest tile carries wild food (`Tile.Wild`) that foraging takes a little of and hunting a lot; a water tile carries fish (`Tile.Fish`); a field carries fertility that each harvest wears down toward a floor, and `Tile.Rich`, the most it can recover to when left fallow. All of it comes back slowly, faster once the settlement has learned forestry. A picked forest still gives something, so a settlement is pushed toward the river and the field rather than into the ground.
 
+**The tree line.** A wood spreads: three tiles a tick are checked for a seed from a wooded neighbour, and a planter can raise one anywhere. With nothing to say where a wood can stand, that has one ending. On seed 2 over 6000 ticks the forest went from 689 tiles to 2217 - three quarters of the whole map, and all of the dry land - while the fields went from 42 strips to 1, because a field can only be broken on open ground and there was none left. Five of six seeds ended with the map wooded and the settlement living off the forest floor.
+
+The answer is the one the map already used to place its founding woods: trees stand where the ground is damp enough to grow them and gentle enough to hold the soil, and that reading, `Grid.WoodsAt`, is now a line as well as a score. The wettest, gentlest `woodsShare` of the land - a fifth - will hold a wood, and nothing else will; `Grid.HoldsWood` is asked before a seed takes and before a planting does, and the line is re-read whenever the weather moves the ground under it. Standing woods are never touched, whatever ground they are on: a wood is a fact about the map, and what is governed is where a new one may start.
+
+**Slope is a limit, not a discount.** Dampness and steepness both enter `WoodsAt`, but they entered it the same way: steep ground scored less and a damp enough bank cleared the line anyway, so woods climbed the sides of the gullies the water had just cut. A tree needs ground to stand its roots in, and ground that steep is on its way downhill. `Grid.TooSteep` reads the steepest `woodsSteep` of the map - a fifth - and nothing wooded takes there, whatever its dampness: the score is zero rather than discounted, the founding woods are placed by the same reading, and it is re-read with the tree line after every age of weather. Across six seeds it lifted the population from 16/35/87/131/317/370 to 39/67/153/281/307/387 and left the forest where it was, between 426 and 628 tiles.
+
+Six seeds, 6000 ticks, 20 founders, against the same seeds with no tree line:
+
+| | forest tiles at 6000 | field strips | population |
+|---|---|---|---|
+| no tree line | 392-2373 | 0-9 | 9, 13, 18, 39, 128, 137 |
+| tree line | 450-613 | 5-11 | 16, 35, 87, 131, 317, 370 |
+
+The forest now settles between a sixth and a fifth of the map on every seed instead of anywhere between a seventh and four fifths, and the ground the settlement did not get to keep is the ground it farms. Five of the six seeds gained population; seed 3 lost a third of it, which is inside this system's spread across seeds.
+
 **Four answers**, each far out of reach until discovered:
 
 | action | belongs to the moment | takes | gives |
@@ -374,6 +389,12 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 | bridges | 1535 | 0.63% |
 
 Better on both counts, which is unusual for a change made for the look of the thing.
+
+**Nobody swims with their hands full.** The wading above is wading with nothing to carry. A person is a poor swimmer at the best of times, and a person holding a sack of grain over a river is a person drowning: what they actually do is put the sack down or walk to the bridge. So a walker carrying more than `world.SwimLoad` - a tenth of a unit, which is a crumb in a pocket rather than a pack - is routed round open water instead of through it, by `Router.Carrying`, which the agent sets from `Agent.Load` before every route it costs or walks. The water is not made dearer to such a walker, which was the fix that failed above; it is shut to them.
+
+Two ways through it remain, and both are wanted. The end of a journey may be a water tile, so somebody may still wade in from the bank to fish it, or to stand in it with the timber and build the bridge - the crossing could otherwise never be built by anyone carrying what it is built from. And a step from water to water is always allowed, so a walker the river has risen under, or whose bridge has gone, can get out with what they are holding: what is forbidden is walking in, not being in.
+
+This is what a bridge is worth. Wading was slow; it is now the difference between carrying the harvest home and not carrying it, and the far bank belongs to the settlement only for as long as the crossing stands. Three seeds at 4000 ticks, against the same seeds with swimming free: population 40/117/123 against 44/74/99, and the fords still get worn and bridged, because everyone crosses empty-handed on the way out and comes back the long way.
 
 ### The land underneath
 
@@ -668,4 +689,18 @@ Thing                                 Site
 
 **Taking is one act.** Foraging, hunting, felling, fishing, and cutting stone were five copies of the same act. `take.go` states them as data: a *lode* per material (the tile stock it draws on, how much a taking takes and gives, the luck in it, what it wears and teaches, what the tile becomes) and a *ground* per site (how to know a tile of it, and which tile the taking draws on - fishing stands on the bank and draws on the water beside it). Any taking the trees entail for a material with a lode at a site with a ground is carried out without code of its own. The five keep their names and numbers and the order they draw luck in; a picked forest still gives something, on purpose, and the paving test fails if it does not.
 
-**Adding a material** is now: a class under `Material` with its traits, an entry in `Affords` for where it lies, a lode row, and a stock on the tile if it draws one down. The walk entails the taking, the composition gives it a prior, the registry gives it a slot, and the binding at start says if anything is missing. Making, raising, and the rest are still bound by hand to the tuned mechanics they had - a meal's `helping`, a house's `RoomToBuild`, a bridge's cost - and go the same way verb by verb as their bespoke logic allows.
+**Every verb with more than one act is one act.** The same shape carried, verb by verb: a table of what differs, keyed by class or by key, and one composition that reads it.
+
+| verb | the data | acts composed | still by hand, and why |
+|---|---|---|---|
+| take | a *lode* per material, a *ground* per site (`take.go`) | forage, hunt, gather wood, fish, quarry | harvest: a holding is worked as one farm and worn as one |
+| make | a *recipe* per schema: amounts per input, yield, worth (`make.go`) | craft, smelt, cook | - |
+| raise | a *plan* per schema: amounts, plot, room for another, what it does once it stands (`raise.go`) | granary, tavern | shelter: kept as well as built; road: laid where the ground is worn and dearer over water |
+| exchange | *terms* per key: sales above a keep, or one purchase (`exchange.go`) | sell, buy | - |
+| transfer | a *hand* per key: how much, when, and what passes between the two people (`transfer.go`) | give, steal | fulfil: as often skilled work as a handing over |
+
+Two rules held across all of them. *What an act promises it gives*: the esteem a making expects is the esteem it grants, the company a tavern promises its builder is theirs on the day - except the body's tiers, which come with what was got, and safety, which is the settlement's to give as a structure does its work. And *the code corrects the trees*: the tavern was written as timber and stone and had only ever taken timber; selling was written over provisions and had always sold tools and stone too; giving was written to a neighbour and had always looked for someone in need. Each came out of binding the mechanics to the schema, and each is a `Needy` role or a `material` in a key now.
+
+**Adding a material** is now: a class under `Material` with its traits, an entry in `Affords` for where it lies, a lode row, and a stock on the tile if it draws one down. The walk entails the taking, the composition gives it a prior, the registry gives it a slot, and the binding at start says if anything is missing. A thing to make of it is a schema and a recipe; a thing to build of it a schema and a plan; a price for it a line in the terms. The four acts still by hand are the ones whose logic is different in kind, not in degree, and there is nothing to gain from forcing them.
+
+**Where to tune, now.** `core/action/priors.go` still holds the priors as they were written by hand, and they are kept as `Def.Tuned` for the golden test - but they no longer run. Exposure was added there first and reached nothing for a merge. What an act recognises is changed in `core/ontology`: the class's stock coordinate, a trait's want, a role's moment, a site's `At`, or the residue on the schema. The golden test says how far the composition has moved from what was tuned; the city test says whether the settlement still lives on it.

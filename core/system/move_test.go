@@ -190,3 +190,44 @@ func TestAnAgentKeepsToTheWayItSetOutBy(t *testing.T) {
 		t.Fatalf("the walker got as far as %v, want %v", a.Pos, to)
 	}
 }
+
+// An agent given somewhere to be on the far bank walks there empty-handed and
+// stays put with an armful: a plan whose way lies through the water is a plan
+// that goes nowhere until the river is bridged.
+func TestAnAgentWithAnArmfulStaysOnItsOwnBank(t *testing.T) {
+	w := world.NewSized(3, 12, 3)
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i].Terrain, w.Grid.Tiles[i].Height = world.Grass, 0
+	}
+	for y := 0; y < 3; y++ {
+		w.Grid.At(entity.Pos{X: 6, Y: y}).Terrain = world.Water
+	}
+	far := entity.Pos{X: 8, Y: 1}
+	cross := func(a *entity.Agent) bool {
+		a.Pos, a.Travel = entity.Pos{X: 4, Y: 1}, 0
+		a.Plan = &entity.Plan{Action: "rest", Target: far, Remaining: 1, Total: 1}
+		for i := 0; i < 40 && a.Plan != nil; i++ {
+			Act(w)
+		}
+		return a.Pos == far
+	}
+
+	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 4, Y: 1})
+	a.Vitality, a.Health = 1, 1
+	a.Inventory = [entity.GoodCount]float64{} // hands free: everyone spawns with bread on them
+	if !cross(a) {
+		t.Fatalf("empty-handed the walker reached %v, want the far bank at %v", a.Pos, far)
+	}
+
+	a.Inventory[entity.Wood] = 2
+	if cross(a) {
+		t.Fatal("the walker swam the river with two lengths of timber")
+	}
+
+	// The timber is what a bridge is made of, and the bridge is what makes
+	// the far bank part of the settlement again.
+	w.Grid.Pave(entity.Pos{X: 6, Y: 1})
+	if !cross(a) {
+		t.Fatalf("over the bridge the laden walker reached %v, want %v", a.Pos, far)
+	}
+}

@@ -144,7 +144,9 @@ var PlantTrees = &Def{
 		if a.HasHome {
 			anchor = a.Home
 		}
-		return w.Grid.Nearest(anchor, plantRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+		return w.Grid.Nearest(anchor, plantRadius, func(p entity.Pos, t *world.Tile) bool {
+			return t.Buildable() && w.Grid.HoldsWood(p)
+		})
 	},
 	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		// Nothing for the planter today; the settlement gathers there later.
@@ -152,7 +154,10 @@ var PlantTrees = &Def{
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t := w.Grid.At(a.Pos)
-		if !t.Buildable() {
+		// Ground that will not hold a wood is ground where the planting comes
+		// to nothing, however well meant: nobody grows a forest on a dry
+		// shoulder by wanting one there.
+		if !t.Buildable() || !w.Grid.HoldsWood(a.Pos) {
 			return
 		}
 		t.Terrain, t.Wood, t.Wild = world.Forest, 0.2, 0.3

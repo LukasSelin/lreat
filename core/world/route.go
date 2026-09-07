@@ -47,6 +47,9 @@ type Router struct {
 	g        *Grid
 	frontier []routeNode
 	scratch  Routes
+	// load is what the walker of the next route is carrying, set by Carrying
+	// and spent by the search that follows it.
+	load float64
 }
 
 // Router returns a router over this grid, for a caller that needs its own.
@@ -104,6 +107,9 @@ func before(a, b routeNode) bool {
 // node into an interface would cost more than the search itself.
 func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos) *Routes {
 	g := r.g
+	// A load is given to one journey and does not outlive it.
+	laden := r.load > SwimLoad
+	r.load = 0
 	n := len(g.Tiles)
 	if len(f.seen) != n {
 		f.seen = make([]int32, n)
@@ -167,6 +173,17 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 			}
 			j := int32(cy*g.W + cx)
 			t := &g.Tiles[j]
+			// Open water is not dear to a laden walker, it is shut. Two
+			// things are still allowed through it. The end of the journey
+			// itself, because somebody may wade in from the bank to fish, or
+			// to stand in the river and build the bridge that ends the
+			// exception. And a step out of water into water, because a walker
+			// the river has risen under, or whose bridge has gone, has to be
+			// able to get out of it; what is forbidden is walking in, not
+			// being in.
+			if laden && t.Deep() && j != stop && !g.Tiles[top.idx].Deep() {
+				continue
+			}
 			step := moveCost[t.Terrain]
 			if t.Structure != None {
 				step = structureCost[t.Structure]

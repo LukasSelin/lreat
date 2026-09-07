@@ -57,7 +57,11 @@ func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*act
 		if !ok {
 			continue
 		}
-		cost := float64(d.Ticks) + r.TravelCost(a.Pos, target)/a.Vigor(w.Tick)
+		travel := r.Carrying(a.Load()).TravelCost(a.Pos, target)
+		if math.IsInf(travel, 1) {
+			continue // no way there from here with what it is carrying
+		}
+		cost := float64(d.Ticks) + travel/a.Vigor(w.Tick)
 		// Conscience sits beside need rather than inside it. It is not scaled
 		// by urgency, so a principle holds until hunger grows big enough to
 		// outweigh it, and then it gives way.
@@ -333,7 +337,7 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 			Food: action.Edible(a), Shelter: a.Shelter,
 		},
 		Started: w.Tick,
-		Route:   r.Path(a.Pos, target),
+		Route:   r.Carrying(a.Load()).Path(a.Pos, target),
 	}
 }
 
@@ -356,7 +360,7 @@ func Act(w *world.World) {
 			// A plan made by deciding already knows its way. One set by hand -
 			// a player's order, a test - works it out on arrival here.
 			if len(a.Plan.Route) == 0 {
-				a.Plan.Route = w.Grid.Path(a.Pos, a.Plan.Target)
+				a.Plan.Route = w.Grid.Carrying(a.Load()).Path(a.Pos, a.Plan.Target)
 				if len(a.Plan.Route) == 0 {
 					a.Plan = nil // nowhere to go from here
 					continue

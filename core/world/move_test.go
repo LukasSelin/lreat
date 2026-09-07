@@ -92,3 +92,80 @@ func TestTravelCostRisesWithHardGround(t *testing.T) {
 }
 
 func isInf(v float64) bool { return v > 1e308 }
+
+// A river across the map, from bank to bank, with nothing else in the way.
+func riverMap() (*Grid, entity.Pos, entity.Pos) {
+	g := NewGrid(10, 3)
+	for y := 0; y < 3; y++ {
+		g.At(entity.Pos{X: 3, Y: y}).Terrain = Water
+	}
+	return g, entity.Pos{X: 0, Y: 1}, entity.Pos{X: 5, Y: 1}
+}
+
+// Somebody with their hands free wades; somebody with an armful cannot, and
+// on a map where the river runs the whole way across there is simply no way
+// to the far bank until a bridge is built.
+func TestALadenWalkerCannotSwim(t *testing.T) {
+	g, from, to := riverMap()
+	if c := g.Carrying(0).TravelCost(from, to); isInf(c) {
+		t.Fatalf("empty-handed travel cost = %v, want a crossing", c)
+	}
+	if c := g.Carrying(SwimLoad).TravelCost(from, to); isInf(c) {
+		t.Fatalf("travel cost with a crumb = %v, want a crossing", c)
+	}
+	if c := g.Carrying(1).TravelCost(from, to); !isInf(c) {
+		t.Fatalf("laden travel cost = %v, want no way across", c)
+	}
+	if p := g.Carrying(1).Path(from, to); len(p) != 0 {
+		t.Fatalf("laden path = %v, want none", p)
+	}
+}
+
+// A bridge is a road, and a road is walked on rather than swum, so the load
+// that shut the river off is carried straight over it.
+func TestALadenWalkerCrossesABridge(t *testing.T) {
+	g, from, to := riverMap()
+	g.Pave(entity.Pos{X: 3, Y: 1})
+	if c := g.Carrying(1).TravelCost(from, to); isInf(c) {
+		t.Fatalf("laden travel cost over the bridge = %v, want a crossing", c)
+	}
+}
+
+// The water is shut to a laden walker as a way through, not as a place to
+// work: somebody may wade in from the bank with the timber to bridge it, or
+// with a line to fish it.
+func TestALadenWalkerMayWadeInToWork(t *testing.T) {
+	g, from, _ := riverMap()
+	ford := entity.Pos{X: 3, Y: 1}
+	if c := g.Carrying(1).TravelCost(from, ford); isInf(c) {
+		t.Fatalf("laden travel cost to the ford itself = %v, want a way in", c)
+	}
+}
+
+// A load is given to one journey and does not outlive it: the next walker to
+// use the same router is not carrying the last one's sack.
+func TestALoadDoesNotOutliveItsJourney(t *testing.T) {
+	g, from, to := riverMap()
+	if c := g.Carrying(1).TravelCost(from, to); !isInf(c) {
+		t.Fatalf("laden travel cost = %v, want no way across", c)
+	}
+	if c := g.TravelCost(from, to); isInf(c) {
+		t.Fatalf("empty-handed travel cost after a laden one = %v, want a crossing", c)
+	}
+}
+
+// What is forbidden is walking into the water, not being in it. A river that
+// rises under somebody, or a bridge that goes from under them, must leave
+// them a way out with what they are holding.
+func TestALadenWalkerInTheWaterCanGetOut(t *testing.T) {
+	g := NewGrid(10, 3)
+	for y := 0; y < 3; y++ {
+		for _, x := range []int{3, 4} {
+			g.At(entity.Pos{X: x, Y: y}).Terrain = Water
+		}
+	}
+	midstream, bank := entity.Pos{X: 3, Y: 1}, entity.Pos{X: 5, Y: 1}
+	if c := g.Carrying(1).TravelCost(midstream, bank); isInf(c) {
+		t.Fatalf("laden travel cost out of the river = %v, want a way out", c)
+	}
+}
