@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"lreat/core/entity"
+	"lreat/core/need"
 	"lreat/core/world"
 )
 
@@ -42,6 +43,31 @@ const ColdKeeping = 0.6
 // stops on top of that.
 func Keeping(w *world.World) float64 {
 	return w.Mods.Keeping * (1 - ColdKeeping*w.Climate.Chill())
+}
+
+// RoofKeeping is how much of a private larder's spoilage a roof of one's
+// own stops. A house is not a granary and a granary is not a house: the
+// settlement's stores keep the market's food, and what keeps an agent's is
+// the weather and whatever it has built over its own head.
+const RoofKeeping = 0.5
+
+// Larder is the share of the usual spoilage the food in an agent's own
+// hands suffers. Nothing carried is kept for ever now, which is what makes
+// a full larder in June worth less than the same larder in January and
+// gives the cold something to be good for close to home.
+func Larder(w *world.World, a *entity.Agent) float64 {
+	return (1 - ColdKeeping*w.Climate.Chill()) * (1 - RoofKeeping*need.Clamp(a.Shelter))
+}
+
+// Spoil rots what an agent is carrying, by the same rates the market's
+// stock rots at.
+func Spoil(w *world.World, a *entity.Agent) {
+	k := Larder(w, a)
+	for g := range a.Inventory {
+		if perishable[g] {
+			a.Inventory[g] *= 1 - spoilage[g]*k
+		}
+	}
 }
 
 // MarketStep moves prices against stock and lets goods spoil. Prices lag
