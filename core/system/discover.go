@@ -107,6 +107,15 @@ var Discoveries = []Discovery{
 		Text:      "masons learned to cut stone from the outcrops",
 		Opens:     []string{"quarry"},
 	},
+	// Brewing answers a settlement big enough to be lonely in, with food to
+	// spare for it.
+	{
+		Tech: "brewing", Knowledge: 25,
+		Condition: func(w *world.World) bool { return len(w.Agents) >= 12 && w.Market.Stock[entity.Food] >= 5 },
+		Text:      "with grain to spare, somebody opened a tavern",
+		Opens:     []string{"build tavern"},
+		Effect:    func(*world.World) {},
+	},
 	{
 		Tech: "metallurgy", Knowledge: 200,
 		Condition: func(w *world.World) bool {

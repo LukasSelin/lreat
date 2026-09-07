@@ -13,7 +13,9 @@ import (
 func TestHardGroundIsSlowAndTiring(t *testing.T) {
 	w := world.NewSized(1, 12, 3)
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i].Terrain = world.Grass
+		// Level ground, in both senses: the tests below are about what the
+		// going underfoot costs, not about the lie of the land.
+		w.Grid.Tiles[i].Terrain, w.Grid.Tiles[i].Height = world.Grass, 0
 	}
 	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 0, Y: 1})
 	a.Vitality, a.Health = 1, 1 // an ordinary body in good condition: one tick per grass tile
@@ -99,7 +101,7 @@ func TestTheSameErrandIsCheaperOnAStreet(t *testing.T) {
 	walk := func(paved bool) (int, float64) {
 		w := world.NewSized(3, 30, 5)
 		for i := range w.Grid.Tiles {
-			w.Grid.Tiles[i].Terrain = world.Grass
+			w.Grid.Tiles[i].Terrain, w.Grid.Tiles[i].Height = world.Grass, 0
 		}
 		to := entity.Pos{X: 20, Y: 2}
 		if paved {
@@ -137,7 +139,9 @@ func TestTheSameErrandIsCheaperOnAStreet(t *testing.T) {
 func TestAPlanSetByHandFindsItsOwnWay(t *testing.T) {
 	w := world.NewSized(6, 20, 7)
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i].Terrain = world.Grass
+		// Level ground, in both senses: the tests below are about what the
+		// going underfoot costs, not about the lie of the land.
+		w.Grid.Tiles[i].Terrain, w.Grid.Tiles[i].Height = world.Grass, 0
 	}
 	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 1, Y: 3})
 	to := entity.Pos{X: 12, Y: 3}
@@ -159,7 +163,9 @@ func TestAPlanSetByHandFindsItsOwnWay(t *testing.T) {
 func TestAnAgentKeepsToTheWayItSetOutBy(t *testing.T) {
 	w := world.NewSized(7, 24, 9)
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i].Terrain = world.Grass
+		// Level ground, in both senses: the tests below are about what the
+		// going underfoot costs, not about the lie of the land.
+		w.Grid.Tiles[i].Terrain, w.Grid.Tiles[i].Height = world.Grass, 0
 	}
 	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 1, Y: 4})
 	to := entity.Pos{X: 20, Y: 4}

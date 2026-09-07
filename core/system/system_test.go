@@ -150,6 +150,7 @@ func TestAgentsWalkBeforeActing(t *testing.T) {
 	a.Vitality, a.Health = 1, 1
 	for x := a.Pos.X; x <= target.X; x++ {
 		w.Grid.At(entity.Pos{X: x, Y: a.Pos.Y}).Terrain = world.Grass
+		w.Grid.At(entity.Pos{X: x, Y: a.Pos.Y}).Height = 0
 	}
 	a.Plan = &entity.Plan{Action: "rest", Target: target, Remaining: 1, Total: 1}
 	for i := 0; i < 5; i++ {

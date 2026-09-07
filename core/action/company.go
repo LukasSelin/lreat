@@ -76,23 +76,27 @@ func Anticipate(a, o *entity.Agent) float64 {
 	return clampUnit(a.Temperament.Trust*0.4 - 0.2)
 }
 
-// PickCompany chooses whom a would go and see. Mostly it is whoever they
-// expect to enjoy, discounted by the walk; sometimes it is a stranger, more
-// often for agents who do not hold tradition dear.
+// PickCompany chooses whom a would go and see, among those within reach.
+// Mostly it is whoever they expect to enjoy, discounted by the walk;
+// sometimes it is a stranger, more often for agents who do not hold
+// tradition dear. Nobody goes to see somebody on the far side of the map.
 func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
-	if len(w.Agents) < 2 {
+	var near []*entity.Agent
+	for _, o := range w.Agents {
+		if o != a && entity.Dist(a.Pos, o.Pos) <= meetRadius {
+			near = append(near, o)
+		}
+	}
+	if len(near) == 0 {
 		return nil
 	}
 	explore := exploreBase + exploreRange*(1-a.Norms[belief.Tradition])
 	if a.Luck.Float64() < explore {
-		return w.Other(a)
+		return near[a.Luck.IntN(len(near))]
 	}
 	var best *entity.Agent
 	bestScore := math.Inf(-1)
-	for _, o := range w.Agents {
-		if o == a {
-			continue
-		}
+	for _, o := range near {
 		s := Anticipate(a, o) - 0.01*float64(entity.Dist(a.Pos, o.Pos))
 		if s > bestScore {
 			best, bestScore = o, s
