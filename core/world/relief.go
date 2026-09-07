@@ -54,6 +54,18 @@ const (
 // what the weather gives it.
 const FloodDepth = 14.0
 
+// SoilAt is what the land at p will hold: good on the damp flat of a valley
+// facing the sun, poor on a steep dry hillside. It is read off the drainage
+// rather than stored, so that when the ground moves the soil that the ground
+// can carry moves with it. The map is made with it and every age of weather
+// pulls the soil that is actually there toward it.
+func (g *Grid) SoilAt(p entity.Pos) float64 {
+	t := g.At(p)
+	damp := clamp01(1 - t.Drain/FloodDepth)
+	steep := clamp01(g.Slope(p) / 0.25)
+	return clamp01(0.15 + 0.85*damp*(1-0.7*steep)*(0.75+0.5*g.Sunlight(p)))
+}
+
 // clamp01 holds a share inside [0,1].
 func clamp01(v float64) float64 { return math.Max(0, math.Min(1, v)) }
 
@@ -250,44 +262,59 @@ func (g *Grid) drain() {
 	}
 }
 
-// carve turns the tiles that carry the most water into the river. A river is
-// as wide as its flow deserves: the great ones spread onto the ground beside
-// them, the small ones are a single thread.
+// carve puts the water where the flow says it goes: the wettest waterShare of
+// the map is river, and the heaviest of it spreads onto the lower bank beside
+// it, as a river does. Ground the water has left goes back to grass.
+//
+// It runs at the making of the map and again after every age of weather, so a
+// river can take a course it did not have. It will not run through anything
+// anybody has built or claimed: a settlement embanks what it stands on, and a
+// river that swallowed the market would be the end of a run rather than an
+// event in it.
 func (g *Grid) carve(rng interface{ Float64() float64 }) {
 	flows := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
 		flows[i] = g.Tiles[i].Flow
 	}
-	// The threshold is this map's own: the flow that only the wettest
-	// waterShare of it carries.
 	cut := quantile(flows, 1-waterShare)
-	for i := range g.Tiles {
-		if g.Tiles[i].Flow < cut {
-			continue
-		}
-		g.Tiles[i].Terrain = Water
-	}
-	// Widen where the flow is heaviest, onto the lower bank, as a river does.
-	wide := make([]entity.Pos, 0, 64)
 	big := quantile(flows, 1-waterShare/4)
+
+	// A channel does not flicker. Ground becomes river when the water really
+	// gathers there, and stops being river only when the water has largely
+	// gone - not the moment it dips below the line. Without that hysteresis a
+	// settlement wipes out its own river: it holds the ground the shifting
+	// channel wants, so the new course cannot form, while the old one dries
+	// the instant it falls under the threshold.
+	wet := make([]bool, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain != Water || g.Tiles[i].Flow < big {
+		if g.Tiles[i].Terrain == Water {
+			wet[i] = g.Tiles[i].Flow >= cut/2
+		} else {
+			wet[i] = g.Tiles[i].Flow >= cut
+		}
+	}
+	// The great rivers spread onto whatever beside them is no higher.
+	for i := range g.Tiles {
+		if g.Tiles[i].Flow < big {
 			continue
 		}
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
 		for _, off := range dirs {
 			c := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
-			if g.In(c) && g.At(c).Terrain != Water && g.Height(c) <= g.Height(p)+1 {
-				wide = append(wide, c)
+			if g.In(c) && g.Height(c) <= g.Height(p)+1 {
+				wet[c.Y*g.W+c.X] = true
 			}
 		}
 	}
-	for _, p := range wide {
-		g.At(p).Terrain = Water
-	}
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain == Water {
-			g.Tiles[i].Fish = 0.7 + 0.3*rng.Float64()
+		t := &g.Tiles[i]
+		held := t.Structure != None || t.Owner != 0
+		switch {
+		case wet[i] && t.Terrain != Water && !held:
+			t.Terrain, t.Wood, t.Wild = Water, 0, 0
+			t.Fish = 0.7 + 0.3*rng.Float64()
+		case !wet[i] && t.Terrain == Water:
+			t.Terrain, t.Fish = Grass, 0
 		}
 	}
 }

@@ -79,18 +79,14 @@ func (w *World) GenerateTerrain(width, height int) {
 	}
 
 	// Good soil is where the water has been and stopped: the flat of a valley,
-	// damp from what drains through it, facing the sun. A steep field loses
-	// its soil down the hill, and a dry one grows what it is given.
+	// damp from what drains through it, facing the sun. See Grid.SoilAt, which
+	// is the same reading the weather takes every age.
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		if t.Terrain == Water {
 			continue
 		}
-		p := entity.Pos{X: i % width, Y: i / width}
-		damp := clamp01(1 - t.Drain/FloodDepth)
-		steep := clamp01(g.Slope(p) / math.Max(1e-12, steepAt))
-		f := 0.15 + 0.85*damp*(1-0.7*steep)*(0.75+0.5*g.Sunlight(p))
-		t.Fertility = math.Max(0.05, math.Min(1, f))
+		t.Fertility = g.SoilAt(entity.Pos{X: i % width, Y: i / width})
 		t.Rich = t.Fertility
 	}
 	w.Forest0 = g.Count(func(t *Tile) bool { return t.Terrain == Forest })

@@ -376,3 +376,21 @@ The map used to be a sine wave with a river drawn along it and fertility measure
 Down a fifth overall, but not uniformly: seeds 11 and 21 grew where they had struggled, and seed 7 nearly died where it had thrived. That is the change doing what it is for - the ground now has quality, and a valley is worth more than a hillside. Raising the fertility floor to lift the weak maps was tried at 0.25 and 0.35 and made the total worse (1311, 1096), because it flattens the very differences the good settlements are living on.
 
 Left for later: nothing erodes yet, and `Flow` is a static share rather than water with a season to it. Both are why the drainage is derived rather than drawn - re-run the four steps on changed ground and the rivers move by themselves.
+
+### Weather
+
+`core/world/erode.go` runs every `ErodeEvery` ticks and is the only thing that changes the shape of the land after the map is made. An age of weather strips soil in proportion to the root of the water crossing a tile, times its steepness, times how little is holding it down; carries what it strips downhill; and lays it down where the water slows. Then the four generation steps run again - fill, drain, carve, height-above-drainage - so the rivers are wherever the new ground sends them. Nothing is moved by hand.
+
+**The settlement causes it.** `hold` is the share of soil that stays put, by land cover: woods 0.25, grass 0.6, ploughed field 1.0, rock 0.15, anything roofed or paved 0. Measured on one map with every slope above the flood plain clothed one way or the other, over forty ages: **ploughed slopes lost 3.7x the soil wooded ones did**, and silted nearly twice as much into the valley. Nobody decides that; it falls out of where the fields were put.
+
+Three things had to be right, and none was right first time:
+
+- **The root, not the amount.** With erosion in proportion to flow, the valley floor carried so much of the map's water that it scoured itself out - the opposite of what a flood plain is. `sqrt(flow) * slope` is the usual reading of stream power and with it the channel still cuts down while the ground beside it fills.
+- **Rivers spill.** With silt deposited only where it was carried, it stayed in the channel and the flood plain slowly washed away instead of being fed. `Overbank` puts 0.7 of what a river lays down onto the low ground either side, which is what a flood plain actually is: not ground the river spared but ground the river made.
+- **Channels do not flicker.** `carve` will not run a river through anything built or claimed, so as the drainage shifted, a settlement holding the ground the new course wanted wiped out its own river - the old bed dried the moment it fell under the line and the new one could never form. Water now needs the full threshold to appear and keeps its bed until less than half of that remains.
+
+**What it costs.** Ten seeds, 6000 ticks, 25 founders: 2627 people without weather, 2423 with, a fall of 8%. Two seeds are much the poorer for it and one is better. Faster weather was tried and is worse in a way worth recording - at twice this rate the total drops to 1910 and two settlements collapse outright, because the loop above is real: a people that farms its slopes strips them, and the yields it depends on go with the soil. Erosion adds 4-18% to a tick.
+
+Over 6000 ticks a map moves about 1.6 m of ground on average, and around 170 tiles per map change between land and water - the rivers really do shift.
+
+**Still not simulated:** the flow has no season, so there are no floods, only an average year. `Tile.Flow` is a share of the map rather than a volume of water, which is the thing to change first if the weather is ever to have weather in it.
