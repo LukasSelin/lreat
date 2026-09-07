@@ -300,3 +300,22 @@ This is what brought the value rule back. With `wornEnough` at 60, over six seed
 The value rule improves on every one of the six seeds and lays roads on all of them. Recognition's total falls 12%, which is inside this system's noise - two of the six seeds improved, and the same configuration swings between 19 and 350 across seeds - but it is a fall, and it is recorded here rather than rounded away.
 
 **Cost.** `Busiest` scans a 25x25 window and reads nine tiles per candidate, once per deciding agent per decision, and it is now the most expensive thing in a tick: 2000 ticks of 40 agents went from 650ms to 917ms across the machine. It sits in the parallel phase, so the machine absorbs it. If it ever needs to be cheaper, `Draw` can be computed for the whole grid once per tick in `Weather` instead of per candidate.
+
+### Bridges
+
+A road may be carried over water, and then it is a bridge: the tile stays a river to look at and to fish in, and costs a road to cross. It was added because the settlement straddles its river - the ground worth farming is the ground near the water, so a quarter of the houses end up on the far bank - and with no way to span it those people waded, for ever. It also cut the road network in two, since a way that cannot cross water can only run along its own bank.
+
+Three things had to be true before a bridge was ever built, and each was found by measuring rather than by reasoning:
+
+- **A crossing has to come before a street.** The busiest ground in a settlement is always a lane between houses, never the ford, because everyone who can avoid the water does. Competing on wear alone, a bridge is never the best site and never gets built. `paveSite` therefore looks for an affordable ford first: a street can go round what is in its way, and a river cannot.
+- **A bridge cannot cost more than a house.** It was first set at three lengths of timber against a road's one. Nobody in any settlement ever holds three: agents gather toward the roof they want and spend it the moment they have enough, and the most anyone was ever seen holding was two and a half. The action could not fire at all. It costs two now, the same as a house.
+- **The water must stay cheap.** Making the river dearer to wade is the obvious answer and it is the wrong one. At 5, 7 and 9 the wading barely fell and the population dropped by up to a quarter: a river nobody can afford to cross is a river nobody wears a ford in, and a ford nobody wears is a ford nobody bridges. The cheapest water is what gets a bridge built.
+
+Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
+
+| | population | share of agent-time spent wading |
+|---|---|---|
+| no bridges | 1277 | 2.05% |
+| bridges | 1535 | 0.63% |
+
+Better on both counts, which is unusual for a change made for the look of the thing.

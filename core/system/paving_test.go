@@ -77,3 +77,39 @@ func TestPavingWaitsForTraffic(t *testing.T) {
 		}
 	}
 }
+
+// A settlement grows on both banks, because the ground near water is the
+// ground worth farming. It should answer the river it straddles by bridging
+// it, rather than by wading it forever.
+func TestASettlementBridgesTheRiverItStraddles(t *testing.T) {
+	bridged, waded, crossed := 0, 0.0, 0.0
+	for _, seed := range []uint64{1, 3, 5, 7} {
+		w := world.New(seed)
+		for i := 0; i < 20; i++ {
+			w.Spawn("a", w.RandomPersonality())
+		}
+		for tick := 0; tick < 4000; tick++ {
+			Step(w)
+			for _, a := range w.Agents {
+				if tile := w.Grid.At(a.Pos); tile.Terrain == world.Water {
+					crossed++
+					if !tile.Bridged() {
+						waded++
+					}
+				}
+			}
+		}
+		n := w.Grid.Count(func(t *world.Tile) bool { return t.Bridged() })
+		t.Logf("seed %d: %d bridge tiles", seed, n)
+		if n > 0 {
+			bridged++
+		}
+	}
+	if bridged == 0 {
+		t.Fatal("no settlement ever bridged the river it lives on both sides of")
+	}
+	if crossed > 0 && waded/crossed > 0.8 {
+		t.Fatalf("%.0f%% of time spent in the water was wading; the bridges are not being used",
+			100*waded/crossed)
+	}
+}

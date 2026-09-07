@@ -13,6 +13,16 @@ import (
 // tier in proportion. Terrain is therefore not decoration; it is a standing
 // tax on every plan that crosses it, and the map shapes where people settle,
 // what they walk to, and which side of the river they give up on.
+//
+// Water stays where it was, and the reason is worth recording. A settlement
+// grows on both banks, because the ground worth farming is the ground near
+// the river, so a quarter of its people were spending their lives wading. The
+// obvious fix was to make the water dearer. It was tried at 5, 7 and 9 and it
+// was the wrong fix: a river nobody can afford to cross is a river nobody
+// wears a ford in, and a ford nobody wears is a ford nobody bridges. Dearer
+// water cut the wading barely at all and cost up to a quarter of the
+// population. What answers a river is a bridge, and the cheapest water is
+// what gets one built.
 var moveCost = [...]float64{
 	Grass:  1,
 	Field:  1.3,

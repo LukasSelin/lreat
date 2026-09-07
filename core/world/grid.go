@@ -53,10 +53,16 @@ func (t *Tile) Buildable() bool {
 }
 
 // Pavable reports whether a road may be laid on this tile. Roads go over open
-// ground and through woods, which they clear, but they do not cross water,
-// take another building's place, or run over land somebody has claimed.
+// ground, through woods, which they clear, and across water, where the road
+// is a bridge. They do not take another building's place or run over land
+// somebody has claimed.
 func (t *Tile) Pavable() bool {
-	return t.Terrain != Water && t.Structure == None && t.Owner == 0
+	return t.Structure == None && t.Owner == 0
+}
+
+// Bridged reports whether this tile is a road carried over water.
+func (t *Tile) Bridged() bool {
+	return t.Structure == Road && t.Terrain == Water
 }
 
 // Grid is the world map, row-major.

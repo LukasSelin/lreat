@@ -78,3 +78,36 @@ func TestTheUnshelteredBuildBeforeTheyPave(t *testing.T) {
 		t.Fatalf("an unsheltered agent ranked paving first: %v", names(r))
 	}
 }
+
+// A street can go round whatever is in its way; a river cannot be gone round.
+// So where the fording is heavy enough, the crossing is where the timber goes
+// even though the busiest ground in a settlement is always a street.
+func TestACrossingComesBeforeAStreet(t *testing.T) {
+	w := world.New(9)
+	a := townsfolk(t, w)
+	a.Inventory[entity.Wood] = 4
+
+	// A ford one way, a well-walked lane the other, the lane busier.
+	ford := entity.Pos{X: a.Pos.X - 2, Y: a.Pos.Y}
+	w.Grid.At(ford).Terrain = world.Water
+	for i := 0; i < 90; i++ {
+		w.Grid.Tread(ford)
+	}
+	lane := entity.Pos{X: a.Pos.X + 2, Y: a.Pos.Y}
+	for i := 0; i < 300; i++ {
+		w.Grid.Tread(lane)
+	}
+	got, ok := Pave.Target(a, w)
+	if !ok {
+		t.Fatal("nowhere to build at all")
+	}
+	if got != ford {
+		t.Fatalf("aimed at %v, want the ford at %v even though the lane is busier", got, ford)
+	}
+
+	// Without the timber for a bridge, the lane is what gets paved.
+	a.Inventory[entity.Wood] = 1
+	if got, _ := Pave.Target(a, w); got != lane {
+		t.Fatalf("with only a length of wood, aimed at %v, want the lane at %v", got, lane)
+	}
+}
