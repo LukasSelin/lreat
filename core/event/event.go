@@ -10,8 +10,11 @@ import "lreat/core/entity"
 type Kind string
 
 const (
-	Acted      Kind = "acted"
-	Built      Kind = "built"
+	Acted Kind = "acted"
+	Built Kind = "built"
+	// Ruined is the other end of Built: something standing has gone back
+	// to the ground it stood on.
+	Ruined     Kind = "ruined"
 	Traded     Kind = "traded"
 	Met        Kind = "met"
 	Taught     Kind = "taught"

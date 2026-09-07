@@ -54,3 +54,35 @@ func TestTerrainHasRiverForestAndMarketOnGrass(t *testing.T) {
 		t.Fatalf("riverbank fertility %.2f should exceed inland %.2f", nearSum/float64(near), farSum/float64(far))
 	}
 }
+
+func TestRazingGivesTheGroundBack(t *testing.T) {
+	g := NewGrid(10, 10)
+	p := entity.Pos{X: 4, Y: 4}
+	tile := g.At(p)
+	tile.Structure, tile.Owner = House, 7
+	if !g.Raze(p) {
+		t.Fatal("a house could not be taken down")
+	}
+	if !tile.Buildable() {
+		t.Fatalf("the ground under a razed house is not open: %+v", *tile)
+	}
+	if g.Raze(p) {
+		t.Fatal("open ground was razed")
+	}
+	field := entity.Pos{X: 5, Y: 4}
+	g.At(field).Terrain, g.At(field).Owner = Field, 7
+	if !g.Raze(field) || !g.At(field).Buildable() {
+		t.Fatalf("a razed field is not open ground: %+v", *g.At(field))
+	}
+}
+
+// The market is the root of the settlement: streets are measured from it and
+// everything else is placed around it, so it is the one thing that stays.
+func TestTheMarketCannotBeRazed(t *testing.T) {
+	g := NewGrid(10, 10)
+	p := entity.Pos{X: 4, Y: 4}
+	g.At(p).Structure = Market
+	if g.Raze(p) || g.At(p).Structure != Market {
+		t.Fatal("the market was taken down")
+	}
+}

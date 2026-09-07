@@ -167,8 +167,15 @@ func inTavern(w *world.World, p entity.Pos) bool {
 	return ok
 }
 
-// tavernSite is open ground beside the market.
+// tavernSite is a plot beside the market. Like a house and a granary it
+// wants its own ground around it: a tavern is a door people come to of an
+// evening, and a door with a wall against it is no use to anybody.
 func tavernSite(_ *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if p, ok := w.Grid.Nearest(w.MarketPos, tavernRadius, func(p entity.Pos, _ *world.Tile) bool {
+		return w.Grid.RoomToBuild(p)
+	}); ok {
+		return p, true
+	}
 	return w.Grid.Nearest(w.MarketPos, tavernRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
 }
 

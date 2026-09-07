@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 27
+const Count = 28
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -69,7 +69,7 @@ func init() {
 		Steal, Give, Fulfil, Retaliate,
 		Fish, Hunt, Irrigate, PlantTrees,
 		Cook, Quarry, BuildGranary, Smelt,
-		BuildTavern,
+		BuildTavern, MoveHouse,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
