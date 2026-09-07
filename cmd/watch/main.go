@@ -195,6 +195,7 @@ func (v *view) draw() {
 	// to the population's bodies.
 	put(healthStyle(s.MeanHealth), "%-13s %s %.2f", "health", bar(s.MeanHealth, 12), s.MeanHealth)
 	line++
+	put(tcell.StyleDefault, "mean age %-5d elders %d", s.MeanAge, s.Elders)
 	put(tcell.StyleDefault, "houses %-4d fields %-4d forest %d", s.Houses, s.Fields, s.Forest)
 	put(tcell.StyleDefault, "safety %.2f  food price %.2f", s.Safety, s.FoodPrice)
 	put(tcell.StyleDefault, "knowledge %.0f  gini %.2f", s.Knowledge, s.WealthGini)

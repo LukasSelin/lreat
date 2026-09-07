@@ -16,6 +16,7 @@ func TestHardGroundIsSlowAndTiring(t *testing.T) {
 		w.Grid.Tiles[i].Terrain = world.Grass
 	}
 	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 0, Y: 1})
+	a.Vitality, a.Health = 1, 1 // an ordinary body in good condition: one tick per grass tile
 	a.Plan = &entity.Plan{Action: "rest", Target: entity.Pos{X: 4, Y: 1}, Remaining: 1, Total: 1}
 	before := a.Needs[need.Physiological]
 	for i := 0; i < 4; i++ {

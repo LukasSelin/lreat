@@ -76,11 +76,23 @@ func TestSatedAgentClimbsThePyramid(t *testing.T) {
 	w := world.New(1)
 	populate(w, 3)
 	a := w.Agents[0]
-	a.Needs = need.Levels{1, 1, 1, 1, 0.1}
 	a.Personality = need.Neutral()
-	a.Inventory[entity.Food] = 4
-	if d, _ := Choose(a, w); d != action.Study {
-		t.Fatalf("agent with every lower tier met chose %q, want study", d.Name)
+	// Choosing is noisy on purpose, and the actions open to a sated agent
+	// score close together, so a single draw proves nothing. What the
+	// hierarchy claims is a leaning: study should be where such an agent
+	// spends most of its days.
+	counts := map[string]int{}
+	for i := 0; i < 400; i++ {
+		a.Needs = need.Levels{1, 1, 1, 1, 0.1}
+		a.Inventory[entity.Food] = 4
+		d, _ := Choose(a, w)
+		counts[d.Name]++
+	}
+	for name, n := range counts {
+		if n > counts[action.Study.Name] {
+			t.Fatalf("agent with every lower tier met chose %q %d times and study %d, want study most often",
+				name, n, counts[action.Study.Name])
+		}
 	}
 }
 

@@ -111,12 +111,17 @@ func (w *World) Spawn(name string, p need.Weights) *entity.Agent {
 	return w.SpawnAt(name, p, pos)
 }
 
-// SpawnAt adds an agent at a specific position.
+// SpawnAt adds an agent at a specific position. Spawned agents are young
+// adults of assorted ages: grown into their bodies, with most of their
+// fertile years ahead of them, and not all due to reach old age in the same
+// week. A founding party is people who set out, not a nursery and not a
+// retirement. Only birth makes a newborn: the population system sets the
+// child's Born itself.
 func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Agent {
 	a := &entity.Agent{
 		ID:          w.nextID,
 		Name:        name,
-		Born:        w.Tick,
+		Born:        w.Tick - entity.Maturity - w.RNG.IntN((entity.Prime-entity.Maturity)/3),
 		Pos:         pos,
 		Needs:       need.Levels{0.7, 0.3, 0.5, 0.3, 0.2},
 		Personality: p,
