@@ -190,6 +190,10 @@ func (v *view) draw() {
 	for _, t := range need.Tiers() {
 		put(tcell.StyleDefault, "%-13s %s %.2f", t, bar(s.MeanNeeds[t], 12), s.MeanNeeds[t])
 	}
+	// Health sits under the needs it is made of, set apart by colour: it is
+	// not something anyone wants, it is what living on those needs has done
+	// to the population's bodies.
+	put(healthStyle(s.MeanHealth), "%-13s %s %.2f", "health", bar(s.MeanHealth, 12), s.MeanHealth)
 	line++
 	put(tcell.StyleDefault, "houses %-4d fields %-4d forest %d", s.Houses, s.Fields, s.Forest)
 	put(tcell.StyleDefault, "safety %.2f  food price %.2f", s.Safety, s.FoodPrice)
@@ -241,6 +245,19 @@ func puts(sc tcell.Screen, x, y int, style tcell.Style, text string) {
 	for i, r := range text {
 		sc.SetContent(x+i, y, r, nil, style)
 	}
+}
+
+// healthStyle colours the health bar by how worn the population is, so a
+// settlement grinding its people down reads at a glance instead of only in
+// the death feed a few hundred ticks later.
+func healthStyle(h float64) tcell.Style {
+	switch {
+	case h < 0.5:
+		return tcell.StyleDefault.Foreground(tcell.ColorRed)
+	case h < 0.75:
+		return tcell.StyleDefault.Foreground(tcell.ColorYellow)
+	}
+	return tcell.StyleDefault.Foreground(tcell.ColorLime)
 }
 
 func bar(v float64, width int) string {
