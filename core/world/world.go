@@ -1,8 +1,14 @@
 // Package world holds the complete simulation state.
 //
-// Exactly one goroutine may touch a World at a time. The sim package enforces
-// that; everything else assumes it. All randomness flows through World.RNG so
-// that a seed plus a command log reproduces a run exactly.
+// Exactly one goroutine may drive a World. The sim package enforces that;
+// everything else assumes it. Within a tick, deciding is spread over several
+// goroutines - it only reads - while everything that changes the world runs
+// one at a time.
+//
+// Randomness flows through World.RNG, except for what an agent draws while
+// deciding, which comes from that agent's own Luck. Both are seeded from the
+// world seed, so a seed plus a command log still reproduces a run exactly,
+// and it reproduces it whatever the goroutines do.
 package world
 
 import (
@@ -35,6 +41,9 @@ type Modifiers struct {
 	StudyRate       float64
 	CraftQuality    float64
 	ShelterDecay    float64
+	FishYield       float64
+	HuntYield       float64
+	Regrowth        float64 // how fast forest, wild food, and fish come back
 }
 
 // DefaultModifiers is the pre-technology baseline.
@@ -45,6 +54,9 @@ func DefaultModifiers() Modifiers {
 		StudyRate:       1,
 		CraftQuality:    1,
 		ShelterDecay:    0.002,
+		FishYield:       1,
+		HuntYield:       1,
+		Regrowth:        1,
 	}
 }
 
@@ -92,6 +104,10 @@ type World struct {
 	// Nothing here is authored; the request system posts and clears it.
 	Requests []*entity.Request
 
+	// Forest0 is how much forest the world was made with, so that how much
+	// of it a settlement has taken can be told.
+	Forest0 int
+
 	// ReachFloor is how far into reach each action is for everyone here,
 	// by catalog position, raised when the settlement discovers a thing.
 	ReachFloor [habit.MaxActions]float64
@@ -105,6 +121,9 @@ type World struct {
 	techs     map[Tech]bool
 	nextID    entity.ID
 	nextReqID entity.RequestID
+
+	// routers is the working memory deciding routes on, one per goroutine.
+	routers []*Router
 }
 
 // New creates a world with default-sized terrain, seeded for determinism.
@@ -152,6 +171,7 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 	a := &entity.Agent{
 		ID:          w.nextID,
 		Name:        name,
+		Luck:        rand.New(rand.NewPCG(w.RNG.Uint64(), w.RNG.Uint64())),
 		Born:        w.Tick - entity.Maturity - w.RNG.IntN((entity.Prime-entity.Maturity)/3),
 		Pos:         pos,
 		Needs:       need.Levels{0.7, 0.3, 0.5, 0.3, 0.2},
@@ -225,17 +245,28 @@ func clampWeight(v float64) float64 {
 	return v
 }
 
-// Other picks a random agent that is not a. Returns nil if a is alone.
+// Other picks a random agent that is not a. Returns nil if a is alone. The
+// draw comes from a's own luck, because this is reached while deciding, which
+// several agents may be doing at once.
 func (w *World) Other(a *entity.Agent) *entity.Agent {
 	if len(w.Agents) < 2 {
 		return nil
 	}
 	for {
-		o := w.Agents[w.RNG.IntN(len(w.Agents))]
+		o := w.Agents[a.Luck.IntN(len(w.Agents))]
 		if o != a {
 			return o
 		}
 	}
+}
+
+// Routers returns n routers over the world's map, made once and kept between
+// ticks so that deciding allocates nothing. Each is for one goroutine.
+func (w *World) Routers(n int) []*Router {
+	for len(w.routers) < n {
+		w.routers = append(w.routers, w.Grid.Router())
+	}
+	return w.routers[:n]
 }
 
 // Neighbor returns the closest other agent within radius tiles of a, or nil.

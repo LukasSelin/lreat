@@ -25,6 +25,7 @@ var valences = map[string]belief.Valence{
 
 	// Serving the settlement reads as both work and generosity.
 	"guard":     {belief.Industry: 0.3, belief.Charity: 0.4},
+	"lay road":  {belief.Industry: 0.4, belief.Charity: 0.3},
 	"socialize": {belief.Charity: 0.1, belief.Tradition: 0.15},
 	"teach":     {belief.Charity: 0.5, belief.Industry: 0.2, belief.Tradition: 0.3},
 

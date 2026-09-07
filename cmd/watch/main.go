@@ -162,9 +162,10 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Rune() == '.':
 		r.StepOnce()
 	case ev.Rune() == 'r':
-		// Lay the streets by hand. Roads are a material the settlement can
-		// have; deciding to want one is not yet anybody's to make, so for now
-		// the observer spawns them and watches what changes.
+		// Lay the whole street network at once. Agents pave for themselves
+		// now, a length at a time where they have worn the ground; this is
+		// the operator's shortcut, for seeing what a finished network does to
+		// a settlement without waiting for one to be built.
 		r.Send(sim.Func(func(w *world.World) { w.PaveStreets() }))
 	}
 	v.draw()

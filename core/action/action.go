@@ -53,7 +53,7 @@ type Def struct {
 
 // Count is the size of the catalog. It is checked at init so that a table
 // indexed by catalog position can be a fixed array everywhere.
-const Count = 17
+const Count = 22
 
 // Catalog lists every action in a fixed order. Order matters for
 // determinism, and position is what per-agent habit tables are indexed by.
@@ -65,8 +65,9 @@ var Catalog []*Def
 func init() {
 	Catalog = []*Def{
 		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
-		Guard, Socialize, Craft, Teach, Study,
+		Guard, Socialize, Craft, Teach, Study, Pave,
 		Steal, Give, Fulfil, Retaliate,
+		Fish, Hunt, Irrigate, PlantTrees,
 	}
 	if len(Catalog) != Count {
 		panic("action: Catalog length does not match Count")
@@ -131,35 +132,77 @@ var Rest = &Def{
 	},
 }
 
+// A meal is as much as it takes to be full, up to a few units, or what there
+// is. Yields from the land are fractional, so an agent that could only eat
+// whole units would starve with most of a meal in its pack; and an agent
+// that could only eat one unit at a sitting would, with a larder full,
+// still go hungry between the sittings it finds time for.
+const (
+	mouthful  = 0.25 // the least worth stopping to eat
+	feast     = 3.0  // the most eaten at one sitting
+	nourished = 0.35 // what one unit restores
+)
+
+// helping is how much an agent would eat now: enough to be full, within
+// what it has and what a sitting can hold.
+func helping(a *entity.Agent) float64 {
+	want := (1 - a.Needs[need.Physiological]) / nourished
+	return min(a.Inventory[entity.Food], max(mouthful, min(feast, want)))
+}
+
 var Eat = &Def{
 	Name: "eat", Ticks: 1, Target: here,
-	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Food] >= 1 },
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: 0.35}
+	Available: func(a *entity.Agent, _ *world.World) bool { return a.Inventory[entity.Food] >= mouthful },
+	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
+		return need.Levels{need.Physiological: nourished * helping(a)}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		a.Inventory[entity.Food]--
-		a.Needs.Add(need.Physiological, 0.35)
+		take := helping(a)
+		a.Inventory[entity.Food] -= take
+		a.Needs.Add(need.Physiological, nourished*take)
 	},
 }
 
 func isForest(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Forest }
 
+// forageTake is how much of a forest's wild food one forage consumes.
+const forageTake = 0.08
+
+// forageYield is what a forest with this much left gives. A picked forest
+// still gives something, so a settlement is pushed toward the river and
+// the field rather than into the ground.
+func forageYield(wild float64) float64 { return 0.45 + 0.55*wild }
+
 var Forage = &Def{
 	Name: "forage", Ticks: 2, Available: always,
 	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+		// The nearest forest, thin as it may be. Going further for a fuller
+		// patch was tried: the walk each way, on the errand the whole
+		// economy runs on, cost more than the fuller patch gave, and a
+		// forager who stays put and finds less is what turns a settlement
+		// toward the river and the field.
 		return w.Grid.Nearest(a.Pos, searchRadius, isForest)
 	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: foodValue(a) * 1.0}
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		return need.Levels{need.Physiological: foodValue(a) * forageYield(w.Grid.At(target).Wild)}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		if w.Grid.At(a.Pos).Terrain != world.Forest {
+		t := w.Grid.At(a.Pos)
+		if t.Terrain != world.Forest {
 			return // somebody cleared it while we walked
 		}
-		a.Inventory[entity.Food] += 1.0 * (0.6 + 0.8*w.RNG.Float64())
+		a.Inventory[entity.Food] += forageYield(t.Wild) * (0.6 + 0.8*w.RNG.Float64())
+		t.Wild = max(0, t.Wild-forageTake)
 	},
 }
+
+// farmWear is the fertility one farming takes from a field, and wornField
+// the least a field is worn down to. A field farmed without rest goes poor
+// in a few dozen harvests and comes back over a long fallow.
+const (
+	farmWear  = 0.006
+	wornField = 0.1
+)
 
 func farmYield(a *entity.Agent, w *world.World, fertility float64) float64 {
 	return (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * (0.3 + 0.7*fertility)
@@ -202,6 +245,7 @@ var Farm = &Def{
 			return
 		}
 		a.Inventory[entity.Food] += farmYield(a, w, t.Fertility)
+		t.Fertility = max(wornField, t.Fertility-farmWear)
 		a.AddSkill(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
 	},
@@ -275,6 +319,63 @@ var BuildShelter = &Def{
 		a.Shelter = need.Clamp(a.Shelter + shelterGain(a, w))
 		a.AddSkill(entity.Building, 0.02)
 		a.Needs.Add(need.Esteem, 0.05)
+	},
+}
+
+// pavingWood is the timber one length of road takes. It is half a house, so
+// laying a way is a smaller commitment than raising a roof but competes with
+// it for the same wood.
+const pavingWood = 1
+
+// wornEnough is how beaten the ground must be before anyone thinks of paving
+// it. Below this the wear is somebody having passed once, not a route.
+const wornEnough = 60
+
+// pavingRadius is how far somebody will go to lay a road. Roads are laid
+// where the layer already lives and walks, not wherever the settlement's
+// worst bottleneck happens to be: nobody has that view of the place.
+const pavingRadius = 12
+
+// paveSite is the most walked-on unpaved ground near the agent. Roads follow
+// the settlement's own errands: the way people already take is the way that
+// gets made, which is why nobody has to plan the network for it to appear.
+func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius)
+	if !ok || worn < wornEnough {
+		return entity.Pos{}, false
+	}
+	return p, true
+}
+
+// Pave is the settlement's first work on the common ground: a stretch of road
+// that does the layer no direct good beyond the credit of having laid it, and
+// that everybody who walks it afterwards is quicker and less worn for. Like
+// standing guard it is a public good, and like standing guard it pays in
+// standing rather than in bread, which is the only reason anybody learns to
+// keep doing it.
+var Pave = &Def{
+	Name: "lay road", Ticks: 2, Target: paveSite,
+	Available: func(a *entity.Agent, _ *world.World) bool {
+		return a.Inventory[entity.Wood] >= pavingWood
+	},
+	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
+		// The road is for everyone who walks it. What comes back to the one
+		// who laid it is the credit of having laid it, and that is deliberately
+		// less per tick than standing guard pays: paving that repaid its own
+		// effort would be an esteem farm, and the settlement would pave itself
+		// into a yard. Measured at twice this, agents laid a third of the map.
+		return need.Levels{need.Esteem: 0.03, need.Belonging: 0.02}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		// Somebody may have built here, or paved it, while this one walked.
+		if !w.Grid.Pave(a.Pos) {
+			return
+		}
+		a.Inventory[entity.Wood] -= pavingWood
+		a.AddSkill(entity.Building, 0.01)
+		a.Needs.Add(need.Esteem, 0.03)
+		a.Needs.Add(need.Belonging, 0.02)
+		w.Emit(event.Built, a.ID, 0, "%s laid a road", a.Name)
 	},
 }
 

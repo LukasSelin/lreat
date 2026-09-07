@@ -1,0 +1,223 @@
+package action
+
+import (
+	"lreat/core/entity"
+	"lreat/core/event"
+	"lreat/core/habit"
+	"lreat/core/need"
+	"lreat/core/world"
+)
+
+// The land's answers: what a settlement can do once the forest it was
+// founded among has been picked thin, its fields have gone poor, or its woods
+// have been cleared. Each is far out of reach until the settlement, under
+// that pressure, discovers it; then it is a way of living the land can carry
+// where the old one could not.
+
+const (
+	// fishTake is how much of a water tile's fish one fishing consumes, and
+	// huntTake how much of a forest's wild food one hunt does. Hunting takes
+	// more than foraging and gives more, which is why a forest hunted hard
+	// empties fast.
+	fishTake = 0.15
+	huntTake = 0.3
+	// toolWear is how much of a tool a hunt uses up.
+	toolWear = 0.1
+	// irrigationCost is the wood a channel takes, and irrigationGain how
+	// much more a field can hold once watered.
+	irrigationCost = 1
+	irrigationGain = 0.25
+	// waterReach is how far from water a field can be irrigated.
+	waterReach = 8
+	// plantRadius is how far from home an agent will go to plant.
+	plantRadius = 10
+)
+
+func isWater(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Water }
+
+// known reports whether an agent can attempt one of the land's answers: the
+// settlement has discovered it, or the agent has come near enough on its
+// own, through study or teaching, to try it before anyone else has. The
+// value rule has no reach gate of its own, so this is what keeps a starving
+// value-mode agent from walking to a river nobody has fished.
+func known(a *entity.Agent, w *world.World, tech world.Tech, name string) bool {
+	if w.Has(tech) {
+		return true
+	}
+	Imprint(a)
+	return a.Reach[Index(ByName(name))] >= Opened
+}
+
+// bank is a walkable tile beside water with fish in it.
+func bank(w *world.World) func(p entity.Pos, t *world.Tile) bool {
+	return func(p entity.Pos, t *world.Tile) bool {
+		if t.Terrain == world.Water {
+			return false
+		}
+		return bestWater(w, p) != nil
+	}
+}
+
+// bestWater is the water tile beside p with the most fish, or nil.
+func bestWater(w *world.World, p entity.Pos) *world.Tile {
+	var best *world.Tile
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
+			if !w.Grid.In(q) {
+				continue
+			}
+			t := w.Grid.At(q)
+			if t.Terrain == world.Water && t.Fish >= 0.2 && (best == nil || t.Fish > best.Fish) {
+				best = t
+			}
+		}
+	}
+	return best
+}
+
+func fishYield(a *entity.Agent, w *world.World, fish float64) float64 {
+	return (0.3 + 0.7*fish) * (0.7 + 0.6*a.Skills[entity.Fishing]) * w.Mods.FishYield
+}
+
+var Fish = &Def{
+	Name: "fish", Ticks: 2,
+	Available: func(a *entity.Agent, w *world.World) bool { return known(a, w, "fishing", "fish") },
+	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+		return w.Grid.Nearest(a.Pos, searchRadius, bank(w))
+	},
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		t := bestWater(w, target)
+		if t == nil {
+			return need.Levels{}
+		}
+		return need.Levels{need.Physiological: foodValue(a) * fishYield(a, w, t.Fish)}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		t := bestWater(w, a.Pos)
+		if t == nil {
+			return // fished out while we walked
+		}
+		a.Inventory[entity.Food] += fishYield(a, w, t.Fish) * (0.5 + 1.0*w.RNG.Float64())
+		t.Fish = max(0, t.Fish-fishTake)
+		a.AddSkill(entity.Fishing, 0.015)
+	},
+}
+
+func huntYield(w *world.World, wild float64) float64 {
+	return (0.4 + 1.6*wild) * w.Mods.HuntYield
+}
+
+var Hunt = &Def{
+	Name: "hunt", Ticks: 3,
+	Available: func(a *entity.Agent, w *world.World) bool {
+		return a.Inventory[entity.Tools] >= 0.5 && known(a, w, "trapping", "hunt")
+	},
+	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+		return w.Grid.Nearest(a.Pos, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
+			return t.Terrain == world.Forest && t.Wild >= 0.3
+		})
+	},
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		return need.Levels{need.Physiological: foodValue(a) * huntYield(w, w.Grid.At(target).Wild)}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		t := w.Grid.At(a.Pos)
+		if t.Terrain != world.Forest || t.Wild < 0.1 {
+			return // the game has gone
+		}
+		a.Inventory[entity.Food] += huntYield(w, t.Wild) * (0.5 + 1.0*w.RNG.Float64())
+		t.Wild = max(0, t.Wild-huntTake)
+		a.Inventory[entity.Tools] = max(0, a.Inventory[entity.Tools]-toolWear)
+	},
+}
+
+// nearWater reports whether water lies within reach of p.
+func nearWater(w *world.World, p entity.Pos) bool {
+	_, ok := w.Grid.Nearest(p, waterReach, isWater)
+	return ok
+}
+
+var Irrigate = &Def{
+	Name: "irrigate", Ticks: 4,
+	Available: func(a *entity.Agent, w *world.World) bool {
+		if !a.HasField || a.Inventory[entity.Wood] < irrigationCost || !known(a, w, "irrigation", "irrigate") {
+			return false
+		}
+		return w.Grid.At(a.Field).Rich < 1 && nearWater(w, a.Field)
+	},
+	Target: func(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Field, true },
+	Expect: func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
+		// Worth what the extra fertility will grow, over a few harvests.
+		return need.Levels{need.Physiological: foodValue(a) * 0.7 * irrigationGain * (0.8 + 2*a.Skills[entity.Farming]) * w.Mods.FarmYield * 3, need.Esteem: 0.03}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		t := w.Grid.At(a.Pos)
+		if t.Terrain != world.Field || t.Owner != a.ID {
+			return
+		}
+		a.Inventory[entity.Wood] -= irrigationCost
+		t.Rich = min(1, t.Rich+irrigationGain)
+		t.Fertility = min(t.Rich, t.Fertility+irrigationGain)
+		a.AddSkill(entity.Farming, 0.01)
+		a.Needs.Add(need.Esteem, 0.03)
+		w.Emit(event.Built, a.ID, 0, "%s cut a channel to the field", a.Name)
+	},
+}
+
+var PlantTrees = &Def{
+	Name: "plant trees", Ticks: 2,
+	Available: func(a *entity.Agent, w *world.World) bool { return known(a, w, "forestry", "plant trees") },
+	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+		anchor := a.Pos
+		if a.HasHome {
+			anchor = a.Home
+		}
+		return w.Grid.Nearest(anchor, plantRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+	},
+	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
+		// Nothing for the planter today; the settlement gathers there later.
+		return need.Levels{need.Esteem: 0.02, need.Actualization: 0.02}
+	},
+	Apply: func(a *entity.Agent, w *world.World) {
+		t := w.Grid.At(a.Pos)
+		if !t.Buildable() {
+			return
+		}
+		t.Terrain, t.Wood, t.Wild = world.Forest, 0.2, 0.3
+		a.Needs.Add(need.Esteem, 0.02)
+		a.Needs.Add(need.Actualization, 0.02)
+	},
+}
+
+// Reach at birth for the land's answers. All begin far off; the discoveries
+// that answer each pressure open them to everyone.
+const (
+	reachFish   = 0.4
+	reachHunt   = 0.5
+	reachWater  = 0.3
+	reachForest = 0.3
+)
+
+func init() {
+	// Fishing belongs to the hungry moment by the water, and to those who
+	// have learned it.
+	seed(Fish, reachFish, habit.Signature{
+		habit.Hunger: 0.7, habit.Food: -0.6, habit.Near: 0.6, habit.Skill: 0.3,
+	})
+	Fish.Skilled = uses(entity.Fishing)
+	// Hunting belongs to the hungry moment with a tool in hand.
+	seed(Hunt, reachHunt, habit.Signature{
+		habit.Hunger: 0.8, habit.Food: -0.7, habit.Near: 0.4,
+	})
+	// Irrigating belongs to the industrious farmer with wood to spare.
+	seed(Irrigate, reachWater, habit.Signature{
+		habit.Industry: 0.7, habit.Wood: 0.5, habit.Near: 0.5, habit.Skill: 0.4,
+	})
+	Irrigate.Skilled = uses(entity.Farming)
+	// Planting belongs to a moment with no wood and a mind for those who
+	// come after: it feeds nobody today.
+	seed(PlantTrees, reachForest, habit.Signature{
+		habit.Wood: -0.5, habit.Industry: 0.4, habit.Charity: 0.3, habit.Tradition: 0.4, habit.Near: 0.5,
+	})
+}

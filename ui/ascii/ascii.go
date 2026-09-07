@@ -101,9 +101,9 @@ func tileCell(t *world.Tile) Cell {
 // AgentColor maps an action to the color of the agent doing it.
 func AgentColor(action string) Color {
 	switch action {
-	case "farm", "forage", "eat", "buy food":
+	case "farm", "forage", "eat", "buy food", "fish", "hunt":
 		return AgentFood
-	case "gather wood", "build shelter", "craft":
+	case "gather wood", "build shelter", "craft", "irrigate", "plant trees":
 		return AgentBuild
 	case "sell":
 		return AgentTrade

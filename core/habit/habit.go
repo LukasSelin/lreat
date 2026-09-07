@@ -126,10 +126,26 @@ const (
 	// which made it possible: the meal's share for the act that grew the
 	// food, the safety's share for the act that raised the roof.
 	ProvenanceWeight = 0.7
-	// LarderCap bounds how many units of food an agent remembers the
-	// origin of.
+	// LarderCap bounds how many harvests an agent remembers the origin of.
 	LarderCap = 16
+	// HarvestRate is how fast an agent's sense of what a producing act
+	// brings in later meals moves.
+	HarvestRate = 0.05
 )
+
+// Harvest is food on hand that remembers the act which produced it and the
+// moment it was taken in. Left is how much of it remains; Returned is the
+// need satisfaction the part already consumed brought. When the last of it
+// goes, the act is judged by the whole of what it fed, against what
+// producing acts usually bring. That comparison, and only that one, is how
+// a way of getting food that yields more comes to be recognised as the
+// thing to do: not because it is quicker, or cheaper, but because the
+// meals it led to added up to more.
+type Harvest struct {
+	Step
+	Left     float64
+	Returned float64
+}
 
 // Dot is the inner product.
 func Dot(a, b Signature) float64 {

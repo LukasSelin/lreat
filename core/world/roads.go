@@ -11,8 +11,90 @@ import (
 // Roads are the settlement's first piece of shared infrastructure: the only
 // thing it builds that nobody lives in, farms, or sells, and that pays back
 // only by being walked on. Everything here is the material — how a road is
-// laid and where a sensible one runs. Nothing in this file decides that a
-// road ought to be laid; that judgement belongs to whatever comes to want it.
+// laid, where a sensible one runs, and how the ground remembers being walked
+// on. Nothing here decides that a road ought to be laid: agents do that for
+// themselves, in action.Pave, by recognising worn ground as calling for one.
+
+// Wear is how much one crossing marks the ground, and Fade is the share of
+// that marking a tile keeps from one tick to the next. Together they give the
+// map a memory about a hundred and forty ticks long: long enough that a route
+// walked daily stands out from one walked once, short enough that a way people
+// have stopped using stops asking to be paved.
+const (
+	Wear = 1
+	Fade = 0.995
+)
+
+// Tread records that somebody crossed this tile.
+func (g *Grid) Tread(p entity.Pos) {
+	if g.In(p) {
+		g.At(p).Traffic += Wear
+	}
+}
+
+// Weather fades every tile's wear by one tick's worth.
+func (g *Grid) Weather() {
+	for i := range g.Tiles {
+		if g.Tiles[i].Traffic > 0 {
+			g.Tiles[i].Traffic *= Fade
+		}
+	}
+}
+
+// Draw is the case for laying a road on p: what people walk here, plus what
+// they walk on the ground beside it that could never be a street anyway.
+//
+// Most of the traffic a street carries is not on the street. It is on the
+// houses and fields the street runs between, and those are never paved, so
+// read on its own the gap beside a thronged doorway looks like empty ground.
+// In a close-built settlement that leaves nowhere at all worth paving, which
+// is what kept the value rule from laying a single length of road.
+//
+// Only ground that cannot be paved lends its wear. Open ground speaks for
+// itself: were it to lend as well, every tile near a busy one would read as
+// busy, and paving would come out in patches instead of the lines a road
+// wants. Roads lend nothing either - traffic already on a street is already
+// served, and counting it would pave the settlement outward from its first
+// road until the ground ran out.
+func (g *Grid) Draw(p entity.Pos) float64 {
+	if !g.In(p) {
+		return 0
+	}
+	d := g.At(p).Traffic
+	for _, off := range dirs {
+		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+		if !g.In(q) {
+			continue
+		}
+		if t := g.At(q); !t.Pavable() && t.Structure != Road {
+			d += t.Traffic
+		}
+	}
+	return d
+}
+
+// Busiest returns the tile within radius of from where a road would serve the
+// most traffic, and how strong the case for it is. Only ground a road could
+// actually be laid on is offered, but the case is read from the whole
+// neighbourhood: see Draw. Ties go to the tile nearest the top left, so that
+// two agents reading the same ground reach for the same spot.
+func (g *Grid) Busiest(from entity.Pos, radius int) (entity.Pos, float64, bool) {
+	var best entity.Pos
+	var worn float64
+	found := false
+	for y := from.Y - radius; y <= from.Y+radius; y++ {
+		for x := from.X - radius; x <= from.X+radius; x++ {
+			p := entity.Pos{X: x, Y: y}
+			if !g.In(p) || !g.At(p).Pavable() {
+				continue
+			}
+			if d := g.Draw(p); d > worn {
+				best, worn, found = p, d, true
+			}
+		}
+	}
+	return best, worn, found
+}
 
 // Pave lays a road on one tile and reports whether it took. Woods in the way
 // are cleared, since a road through a forest is a road, not a forest.
@@ -28,6 +110,7 @@ func (g *Grid) Pave(p entity.Pos) bool {
 		t.Terrain, t.Wood = Grass, 0
 	}
 	t.Structure = Road
+	t.Traffic = 0 // the ground is no longer asking for a road; it has one
 	return true
 }
 

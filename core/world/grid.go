@@ -22,14 +22,28 @@ const (
 	Road
 )
 
-// Tile is one cell of the world. Fertility comes from the river; Wood is the
-// standing timber on a forest tile and is what gathering consumes.
+// Tile is one cell of the world. Fertility comes from the river and is worn
+// down by farming; Rich is the most it can recover to. Wood is the standing
+// timber on a forest tile and is what gathering consumes; Wild is what the
+// forest has to give in food, berries and game, and is what foraging and
+// hunting consume. Fish is what a water tile has to give. All of them
+// regrow, slowly, so the land pushes back against a settlement that takes
+// too much and yields to one that leaves it be.
 type Tile struct {
 	Terrain   Terrain
 	Structure Structure
 	Owner     entity.ID
 	Fertility float64
+	Rich      float64
 	Wood      float64
+	Wild      float64
+	Fish      float64
+
+	// Traffic is how worn the ground is: it rises with every crossing and
+	// fades when nobody comes that way. It is not a cost - walking a beaten
+	// path is no quicker - it is a record of where the settlement's errands
+	// actually run, which is what somebody deciding to lay a road reads.
+	Traffic float64
 }
 
 // Buildable reports whether a tile is open ground nobody has claimed. A road
@@ -50,12 +64,20 @@ type Grid struct {
 	W, H  int
 	Tiles []Tile
 
-	// frontier and scratch are the working memory route searches run on,
-	// kept here so that pathing every agent on every tick allocates nothing.
-	// scratch serves searches whose answer is read out before the next one
-	// starts. Like the rest of a World, both assume a single goroutine.
-	frontier []routeNode
-	scratch  Routes
+	// router is the working memory the grid's own routing runs on. It serves
+	// callers routing one after another; anything routing at the same time as
+	// something else needs a Router of its own.
+	router *Router
+}
+
+// ownRouter is the grid's router, made on first use. It is not safe to reach
+// for from two goroutines at once, which is the whole reason Router can be
+// held by somebody else.
+func (g *Grid) ownRouter() *Router {
+	if g.router == nil {
+		g.router = &Router{g: g}
+	}
+	return g.router
 }
 
 // NewGrid returns an all-grass grid.

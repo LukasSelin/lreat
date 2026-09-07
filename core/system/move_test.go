@@ -131,3 +131,56 @@ func TestTheSameErrandIsCheaperOnAStreet(t *testing.T) {
 		t.Fatalf("the walk cost %.4f on the road and %.4f over grass; want the road cheaper", roadSpent, openSpent)
 	}
 }
+
+// A plan set by hand carries no route - the player's own orders arrive this
+// way, and so do plans in tests. Walking works one out on the spot.
+func TestAPlanSetByHandFindsItsOwnWay(t *testing.T) {
+	w := world.NewSized(6, 20, 7)
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i].Terrain = world.Grass
+	}
+	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 1, Y: 3})
+	to := entity.Pos{X: 12, Y: 3}
+	a.Plan = &entity.Plan{Action: "rest", Target: to, Remaining: 1, Total: 1}
+	if len(a.Plan.Route) != 0 {
+		t.Fatal("a hand-set plan should start with no route")
+	}
+	for i := 0; i < 40 && a.Pos != to; i++ {
+		Act(w)
+	}
+	if a.Pos != to {
+		t.Fatalf("the walker got as far as %v, want %v", a.Pos, to)
+	}
+}
+
+// An agent walks the way it set out by. The route is worked out once, when
+// the plan is made, so a street paved across its path mid-journey does not
+// redirect it - it will take the new way on its next errand, not this one.
+func TestAnAgentKeepsToTheWayItSetOutBy(t *testing.T) {
+	w := world.NewSized(7, 24, 9)
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i].Terrain = world.Grass
+	}
+	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 1, Y: 4})
+	to := entity.Pos{X: 20, Y: 4}
+	a.Plan = &entity.Plan{Action: "rest", Target: to, Remaining: 1, Total: 1}
+	Act(w) // settles on a way and starts down it
+	set := append([]entity.Pos(nil), a.Plan.Route...)
+	if len(set) == 0 {
+		t.Fatal("the walker set out with no route at all")
+	}
+
+	// Lay a far quicker lane one row over, after it has already set out.
+	for x := 0; x < 24; x++ {
+		w.Grid.Pave(entity.Pos{X: x, Y: 6})
+	}
+	for i := 0; i < 60 && a.Pos != to; i++ {
+		Act(w)
+		if w.Grid.At(a.Pos).Structure == world.Road {
+			t.Fatalf("the walker diverted onto a street laid after it set out, at %v", a.Pos)
+		}
+	}
+	if a.Pos != to {
+		t.Fatalf("the walker got as far as %v, want %v", a.Pos, to)
+	}
+}

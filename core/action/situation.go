@@ -38,7 +38,14 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	s[habit.Food] = bipolar(a.Inventory[entity.Food] / foodKnee)
 	s[habit.Wood] = bipolar(a.Inventory[entity.Wood] / woodKnee)
 	s[habit.Wealth] = bipolar(a.Wealth / wealthKnee)
-	s[habit.Shelter] = bipolar(a.Shelter)
+	// Shelter is read as a lack, not around a midpoint: half a house is
+	// still half a house short, and a roof that is not kept up rots to
+	// nothing. Read around a midpoint the unsheltered moment only began once
+	// a house had mostly rotted, safety sat below what a birth needs except
+	// in the spike after each rebuild, and a settlement lived or died on
+	// how many such spikes fell in its founders' fertile years. Over 48
+	// seeds this took survivors from 35 to 40 and extinctions from 2 to 0.
+	s[habit.Shelter] = a.Shelter - 1
 	if w.Neighbor(a, reachRadius) != nil {
 		s[habit.Company] = 1
 	} else {
@@ -60,8 +67,15 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 
 // Situation completes shared for candidate d done at target.
 func Situation(a *entity.Agent, w *world.World, d *Def, target entity.Pos, shared habit.Signature) habit.Signature {
+	return SituationOn(a, w, w.Routers(1)[0], d, target, shared)
+}
+
+// SituationOn is Situation costing the walk on a given router, so that agents
+// sizing up a moment at the same time each route on working memory of their
+// own.
+func SituationOn(a *entity.Agent, w *world.World, r *world.Router, d *Def, target entity.Pos, shared habit.Signature) habit.Signature {
 	s := shared
-	cost := w.Grid.TravelCost(a.Pos, target) / a.Vigor(w.Tick)
+	cost := r.TravelCost(a.Pos, target) / a.Vigor(w.Tick)
 	s[habit.Near] = 1 - 2*need.Clamp(cost/nearKnee)
 	if d.With != nil {
 		if o := d.With(a, w, target); o != nil {
@@ -106,6 +120,13 @@ type Candidate struct {
 // with its situation and fit. Targets are chosen the same way value-based
 // choice chooses them, including any randomness that involves.
 func Candidates(a *entity.Agent, w *world.World) []Candidate {
+	return CandidatesOn(a, w, w.Routers(1)[0])
+}
+
+// CandidatesOn is Candidates routing on a given router. Everything it writes
+// belongs to the agent it is called for - its habits and reach, seeded on
+// first use - so several agents may be sized up at once, one per router.
+func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate {
 	Imprint(a)
 	for i := range Catalog {
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
@@ -120,7 +141,7 @@ func Candidates(a *entity.Agent, w *world.World) []Candidate {
 		if !ok {
 			continue
 		}
-		s := Situation(a, w, d, target, shared)
+		s := SituationOn(a, w, r, d, target, shared)
 		out = append(out, Candidate{Def: d, Index: i, Target: target, Situation: s, Fit: Fit(a, i, s)})
 	}
 	return out

@@ -30,7 +30,9 @@ func main() {
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of recognition; 0 always takes the best fit")
 	pave := flag.Int("pave", 0, "lay streets through the settlement every N ticks (0 never)")
+	workers := flag.Int("workers", system.Workers, "goroutines to decide over (1 decides one agent at a time)")
 	flag.Parse()
+	system.Workers = *workers
 
 	w := world.New(*seed)
 	w.Rules.Fit = !*value
@@ -44,9 +46,9 @@ func main() {
 	lastReported := 0
 	for w.Tick < *ticks {
 		system.Step(w)
-		// Roads are a material the settlement can have. Wanting one is not yet
-		// anybody's decision to make, so the operator spawns them on a timer
-		// and the table shows what changes.
+		// The settlement paves for itself; this lays the whole network at
+		// once, for comparing a built-out network against what agents get
+		// round to on their own.
 		if *pave > 0 && w.Tick%*pave == 0 {
 			w.PaveStreets()
 		}

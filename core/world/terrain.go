@@ -25,7 +25,9 @@ func (w *World) GenerateTerrain(width, height int) {
 		for dx := -half; dx <= half; dx++ {
 			p := entity.Pos{X: riverX(y) + dx, Y: y}
 			if g.In(p) {
-				g.At(p).Terrain = Water
+				t := g.At(p)
+				t.Terrain = Water
+				t.Fish = 0.7 + 0.3*w.RNG.Float64()
 			}
 		}
 	}
@@ -38,6 +40,7 @@ func (w *World) GenerateTerrain(width, height int) {
 				if t := g.At(p); t.Terrain == Grass {
 					t.Terrain = Forest
 					t.Wood = 0.6 + 0.4*w.RNG.Float64()
+					t.Wild = 0.6 + 0.4*w.RNG.Float64()
 				}
 			}
 			p.X += w.RNG.IntN(3) - 1
@@ -79,7 +82,9 @@ func (w *World) GenerateTerrain(width, height int) {
 		}
 		d := float64(dist[i])
 		g.Tiles[i].Fertility = 0.15 + 0.8*math.Max(0, 1-d/10)
+		g.Tiles[i].Rich = g.Tiles[i].Fertility
 	}
+	w.Forest0 = g.Count(func(t *Tile) bool { return t.Terrain == Forest })
 
 	center := entity.Pos{X: riverX(height/2) + 4, Y: height / 2}
 	mp, ok := g.Nearest(center, width+height, func(_ entity.Pos, t *Tile) bool { return t.Terrain == Grass })

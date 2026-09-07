@@ -5,6 +5,8 @@
 package entity
 
 import (
+	"math/rand/v2"
+
 	"lreat/core/belief"
 	"lreat/core/habit"
 	"lreat/core/need"
@@ -70,10 +72,11 @@ const (
 	Crafting
 	Scholarship
 	Guarding
+	Fishing
 	SkillCount
 )
 
-var skillNames = [SkillCount]string{"farming", "building", "crafting", "scholarship", "guarding"}
+var skillNames = [SkillCount]string{"farming", "building", "crafting", "scholarship", "guarding", "fishing"}
 
 func (s Skill) String() string { return skillNames[s] }
 
@@ -107,6 +110,14 @@ type Plan struct {
 	Remaining int
 	Total     int
 
+	// Route is the way to Target that was cheapest when the plan was made,
+	// the tiles still to be walked, nearest first. It is worked out once, at
+	// the moment of deciding, rather than asked again every tick: the same
+	// inertia that keeps an agent on a plan keeps it on the way it set out
+	// by. Somebody may pave a better street while it is walking, and it will
+	// not notice until its next errand takes it that way.
+	Route []Pos
+
 	// Index is the catalog position of Action, so the outcome can be
 	// credited to the right habit without a name lookup.
 	Index int
@@ -126,6 +137,16 @@ type Agent struct {
 	ID   ID
 	Name string
 	Born int
+
+	// Luck is the agent's own stream of chance, seeded when it is born. An
+	// agent draws from this rather than from the world's one stream so that
+	// what it decides depends on what it has drawn before and not on who
+	// else happened to draw in between. That is what lets a whole population
+	// decide at the same time and still come out the same as if they had
+	// gone one at a time - and it is why only deciding may run in parallel:
+	// Luck covers choosing, while acting on the choice still draws on the
+	// world.
+	Luck *rand.Rand
 
 	Needs       need.Levels
 	Personality need.Weights
@@ -204,11 +225,14 @@ type Agent struct {
 	// Trace is the short memory of recent actions that share in the next
 	// reward, so that an action that only set up a later gain still learns.
 	Trace habit.Trace
-	// Larder remembers, for each unit of food on hand, the act that
-	// produced it and the moment it was taken in, oldest first. When the
-	// unit is eaten the meal's reward reaches that act. It is credit by
-	// provenance: the meal thanks the field.
-	Larder []habit.Step
+	// Larder remembers, for the food on hand, the acts that produced it and
+	// the moments they were taken in, oldest first. As the food is eaten
+	// each act is judged by all it fed, against Harvest, the agent's sense
+	// of what a producing act usually brings. It is credit by provenance:
+	// the meals thank the field, and a field that feeds more meals than
+	// the forest does is thanked more.
+	Larder  []habit.Harvest
+	Harvest float64
 	// Roof is the act that last raised this agent's shelter, and Watch the
 	// act by which it last kept public order. Safety that rises afterwards
 	// thanks them both: the one is a private good and the other a public
