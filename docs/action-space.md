@@ -47,8 +47,8 @@ Dropped on purpose: health (tracks hunger and shelter), tools (sell and craft ar
 
 ## Signatures and habits
 
-- `action.Def.Prior` is the shared signature of the moment an action belongs to. It is hand-seeded in `core/action/priors.go` and never learned. `Def.Skilled` names the skill a candidate draws on for this agent right now, and `Def.With` names the other agent it involves, so the per-candidate dimensions can be filled in.
-- `entity.Agent.Habits[i]` is the agent's own copy for catalog position `i`, seeded from the prior on first decision (`Imprinted`) and moved by experience.
+- `action.Def.Prior` is the shared signature of the moment an action belongs to. It is composed by the ontology from what the act is about (see The ontology below) and never learned; the prior each act was tuned to by hand before that is kept as `Def.Tuned` and held against it in a golden test. `Def.Skilled` names the skill a candidate draws on for this agent right now, and `Def.With` names the other agent it involves, so the per-candidate dimensions can be filled in.
+- `entity.Agent.Habits[i]` is the agent's own copy for habit slot `i`, which is catalog position, seeded from the prior on first decision (`Imprinted`) and moved by experience.
 - `entity.Agent.Reach[i]` in [0, 1] is how far into reach action `i` is for this agent. `Def.Reach0` seeds it.
 - Habit length is clamped to [0.2, 2] after every update. Cosine of a zero vector is 0, never NaN.
 
@@ -568,3 +568,46 @@ Half again as much cultivated ground and near twice as much per head, for a popu
 **Land is the binding constraint,** which is the point and was not designed in. On the drain-fed map the soil worth ploughing is a band along the valley floor, and holdings claim it by mid-run: on four seeds looked at, three quarters to all of the farmers short of a full holding had nothing left touching them that was both worth breaking and no poorer than what they already work. Which is why the cap is not what most people get. Mean holdings run 1.0 to 1.8 strips and a good half of the holders are still on their first furrow; the full three is what the farmer who broke ground early has, and everyone after them works what is left. The change is not that every field is three times bigger - it is that the settlement's cultivated ground is half again as large, that the people who farm properly hold a parcel instead of a plot, and that ground is now something a valley can run out of.
 
 Cropping the best strip and letting the rest rest, rather than reading the harvest off the holding together, was also tried: it grows the holdings faster, and it was worse on both batches (mean 139, median 20 and 116, twelve settlements of twenty-four lasting on the first). A holding that carries its own poor ground is the version that works.
+
+## The ontology
+
+The catalog was a list of twenty-eight hand-written acts, each five closures and a prior tuned by hand, in a fixed order that every habit table was indexed by and a fixed bound of thirty-two that it could not outgrow. That is a linear cost per act, and it never gets to an extensive catalog. `core/ontology` replaces the list with a statement of what the world is made of, from which what can be done with it follows.
+
+**Three trees and a set of relations.** Things are what an act operates on; sites are where it happens; roles are how a person stands to the actor. A class exists only if some verb treats it differently from its siblings; anything else is a trait.
+
+```
+Thing                                 Site
+├─ Material                           ├─ Ground            [passable]
+│  ├─ Provision   [edible]            │  ├─ Open
+│  │  ├─ Berries  [perishable]        │  ├─ Wood           affords Berries, Game, Timber
+│  │  ├─ Game     [perishable]        │  ├─ Water          affords Fish
+│  │  ├─ Fish     [perishable]        │  ├─ Outcrop        affords Stone
+│  │  ├─ Grain                        │  └─ Field [owned]  affords Grain
+│  │  └─ Meal     [perishable]        └─ Built
+│  ├─ Timber      [burnable, buildable]  ├─ Dwelling  [roofed, owned, bench, hearth, forge, desk]
+│  ├─ Stone       [buildable, heavy]     ├─ Market    [public, bench, desk, trade]
+│  ├─ Tool        [wears]                ├─ Granary   [roofed, public, store]
+│  └─ Coin                               ├─ Tavern    [roofed, public, hearth, company]
+├─ Person                                └─ Road      [passable]
+└─ Practice
+```
+
+`Provision` is one class to eating, which takes whatever is on hand, and five to taking, because fishing and foraging and hunting are different habits. `Coin` is a thing so that money can be made, given, and stolen like anything else; a young settlement barters, and coin arrives when somebody mints it. `Practice` is an act itself as the object of another - what is taught and studied - so the ontology contains its own catalog. `Person` is one class: nobody is a pupil the way an oak is timber, so how a person stands to the actor is a **role** (self, neighbour, requester, holder, pupil, wrongdoer), a predicate decided at the moment of acting rather than a subclass. Workplaces are traits on built sites, which is how a hearth is named without saying whose: a dwelling has all of them, the market lends a bench and a desk to those without one, the tavern a hearth.
+
+**Verbs are schemas over classes.** Eleven cover the catalog: take, make, raise, tend, consume, dwell, exchange, transfer, pass, strike, move. A schema states an act over classes - `Take Material @ Ground`, `Make Timber → Tool @ bench`, `Transfer Provision > neighbour` - and `Instantiate` expands it over the leaves of its object and site classes, only where the relations allow (a taking needs the site to afford the material), unless told to collapse (eating is one act). Theft is a transfer the other way round; everything that makes theft theft is in the traits and the valence, not in a separate verb. Transforms - food spoiling, a field going back to grass - are the world's half of the ontology: they never instantiate as acts and belong to upkeep.
+
+**Every act has a key.** `take/timber@wood`, `make/stone+timber>tool@forge`, `transfer/provision<holder`, `pass/practice>self`: what it does, with what, where, and to whom. The walk is deterministic and its output is sorted by key. The catalog is what the walk entails, twenty-nine acts, each bound to the code that carries it out; an act the trees entail and nothing carries stops the program at start. Farming is two acts, as the trees have it: `tend/clear@open` makes ground into a strip of a holding, `take/grain@field` harvests one.
+
+**Priors are composed, not written.** An act's prior is the sum of the verb's moment, what the act must already hold (an input's stock coordinate turned round), what it wants (the output's or the object's), the site it happens at, and the role it is done to, plus a small residue on the schema for what none of those explain. `Wanting` a material includes a share of the wanting of what it makes - timber is wanted for the roof it will be - taken from the one thing nearest to hand, the output whose making starts furthest into reach. The hand-tuned priors are kept beside the composed ones as `Def.Tuned` and held against them in the golden test at a cosine floor of 0.75; the city test replaces its founders on the composed ones. What the comparison caught, each of them a failing test first:
+
+- **A class's prior is its stock coordinate and nothing else.** With the shelter motive written into timber, holding timber turned it round, and building a house came out as the unsafe moment with the sign flipped.
+- **A want must not average.** Weighted over everything timber could become, the want spread so thin over so many coordinates that gathering wood fit every moment a little and no moment well.
+- **Preconditions are not the moment.** Eating inheriting the stock it needs, and study the skill it needs, both lost to gathering wood on cosine: those coordinates sit dead against the situation and dilute the ones that matter. Consume adds no holding; the practice-want lives on the pupil role.
+- **An underspecified prior is a universal one.** Moving house came out as bare nearness, which fits nearly any moment, and agents moved house instead of living in one.
+- **Refining does not want what it holds.** A meal out of provisions is a keeping act, not a hungry one; a make whose output is-a its input adds only the output's delta over the input.
+
+**Slots.** Habit tables were arrays bounded at thirty-two. They are slices indexed by slot, where `habit.Register` gives an act's key a slot once, in registration order, and never renumbers it: an act that enters the catalog later takes a fresh slot after everything before it, every table grows to make room (`Agent.Room`, `World.Room`), and an agent alive when that happens is seeded for the new act from its prior at its next decision and keeps what it had learned of the rest (`Agent.Seeded`).
+
+**Taking is one act.** Foraging, hunting, felling, fishing, and cutting stone were five copies of the same act. `take.go` states them as data: a *lode* per material (the tile stock it draws on, how much a taking takes and gives, the luck in it, what it wears and teaches, what the tile becomes) and a *ground* per site (how to know a tile of it, and which tile the taking draws on - fishing stands on the bank and draws on the water beside it). Any taking the trees entail for a material with a lode at a site with a ground is carried out without code of its own. The five keep their names and numbers and the order they draw luck in; a picked forest still gives something, on purpose, and the paving test fails if it does not.
+
+**Adding a material** is now: a class under `Material` with its traits, an entry in `Affords` for where it lies, a lode row, and a stock on the tile if it draws one down. The walk entails the taking, the composition gives it a prior, the registry gives it a slot, and the binding at start says if anything is missing. Making, raising, and the rest are still bound by hand to the tuned mechanics they had - a meal's `helping`, a house's `RoomToBuild`, a bridge's cost - and go the same way verb by verb as their bespoke logic allows.
