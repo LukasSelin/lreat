@@ -61,6 +61,35 @@ var structureCost = [...]float64{
 // shape of a settlement's roads show up in how tired its people are.
 const roadDrain = 0.7
 
+// SwimLoad is the most a walker may be carrying and still take to the water.
+// It is not a heavy pack; it is nothing at all, near enough. People are poor
+// swimmers with both arms free, and a person holding a sack of grain over a
+// river is a person drowning: what they do in life is put the sack down or
+// walk to the bridge. So the water is not dear to a laden walker, it is shut,
+// and the threshold is here only so that a crumb left in a pocket does not
+// count as cargo.
+//
+// This is what makes a bridge worth its timber to somebody who already lives
+// beside a ford. Wading was always slow; now it is the difference between
+// carrying the harvest home and not carrying it at all, and the far bank is
+// only part of the settlement for as long as the crossing stands.
+const SwimLoad = 0.1
+
+// Carrying tells the router how much the walker it is about to route for is
+// holding, so that a laden walker is routed round open water instead of
+// through it. It holds for the next route this router runs and no longer,
+// which is what keeps a load from leaking into somebody else's journey.
+func (r *Router) Carrying(load float64) *Router {
+	r.load = load
+	return r
+}
+
+// Carrying routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) Carrying(load float64) *Router {
+	return g.ownRouter().Carrying(load)
+}
+
 // MoveCost returns the ticks of effort needed to enter p. Tiles off the map
 // are infinitely expensive, which keeps agents inside it.
 func (g *Grid) MoveCost(p entity.Pos) float64 {

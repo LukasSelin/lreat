@@ -108,7 +108,9 @@ func Situation(a *entity.Agent, w *world.World, d *Def, target entity.Pos, share
 // own.
 func SituationOn(a *entity.Agent, w *world.World, r *world.Router, d *Def, target entity.Pos, shared habit.Signature) habit.Signature {
 	s := shared
-	cost := r.TravelCost(a.Pos, target) / a.Vigor(w.Tick)
+	// Costed with what the agent is holding, so that a target it would have
+	// to swim to with an armful reads as far off as the walk round is.
+	cost := r.Carrying(a.Load()).TravelCost(a.Pos, target) / a.Vigor(w.Tick)
 	s[habit.Near] = 1 - 2*need.Clamp(cost/nearKnee)
 	if d.With != nil {
 		if o := d.With(a, w, target); o != nil {

@@ -81,6 +81,13 @@ func (t *Tile) Bridged() bool {
 	return t.Structure == Road && t.Terrain == Water
 }
 
+// Deep reports whether crossing this tile means swimming: water with nothing
+// built over it. A bridge is not deep, because the walker is on the road and
+// the water is underneath.
+func (t *Tile) Deep() bool {
+	return t.Terrain == Water && t.Structure == None
+}
+
 // Grid is the world map, row-major.
 type Grid struct {
 	W, H  int

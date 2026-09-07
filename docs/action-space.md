@@ -375,6 +375,12 @@ Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
 
 Better on both counts, which is unusual for a change made for the look of the thing.
 
+**Nobody swims with their hands full.** The wading above is wading with nothing to carry. A person is a poor swimmer at the best of times, and a person holding a sack of grain over a river is a person drowning: what they actually do is put the sack down or walk to the bridge. So a walker carrying more than `world.SwimLoad` - a tenth of a unit, which is a crumb in a pocket rather than a pack - is routed round open water instead of through it, by `Router.Carrying`, which the agent sets from `Agent.Load` before every route it costs or walks. The water is not made dearer to such a walker, which was the fix that failed above; it is shut to them.
+
+Two ways through it remain, and both are wanted. The end of a journey may be a water tile, so somebody may still wade in from the bank to fish it, or to stand in it with the timber and build the bridge - the crossing could otherwise never be built by anyone carrying what it is built from. And a step from water to water is always allowed, so a walker the river has risen under, or whose bridge has gone, can get out with what they are holding: what is forbidden is walking in, not being in.
+
+This is what a bridge is worth. Wading was slow; it is now the difference between carrying the harvest home and not carrying it, and the far bank belongs to the settlement only for as long as the crossing stands. Three seeds at 4000 ticks, against the same seeds with swimming free: population 40/117/123 against 44/74/99, and the fords still get worn and bridged, because everyone crosses empty-handed on the way out and comes back the long way.
+
 ### The land underneath
 
 The map used to be a sine wave with a river drawn along it and fertility measured as distance from that river. It is now a piece of ground, and everything else is read off it. `core/world/relief.go` holds the whole of it, and the order is the one a landscape obeys:
