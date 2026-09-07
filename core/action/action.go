@@ -114,14 +114,29 @@ func foodValue(a *entity.Agent) float64 {
 	return 0.25 * math.Max(0, 1-a.Inventory[entity.Food]/4)
 }
 
-// Rest is the fallback. It is always available and barely worth anything.
+// A rest restores a little of the body, and more under a roof.
+const (
+	restGain = 0.03
+	roofGain = 0.05
+)
+
+// Rest is the fallback. It is always available and barely worth anything,
+// though it is worth more at home or in the tavern, which is where an agent
+// goes for it when either is close.
 var Rest = &Def{
-	Name: "rest", Ticks: 1, Available: always, Target: here,
-	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: 0.03}
+	Name: "rest", Ticks: 1, Available: always, Target: comfort,
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
+		if underRoof(a, w, target) {
+			return need.Levels{need.Physiological: roofGain}
+		}
+		return need.Levels{need.Physiological: restGain}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		a.Needs.Add(need.Physiological, 0.03)
+		if underRoof(a, w, a.Pos) {
+			a.Needs.Add(need.Physiological, roofGain)
+			return
+		}
+		a.Needs.Add(need.Physiological, restGain)
 	},
 }
 
@@ -162,18 +177,28 @@ func helping(a *entity.Agent) (meals, raw, restores float64) {
 	return meals, raw, meals*mealNourish + raw*nourished
 }
 
+// A meal eaten in company at the tavern is a little belonging as well.
+const tableCheer = 0.03
+
 var Eat = &Def{
-	Name: "eat", Ticks: 1, Target: here,
+	Name: "eat", Ticks: 1, Target: comfort,
 	Available: func(a *entity.Agent, _ *world.World) bool { return Edible(a) >= mouthful },
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
+	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		_, _, restores := helping(a)
-		return need.Levels{need.Physiological: restores}
+		gain := need.Levels{need.Physiological: restores}
+		if inTavern(w, target) && intended(a, w, target) != nil {
+			gain[need.Belonging] = tableCheer
+		}
+		return gain
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		meals, raw, restores := helping(a)
 		a.Inventory[entity.Meals] -= meals
 		a.Inventory[entity.Food] -= raw
 		a.Needs.Add(need.Physiological, restores)
+		if inTavern(w, a.Pos) && w.Neighbor(a, 1) != nil {
+			a.Needs.Add(need.Belonging, tableCheer)
+		}
 	},
 }
 

@@ -161,6 +161,47 @@ func worthGuarding(a *entity.Agent, w *world.World) bool {
 	return w.AgentAt(w.MarketPos, placeRadius, a) != nil
 }
 
+// Comfort. Resting and eating happen wherever an agent is, since a body
+// that must be fed cannot be made to walk home first; but within a short
+// walk they prefer a roof, home or the tavern by temperament, and are the
+// better for it.
+
+// comfortRadius is how far an agent will go to rest or eat under a roof: a
+// single step. Recognition reads distance as poor fit, so a meal sent a few
+// tiles off fits worse exactly when it should happen, and a one-tick act
+// becomes a walk for the starving. At four tiles this preference killed
+// two thirds of settlements over 96 seeds; at two it cost a dozen; at one
+// it costs nothing.
+const comfortRadius = 1
+
+// comfort is where an agent would rest or eat: home or the tavern if either
+// is close, the warm preferring the tavern and the cool their own hearth;
+// otherwise right here.
+func comfort(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	home := func() (entity.Pos, bool) {
+		if a.HasHome && entity.Dist(a.Pos, a.Home) <= comfortRadius {
+			return a.Home, true
+		}
+		return entity.Pos{}, false
+	}
+	tavern := func() (entity.Pos, bool) { return nearPlace(w, a.Pos, comfortRadius, world.Tavern) }
+	order := []func() (entity.Pos, bool){home, tavern}
+	if outgoing(a) {
+		order = []func() (entity.Pos, bool){tavern, home}
+	}
+	for _, f := range order {
+		if p, ok := f(); ok {
+			return p, true
+		}
+	}
+	return a.Pos, true
+}
+
+// underRoof reports whether p is at the agent's own house or in a tavern.
+func underRoof(a *entity.Agent, w *world.World, p entity.Pos) bool {
+	return (a.HasHome && p == a.Home) || inTavern(w, p)
+}
+
 // inTavern reports whether p is in or beside a tavern.
 func inTavern(w *world.World, p entity.Pos) bool {
 	_, ok := nearPlace(w, p, 1, world.Tavern)
