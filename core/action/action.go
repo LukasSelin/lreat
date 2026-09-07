@@ -727,15 +727,15 @@ func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	// ford is never the busiest ground in a settlement because everybody who
 	// can avoid it does. Left to compete on wear alone a bridge is never
 	// built, and the two banks stay two settlements.
-	ford := func(t *world.Tile) bool { return t.Terrain == world.Water && afford(t) }
-	if p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, ford); ok && worn >= wornEnough {
-		return p, true
+	water := func(t *world.Tile) bool { return t.Terrain == world.Water }
+	street, ford := w.Grid.BusiestPair(a.Pos, pavingRadius, afford, water)
+	if ford.Found && ford.Worn >= wornEnough {
+		return ford.Pos, true
 	}
-	p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, afford)
-	if !ok || worn < wornEnough {
+	if !street.Found || street.Worn < wornEnough {
 		return entity.Pos{}, false
 	}
-	return p, true
+	return street.Pos, true
 }
 
 // Pave is the settlement's first work on the common ground: a stretch of road

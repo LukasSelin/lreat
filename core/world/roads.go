@@ -60,7 +60,22 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 	if !g.In(p) {
 		return 0
 	}
-	d := g.At(p).Traffic
+	i := p.Y*g.W + p.X
+	d := g.Tiles[i].Traffic
+	// Away from the edge the eight neighbours are eight fixed steps along
+	// the tile slice, in the same order dirs walks them, so the case for a
+	// road adds up the same way without asking the map where it is eight
+	// times over. This is read for every tile in sight of anybody holding
+	// timber, which is often enough for that to matter.
+	if p.X > 0 && p.Y > 0 && p.X < g.W-1 && p.Y < g.H-1 {
+		w := g.W
+		for _, o := range [8]int{-w - 1, -w, -w + 1, -1, 1, w - 1, w, w + 1} {
+			if t := &g.Tiles[i+o]; !t.Pavable() && t.Structure != Road {
+				d += t.Traffic
+			}
+		}
+		return d
+	}
 	for _, off := range dirs {
 		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
 		if !g.In(q) {
@@ -81,25 +96,44 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 // nearest the top left, so two agents reading the same ground reach for the
 // same spot.
 func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity.Pos, float64, bool) {
-	var best entity.Pos
-	var worn float64
-	found := false
-	for y := from.Y - radius; y <= from.Y+radius; y++ {
-		for x := from.X - radius; x <= from.X+radius; x++ {
-			p := entity.Pos{X: x, Y: y}
-			if !g.In(p) {
-				continue
-			}
-			t := g.At(p)
+	wide, _ := g.BusiestPair(from, radius, ok, nil)
+	return wide.Pos, wide.Worn, wide.Found
+}
+
+// Pick is where a scan of the ground would lay a road, and how strong the
+// case for laying it there is. Found is false when the scan was offered
+// nothing at all.
+type Pick struct {
+	Pos   entity.Pos
+	Worn  float64
+	Found bool
+}
+
+// BusiestPair answers two questions off one walk of the ground: the busiest
+// tile ok admits, and the busiest one narrow admits as well. Somebody with
+// timber in hand asks both every time they think about roads - which ford
+// wants a bridge, and which ground wants a street - and the two answers come
+// off the same neighbourhood, so they come off the same walk of it.
+func (g *Grid) BusiestPair(from entity.Pos, radius int, ok, narrow func(*Tile) bool) (wide, close Pick) {
+	y0, y1 := max(0, from.Y-radius), min(g.H-1, from.Y+radius)
+	x0, x1 := max(0, from.X-radius), min(g.W-1, from.X+radius)
+	for y := y0; y <= y1; y++ {
+		for x := x0; x <= x1; x++ {
+			t := &g.Tiles[y*g.W+x]
 			if !t.Pavable() || (ok != nil && !ok(t)) {
 				continue
 			}
-			if d := g.Draw(p); d > worn {
-				best, worn, found = p, d, true
+			p := entity.Pos{X: x, Y: y}
+			d := g.Draw(p)
+			if d > wide.Worn {
+				wide = Pick{Pos: p, Worn: d, Found: true}
+			}
+			if narrow != nil && d > close.Worn && narrow(t) {
+				close = Pick{Pos: p, Worn: d, Found: true}
 			}
 		}
 	}
-	return best, worn, found
+	return wide, close
 }
 
 // Pave lays a road on one tile and reports whether it took. Woods in the way
