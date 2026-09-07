@@ -99,7 +99,7 @@ func raising(in ontology.Instance) *Def {
 		return nil
 	}
 	for _, c := range in.Schema.Inputs {
-		if _, ok := good(c); !ok {
+		if _, ok := world.GoodOf(c); !ok {
 			return nil
 		}
 	}

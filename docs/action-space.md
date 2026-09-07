@@ -686,6 +686,35 @@ Two rules held across all of them. *What an act promises it gives*: the esteem a
 
 **Where to tune, now.** `core/action/priors.go` still holds the priors as they were written by hand, and they are kept as `Def.Tuned` for the golden test - but they no longer run. Exposure was added there first and reached nothing for a merge. What an act recognises is changed in `core/ontology`: the class's stock coordinate, a trait's want, a role's moment, a site's `At`, or the residue on the schema. The golden test says how far the composition has moved from what was tuned; the city test says whether the settlement still lives on it.
 
+## The world's half
+
+The ontology above states what an agent can do and to what. That is half of it. The other half is what happens with nobody doing it - a crop coming on, food going off, a house nobody is left to keep falling in - and it was stated nowhere: it lived as constants in `system/land.go`, `system/upkeep.go`, `system/market.go` and `world/grow.go`, four files that had to agree and had no way of saying so. `ontology.Transforms` had been declared as the home for it and never had a consumer. It does now.
+
+**Two kinds, kept apart.** A **process** is a maturing: monotone, on a clock, and readable in advance. A **transform** is a hazard or an attrition: a rate, whose whole point is that it *cannot* be read in advance. They are not one type with a dead field on each declaration; they are two, run by one file.
+
+```
+Process                                   Transform
+  crop   Field  → Grain   sown | ear        provision @ market  0.01   unless granary
+  brush  Wood   → Berries scrub             provision @ person  0.002
+  timber Wood   → Timber  thicket           dwelling            1/300  kept
+                                            field → open        1/300  kept
+                                            site  → open        1      kept
+```
+
+A wood runs *two* processes off one clock - the brush under it within a few years, the timber over a lifetime - which is why how far along a thing is has to be a reading of its one age rather than a record kept per process. `world.Tile.Age` was already that age; nothing was added to the tile.
+
+**A stage is what an act asks for.** This is what the exercise was for. Farming's ready mark was `readyCrop = 0.5`, a float in a `Def.Available` closure, and the paragraph explaining that it is the whole of crop rotation sat beside it in `core/action`. A crop is now `{sown, 12.5}, {ear, 12.5}`, and the harvest asks `t.Reached(ontology.InEar)`. The number is gone; the stage has a name; the reasoning lives with the thing it is about. The halves are written `12.5` and not `Season/2` because a season is 25 ticks and two integer halves of it come to 24 - the kind of mistake this restructure exists to make impossible to make quietly.
+
+**The ontology stays a leaf.** It knows nothing of tiles or packs. Where its names are to be found on the map is `core/world/stock.go`: `ClassOf` says what a tile is, `Stock` where a material's number lives, `GoodOf` what a material is in a pack. That last one is why a rate cannot sit on a leaf class - a pack keeps one number for everything edible, so berries cannot spoil faster than grain, and the table says so rather than pretending otherwise.
+
+**`Step` did not change, on purpose.** Growing has to happen before anybody decides what to do about it, spoiling after the market has been traded in, ruin after the dead have been counted. The three runners - `ripen`, `wither`, `spoil` - went where the code they replace already stood rather than gathering into a phase of their own, because the order the world's chance is drawn in is the order every settlement's history depends on. `wither` resolves what becomes of a tile *before* spending any luck on it, and a certainty draws nothing: a number drawn and not used is a different settlement three generations on.
+
+**Nothing moved.** The check was not the test suite, which only holds a run against itself. It was a hash of the whole world - every tile's terrain, structure, owner, age and stocks, every agent's position, needs, inventory and skills, the market, the log length - taken at 2000 ticks on four seeds and compared after every step. Both 24-seed batches came out identical to the baseline. That is the standard a restructure has to meet: not "no significant change", but no change.
+
+**Opportunity, and why there is no such type.** The relation the doc called `Affords` was called `Holds` in the code; it is `Affords` now, and `Offers` asks it. That is the static half - what a kind of place is good for, before anybody has gone to look at one. The dynamic half stayed two closures. `Def.Available` and `Def.Target` run for every act for every agent every tick, and `action.Candidate` already *is* what is on offer here, now, to this person; wrapping it in an object would put an allocation in the hottest loop in the program in exchange for a noun. The distinction worth keeping is the one `entity.Place` and `entity.Request` already draw: **an opportunity is only a thing when it can be wrong or when it can wait.** A place remembered may be nothing like what the ground now promises, and that gap is why scouting is worth anything; a request outlives the tick it was posted in and can go unmet. A candidate recomputed from ground truth every tick is a function call.
+
+**Events say what they are.** `cmd/tune` counted what a settlement did by searching the event text for `" finished "`. An event now carries the ontology key of the act it came out of and the ground it happened on, and the sentence is only the sentence. There are no stage-transition events: a crop ripening per field per season is thousands of events with no reader, the log is bounded and drops its oldest tenth, and flooding it would evict the births and deaths that *are* read. A stage can be looked at for free. The event goes in when something wants to be told rather than to look.
+
 ## History: the learning that used to be here
 
 The sections below describe the reward-driven layer as it worked before it was removed. Nothing in them is live. They are kept because they record what the priors now have to carry unaided, and because the findings about the space itself - what an advantage does that a raw reward does not, why a public good is never learned against a general baseline - are the reason some of the priors are shaped the way they are.

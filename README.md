@@ -56,6 +56,14 @@ judged against another — a single seed is a coin toss:
 go run ./cmd/tune -seeds 24 -ticks 6000
 ```
 
+What that batch prints on master is checked in at
+[docs/baseline.md](docs/baseline.md), so a change is judged against a file
+rather than against a batch run to find out where master already stood. Take the
+one run that measures the change once it is settled, and refresh the file in the
+commit that lands it. The `baseline` skill in
+[.claude/skills](.claude/skills/baseline/SKILL.md) is that procedure written
+out, including which of the numbers are steady enough to believe.
+
 All three take `-seed` and `-agents`. A seed plus a command log reproduces a run
 exactly, however the goroutines happen to interleave.
 
@@ -93,7 +101,7 @@ carry on their own now.
 | `core/need` | the leaky hierarchy of needs that drives every agent |
 | `core/habit` | the space in which a moment is recognised; a leaf package |
 | `core/action` | the catalog of what can be done, and the priors behind it |
-| `core/ontology` | what the world is made of, arranged so that what can be done follows from what it is |
+| `core/ontology` | what the world is made of, arranged so that what can be done follows from what it is — and what happens to it with nobody doing anything |
 | `core/belief` | what agents think is true and what they think is right — neither guaranteed to match the world |
 | `core/event` | the append-only record of everything that happened |
 | `core/observe` | the read side: snapshots for renderers, and the perception filter |

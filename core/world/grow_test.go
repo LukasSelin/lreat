@@ -17,14 +17,15 @@ func TestLivingGroundMatchesTheOntology(t *testing.T) {
 			named[c] = true
 		}
 	}
-	for terrain, c := range living {
-		if !c.Has(ontology.Living) {
-			t.Fatalf("terrain %d is grown as %s, which the ontology does not call living", terrain, c.Path())
+	for terrain, c := range grounds {
+		tile := &Tile{Terrain: terrain}
+		if tile.Alive() != c.Has(ontology.Living) {
+			t.Fatalf("terrain %d grows as %s, which the ontology does not call living", terrain, c.Path())
 		}
 		delete(named, c)
 	}
 	for c := range named {
-		t.Fatalf("%s is living in the ontology and grows nowhere in the world", c.Path())
+		t.Fatalf("%s is living in the ontology and is no terrain in the world", c.Path())
 	}
 }
 
@@ -41,22 +42,22 @@ func TestAStandComesOnAndHolds(t *testing.T) {
 	if !tile.Alive() {
 		t.Fatal("a wood carries nothing growing")
 	}
-	if tile.Grown(TimberAge) != 0 {
+	if tile.Grown(ontology.Timbering.Full()) != 0 {
 		t.Fatal("a stand sown this tick is already grown")
 	}
-	tile.Age = BrushAge
-	if tile.Grown(BrushAge) != 1 {
+	tile.Age = ontology.Brush.Full()
+	if tile.Grown(ontology.Brush.Full()) != 1 {
 		t.Fatal("brush that has had its years is not grown")
 	}
-	if tile.Grown(TimberAge) >= 1 {
+	if tile.Grown(ontology.Timbering.Full()) >= 1 {
 		t.Fatal("timber comes on as fast as brush")
 	}
-	tile.Age = 10 * TimberAge
-	if tile.Grown(TimberAge) != 1 {
+	tile.Age = 10 * ontology.Timbering.Full()
+	if tile.Grown(ontology.Timbering.Full()) != 1 {
 		t.Fatal("an old wood is more than grown")
 	}
 	tile.Sow()
-	if tile.Grown(TimberAge) != 0 {
+	if tile.Grown(ontology.Timbering.Full()) != 0 {
 		t.Fatal("sowing did not start the stand over")
 	}
 }
@@ -66,8 +67,8 @@ func TestAStandComesOnAndHolds(t *testing.T) {
 func TestFoundingWoodsAreOldWoods(t *testing.T) {
 	g := New(2).Grid
 	for i := range g.Tiles {
-		if t2 := &g.Tiles[i]; t2.Terrain == Forest && t2.Grown(TimberAge) < 1 {
-			t.Fatalf("a founding wood is only %.2f grown", t2.Grown(TimberAge))
+		if t2 := &g.Tiles[i]; t2.Terrain == Forest && t2.Grown(ontology.Timbering.Full()) < 1 {
+			t.Fatalf("a founding wood is only %.2f grown", t2.Grown(ontology.Timbering.Full()))
 		}
 	}
 }

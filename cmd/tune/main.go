@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 
 	"lreat/core/action"
@@ -89,10 +88,8 @@ func main() {
 					}
 				}
 				for _, e := range w.Log.Since(last) {
-					if e.Kind == event.Acted {
-						if k := strings.Index(e.Text, " finished "); k >= 0 {
-							acts[e.Text[k+len(" finished "):]]++
-						}
+					if e.Kind == event.Acted && e.Act != "" {
+						acts[e.Act]++
 					}
 				}
 				last = w.Tick + 1

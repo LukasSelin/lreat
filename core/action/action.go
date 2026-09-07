@@ -376,20 +376,16 @@ func bearing(a *entity.Agent, w *world.World) float64 {
 // and is worked as one - see bearing - but the crop stands on the strip it
 // was sown in, and it is cut strip by strip.
 func ripe(w *world.World, p entity.Pos) float64 {
-	return w.Grid.At(p).Grown(world.CropAge)
+	return w.Grid.At(p).Along(ontology.Crop)
 }
 
-// readyCrop is how far a crop must have come before it is worth cutting. A
-// crop half grown is not what anybody does with a field, and where the line
-// sits does not change what a strip gives over a year: the yield is the
-// growth, so half a crop taken twice as often comes to the same bread.
-//
-// What it does decide is what a holding is for. A strip cut is bare ground
-// again and has to come on before it can be cut a second time, so a
-// household with one strip waits and a household with three works them in
-// turn. That is the whole of crop rotation, and nobody had to be told it:
-// the ground says when, and the size of the holding says how often.
-const readyCrop = 0.5
+// cuttable reports whether the crop on a strip has come far enough to be
+// worth cutting. What far enough is, is the ontology's to say: a crop is
+// worth cutting once it is in ear, and that is a stage of the growing and
+// not a number kept here. See ontology.Crop for what a holding is for.
+func cuttable(w *world.World, p entity.Pos) bool {
+	return w.Grid.At(p).Reached(ontology.InEar)
+}
 
 // plough reports whether open ground is worth breaking: soil the crop will
 // come up in, and not the yard of somebody's house. A settlement keeps its
@@ -513,7 +509,7 @@ var Farm = &Def{
 			return false
 		}
 		p, ok := worked(a, w)
-		return ok && ripe(w, p) >= readyCrop
+		return ok && cuttable(w, p)
 	},
 	Target: worked,
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {

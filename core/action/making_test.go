@@ -5,6 +5,7 @@ import (
 
 	"lreat/core/entity"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -109,12 +110,12 @@ func TestSmeltingMakesMoreThanCrafting(t *testing.T) {
 func TestAToolMakesTheFieldGoFurtherAndWears(t *testing.T) {
 	w, a := workshop(t)
 	run(w, a, Clear)
-	season(w, world.CropAge)
+	season(w, ontology.Crop.Full())
 	run(w, a, Farm)
 	bare := a.Inventory[entity.Food]
 	a.Inventory[entity.Food] = 0
 	a.Inventory[entity.Tools] = 1
-	season(w, world.CropAge)
+	season(w, ontology.Crop.Full())
 	Farm.Apply(a, w)
 	if !(a.Inventory[entity.Food] > bare-2) { // the first farm claimed the field from 2 food
 		t.Fatalf("a tool should make the field go further: %v with, %v without", a.Inventory[entity.Food], bare-2)
