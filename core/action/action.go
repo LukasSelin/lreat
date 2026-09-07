@@ -83,11 +83,11 @@ var instances = func() map[string]ontology.Instance {
 const Derived = true
 
 // mechanics binds an act the ontology entails to the code that carries it
-// out. Takings, makings, raisings, and exchanges are not listed: one verb
-// carries each, from what the lode and the ground say (see take.go), the
-// recipe (see make.go), the plan (see raise.go), or the terms (see
-// exchange.go), and those named here are named only because the rest of
-// the package refers to them. An act the ontology entails and nothing carries
+// out. Takings, makings, raisings, exchanges, and transfers are not
+// listed: one verb carries each, from what the lode and the ground say
+// (see take.go), the recipe (see make.go), the plan (see raise.go), the
+// terms (see exchange.go), or the hand (see transfer.go), and those named
+// here are named only because the rest of the package refers to them. An act the ontology entails and nothing carries
 // is a catalog that cannot be assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
@@ -112,7 +112,7 @@ var mechanics = map[string]*Def{
 	"dwell/guard@market":                Guard,
 	"exchange/material>coin@market":     Sell,
 	"exchange/coin>provision@market":    Buy,
-	"transfer/provision>neighbour":      Give,
+	"transfer/provision>needy":          Give,
 	"transfer/material>requester":       Fulfil,
 	"transfer/provision<holder":         Steal,
 	"pass/practice>pupil":               Teach,
@@ -134,6 +134,8 @@ func init() {
 				d = raising(in)
 			case ontology.Exchange:
 				d = exchanging(in)
+			case ontology.Transfer:
+				d = transferring(in)
 			}
 		}
 		if d == nil {
