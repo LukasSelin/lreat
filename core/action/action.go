@@ -70,15 +70,24 @@ var Count int
 // declaration would make that a cycle.
 var Catalog []*Def
 
-// instances is what the ontology entailed, by key, for seeding.
-var instances = map[string]ontology.Instance{}
+// instances is what the ontology entailed, by key.
+var instances = func() map[string]ontology.Instance {
+	m := map[string]ontology.Instance{}
+	for _, in := range ontology.Instantiate() {
+		m[in.Key] = in
+	}
+	return m
+}()
 
 // Derived selects the composed prior over the hand-tuned one.
 const Derived = true
 
-// mechanics binds each act the ontology entails to the code that carries it
-// out. An act the ontology entails and nothing here carries is a catalog
-// that cannot be assembled, and says so at start.
+// mechanics binds an act the ontology entails to the code that carries it
+// out. Takings are not listed: one verb carries them all, from what the
+// lode and the ground say (see take.go), and these five are only named
+// here because the rest of the package refers to them. An act the
+// ontology entails and nothing carries is a catalog that cannot be
+// assembled, and says so at start.
 var mechanics = map[string]*Def{
 	"take/berries@wood":                 Forage,
 	"take/game@wood":                    Hunt,
@@ -114,6 +123,9 @@ var mechanics = map[string]*Def{
 func init() {
 	for _, in := range ontology.Instantiate() {
 		d := mechanics[in.Key]
+		if d == nil && in.Schema.Verb == ontology.Take {
+			d = taking(in)
+		}
 		if d == nil {
 			panic("action: nothing carries out " + in.Key)
 		}
@@ -121,7 +133,6 @@ func init() {
 			panic("action: " + d.Name + " bound twice, to " + d.Key + " and " + in.Key)
 		}
 		d.Key = in.Key
-		instances[in.Key] = in
 		if habit.Register(in.Key) != len(Catalog) {
 			panic("action: slot for " + in.Key + " is not its catalog position")
 		}
@@ -264,28 +275,7 @@ const forageTake = 0.08
 // the field rather than into the ground.
 func forageYield(wild float64) float64 { return 0.45 + 0.55*wild }
 
-var Forage = &Def{
-	Name: "forage", Ticks: 2, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		// The nearest forest, thin as it may be. Going further for a fuller
-		// patch was tried: the walk each way, on the errand the whole
-		// economy runs on, cost more than the fuller patch gave, and a
-		// forager who stays put and finds less is what turns a settlement
-		// toward the river and the field.
-		return w.Grid.Nearest(a.Pos, searchRadius, isForest)
-	},
-	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
-		return need.Levels{need.Physiological: foodValue(a) * forageYield(w.Grid.At(target).Wild)}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if t.Terrain != world.Forest {
-			return // somebody cleared it while we walked
-		}
-		a.Inventory[entity.Food] += forageYield(t.Wild) * (0.6 + 0.8*w.RNG.Float64())
-		t.Wild = max(0, t.Wild-forageTake)
-	},
-}
+var Forage = take("take/berries@wood")
 
 // farmWear is the fertility one farming takes from a field, and wornField
 // the least a field is worn down to. A field farmed without rest goes poor
@@ -515,33 +505,7 @@ const (
 	armful   = 0.5
 )
 
-var GatherWood = &Def{
-	Name: "gather wood", Ticks: 2, Available: always,
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		return w.Grid.Nearest(a.Pos, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
-			return t.Terrain == world.Forest && t.Wood >= 0.3
-		})
-	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		// Instrumental: wood is only worth something if you lack shelter or craft.
-		want := 0.0
-		if a.Inventory[entity.Wood] < raisingTimber {
-			want = 0.1*(1-a.Shelter) + 0.03*a.Skills[entity.Crafting]
-		}
-		return need.Levels{need.Safety: want, need.Esteem: want * 0.3}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		t := w.Grid.At(a.Pos)
-		if t.Terrain != world.Forest {
-			return
-		}
-		t.Wood -= treeTake
-		a.Inventory[entity.Wood] += armful
-		if t.Wood < 0.1 {
-			t.Terrain, t.Wood = world.Grass, 0
-		}
-	},
-}
+var GatherWood = take("take/timber@wood")
 
 // Raising a house and keeping one are the same act to the person doing it
 // and quite different things to the forest. raisingTimber is the frame: the

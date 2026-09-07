@@ -85,29 +85,7 @@ var Cook = &Def{
 
 func quarryYield(a *entity.Agent) float64 { return 0.5 + a.Skills[entity.Building] }
 
-var Quarry = &Def{
-	Name: "quarry", Ticks: 3,
-	Available: func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[entity.Tools] >= 0.5 && known(a, w, "quarrying", "quarry")
-	},
-	Target: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-		return w.Grid.Nearest(a.Pos, searchRadius, isRock)
-	},
-	Expect: func(a *entity.Agent, _ *world.World, _ entity.Pos) need.Levels {
-		// Stone is for building; it is worth the safety of the house it
-		// will go into, if the agent lacks one.
-		return need.Levels{need.Safety: 0.06 * (1 - a.Shelter) * quarryYield(a), need.Esteem: 0.03}
-	},
-	Apply: func(a *entity.Agent, w *world.World) {
-		if w.Grid.At(a.Pos).Terrain != world.Rock {
-			return
-		}
-		a.Inventory[entity.Stone] += quarryYield(a)
-		a.Inventory[entity.Tools] = max(0, a.Inventory[entity.Tools]-quarryWear)
-		a.AddSkill(entity.Building, 0.01)
-		a.Needs.Add(need.Esteem, 0.03)
-	},
-}
+var Quarry = take("take/stone@outcrop")
 
 // granarySite is a plot beside the market. Like a house it wants its own
 // ground around it: a granary the carts cannot get round is no use to the
