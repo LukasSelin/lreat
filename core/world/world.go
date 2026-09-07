@@ -19,6 +19,7 @@ import (
 	"lreat/core/belief"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/habit"
 	"lreat/core/need"
 )
 
@@ -53,6 +54,24 @@ func DefaultModifiers() Modifiers {
 	}
 }
 
+// Rules selects how agents choose. Unlike Modifiers these are never changed
+// by anything inside the simulation; they are set once when a world is made.
+type Rules struct {
+	// Fit makes agents choose by recognition, sampling the action whose
+	// habit best fits the moment, instead of by expected value. See package
+	// habit.
+	Fit bool
+	// Temperature is the base softmax temperature of fit-based choice. Zero
+	// takes the best fit every time.
+	Temperature float64
+}
+
+// DefaultRules is recognition. The value rule, the original, stays behind
+// the flag for comparison. See docs/action-space.md.
+func DefaultRules() Rules {
+	return Rules{Fit: true, Temperature: 0.15}
+}
+
 // MarketState is a single shared marketplace with a stock and a price per good.
 type MarketState struct {
 	Stock [entity.GoodCount]float64
@@ -72,11 +91,22 @@ type World struct {
 	Safety    float64 // public safety in [0,1], raised by guarding, decays
 	Knowledge float64 // accumulated by study, consumed by nothing
 	Mods      Modifiers
+	Rules     Rules
 	Log       *event.Log
 
 	// Requests is the open board of work one agent wants another to do.
 	// Nothing here is authored; the request system posts and clears it.
 	Requests []*entity.Request
+
+	// ReachFloor is how far into reach each action is for everyone here,
+	// by catalog position, raised when the settlement discovers a thing.
+	ReachFloor [habit.MaxActions]float64
+	// Deaths counts everyone who has died here.
+	Deaths int
+	// Choices and Entropy record this tick's fit-based decisions: how many
+	// were made and how open they were in total, for observation.
+	Choices int
+	Entropy float64
 
 	techs     map[Tech]bool
 	nextID    entity.ID
@@ -94,8 +124,9 @@ func New(seed uint64) *World {
 // NewSized creates a world with terrain of the given size.
 func NewSized(seed uint64, width, height int) *World {
 	w := &World{
-		RNG:  rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
-		Mods: DefaultModifiers(),
+		RNG:   rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
+		Mods:  DefaultModifiers(),
+		Rules: DefaultRules(),
 		Market: MarketState{
 			Price: [entity.GoodCount]float64{1, 0.5, 3},
 		},

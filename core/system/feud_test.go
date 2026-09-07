@@ -15,7 +15,7 @@ import (
 // wronged sets up a comfortable victim standing beside the thief who robbed
 // them, with the grudge a theft leaves behind and no values to complicate it.
 func wronged(seed uint64) (*world.World, *entity.Agent, *entity.Agent) {
-	w := world.New(seed)
+	w := valueWorld(seed)
 	victim := w.Spawn("victim", need.Neutral())
 	thief := w.SpawnAt("thief", need.Neutral(), victim.Pos)
 	for _, a := range []*entity.Agent{victim, thief} {
@@ -118,7 +118,7 @@ func TestFeudsFormInALivingSettlement(t *testing.T) {
 	var stolen, avenged, feuds int
 	var mostCaution float64
 	for seed := uint64(1); seed <= 6; seed++ {
-		w := world.New(seed)
+		w := valueWorld(seed)
 		for i := 0; i < 20; i++ {
 			w.Spawn("a", w.RandomPersonality())
 		}

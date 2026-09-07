@@ -15,7 +15,7 @@ import (
 // standing next to it, and returns both.
 func desperate(t *testing.T, seed uint64) (*world.World, *entity.Agent, *entity.Agent) {
 	t.Helper()
-	w := world.New(seed)
+	w := valueWorld(seed)
 	thief := w.Spawn("thief", need.Neutral())
 	victim := w.SpawnAt("victim", need.Neutral(), thief.Pos)
 	thief.Needs = need.Levels{0.05, 0.9, 0.9, 0.9, 0.9}
@@ -97,7 +97,7 @@ func TestWitnessesJudgeByTheirOwnValues(t *testing.T) {
 }
 
 func TestSelfDoubtProducesARequest(t *testing.T) {
-	w := world.New(11)
+	w := valueWorld(11)
 	a := w.Spawn("asker", need.Neutral())
 	w.Spawn("other", need.Neutral())
 	// Wants shelter, has money, and believes it cannot build.
@@ -119,7 +119,7 @@ func TestSelfDoubtProducesARequest(t *testing.T) {
 }
 
 func TestCapableAgentsDoNotAskUntilTheyAreRich(t *testing.T) {
-	w := world.New(12)
+	w := valueWorld(12)
 	a := w.Spawn("builder", need.Neutral())
 	w.Spawn("other", need.Neutral())
 	a.Needs = need.Levels{0.9, 0.1, 0.9, 0.9, 0.9}
@@ -139,7 +139,7 @@ func TestCapableAgentsDoNotAskUntilTheyAreRich(t *testing.T) {
 }
 
 func TestRequestersHireWhoTheyBelieveIsBest(t *testing.T) {
-	w := world.New(13)
+	w := valueWorld(13)
 	a := w.Spawn("asker", need.Neutral())
 	good := w.Spawn("believed good", need.Neutral())
 	bad := w.Spawn("believed bad", need.Neutral())
@@ -156,7 +156,7 @@ func TestRequestersHireWhoTheyBelieveIsBest(t *testing.T) {
 }
 
 func TestFulfillingWorkPaysAndTeachesBothSides(t *testing.T) {
-	w := world.New(14)
+	w := valueWorld(14)
 	client := w.Spawn("client", need.Neutral())
 	doer := w.SpawnAt("doer", need.Neutral(), client.Pos)
 	client.Wealth = 10
@@ -188,7 +188,7 @@ func TestFulfillingWorkPaysAndTeachesBothSides(t *testing.T) {
 }
 
 func TestUnansweredRequestsSourTheRelationship(t *testing.T) {
-	w := world.New(15)
+	w := valueWorld(15)
 	client := w.Spawn("client", need.Neutral())
 	named := w.Spawn("named", need.Neutral())
 	client.Rate(named.ID, entity.Building, 0.8, w.Tick)
@@ -212,7 +212,7 @@ func TestUnansweredRequestsSourTheRelationship(t *testing.T) {
 }
 
 func TestConfidenceTrailsCompetence(t *testing.T) {
-	w := world.New(16)
+	w := valueWorld(16)
 	a := w.Spawn("a", need.Neutral())
 	a.Skills[entity.Farming] = 1
 	a.Efficacy[entity.Farming] = 0.15
@@ -234,7 +234,7 @@ func TestConfidenceTrailsCompetence(t *testing.T) {
 }
 
 func TestRequestsAppearInALivingSettlement(t *testing.T) {
-	w := world.New(21)
+	w := valueWorld(21)
 	for i := 0; i < 20; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}

@@ -8,9 +8,11 @@ package observe
 import (
 	"sort"
 
+	"lreat/core/action"
 	"lreat/core/belief"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/habit"
 	"lreat/core/need"
 	"lreat/core/world"
 )
@@ -72,6 +74,17 @@ type Snapshot struct {
 	Feuds       int
 	Hearsay     int
 
+	// The habit layer. HabitSpread is how far agents' habits have grown
+	// apart, 0 when everyone recognises the same moments the same way.
+	// GatedReach is how far the crafts and learning have come within reach
+	// on average. ChoiceEntropy is how open this tick's decisions were, in
+	// nats, 0 when every choice was certain. Deaths is cumulative.
+	HabitSpread   float64
+	MeanReach     float64
+	GatedReach    float64
+	ChoiceEntropy float64
+	Deaths        int
+
 	Houses, Fields, Forest, Roads int
 	Map                           *MapView
 	Notable                       []event.Event // this tick's events other than routine completions
@@ -93,6 +106,10 @@ func Take(w *world.World) Snapshot {
 		Roads:      w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road }),
 
 		OpenRequests: len(w.Requests),
+		Deaths:       w.Deaths,
+	}
+	if w.Choices > 0 {
+		s.ChoiceEntropy = w.Entropy / float64(w.Choices)
 	}
 	for _, r := range w.Requests {
 		if r.Directed != 0 {
@@ -180,7 +197,56 @@ func Take(w *world.World) Snapshot {
 		return s.Activity[i].Action < s.Activity[j].Action
 	})
 	s.WealthGini = Gini(wealth)
+	s.HabitSpread, s.MeanReach, s.GatedReach = habits(w)
 	return s
+}
+
+// habits measures the habit layer: how far apart agents' recognition has
+// grown, and how far the gated actions have come within reach. Agents not
+// yet imprinted are read as holding the priors.
+func habits(w *world.World) (spread, mean, gated float64) {
+	n := float64(len(w.Agents))
+	if n == 0 {
+		return 0, 0, 0
+	}
+	units := make([][]habit.Signature, action.Count)
+	var gatedN float64
+	for i, d := range action.Catalog {
+		units[i] = make([]habit.Signature, 0, len(w.Agents))
+		for _, a := range w.Agents {
+			h, r := d.Prior, max(d.Reach0, w.ReachFloor[i])
+			if a.Imprinted {
+				h, r = a.Habits[i], max(a.Reach[i], w.ReachFloor[i])
+			}
+			units[i] = append(units[i], habit.Unit(h))
+			mean += r
+			if d.Reach0 < 1 {
+				gated += r
+				gatedN++
+			}
+		}
+	}
+	mean /= n * action.Count
+	if gatedN > 0 {
+		gated /= gatedN
+	}
+	for i := range units {
+		var centre habit.Signature
+		for _, u := range units[i] {
+			for k := range centre {
+				centre[k] += u[k] / n
+			}
+		}
+		for _, u := range units[i] {
+			var d habit.Signature
+			for k := range d {
+				d[k] = u[k] - centre[k]
+			}
+			spread += habit.Norm(d)
+		}
+	}
+	spread /= n * action.Count
+	return spread, mean, gated
 }
 
 // Gini returns the Gini coefficient of a distribution, 0 for perfect equality.

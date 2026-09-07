@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"lreat/core/entity"
+	"lreat/core/habit"
 	"lreat/core/world"
 )
 
@@ -33,6 +34,9 @@ func TestRunnerAppliesCommandsAtTickBoundary(t *testing.T) {
 	})
 	if plan == nil || plan.Action != "study" {
 		t.Fatalf("player plan = %+v, want study in progress", plan)
+	}
+	if plan.Situation == (habit.Signature{}) {
+		t.Fatal("the player's plan should record the moment it was made in, so it can teach")
 	}
 
 	select {

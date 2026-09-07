@@ -12,6 +12,7 @@ import (
 
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/habit"
 	"lreat/core/need"
 	"lreat/core/world"
 )
@@ -30,10 +31,50 @@ type Def struct {
 	// Apply mutates the world when the action completes. The agent is at
 	// its plan's target by then, so Apply works on a.Pos.
 	Apply func(a *entity.Agent, w *world.World)
+
+	// Prior is the kind of moment this action belongs to, the signature every
+	// agent starts from before experience moves its own copy. It is the seed
+	// of recognition-based choice; Expect remains the seed of value-based
+	// choice. See package habit.
+	Prior habit.Signature
+	// Reach0 is how far into reach the action starts for a newborn, in
+	// [0,1]. Ordinary living starts at 1. Crafts and learning start lower and
+	// are brought closer by study, teaching, and discovery.
+	Reach0 float64
+	// Skilled names the skill the action draws on for this agent right now,
+	// if any. It sets the skill dimension of the situation the agent sees
+	// for this candidate. Nil means the action takes no skill.
+	Skilled func(a *entity.Agent, w *world.World) (entity.Skill, bool)
+	// With is the other agent the action is done to or with, given where it
+	// would be done, so that rapport toward that person is part of the
+	// situation. Nil means the action involves nobody in particular.
+	With func(a *entity.Agent, w *world.World, target entity.Pos) *entity.Agent
 }
 
-// Catalog lists every action in a fixed order. Order matters for determinism.
-var Catalog = []*Def{Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy, Guard, Socialize, Craft, Teach, Study}
+// Count is the size of the catalog. It is checked at init so that a table
+// indexed by catalog position can be a fixed array everywhere.
+const Count = 17
+
+// Catalog lists every action in a fixed order. Order matters for
+// determinism, and position is what per-agent habit tables are indexed by.
+// It is assembled in init rather than declared, because some actions reach
+// back into the catalog when they run (study broadens reach, teaching
+// passes it on) and a declaration would make that a cycle.
+var Catalog []*Def
+
+func init() {
+	Catalog = []*Def{
+		Rest, Eat, Forage, Farm, GatherWood, BuildShelter, Sell, Buy,
+		Guard, Socialize, Craft, Teach, Study,
+		Steal, Give, Fulfil, Retaliate,
+	}
+	if len(Catalog) != Count {
+		panic("action: Catalog length does not match Count")
+	}
+	if Count > habit.MaxActions {
+		panic("action: Catalog exceeds habit.MaxActions")
+	}
+}
 
 // ByName returns the action with that name, or nil.
 func ByName(name string) *Def {
@@ -43,6 +84,16 @@ func ByName(name string) *Def {
 		}
 	}
 	return nil
+}
+
+// Index is the catalog position of d, or -1 if it is not in the catalog.
+func Index(d *Def) int {
+	for i, c := range Catalog {
+		if c == d {
+			return i
+		}
+	}
+	return -1
 }
 
 // searchRadius bounds how far agents look for a suitable tile.
@@ -375,6 +426,7 @@ var Teach = &Def{
 		Introduce(o, a, w.Tick)
 		skill, level := a.BestSkill()
 		o.AddSkill(skill, 0.04)
+		Pass(a, o, skill)
 		// The student now knows what the teacher can do, and thinks a little
 		// better of them for the trouble taken.
 		o.Rate(a.ID, skill, level, w.Tick)
@@ -402,6 +454,7 @@ var Study = &Def{
 	Apply: func(a *entity.Agent, w *world.World) {
 		w.Knowledge += (0.2 + a.Skills[entity.Scholarship]) * w.Mods.StudyRate
 		a.AddSkill(entity.Scholarship, 0.02)
+		Broaden(a, w)
 		a.Needs.Add(need.Actualization, 0.3)
 		a.Needs.Add(need.Esteem, 0.03)
 	},

@@ -25,9 +25,18 @@ var moveCost = [...]float64{
 // as open grass. A house is a wall and a hearth rather than a thoroughfare,
 // so crossing one is slower than walking round it. A road is the only thing
 // built purely to be walked on, and it is the fastest ground on the map.
+//
+// The house toll is deliberately mild. Recognition reads distance straight
+// off the ground - a costly walk makes an errand read as a poor fit, rather
+// than merely dividing its worth as the value rule does - so a settlement
+// that grows dear to cross degrades the very judgement its people make, and
+// the worse it gets the more it builds. At 1.6 that loop was enough to stop
+// a settlement replacing its founders. Roads are the answer to it; until
+// somebody decides to lay them, the toll stays where a growing city can
+// carry it.
 var structureCost = [...]float64{
 	None:   0, // unused: terrain decides
-	House:  1.6,
+	House:  1.3,
 	Market: 1,
 	Road:   0.5,
 }

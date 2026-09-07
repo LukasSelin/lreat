@@ -208,6 +208,7 @@ func (v *view) draw() {
 	put(tcell.StyleDefault, "safety %.2f  food price %.2f", s.Safety, s.FoodPrice)
 	put(tcell.StyleDefault, "knowledge %.0f  gini %.2f", s.Knowledge, s.WealthGini)
 	put(tcell.StyleDefault, "friends %-4d feuds %-4d hearsay %d", s.Friendships, s.Feuds, s.Hearsay)
+	put(tcell.StyleDefault, "reach %.2f  spread %.2f  open %.2f", s.GatedReach, s.HabitSpread, s.ChoiceEntropy)
 	techs := "none yet"
 	if len(s.Techs) > 0 {
 		parts := make([]string, len(s.Techs))

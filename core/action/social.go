@@ -10,13 +10,6 @@ import (
 	"lreat/core/world"
 )
 
-// These acts are registered rather than listed in Catalog directly so that the
-// moral and contractual layer can be added without disturbing the base
-// catalog. Registration order is fixed, so the simulation stays deterministic.
-func init() {
-	Catalog = append(Catalog, Steal, Give, Fulfil)
-}
-
 // reachRadius is how far an agent will look for a person to act upon.
 const reachRadius = 8
 
