@@ -336,3 +336,54 @@ This is what brought the value rule back. With `wornEnough` at 60, over six seed
 The value rule improves on every one of the six seeds and lays roads on all of them. Recognition's total falls 12%, which is inside this system's noise - two of the six seeds improved, and the same configuration swings between 19 and 350 across seeds - but it is a fall, and it is recorded here rather than rounded away.
 
 **Cost.** `Busiest` scans a 25x25 window and reads nine tiles per candidate, once per deciding agent per decision, and it is now the most expensive thing in a tick: 2000 ticks of 40 agents went from 650ms to 917ms across the machine. It sits in the parallel phase, so the machine absorbs it. If it ever needs to be cheaper, `Draw` can be computed for the whole grid once per tick in `Weather` instead of per candidate.
+
+### Bridges
+
+A road may be carried over water, and then it is a bridge: the tile stays a river to look at and to fish in, and costs a road to cross. It was added because the settlement straddles its river - the ground worth farming is the ground near the water, so a quarter of the houses end up on the far bank - and with no way to span it those people waded, for ever. It also cut the road network in two, since a way that cannot cross water can only run along its own bank.
+
+Three things had to be true before a bridge was ever built, and each was found by measuring rather than by reasoning:
+
+- **A crossing has to come before a street.** The busiest ground in a settlement is always a lane between houses, never the ford, because everyone who can avoid the water does. Competing on wear alone, a bridge is never the best site and never gets built. `paveSite` therefore looks for an affordable ford first: a street can go round what is in its way, and a river cannot.
+- **A bridge cannot cost more than a house.** It was first set at three lengths of timber against a road's one. Nobody in any settlement ever holds three: agents gather toward the roof they want and spend it the moment they have enough, and the most anyone was ever seen holding was two and a half. The action could not fire at all. It costs two now, the same as a house.
+- **The water must stay cheap.** Making the river dearer to wade is the obvious answer and it is the wrong one. At 5, 7 and 9 the wading barely fell and the population dropped by up to a quarter: a river nobody can afford to cross is a river nobody wears a ford in, and a ford nobody wears is a ford nobody bridges. The cheapest water is what gets a bridge built.
+
+Six seeds, 6000 ticks, 25 founders, against the same seeds with no bridges:
+
+| | population | share of agent-time spent wading |
+|---|---|---|
+| no bridges | 1277 | 2.05% |
+| bridges | 1535 | 0.63% |
+
+Better on both counts, which is unusual for a change made for the look of the thing.
+
+### The land underneath
+
+The map used to be a sine wave with a river drawn along it and fertility measured as distance from that river. It is now a piece of ground, and everything else is read off it. `core/world/relief.go` holds the whole of it, and the order is the one a landscape obeys:
+
+1. **Raise** the ground — five octaves of smoothed random lattice, scaled to `Relief` (60 m over a map).
+2. **Fill** every hollow to the level at which it would spill, by priority-flood inward from the edges, so no ground is left with nowhere to send its water.
+3. **Drain** — each tile's water goes to its lowest neighbour, and `Flow` is the share of the map passing through it. Settled highest-first, so a tile's own total is complete before it is passed on.
+4. **Carve** — the wettest `waterShare` of the map is the river. Nothing about the water is drawn; it is where the water went.
+5. **Height above drainage** (`Tile.Drain`) — how far a tile stands above the water it drains into, got by following its flow down and adding up the fall.
+
+`Slope`, `Aspect` and `Sunlight` are read off `Height` on demand. Woods, outcrops and soil are then scored and thresholded against each map's own distribution rather than against fixed numbers, because a fixed cutoff gives one map a river and the next a puddle: over a handful of seeds the heaviest-draining tile carried between a fifth and four fifths of the map.
+
+**Drain, not flow, is what soil moisture means.** The first version read fertility off flow accumulation and produced a dead world - mean fertility 0.17, essentially no farmland, and three settlements in five collapsed. Flow is a terrible proxy: a tile on the valley floor beside the river carries hardly any flow of its own and is still a water meadow, while a tile halfway up a hillside may carry a gully's worth and be dry as a bone. Reading it off height-above-drainage instead gave mean fertility 0.33-0.45 and 435-747 good tiles per map.
+
+**Walking answers the ground.** `Grid.StepCost(from, to)` adds `Climb` per metre of ascent and `Descend` per metre of fall to the cost of the tile entered, so routing rounds the shoulder of a hill rather than going over it - and since roads are laid where the ground is worn, the streets follow the contours and the valley floors without anybody deciding they should.
+
+**What it cost.** Six seeds, 6000 ticks, 25 founders, against the flat map:
+
+| seed | flat | with relief |
+|---|---|---|
+| 1 | 255 | 65 |
+| 3 | 400 | 359 |
+| 5 | 400 | 203 |
+| 7 | 304 | 20 |
+| 11 | 272 | 399 |
+| 21 | 98 | 334 |
+| **total** | **1729** | **1380** |
+
+Down a fifth overall, but not uniformly: seeds 11 and 21 grew where they had struggled, and seed 7 nearly died where it had thrived. That is the change doing what it is for - the ground now has quality, and a valley is worth more than a hillside. Raising the fertility floor to lift the weak maps was tried at 0.25 and 0.35 and made the total worse (1311, 1096), because it flattens the very differences the good settlements are living on.
+
+Left for later: nothing erodes yet, and `Flow` is a static share rather than water with a season to it. Both are why the drainage is derived rather than drawn - re-run the four steps on changed ground and the rivers move by themselves.

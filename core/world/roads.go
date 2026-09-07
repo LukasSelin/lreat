@@ -75,17 +75,23 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 
 // Busiest returns the tile within radius of from where a road would serve the
 // most traffic, and how strong the case for it is. Only ground a road could
-// actually be laid on is offered, but the case is read from the whole
-// neighbourhood: see Draw. Ties go to the tile nearest the top left, so that
-// two agents reading the same ground reach for the same spot.
-func (g *Grid) Busiest(from entity.Pos, radius int) (entity.Pos, float64, bool) {
+// actually be laid on is offered, and only what ok admits - a caller short of
+// timber can rule out the water, which costs more to carry a road over. The
+// case is read from the whole neighbourhood: see Draw. Ties go to the tile
+// nearest the top left, so two agents reading the same ground reach for the
+// same spot.
+func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity.Pos, float64, bool) {
 	var best entity.Pos
 	var worn float64
 	found := false
 	for y := from.Y - radius; y <= from.Y+radius; y++ {
 		for x := from.X - radius; x <= from.X+radius; x++ {
 			p := entity.Pos{X: x, Y: y}
-			if !g.In(p) || !g.At(p).Pavable() {
+			if !g.In(p) {
+				continue
+			}
+			t := g.At(p)
+			if !t.Pavable() || (ok != nil && !ok(t)) {
 				continue
 			}
 			if d := g.Draw(p); d > worn {
@@ -109,6 +115,8 @@ func (g *Grid) Pave(p entity.Pos) bool {
 	if t.Terrain == Forest {
 		t.Terrain, t.Wood = Grass, 0
 	}
+	// Over water the road is a bridge, so the water stays: the fish go on
+	// swimming under it and the tile is still a river to look at.
 	t.Structure = Road
 	t.Traffic = 0 // the ground is no longer asking for a road; it has one
 	return true

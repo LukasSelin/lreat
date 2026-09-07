@@ -288,7 +288,7 @@ func Act(w *world.World) {
 			// where the speed of a street comes from.
 			for len(a.Plan.Route) > 0 {
 				step := a.Plan.Route[0]
-				cost := w.Grid.MoveCost(step)
+				cost := w.Grid.StepCost(a.Pos, step)
 				if a.Travel < cost {
 					break
 				}

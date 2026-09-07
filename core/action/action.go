@@ -310,7 +310,20 @@ func shelterGain(a *entity.Agent, w *world.World) float64 {
 	return math.Min(1-a.Shelter, 0.4*w.Mods.BuildEfficiency*(0.5+a.Skills[entity.Building]))
 }
 
-// buildSite is the agent's house, or open ground near what they care about:
+// plotNear is the closest place to anchor where a house can stand with its
+// own ground around it. A settlement that builds wall to wall has nowhere
+// left to put a street, so a plot is looked for first and open ground only
+// taken as it comes when the neighbourhood has run out of room.
+func plotNear(w *world.World, anchor entity.Pos) (entity.Pos, bool) {
+	if p, ok := w.Grid.Nearest(anchor, searchRadius, func(p entity.Pos, _ *world.Tile) bool {
+		return w.Grid.RoomToBuild(p)
+	}); ok {
+		return p, true
+	}
+	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+}
+
+// buildSite is the agent's house, or a plot near what they care about:
 // the market for the safety-minded, their field for everyone else.
 func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
@@ -320,7 +333,16 @@ func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasField && a.Personality[need.Safety] < 1 {
 		anchor = a.Field
 	}
-	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+	return plotNear(w, anchor)
+}
+
+// roomNearby reports whether a plot with its own ground around it is still
+// to be had within reach of p.
+func roomNearby(w *world.World, p entity.Pos) bool {
+	_, ok := w.Grid.Nearest(p, searchRadius, func(q entity.Pos, _ *world.Tile) bool {
+		return w.Grid.RoomToBuild(q)
+	})
+	return ok
 }
 
 var BuildShelter = &Def{
@@ -335,6 +357,12 @@ var BuildShelter = &Def{
 		if !a.HasHome {
 			t := w.Grid.At(a.Pos)
 			if !t.Buildable() {
+				return
+			}
+			// Somebody may have built next door during the walk over. Go
+			// looking again rather than raise a wall against theirs, unless
+			// there is no plot left within reach to go looking for.
+			if !w.Grid.RoomToBuild(a.Pos) && roomNearby(w, a.Pos) {
 				return
 			}
 			t.Structure = world.House
@@ -357,8 +385,26 @@ var BuildShelter = &Def{
 
 // pavingWood is the timber one length of road takes. It is half a house, so
 // laying a way is a smaller commitment than raising a roof but competes with
-// it for the same wood.
-const pavingWood = 1
+// it for the same wood. A bridge takes more, because it has to hold itself up
+// over the water, and it is the one piece of road worth walking a long way to
+// build: a river is otherwise something a settlement can only put up with.
+// A bridge costs what a house costs. More was tried, and the economy has no
+// room for it: an agent gathers toward the roof it wants and spends the
+// timber as soon as it has enough, so nobody in a settlement ever holds more
+// than about two and a half lengths of wood at once. A bridge dearer than a
+// house is one nobody can ever afford.
+const (
+	pavingWood = 1
+	bridgeWood = 2
+)
+
+// timberFor is what a length of road costs on this ground.
+func timberFor(t *world.Tile) float64 {
+	if t.Terrain == world.Water {
+		return bridgeWood
+	}
+	return pavingWood
+}
 
 // wornEnough is how beaten the ground must be before anyone thinks of paving
 // it. Below this the wear is somebody having passed once, not a route.
@@ -373,7 +419,18 @@ const pavingRadius = 12
 // the settlement's own errands: the way people already take is the way that
 // gets made, which is why nobody has to plan the network for it to appear.
 func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-	p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius)
+	afford := func(t *world.Tile) bool { return a.Inventory[entity.Wood] >= timberFor(t) }
+	// A crossing comes before a street. A street can go round whatever is in
+	// its way, so the busiest ground will be paved sooner or later whoever
+	// gets to it; a river is the one thing a road cannot go round, and the
+	// ford is never the busiest ground in a settlement because everybody who
+	// can avoid it does. Left to compete on wear alone a bridge is never
+	// built, and the two banks stay two settlements.
+	ford := func(t *world.Tile) bool { return t.Terrain == world.Water && afford(t) }
+	if p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, ford); ok && worn >= wornEnough {
+		return p, true
+	}
+	p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, afford)
 	if !ok || worn < wornEnough {
 		return entity.Pos{}, false
 	}
@@ -400,15 +457,21 @@ var Pave = &Def{
 		return need.Levels{need.Esteem: 0.03, need.Belonging: 0.02}
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		// Somebody may have built here, or paved it, while this one walked.
-		if !w.Grid.Pave(a.Pos) {
+		// Somebody may have built here, or paved it, while this one walked,
+		// and the timber may have gone on something else on the way.
+		cost := timberFor(w.Grid.At(a.Pos))
+		if a.Inventory[entity.Wood] < cost || !w.Grid.Pave(a.Pos) {
 			return
 		}
-		a.Inventory[entity.Wood] -= pavingWood
+		a.Inventory[entity.Wood] -= cost
 		a.AddSkill(entity.Building, 0.01)
 		a.Needs.Add(need.Esteem, 0.03)
 		a.Needs.Add(need.Belonging, 0.02)
-		w.Emit(event.Built, a.ID, 0, "%s laid a road", a.Name)
+		what := "laid a road"
+		if w.Grid.At(a.Pos).Bridged() {
+			what = "bridged the river"
+		}
+		w.Emit(event.Built, a.ID, 0, "%s %s", a.Name, what)
 	},
 }
 

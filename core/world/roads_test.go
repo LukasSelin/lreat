@@ -22,10 +22,17 @@ func TestPaveRespectsWhatIsAlreadyThere(t *testing.T) {
 		t.Fatalf("the trees survived the road: %+v", tile)
 	}
 
+	// Over water a road is a bridge. The river stays a river underneath it.
 	river := entity.Pos{X: 4, Y: 4}
 	g.At(river).Terrain = Water
-	if g.Pave(river) {
-		t.Fatal("a road was laid across the water; there are no bridges yet")
+	if !g.Pave(river) {
+		t.Fatal("a road would not cross the water")
+	}
+	if tile := g.At(river); !tile.Bridged() || tile.Terrain != Water {
+		t.Fatalf("the crossing is not a bridge over water: %+v", tile)
+	}
+	if c := g.MoveCost(river); c >= moveCost[Water] {
+		t.Fatalf("crossing the bridge costs %v, no better than wading at %v", c, moveCost[Water])
 	}
 
 	claimed := entity.Pos{X: 6, Y: 6}
@@ -124,7 +131,7 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		g.Tread(lone)
 	}
-	if p, _, ok := g.Busiest(entity.Pos{X: 24, Y: 6}, 3); !ok || p != lone {
+	if p, _, ok := g.Busiest(entity.Pos{X: 24, Y: 6}, 3, nil); !ok || p != lone {
 		t.Fatalf("in open country Busiest picked %v (ok=%v), want the worn tile at %v", p, ok, lone)
 	}
 
@@ -135,7 +142,7 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		g.Tread(door)
 	}
-	p, worn, ok := g.Busiest(entity.Pos{X: 5, Y: 6}, 3)
+	p, worn, ok := g.Busiest(entity.Pos{X: 5, Y: 6}, 3, nil)
 	if !ok {
 		t.Fatal("a thronged doorway made no case for a street beside it")
 	}
@@ -163,7 +170,7 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 		t.Fatalf("ground beside a road drew %.1f; traffic on a street is already served", d)
 	}
 
-	if _, _, ok := g.Busiest(entity.Pos{X: 15, Y: 1}, 1); ok {
+	if _, _, ok := g.Busiest(entity.Pos{X: 15, Y: 1}, 1, nil); ok {
 		t.Fatal("Busiest found somewhere worth paving in untrodden wilderness")
 	}
 

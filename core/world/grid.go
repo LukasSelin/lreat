@@ -42,6 +42,18 @@ type Tile struct {
 	Wild      float64
 	Fish      float64
 
+	// Height is metres above the lowest ground on the map, and Flow is the
+	// share of the map whose water drains through this tile. Between them
+	// they are the land itself: the rivers, the fertility and the going
+	// underfoot are all read off these two rather than drawn on top of them.
+	// See relief.go.
+	Height float64
+	Flow   float64
+	// Drain is how far this tile stands above the water it drains into, in
+	// metres. It is what makes a valley floor a water meadow and a hillside
+	// dry, and it is the ground truth the soil is read from.
+	Drain float64
+
 	// Traffic is how worn the ground is: it rises with every crossing and
 	// fades when nobody comes that way. It is not a cost - walking a beaten
 	// path is no quicker - it is a record of where the settlement's errands
@@ -56,10 +68,17 @@ func (t *Tile) Buildable() bool {
 }
 
 // Pavable reports whether a road may be laid on this tile. Roads go over open
-// ground and through woods, which they clear, but they do not cross water,
-// take another building's place, or run over land somebody has claimed.
+// ground, through woods, which they clear, over outcrops, which the quarrymen
+// go on cutting from underneath, and across water, where the road is a
+// bridge. They do not take another building's place or run over land somebody
+// has claimed.
 func (t *Tile) Pavable() bool {
-	return t.Terrain != Water && t.Structure == None && t.Owner == 0
+	return t.Structure == None && t.Owner == 0
+}
+
+// Bridged reports whether this tile is a road carried over water.
+func (t *Tile) Bridged() bool {
+	return t.Structure == Road && t.Terrain == Water
 }
 
 // Grid is the world map, row-major.
@@ -162,4 +181,21 @@ func (g *Grid) HasNeighbor(p entity.Pos, ok func(*Tile) bool) bool {
 		}
 	}
 	return false
+}
+
+// Roofed reports whether a tile is a building somebody stands inside: a
+// house, the market, a granary. A road is not - a way beside a door is what
+// a door is for.
+func (t *Tile) Roofed() bool {
+	return t.Structure == House || t.Structure == Market || t.Structure == Granary
+}
+
+// RoomToBuild reports whether p is open ground with open ground all round
+// it: no building on any of the eight tiles that touch it. Roofs raised
+// wherever there was a gap grew into one solid block with no way through
+// it, which is a settlement nobody can lay a road in. Kept a tile apart,
+// every house keeps its own sides clear, and the gaps between neighbours
+// line up into the lanes a road is later laid along.
+func (g *Grid) RoomToBuild(p entity.Pos) bool {
+	return g.In(p) && g.At(p).Buildable() && !g.HasNeighbor(p, (*Tile).Roofed)
 }
