@@ -284,4 +284,12 @@ var (
 	Pupil = Role{"pupil", habit.Signature{habit.Unproven: 0.8, habit.Company: 0.7, habit.Charity: 0.3, habit.Rapport: 0.5, habit.Skill: 1}}
 	// Wrongdoer owes the actor for a wrong done.
 	Wrongdoer = Role{"wrongdoer", habit.Signature{habit.Unproven: 0.6, habit.Rapport: 1, habit.Caution: -0.4}}
+	// Child is one the actor bore and that is not grown yet. It is the one
+	// role nobody chooses and nobody competes for: a needy stranger is
+	// somebody a charitable person may or may not notice, and a child is
+	// already yours. So the moment is charity and custom rather than
+	// sociability - the warmth is high because the tie is, and there is no
+	// coordinate for what the actor gets out of it, because there is not
+	// much.
+	Child = Role{"child", habit.Signature{habit.Charity: 0.6, habit.Tradition: 0.5, habit.Rapport: 0.7, habit.Company: 0.3}}
 )

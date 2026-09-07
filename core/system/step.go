@@ -10,6 +10,7 @@ import "lreat/core/world"
 func Step(w *world.World) {
 	w.Tick++
 	Climate(w)
+	Household(w)
 	Decay(w)
 	Land(w)
 	Beliefs(w)

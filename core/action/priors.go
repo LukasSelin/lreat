@@ -172,6 +172,20 @@ func init() {
 		return s, true
 	}
 	Teach.With = atTarget
+	// Bringing a child up in the work is teaching without the audience. It
+	// keeps the skill coordinate, because a parent with nothing to show
+	// shows nothing, and drops the standing: no part of this moment is
+	// about being seen to know something. What replaces it is custom, and
+	// custom is why it happens at all on the days it would be easier not
+	// to.
+	seed(TeachChild, reachEveryday, habit.Signature{
+		habit.Unproven: 0.3, habit.Company: 0.3, habit.Charity: 0.6, habit.Tradition: 0.6,
+		habit.Rapport: 0.7, habit.Skill: 1,
+	})
+	TeachChild.Skilled = func(a *entity.Agent, _ *world.World) (entity.Skill, bool) {
+		s, _ := a.BestSkill()
+		return s, true
+	}
 	// Paving belongs to the settled moment: somebody already under a roof,
 	// with wood past what that roof needed, among neighbours whose comings
 	// and goings have worn a way. Shelter is what separates it from gathering
@@ -193,6 +207,17 @@ func init() {
 	})
 	seed(Give, reachEveryday, habit.Signature{
 		habit.Hunger: -0.4, habit.Lonely: 0.3, habit.Charity: 1, habit.Near: 0.5, habit.Rapport: 0.5, habit.Stock: 0.7,
+	})
+	// Feeding one's own is giving with the sociability taken out and the
+	// custom put in. Charity still names it - a parent who holds nothing to
+	// be owed to anybody holds nothing to be owed to its children either -
+	// but it does not wait on loneliness, and it does not wait on plenty
+	// the way giving to the settlement at large does: what the moment
+	// answers is somebody else's hunger, so the actor's own stock reads
+	// only as whether there is any.
+	seed(FeedChild, reachEveryday, habit.Signature{
+		habit.Hunger: -0.4, habit.Charity: 0.6, habit.Tradition: 0.5,
+		habit.Company: 0.3, habit.Near: 0.5, habit.Rapport: 0.7, habit.Stock: 0.5,
 	})
 	seed(Fulfil, reachEveryday, habit.Signature{
 		habit.Unproven: 0.5, habit.Industry: 0.5, habit.Near: 0.4, habit.Rapport: 0.4, habit.Skill: 0.5, habit.Lack: 0.5,

@@ -133,6 +133,14 @@ type Agent struct {
 	Name string
 	Born int
 
+	// Parent is who bore this agent, zero for a founder. It is a fact about
+	// the world rather than a belief about it, which is why it lives here
+	// and not in a Bond: an opinion of somebody can be forgotten when the
+	// slots run out, and whose child you are cannot. It outlives the parent,
+	// so a grown agent still knows whose it was and an orphan is legible as
+	// one.
+	Parent ID
+
 	// Luck is the agent's own stream of chance, seeded when it is born. An
 	// agent draws from this rather than from the world's one stream so that
 	// what it decides depends on what it has drawn before and not on who

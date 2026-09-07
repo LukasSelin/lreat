@@ -118,6 +118,8 @@ var mechanics = map[string]*Def{
 	"exchange/material>coin@market":     Sell,
 	"exchange/coin>provision@market":    Buy,
 	"transfer/provision>needy":          Give,
+	"transfer/provision>child":          FeedChild,
+	"pass/practice>child":               TeachChild,
 	"transfer/material>requester":       Fulfil,
 	"transfer/provision<holder":         Steal,
 	"pass/practice>pupil":               Teach,

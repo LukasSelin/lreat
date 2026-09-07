@@ -3,6 +3,7 @@ package system
 import (
 	"math"
 
+	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/world"
 )
@@ -35,6 +36,34 @@ const ColdDrain = 0.003
 // It works through health, which moves at a hundredth of the rate needs do,
 // so a winter outdoors shows up as a body that is still slower come spring.
 const ColdCondition = 0.2
+
+// Household is a parent's roof reaching over its own young. Shelter is kept
+// per body, and a house is not: a roof raised by one person covers everybody
+// asleep under it, and the people asleep under it are that person's children.
+// Without this a five-year-old holds whatever shelter it was born with and
+// watches it rot, for the ten years before it can carry a length of timber -
+// which is not a settlement failing to house its children, it is a
+// settlement in which houses do not have families in them.
+//
+// It is not an act, and it is the only part of rearing that is not: feeding
+// and teaching are things a parent does or fails to do, and a roof is a
+// thing that stands. Nobody decides each morning to go on sheltering their
+// children. The roof is worth what the parent's is, never more, so a
+// household is exactly as well housed as the person who built it.
+func Household(w *world.World) {
+	roofs := make(map[entity.ID]float64, len(w.Agents))
+	for _, a := range w.Agents {
+		roofs[a.ID] = a.Shelter
+	}
+	for _, a := range w.Agents {
+		if a.Parent == 0 || entity.Adult(a.Age(w.Tick)) {
+			continue
+		}
+		if roof, ok := roofs[a.Parent]; ok && roof > a.Shelter {
+			a.Shelter = roof
+		}
+	}
+}
 
 // Decay drains needs, lets shelter rot, and relaxes safety toward what the
 // agent's circumstances actually provide.
