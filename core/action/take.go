@@ -8,24 +8,19 @@ import (
 )
 
 // Taking is one verb. Foraging, hunting, felling, fishing, and cutting
-// stone are all the same act: go to where a thing lies, bring some of it
-// in, leave the ground a little poorer for it. What differs between them
-// is where the thing lies and what bringing it in costs, and that is
-// stated here as data rather than as five copies of the act. The
-// ontology says which materials lie where; a lode says what a material
-// is like to take, and a ground what a site is like to stand on. An act
-// the ontology entails for a material with a lode, at a site with a
-// ground, needs no code of its own.
+// stone are all the same act: go to where a thing lies, move some of it
+// from the ground into the pack, and leave the ground a little poorer for
+// it. What differs between them is where the thing lies and what bringing
+// it in costs, and that is stated here as data rather than as five copies
+// of the act. The ontology says which materials the ground holds where;
+// a lode says what a material is like to take, and a ground what a site
+// is like to stand on. An act the ontology entails for a material with a
+// lode, at a site with a ground, needs no code of its own.
 
-// lode is how a material lies in the land and what taking it is like.
+// lode is what taking a material is like.
 type lode struct {
 	// Name is what the taking is called.
 	Name string
-	// Good is what it brings in.
-	Good entity.Good
-	// Stock is the tile's store the taking draws down, or nil where the
-	// land has no end of it.
-	Stock func(t *world.Tile) *float64
 	// Least is the stock below which a site is not worth walking to, and
 	// Spent the stock at or below which there is nothing left to take.
 	// Negative means the land always gives something, however picked.
@@ -69,10 +64,6 @@ var grounds = map[*ontology.Class]ground{
 	ontology.Water:   {Here: func(w *world.World, p entity.Pos, t *world.Tile) bool { return bank(w)(p, t) }, Drawn: bestWater},
 }
 
-func wildOf(t *world.Tile) *float64 { return &t.Wild }
-func woodOf(t *world.Tile) *float64 { return &t.Wood }
-func fishOf(t *world.Tile) *float64 { return &t.Fish }
-
 // fed is what a taking of food is worth: a meal, less the more one has.
 func fed(a *entity.Agent, _ *world.World, yield float64) need.Levels {
 	return need.Levels{need.Physiological: foodValue(a) * yield}
@@ -85,22 +76,22 @@ var lodes = map[*ontology.Class]lode{
 	// stays put and finds less is what turns a settlement toward the river
 	// and the field.
 	ontology.Berries: {
-		Name: "forage", Good: entity.Food, Stock: wildOf, Take: forageTake, Spent: -1,
+		Name: "forage", Take: forageTake, Spent: -1,
 		Yield: func(_ *entity.Agent, _ *world.World, wild float64) float64 { return forageYield(wild) },
 		Luck:  struct{ Lo, Span float64 }{0.6, 0.8}, Worth: fed,
 	},
 	ontology.Game: {
-		Name: "hunt", Good: entity.Food, Stock: wildOf, Least: 0.3, Spent: 0.1, Take: huntTake,
+		Name: "hunt", Least: 0.3, Spent: 0.1, Take: huntTake,
 		Yield: func(_ *entity.Agent, w *world.World, wild float64) float64 { return huntYield(w, wild) },
 		Luck:  struct{ Lo, Span float64 }{0.5, 1.0}, Tool: toolWear, Worth: fed,
 	},
 	ontology.Fish: {
-		Name: "fish", Good: entity.Food, Stock: fishOf, Take: fishTake,
+		Name: "fish", Take: fishTake,
 		Yield: func(a *entity.Agent, w *world.World, fish float64) float64 { return fishYield(a, w, fish) },
 		Luck:  struct{ Lo, Span float64 }{0.5, 1.0}, Skill: entity.Fishing, Skilled: true, Learn: 0.015, Worth: fed,
 	},
 	ontology.Timber: {
-		Name: "gather wood", Good: entity.Wood, Stock: woodOf, Least: 0.3, Spent: -1, Take: treeTake,
+		Name: "gather wood", Least: 0.3, Spent: -1, Take: treeTake,
 		Yield: func(*entity.Agent, *world.World, float64) float64 { return armful },
 		Luck:  struct{ Lo, Span float64 }{1, 0},
 		// Instrumental: wood is only worth something if you lack shelter
@@ -120,7 +111,7 @@ var lodes = map[*ontology.Class]lode{
 		},
 	},
 	ontology.Stone: {
-		Name: "quarry", Good: entity.Stone,
+		Name:  "quarry",
 		Yield: func(a *entity.Agent, _ *world.World, _ float64) float64 { return quarryYield(a) },
 		Luck:  struct{ Lo, Span float64 }{1, 0}, Tool: quarryWear,
 		Skill: entity.Building, Skilled: true, Learn: 0.01, Pride: 0.03,
@@ -132,22 +123,16 @@ var lodes = map[*ontology.Class]lode{
 	},
 }
 
-// stock is what a tile holds of a lode, or 1 where the land has no end of it.
-func (l *lode) stock(t *world.Tile) float64 {
-	if l.Stock == nil {
-		return 1
-	}
-	return *l.Stock(t)
-}
-
 // taking is the act the ontology entails for taking a material at a site,
-// carried out from its lode and ground, or nil where either is unknown.
+// carried out from its lode and ground, or nil where either is unknown or
+// the material is nothing in a pack.
 func taking(in ontology.Instance) *Def {
 	l, ok := lodes[in.Object]
 	g, ok2 := grounds[in.Site]
-	if !ok || !ok2 {
+	if _, carried := good(in.Object); !ok || !ok2 || !carried {
 		return nil
 	}
+	material := in.Object
 	tech := world.Tech(in.Tech)
 	d := &Def{Name: l.Name, Ticks: in.Ticks}
 	d.Available = func(a *entity.Agent, w *world.World) bool {
@@ -162,7 +147,7 @@ func taking(in ontology.Instance) *Def {
 				return false
 			}
 			drawn := g.Drawn(w, p)
-			return drawn != nil && l.stock(drawn) >= l.Least
+			return drawn != nil && soil(drawn, material).Held() >= l.Least
 		})
 	}
 	d.Expect = func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
@@ -170,22 +155,24 @@ func taking(in ontology.Instance) *Def {
 		if t == nil {
 			return need.Levels{}
 		}
-		return l.Worth(a, w, l.Yield(a, w, l.stock(t)))
+		return l.Worth(a, w, l.Yield(a, w, soil(t, material).Held()))
 	}
 	d.Apply = func(a *entity.Agent, w *world.World) {
 		t := g.Drawn(w, a.Pos)
-		if t == nil || !g.Here(w, a.Pos, w.Grid.At(a.Pos)) || l.stock(t) <= l.Spent {
-			return // taken, cleared, or fished out while we walked
+		if t == nil || !g.Here(w, a.Pos, w.Grid.At(a.Pos)) {
+			return // cleared, or fished out, while we walked
 		}
+		from := soil(t, material)
+		if from.Held() <= l.Spent {
+			return // taken while we walked
+		}
+		to, _ := pack(a, material)
 		luck := l.Luck.Lo
 		if l.Luck.Span > 0 {
 			luck += l.Luck.Span * w.RNG.Float64()
 		}
-		a.Inventory[l.Good] += l.Yield(a, w, l.stock(t)) * luck
-		if l.Stock != nil {
-			s := l.Stock(t)
-			*s = max(0, *s-l.Take)
-		}
+		to.Move(l.Yield(a, w, from.Held()) * luck)
+		from.Move(-l.Take)
 		if l.Tool > 0 {
 			a.Inventory[entity.Tools] = max(0, a.Inventory[entity.Tools]-l.Tool)
 		}

@@ -18,21 +18,25 @@ import (
 // skilled work as a handing over, and what it hands over is whatever was
 // asked.
 
-// whom is who stands in a role to the actor, given the good the act is
-// about: a holder has some to spare, the needy have none and are hungry.
-var whom = map[*ontology.Role]func(good entity.Good) func(o *entity.Agent) bool{
-	&ontology.Holder: func(good entity.Good) func(o *entity.Agent) bool {
-		return func(o *entity.Agent) bool { return o.Inventory[good] >= 1 }
+// whom is who stands in a role to the actor, given the material the act
+// is about: a holder has some to spare, the needy have none and are
+// hungry.
+var whom = map[*ontology.Role]func(m *ontology.Class) func(o *entity.Agent) bool{
+	&ontology.Holder: func(m *ontology.Class) func(o *entity.Agent) bool {
+		return func(o *entity.Agent) bool { theirs, _ := pack(o, m); return theirs.Held() >= 1 }
 	},
-	&ontology.Needy: func(good entity.Good) func(o *entity.Agent) bool {
-		return func(o *entity.Agent) bool { return o.Needs[need.Physiological] < 0.4 && o.Inventory[good] < 1 }
+	&ontology.Needy: func(m *ontology.Class) func(o *entity.Agent) bool {
+		return func(o *entity.Agent) bool {
+			theirs, _ := pack(o, m)
+			return o.Needs[need.Physiological] < 0.4 && theirs.Held() < 1
+		}
 	},
 }
 
 // hand is what a transfer moves and what moves with it.
 type hand struct {
 	Name string
-	// Amount is how much of the good changes hands.
+	// Amount is how much of the material changes hands.
 	Amount float64
 	// Want is what the actor must be short of to take; Spare what they
 	// must have to give.
@@ -74,19 +78,22 @@ var hands = map[string]hand{
 }
 
 // transferring is the act the ontology entails for a transfer with a hand,
-// carried out from it, or nil where there is none.
+// carried out from it, or nil where there is none, the role is unknown, or
+// the material is nothing in a pack.
 func transferring(in ontology.Instance) *Def {
 	h, ok := hands[in.Key]
-	good, ok2 := goods[in.Schema.Object]
-	role, ok3 := whom[in.Schema.Role]
-	if !ok || !ok2 || !ok3 {
+	role, ok2 := whom[in.Schema.Role]
+	_, carried := good(in.Schema.Object)
+	if !ok || !ok2 || !carried {
 		return nil
 	}
-	other := role(good)
+	material := in.Schema.Object
+	other := role(material)
 	seize := in.Schema.Dir == ontology.Seize
 	d := &Def{Name: h.Name, Ticks: in.Ticks}
 	d.Available = func(a *entity.Agent, w *world.World) bool {
-		if seize && a.Inventory[good] >= h.Want || !seize && a.Inventory[good] < h.Spare {
+		mine, _ := pack(a, material)
+		if seize && mine.Held() >= h.Want || !seize && mine.Held() < h.Spare {
 			return false
 		}
 		return nearestWith(a, w, reachRadius, other) != nil
@@ -106,12 +113,13 @@ func transferring(in ontology.Instance) *Def {
 		if o == nil {
 			return // moved on, or fed, while we walked
 		}
-		from, to := a, o
+		from, _ := pack(a, material)
+		to, _ := pack(o, material)
 		if seize {
-			from, to = o, a
+			from, to = to, from
 		}
-		from.Inventory[good] -= h.Amount
-		to.Inventory[good] += h.Amount
+		from.Move(-h.Amount)
+		to.Move(h.Amount)
 		o.Judge(a.ID, h.Regard, w.Tick)
 		if h.Bonds.Theirs > 0 {
 			o.AddBond(a.ID, h.Bonds.Theirs)

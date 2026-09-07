@@ -9,24 +9,25 @@ import (
 )
 
 // Exchanging is one verb. Selling and buying are the same act with the
-// sides swapped: at the market, a good for coin or coin for a good, at the
-// market's price. The ontology says which way it runs; the terms say what
-// is handed over and at what point it is worth the walk. Coin is a thing
-// in the trees so that it can one day be minted, given, and stolen; in the
-// pack it is still the one scalar, Wealth, and exchange is the only act
-// that touches it.
+// sides swapped: at the market, move a material from the pack to the
+// shelf and coin the other way, or the reverse, at the market's price.
+// The ontology says which way it runs; the terms say what is handed over
+// and at what point it is worth the walk. Coin is a thing in the trees so
+// that it can one day be minted, given, and stolen; in the pack it is the
+// purse, and the market's purse is bottomless.
 
-// sale is what a seller lets go of: everything of a good above what they
-// keep, once they have at least enough for the trip to be worth making.
+// sale is what a seller lets go of: everything of a material above what
+// they keep, once they have at least enough for the trip to be worth
+// making.
 type sale struct {
-	Good        entity.Good
+	Of          *ontology.Class
 	Keep, Least float64
 }
 
-// purchase is what a buyer comes for: some of a good, when they have less
-// than they want of it and the market has it to sell.
+// purchase is what a buyer comes for: some of a material, when they have
+// less than they want of it and the market has it to sell.
 type purchase struct {
-	Good         entity.Good
+	Of           *ontology.Class
 	Want, Amount float64
 }
 
@@ -46,18 +47,24 @@ var trades = map[string]terms{
 	"exchange/material>coin@market": {
 		Name: "sell",
 		Sells: []sale{
-			{entity.Food, 3, 4},
-			{entity.Tools, 0, 1},
-			{entity.Meals, 2, 3},
-			{entity.Stone, 3, 4},
+			{ontology.Provision, 3, 4},
+			{ontology.Tool, 0, 1},
+			{ontology.Meal, 2, 3},
+			{ontology.Stone, 3, 4},
 		},
 		Worth: need.Levels{need.Safety: 0.08, need.Esteem: 0.03},
 	},
 	"exchange/coin>provision@market": {
 		Name:  "buy food",
-		Buys:  purchase{entity.Food, 1, 1},
+		Buys:  purchase{ontology.Provision, 1, 1},
 		Worth: need.Levels{need.Physiological: 0.3},
 	},
+}
+
+// price is what the market asks for a material.
+func price(w *world.World, m *ontology.Class) float64 {
+	g, _ := good(m)
+	return w.Market.Price[g]
 }
 
 // exchanging is the act the ontology entails for an exchange with terms,
@@ -72,7 +79,15 @@ func exchanging(in ontology.Instance) *Def {
 	buying := len(in.Schema.Inputs) == 1 && in.Schema.Inputs[0] == ontology.Coin
 	switch {
 	case selling && len(t.Sells) > 0 && t.Buys.Amount == 0:
-	case buying && len(t.Sells) == 0 && t.Buys.Amount > 0 && goods[in.Schema.Output] == t.Buys.Good:
+		for _, s := range t.Sells {
+			if _, ok := good(s.Of); !ok {
+				return nil
+			}
+		}
+	case buying && len(t.Sells) == 0 && t.Buys.Amount > 0 && t.Buys.Of.IsA(in.Schema.Output):
+		if _, ok := good(t.Buys.Of); !ok {
+			return nil
+		}
 	default:
 		return nil
 	}
@@ -81,7 +96,7 @@ func exchanging(in ontology.Instance) *Def {
 	if selling {
 		d.Available = func(a *entity.Agent, _ *world.World) bool {
 			for _, s := range t.Sells {
-				if a.Inventory[s.Good] >= s.Least {
+				if held, _ := pack(a, s.Of); held.Held() >= s.Least {
 					return true
 				}
 			}
@@ -90,13 +105,16 @@ func exchanging(in ontology.Instance) *Def {
 		d.Apply = func(a *entity.Agent, w *world.World) {
 			var earned float64
 			for _, s := range t.Sells {
-				if surplus := a.Inventory[s.Good] - s.Keep; surplus > 0 {
-					a.Inventory[s.Good] -= surplus
-					w.Market.Stock[s.Good] += surplus
-					earned += surplus * w.Market.Price[s.Good]
+				mine, _ := pack(a, s.Of)
+				if surplus := mine.Held() - s.Keep; surplus > 0 {
+					theirs, _ := shelf(w, s.Of)
+					mine.Move(-surplus)
+					theirs.Move(surplus)
+					earned += surplus * price(w, s.Of)
 				}
 			}
-			a.Wealth += earned
+			purse, _ := pack(a, ontology.Coin)
+			purse.Move(earned)
 			a.Needs.Add(need.Esteem, t.Worth[need.Esteem])
 			w.Emit(event.Traded, a.ID, 0, "%s sold goods for %.1f", a.Name, earned)
 		}
@@ -104,17 +122,22 @@ func exchanging(in ontology.Instance) *Def {
 	}
 	b := t.Buys
 	d.Available = func(a *entity.Agent, w *world.World) bool {
-		return a.Inventory[b.Good] < b.Want &&
-			w.Market.Stock[b.Good] >= b.Amount &&
-			a.Wealth >= w.Market.Price[b.Good]*b.Amount
+		mine, _ := pack(a, b.Of)
+		theirs, _ := shelf(w, b.Of)
+		purse, _ := pack(a, ontology.Coin)
+		return mine.Held() < b.Want && theirs.Held() >= b.Amount && purse.Held() >= price(w, b.Of)*b.Amount
 	}
 	d.Apply = func(a *entity.Agent, w *world.World) {
-		p := w.Market.Price[b.Good] * b.Amount
-		a.Wealth -= p
-		a.Inventory[b.Good] += b.Amount
-		w.Market.Stock[b.Good] -= b.Amount
+		mine, _ := pack(a, b.Of)
+		theirs, _ := shelf(w, b.Of)
+		purse, _ := pack(a, ontology.Coin)
+		p := price(w, b.Of) * b.Amount
+		purse.Move(-p)
+		mine.Move(b.Amount)
+		theirs.Move(-b.Amount)
 		a.Needs.Add(need.Esteem, t.Worth[need.Esteem])
-		w.Emit(event.Traded, a.ID, 0, "%s bought %s for %.2f", a.Name, b.Good, p)
+		g, _ := good(b.Of)
+		w.Emit(event.Traded, a.ID, 0, "%s bought %s for %.2f", a.Name, g, p)
 	}
 	return d
 }

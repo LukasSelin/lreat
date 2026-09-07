@@ -15,7 +15,7 @@ import (
 func TestAnExchangeIsComposedFromTerms(t *testing.T) {
 	w, a := shore(t)
 	key := "exchange/coin>tool@market"
-	trades[key] = terms{Name: "buy tools", Buys: purchase{entity.Tools, 1, 2}, Worth: need.Levels{need.Esteem: 0.01}}
+	trades[key] = terms{Name: "buy tools", Buys: purchase{ontology.Tool, 1, 2}, Worth: need.Levels{need.Esteem: 0.01}}
 	defer delete(trades, key)
 	sc := &ontology.Schema{Verb: ontology.Exchange, Inputs: []*ontology.Class{ontology.Coin}, Output: ontology.Tool, Site: ontology.Market}
 	d := exchanging(ontology.Instance{Key: key, Schema: sc, Ticks: 1})
@@ -50,8 +50,8 @@ func TestAnExchangeIsComposedFromTerms(t *testing.T) {
 // schema says is bought.
 func TestTermsMustFitTheirSchema(t *testing.T) {
 	buying := &ontology.Schema{Verb: ontology.Exchange, Inputs: []*ontology.Class{ontology.Coin}, Output: ontology.Provision, Site: ontology.Market}
-	trades["exchange/wrong-way"] = terms{Name: "wrong", Sells: []sale{{entity.Food, 0, 1}}}
-	trades["exchange/wrong-good"] = terms{Name: "wrong", Buys: purchase{entity.Stone, 1, 1}}
+	trades["exchange/wrong-way"] = terms{Name: "wrong", Sells: []sale{{ontology.Provision, 0, 1}}}
+	trades["exchange/wrong-good"] = terms{Name: "wrong", Buys: purchase{ontology.Stone, 1, 1}}
 	defer delete(trades, "exchange/wrong-way")
 	defer delete(trades, "exchange/wrong-good")
 	for _, key := range []string{"exchange/wrong-way", "exchange/wrong-good", "exchange/none"} {

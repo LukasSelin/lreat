@@ -1,18 +1,23 @@
 package ontology
 
-// Affords says what a site has to give. Take instantiates one act for every
-// (material, site) pair listed here and none otherwise: a map with no
-// outcrop has no quarrying.
-var Affords = map[*Class][]*Class{
+// Holds says what kinds of thing hold what materials: the ground holds
+// what lies in it, a person holds what is in their pack and their purse,
+// the market holds what is on its shelves. Every act that moves a material
+// moves it between two holders named by class, and Take instantiates one
+// act for every (material, ground) pair here and none otherwise: a map
+// with no outcrop has no quarrying.
+var Holds = map[*Class][]*Class{
 	Wood:    {Berries, Game, Timber},
 	Water:   {Fish},
 	Outcrop: {Stone},
 	Field:   {Grain},
+	Person:  {Material},
+	Market:  {Material},
 }
 
-// Yields reports whether site has material to give.
-func Yields(site, material *Class) bool {
-	for _, m := range Affords[site] {
+// Held reports whether a holder of class c holds material.
+func Held(c, material *Class) bool {
+	for _, m := range Holds[c] {
 		if material.IsA(m) {
 			return true
 		}
