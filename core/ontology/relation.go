@@ -87,6 +87,25 @@ type Transform struct {
 // could take it on, short enough that a settlement is not walled in by its
 // dead. What was claimed and then neither lived in nor sown goes at once,
 // because there is nothing there to fall down - only a claim, and it lapses.
+//
+// A public work is nobody's to keep, which is why the granary is not Kept:
+// no one person's dying takes it and no one person's living saves it. It
+// stands some thirty years against a house's three, and the settlement puts
+// up another if it still wants one - which it does, because a granary is
+// cheap in standing and there is no limit on how many may go up. Without
+// this it stood forever, since nothing ever owns one: the raising sets a
+// structure on the tile and no owner, so ruin never looked at it. A granary
+// that cannot fall is also one that only ever accumulates, and five of them
+// leave a hundredth of the usual spoilage - a settlement whose food does
+// not go off.
+//
+// The tavern is deliberately not here. It falls the same way, but a
+// settlement only ever gets one - Room refuses a second - and building it
+// needs brewing and a reach that starts at 0.2, so a tavern that goes is a
+// tavern that may never come back. Left to decay it took the settlement's
+// meeting place with it for good, and feuds stopped forming anywhere: the
+// social life thinned out rather than turned over. Ruin is only worth
+// having where the thing ruined can be built again.
 var Transforms = []Transform{
 	{From: Provision, In: Market, Rate: 0.01, Unless: Granary},
 	{From: Meal, In: Market, Rate: 0.003, Unless: Granary},
@@ -107,24 +126,39 @@ var Transforms = []Transform{
 	// cost everyone pays a little of.
 	{From: Dwelling, In: Person, Rate: 0.002},
 
+	{From: Granary, To: Open, Rate: 1.0 / 3000, Says: "a granary fell in"},
+
 	{From: Dwelling, To: Open, Rate: 1.0 / 300, Kept: true, Says: "an empty house fell in"},
 	{From: Field, To: Open, Rate: 1.0 / 300, Kept: true},
 	{From: Site, To: Open, Rate: 1, Kept: true},
 }
 
-// Unkept is what becomes of a thing of class c that nobody is left to keep.
+// Befalling is what becomes of a thing of class c standing in the world.
+// ownerGone says whether whoever kept it is dead, which is what makes the
+// Kept transforms apply at all.
+//
 // The walk is most specific first, so a dwelling goes at a dwelling's pace
-// and everything else at the pace of what it is more generally.
-func Unkept(c *Class) *Transform {
+// and everything else at the pace of what it is more generally - and a
+// granary goes at a granary's pace whether or not anyone owned it, because
+// its own row is found before the catch-all that would lapse it at once.
+func Befalling(c *Class, ownerGone bool) *Transform {
 	for x := c; x != nil; x = x.Parent {
 		for i := range Transforms {
-			if t := &Transforms[i]; t.Kept && t.In == nil && t.From == x {
-				return t
+			t := &Transforms[i]
+			if t.In != nil || t.From != x {
+				continue
 			}
+			if t.Kept && !ownerGone {
+				continue
+			}
+			return t
 		}
 	}
 	return nil
 }
+
+// Unkept is what becomes of a thing of class c that nobody is left to keep.
+func Unkept(c *Class) *Transform { return Befalling(c, true) }
 
 // Spoiling is what a thing of class c loses per tick while it is kept in a
 // holder of class in. ok is false where nothing befalls it there.

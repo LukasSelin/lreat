@@ -7,10 +7,11 @@ import (
 	"lreat/core/world"
 )
 
-// Upkeep lets what nobody keeps fall down. A tile belongs to whoever built
-// it; when that person is no longer alive, nobody is keeping it, and it goes
-// back to the land at its own pace. What that pace is, for each kind of
-// thing, is stated in ontology.Transforms.
+// Upkeep lets what nobody keeps fall down. A tile mostly belongs to whoever
+// built it; when that person is no longer alive, nobody is keeping it, and
+// it goes back to the land at its own pace. A public work belongs to nobody
+// and goes anyway, slower. What that pace is, for each kind of thing, is
+// stated in ontology.Transforms.
 func Upkeep(w *world.World) { wither(w) }
 
 // wither is the runner for what nobody is left to keep.
@@ -28,12 +29,10 @@ func wither(w *world.World) {
 	g := w.Grid
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		if t.Owner == 0 || alive[t.Owner] {
-			continue
-		}
 		// What becomes of it is settled before any luck is spent, so that
-		// a certainty costs the world no draw.
-		tr := ontology.Unkept(world.ClassOf(t))
+		// a certainty costs the world no draw, and so that ground with
+		// nothing standing on it costs none either.
+		tr := ontology.Befalling(world.ClassOf(t), t.Owner != 0 && !alive[t.Owner])
 		if tr == nil {
 			continue
 		}

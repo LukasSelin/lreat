@@ -106,8 +106,6 @@ func TestWhatNobodyKeepsGoesAtItsOwnPace(t *testing.T) {
 		{Dwelling, 1.0 / 300},
 		{Field, 1.0 / 300},
 		{Open, 1},
-		{Granary, 1},
-		{Tavern, 1},
 		{Road, 1},
 		{Wood, 1},
 	} {
@@ -125,10 +123,47 @@ func TestWhatNobodyKeepsGoesAtItsOwnPace(t *testing.T) {
 	if Unkept(Open).Rate != 1 {
 		t.Fatal("a lapsed claim is not certain to lapse")
 	}
-	// Only a house is worth remarking on. The rest goes unrecorded, and the
-	// event log's volume is part of what the settlement's watchers read.
+}
+
+// A public work is nobody's to keep. No one person's dying takes it and no
+// one person's living saves it, so it falls in on its own long clock -
+// which is also the only reason a granary is not built without end.
+func TestAPublicWorkFallsInWhoeverIsAlive(t *testing.T) {
+	for _, c := range []struct {
+		of   *Class
+		rate float64
+	}{
+		{Granary, 1.0 / 3000},
+	} {
+		for _, ownerGone := range []bool{false, true} {
+			tr := Befalling(c.of, ownerGone)
+			if tr == nil {
+				t.Fatalf("a %s stands forever (owner gone: %v)", c.of.Name, ownerGone)
+			}
+			if tr.Rate != c.rate {
+				t.Errorf("a %s goes at %v (owner gone: %v), want %v", c.of.Name, tr.Rate, ownerGone, c.rate)
+			}
+		}
+		// It outlasts a house by a long way, or the settlement spends its
+		// whole life rebuilding what it shares.
+		if !(Befalling(c.of, false).Rate < Unkept(Dwelling).Rate/5) {
+			t.Errorf("a %s goes too near the pace of a house", c.of.Name)
+		}
+	}
+	// Ordinary ground that somebody is alive to hold is not going anywhere,
+	// and must cost no draw: see system.wither.
+	for _, c := range []*Class{Open, Wood, Field, Dwelling, Road, Water, Tavern} {
+		if tr := Befalling(c, false); tr != nil {
+			t.Errorf("a kept %s decays at %v with its holder alive", c.Name, tr.Rate)
+		}
+	}
+}
+
+// Only what is worth remarking on speaks up when it goes. The event log is
+// bounded, and what the settlement's watchers read is in it.
+func TestOnlyBuildingsSpeakUpWhenTheyGo(t *testing.T) {
 	for _, tr := range Transforms {
-		if tr.Says != "" && tr.From != Dwelling {
+		if tr.Says != "" && !tr.From.IsA(Built) {
 			t.Errorf("%s speaks up when it goes", tr.From.Name)
 		}
 	}

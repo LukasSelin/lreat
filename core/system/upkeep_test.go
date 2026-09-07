@@ -92,3 +92,41 @@ func TestALapsedClaimCostsNoLuck(t *testing.T) {
 		}
 	}
 }
+
+// A public work stands a long time and then does not. Nothing ever owns a
+// granary - the raising sets a structure and no owner - so before this it
+// stood forever, and the settlement's keeping only ever improved.
+func TestAGranaryFallsInEventually(t *testing.T) {
+	w := world.New(3)
+	a := w.Spawn("keeper", w.RandomPersonality())
+	p := entity.Pos{X: 7, Y: 7}
+	tile := w.Grid.At(p)
+	tile.Terrain, tile.Structure = world.Grass, world.Granary
+	stood := 0
+	for i := 0; i < 200000 && w.Grid.At(p).Structure == world.Granary; i++ {
+		Upkeep(w)
+		stood = i
+	}
+	if w.Grid.At(p).Structure == world.Granary {
+		t.Fatal("a granary nobody maintains stood for two thousand years")
+	}
+	// It is not kept by anybody, so the keeper being alive changes nothing.
+	if !alive(w, a.ID) {
+		t.Fatal("the test's keeper died, which is not what is being measured")
+	}
+	// A house goes in about three hundred ticks. A granary is built to last
+	// and must not go at anything like that pace, or the settlement spends
+	// its life rebuilding what it shares.
+	if stood < 300 {
+		t.Fatalf("a granary fell in after %d ticks, no better than a house", stood)
+	}
+}
+
+func alive(w *world.World, id entity.ID) bool {
+	for _, a := range w.Agents {
+		if a.ID == id {
+			return true
+		}
+	}
+	return false
+}
