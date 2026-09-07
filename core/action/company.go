@@ -84,7 +84,7 @@ func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
 		return nil
 	}
 	explore := exploreBase + exploreRange*(1-a.Norms[belief.Tradition])
-	if w.RNG.Float64() < explore {
+	if a.Luck.Float64() < explore {
 		return w.Other(a)
 	}
 	var best *entity.Agent

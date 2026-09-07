@@ -77,6 +77,12 @@ func TestSatedAgentClimbsThePyramid(t *testing.T) {
 	populate(w, 3)
 	a := w.Agents[0]
 	a.Personality = need.Neutral()
+	// Conscience is deliberately not scaled by urgency, so for an agent with
+	// nothing left wanting it is free to decide the whole question: guarding
+	// is charitable and studying flouts tradition, and with ordinary values
+	// that gap alone outweighs the one need still open. The claim under test
+	// is about the hierarchy, so hold values neutral and let it stand alone.
+	a.Norms = belief.Norms{}
 	// Choosing is noisy on purpose, and the actions open to a sated agent
 	// score close together, so a single draw proves nothing. What the
 	// hierarchy claims is a leaning: study should be where such an agent

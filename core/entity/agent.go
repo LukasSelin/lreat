@@ -5,6 +5,8 @@
 package entity
 
 import (
+	"math/rand/v2"
+
 	"lreat/core/belief"
 	"lreat/core/need"
 )
@@ -112,6 +114,16 @@ type Agent struct {
 	ID   ID
 	Name string
 	Born int
+
+	// Luck is the agent's own stream of chance, seeded when it is born. An
+	// agent draws from this rather than from the world's one stream so that
+	// what it decides depends on what it has drawn before and not on who
+	// else happened to draw in between. That is what lets a whole population
+	// decide at the same time and still come out the same as if they had
+	// gone one at a time - and it is why only deciding may run in parallel:
+	// Luck covers choosing, while acting on the choice still draws on the
+	// world.
+	Luck *rand.Rand
 
 	Needs       need.Levels
 	Personality need.Weights

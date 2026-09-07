@@ -28,7 +28,9 @@ func main() {
 	every := flag.Int("every", 250, "report interval in ticks")
 	showMap := flag.Bool("map", false, "print the map at each report")
 	pave := flag.Int("pave", 0, "lay streets through the settlement every N ticks (0 never)")
+	workers := flag.Int("workers", system.Workers, "goroutines to decide over (1 decides one agent at a time)")
 	flag.Parse()
+	system.Workers = *workers
 
 	w := world.New(*seed)
 	for i := 0; i < *agents; i++ {

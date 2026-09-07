@@ -2,6 +2,8 @@ package system
 
 import (
 	"math"
+	"runtime"
+	"sync"
 
 	"lreat/core/action"
 	"lreat/core/belief"
@@ -33,6 +35,12 @@ func Score(a *entity.Agent, gain need.Levels, urgency [need.Count]float64) float
 // has been built on it — a river across the way, a street running to the
 // market — is how the map shapes behavior.
 func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
+	return choose(a, w, w.Routers(1)[0])
+}
+
+// choose is Choose over a given router, so that agents deciding at the same
+// time each route on working memory of their own.
+func choose(a *entity.Agent, w *world.World, r *world.Router) (*action.Def, entity.Pos) {
 	urgency := need.Urgencies(a.Needs)
 	best, bestPos, bestScore := action.Rest, a.Pos, math.Inf(-1)
 	for _, d := range action.Catalog {
@@ -43,7 +51,7 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 		if !ok {
 			continue
 		}
-		cost := float64(d.Ticks) + w.Grid.TravelCost(a.Pos, target)/a.Vigor(w.Tick)
+		cost := float64(d.Ticks) + r.TravelCost(a.Pos, target)/a.Vigor(w.Tick)
 		// Conscience sits beside need rather than inside it. It is not scaled
 		// by urgency, so a principle holds until hunger grows big enough to
 		// outweigh it, and then it gives way.
@@ -51,7 +59,7 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 		// nobody answers wrongdoing and dear where somebody does.
 		v := action.ValenceOf(d.Name)
 		worth := Score(a, d.Expect(a, w, target), urgency) + belief.Conscience(v, a.Norms) - belief.Reprisal(v, a.Caution)
-		s := worth/cost + w.RNG.NormFloat64()*Noise
+		s := worth/cost + a.Luck.NormFloat64()*Noise
 		if s > bestScore {
 			best, bestPos, bestScore = d, target, s
 		}
@@ -59,15 +67,74 @@ func Choose(a *entity.Agent, w *world.World) (*action.Def, entity.Pos) {
 	return best, bestPos
 }
 
-// Decide gives every idle agent a plan.
+// Workers is how many goroutines deciding may spread over. Deciding is the
+// bulk of a tick - most of it is agents costing errands over the ground - and
+// it only reads the world, so it is the one phase that parallelises. Set it
+// to 1 to decide one agent at a time.
+var Workers = runtime.NumCPU()
+
+// Decide gives every idle agent a plan. Agents choose at the same time and
+// commit in turn: choosing only reads the world, so it can be spread over
+// goroutines, while the plans land in a fixed order out of a slice indexed by
+// agent, which is what keeps a run the same however the goroutines are
+// scheduled.
 func Decide(w *world.World) {
+	idle := make([]*entity.Agent, 0, len(w.Agents))
 	for _, a := range w.Agents {
-		if a.Plan != nil {
-			continue
+		if a.Plan == nil {
+			idle = append(idle, a)
 		}
-		d, target := Choose(a, w)
-		a.Plan = &entity.Plan{Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks}
 	}
+	if len(idle) == 0 {
+		return
+	}
+	plans := make([]*entity.Plan, len(idle))
+	routers := w.Routers(workersFor(len(idle)))
+	inParallel(len(idle), len(routers), func(i, worker int) {
+		d, target := choose(idle[i], w, routers[worker])
+		plans[i] = &entity.Plan{Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks}
+	})
+	for i, a := range idle {
+		a.Plan = plans[i]
+	}
+}
+
+// workersFor is how many goroutines to spread n agents over. One agent each
+// is worth it: a decision costs far more than handing one to a goroutine, and
+// batching them up only leaves cores idle - insisting on four agents per
+// worker cost a third of the speedup when this was measured.
+func workersFor(n int) int {
+	k := Workers
+	if n < k {
+		k = n
+	}
+	if k < 1 {
+		k = 1
+	}
+	return k
+}
+
+// inParallel runs f for every index below n, spread over workers goroutines.
+// f must not write anything another call to f can see; results belong in a
+// slice indexed by i.
+func inParallel(n, workers int, f func(i, worker int)) {
+	if workers <= 1 {
+		for i := 0; i < n; i++ {
+			f(i, 0)
+		}
+		return
+	}
+	var wg sync.WaitGroup
+	for k := 0; k < workers; k++ {
+		wg.Add(1)
+		go func(k int) {
+			defer wg.Done()
+			for i := k; i < n; i += workers {
+				f(i, k)
+			}
+		}(k)
+	}
+	wg.Wait()
 }
 
 // Exertion is the physiological cost of one tick's worth of walking, for an
