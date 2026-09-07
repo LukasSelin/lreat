@@ -89,30 +89,39 @@ What stayed, because none of it is reinforcement: the recognition space and the 
 
 ### What it cost, and what was rewritten
 
-Measured over 24 seeds, 20 founders, 6000 ticks, counting settlements that replaced their founders (population at least 20 at the end), extinctions, and mean final population:
+Measured with `cmd/tune`: 20 founders, 6000 ticks, counting settlements that replaced their founders (population at least 20 at the end), extinctions, and the median and mean final population. Batches of 24 or 48 seeds while screening; the last line is 96 seeds, the second half of them never looked at while tuning.
 
-| variant | lasted | extinct | mean pop |
-|---|---|---|---|
-| recognition with learning (before) | 11/12 | 0 | 108 |
-| the value rule, unchanged | 10/12 | 1 | 86 |
-| recognition, learning removed, priors untouched | 0/24 | 9 in the first 12 | 1 |
-| recognition, learning removed, priors rewritten | 13/24 | 1 | 24 |
+| variant | lasted | extinct | median | mean |
+|---|---|---|---|---|
+| recognition with learning (before) | 21/24 | 1 | 79 | 91 |
+| the value rule, unchanged | 10/12 | 1 | - | 86 |
+| recognition, learning removed, priors untouched | 0/24 | 9 in the first 12 | 0 | 1 |
+| priors rewritten to carry it | 13/24 | 1 | 24 | 24 |
+| **plus the knees retuned** (adopted) | **91/96** | **0** | **91** | **117** |
 
-The untuned number is the honest measure of how much the learner was doing: with the priors as they stood, every settlement died. Four changes brought it back, in order of what they were worth:
+The untuned number is the honest measure of how much the learner was doing: with the priors as they stood, every settlement died. What brought it back, in the order it was worth:
 
+- **A larder is for the week that has not happened yet.** The food knee - how much food reads as plenty - was four units, the point past which one more unit does nothing for today's hunger. Nobody with two units in the basket went out, and the settlement lived hand to mouth on 1.5 units a head while the learner's settlements sat on 23. Read at twelve, a fertile adult is fed well enough to think of a child half the time instead of a third. Median 25 → 58 over 48 seeds, and no more extinctions.
+- **An errand is judged on the ground people live on.** The near knee - the travel cost at which a target reads as far as can be - was thirty, about the width of the map, so a target three times as far as another read as only a little worse and agents spent their lives walking. Read at ten, everything past the near ground reads the same and the choice between two errands is made where it matters. Lasted 35/48 → 44/48, median 43 → 98. It is the single most valuable number in the file.
 - **Founders differ from one another.** Habits drift N(0, 0.15) at birth. Twenty founders reading every moment identically have no division of labour to fall into. Extinctions 9 → 4 on the first twelve seeds.
 - **Public order is read as a lack**, the way shelter already was: `order - 1`, so an ungoverned settlement reads -1 and a well-kept one reads 0. Read one-sided it was silent exactly when it mattered, and guarding - whose prior names the ungoverned moment - never happened in a settlement that had never had a watch. This is the change that let a settlement hold order at all.
-- **Hunger is answered by farming as well as by foraging.** The old farm prior said nothing of hunger on purpose: under learning, harvests judged farming by what a first poor field fed and learned it away before agriculture arrived. With no learner to be misled there is nothing to protect farming from, and a prior that only industrious people recognise leaves a settlement foraging its woods bare. Farm now names hunger at 0.8 and forage at 0.7, so a person with a field works it and a person without goes to the trees. Lasted 4/12 → 8/12, extinct 0.
-- **Rest is the quiet moment** rather than a mild hunger (see Writing priors), and **eating names the food in hand** at 0.4, which is what separates it from going to look for food.
+- **Hunger is answered by farming as well as by foraging.** The old farm prior said nothing of hunger on purpose: under learning, harvests judged farming by what a first poor field fed and learned it away before agriculture arrived. With no learner to be misled there is nothing to protect farming from, and a prior that only industrious people recognise leaves a settlement foraging its woods bare. Farm names hunger at 0.8 and forage at 0.7, so a person with a field works it and a person without goes to the trees. Lasted 4/12 → 8/12, extinct 0.
+- **Rest is the quiet moment** rather than a mild hunger (see Writing priors), and **eating is hunger and nearness alone**. Eating named the larder for a while, which was wrong twice over: on a twelve-unit reading a hungry person with two units by them read the moment as one for foraging, and what the larder is for was never the question - `Available` already settles whether there is anything to eat.
 
-What this buys is a settlement that lives: nobody starves out on all but one seed, houses are built and kept, order is held on about half the seeds, fields are worked, and the land's answers - fishing above all - are found and used. What it does not buy is the growth the learner produced. Populations sit near 25 rather than near 110, resting is about a fifth of all acts, and the higher tiers stay thin. That is the honest shape of the trade: **a rule that never learns is a rule whose ceiling is written into its priors**, and the priors are a hand's estimate of what each moment calls for rather than a fitted one.
+Two of the five are knees rather than priors, and that is the lesson worth keeping: **without a learner, what an agent counts as enough is a design parameter, and it is the one that decides whether a settlement produces a surplus.** The learner used to discover it - a full larder went on feeding a family for a fortnight, and the field that filled it was thanked - so the knee could be written for how a single meal feels. With the learner gone it has to be written for the week.
 
+What this buys: 91 of 96 settlements replace their founders, none die out, the median ends at 91 people against the learner's 79, and the settlement feeds itself well enough that half of its fertile adults are in a state to raise a child at any moment. The rule that never learns now has the higher ceiling, but it is a ceiling in a different place: it is written down, in five numbers and twenty-five priors, and moving it means moving them.
+
+### Measuring a change
 ### Measuring a change
 
 Single seeds are a coin toss. Whether a settlement lasts turns on how many births fall in its founders' fertile years, and that turns on safety crossing 0.6 at the moment of a roll, so the same change can send one seed from 0 to 144 and another the other way. Ranking a change on one or two seeds is meaningless; the method is a batch of at least 24 seeds run in parallel, counting settlements that replaced their founders, extinctions, and the mean final population. With the learning gone the batch matters more, not less: a prior is a single number that every agent in every settlement reads the same way, so a bad one fails everywhere at once and a good one has to be shown to help across the spread rather than on the seed it was written against.
 
+`cmd/tune` is that batch. It runs the seeds in parallel, one goroutine each, and prints how every settlement came out, what the population spent its time doing, and how often a fertile adult was in a state to raise a child - which is the number that says *why* a change helped or hurt.
+
 ```bash
-go build -o /tmp/h.exe ./cmd/headless && seq 1 24 | xargs -P 8 -I{} sh -c '/tmp/h.exe -seed {} -ticks 6000 -every 6000 | grep "^  6000" | awk -v s={} "{print s, \$2}"' | sort -n
+go run ./cmd/tune -seeds 48 -quiet            # screening
+go run ./cmd/tune -seeds 48 -offset 48 -quiet # seeds not used while tuning
 ```
 
 ## The land
@@ -651,9 +660,7 @@ What did not move is safety, and with it growth. Agents forage every 17 ticks an
 
 Single seeds are a coin toss near the edge. Whether a settlement lasts turns on how many births fall in its founders' fertile years, and that turns on safety crossing 0.6 at the moment of a roll, so the same change can send one seed from 0 to 144 and another the other way. Ranking a change on one or two seeds is meaningless; the method that worked is a batch of 24 seeds, in parallel, counting settlements that replaced their founders (population at least 20 at tick 6000), extinctions, and the median population, confirmed on a second independent batch:
 
-```bash
-go build -o /tmp/h.exe ./cmd/headless && seq 1 24 | xargs -P 8 -I{} sh -c '/tmp/h.exe -seed {} -ticks 6000 -every 6000 | grep "^  6000" | awk -v s={} "{print s, \$2}"' | sort -n
-```
+The batch was a shell loop over the headless runner then; it is `cmd/tune` now.
 
 | variant | seeds 1-24 | seeds 25-48 |
 |---|---|---|

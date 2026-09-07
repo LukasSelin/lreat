@@ -72,11 +72,15 @@ func init() {
 		habit.Hunger: -1, habit.Unsafe: -0.6, habit.Lonely: -0.6,
 		habit.Unproven: -0.4, habit.Curious: -0.4,
 	})
-	// Eating is the hungry moment with something in hand. The food
-	// coordinate is what separates it from going to look for food, which is
-	// the same hunger with an empty larder.
+	// Eating is the hungry moment, and nothing else: what separates it from
+	// going to look for food is that there is food, which Available
+	// settles. It says nothing about the larder on purpose. The food
+	// coordinate is a reading of plenty, and plenty is a question for
+	// whether to go out and get more, not for whether to eat what is in
+	// hand; a prior that named it made a hungry person with two units by
+	// them read the moment as one for foraging.
 	seed(Eat, reachEveryday, habit.Signature{
-		habit.Hunger: 1, habit.Food: 0.4, habit.Near: 0.5,
+		habit.Hunger: 1, habit.Near: 0.8,
 	})
 	// Foraging belongs to the green half of the year, which is the half in
 	// which the forest puts back most of what is taken from it. A
