@@ -255,24 +255,22 @@ func (v *view) draw() {
 	puts(sc, px+6, line-1, dim, fmt.Sprintf("%d ticks →", graphWidth*graphTicks))
 	v.drawGraph(px, line)
 	line += graphHeight
-	// The legend names each band and, after it, the action currently most
-	// common within that band. The band is the part that holds still; the
-	// action is allowed to flicker, in one word, where it costs nothing.
+	// The legend is fixed: every kind of work, always in the same order on
+	// the same row in the same colour, whether anyone is doing it or not.
+	// A legend that reshuffles itself is one more thing moving on a panel
+	// meant to be read at a glance, and the colours have to mean the same
+	// thing from one frame to the next for the bands above to be legible.
 	var counts [len(ascii.Groups)]int
-	var top [len(ascii.Groups)]string
 	for _, a := range s.Activity {
-		g := ascii.GroupOf(a.Action)
-		if counts[g] == 0 {
-			top[g] = a.Action // Activity is sorted, so this is the group's largest
-		}
-		counts[g] += a.Agents
+		counts[ascii.GroupOf(a.Action)] += a.Agents
 	}
 	for i, g := range ascii.Groups {
-		if counts[i] == 0 {
-			continue
-		}
 		puts(sc, px, line, palette[g.Color], "█")
-		puts(sc, px+2, line, tcell.StyleDefault, trim(fmt.Sprintf("%-7s %3d  %s", g.Name, counts[i], top[i]), panelWidth-4))
+		style := tcell.StyleDefault
+		if counts[i] == 0 {
+			style = dim
+		}
+		puts(sc, px+2, line, style, fmt.Sprintf("%-7s %3d", g.Name, counts[i]))
 		line++
 	}
 	puts(sc, px, sh-1, dim, "space pause  +/- speed  . step  r pave  q quit")
