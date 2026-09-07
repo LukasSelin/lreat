@@ -112,34 +112,64 @@ func TestGroundRemembersBeingWalkedOn(t *testing.T) {
 	}
 }
 
-// Somebody looking for where to lay a road finds the most-walked open ground,
-// and does not offer to pave what is already built on or claimed.
+// Somebody looking for where to lay a road reads the open ground and never
+// offers what is built on or claimed - but a busy doorway is exactly the
+// reason to lay a street past it, so ground that can never be paved lends its
+// wear to the gaps beside it.
 func TestBusiestFindsTheWornWay(t *testing.T) {
-	g := NewGrid(20, 20)
-	from := entity.Pos{X: 10, Y: 10}
-	way := entity.Pos{X: 12, Y: 10}
+	g := NewGrid(30, 12)
+
+	// A quiet corner with one lightly walked open tile.
+	lone := entity.Pos{X: 24, Y: 6}
 	for i := 0; i < 30; i++ {
-		g.Tread(way)
+		g.Tread(lone)
 	}
-	// A busier tile, but somebody's field: property is not a right of way.
-	claimed := entity.Pos{X: 8, Y: 10}
-	g.At(claimed).Owner = 3
-	for i := 0; i < 60; i++ {
-		g.Tread(claimed)
+	if p, _, ok := g.Busiest(entity.Pos{X: 24, Y: 6}, 3); !ok || p != lone {
+		t.Fatalf("in open country Busiest picked %v (ok=%v), want the worn tile at %v", p, ok, lone)
 	}
-	p, worn, ok := g.Busiest(from, 6)
-	if !ok || p != way {
-		t.Fatalf("Busiest picked %v (ok=%v), want the worn open ground at %v", p, ok, way)
+
+	// A thronged doorway. The house itself is no thoroughfare, so the case it
+	// makes is for the ground beside it.
+	door := entity.Pos{X: 5, Y: 6}
+	g.At(door).Structure = House
+	for i := 0; i < 100; i++ {
+		g.Tread(door)
 	}
-	if worn <= 0 {
-		t.Fatalf("Busiest reported wear %v", worn)
+	p, worn, ok := g.Busiest(entity.Pos{X: 5, Y: 6}, 3)
+	if !ok {
+		t.Fatal("a thronged doorway made no case for a street beside it")
 	}
-	if _, _, ok := g.Busiest(entity.Pos{X: 2, Y: 2}, 1); ok {
+	if p == door {
+		t.Fatal("Busiest offered to pave the house itself")
+	}
+	if entity.Dist(p, door) != 1 {
+		t.Fatalf("Busiest picked %v, want ground next to the doorway at %v", p, door)
+	}
+	if worn <= g.At(p).Traffic {
+		t.Fatalf("the case for %v is %.1f, no more than the tile's own wear; the doorway lent nothing", p, worn)
+	}
+
+	// Open ground speaks only for itself: were it to lend too, paving would
+	// come out in patches rather than in lines.
+	quiet := entity.Pos{X: 24, Y: 8}
+	if g.Draw(quiet) != g.At(quiet).Traffic {
+		t.Fatal("open ground lent its wear to a neighbour")
+	}
+
+	// A street already carries what it carries; it does not argue for another
+	// street beside it.
+	g.At(door).Structure = Road
+	if d := g.Draw(entity.Pos{X: 5, Y: 7}); d != 0 {
+		t.Fatalf("ground beside a road drew %.1f; traffic on a street is already served", d)
+	}
+
+	if _, _, ok := g.Busiest(entity.Pos{X: 15, Y: 1}, 1); ok {
 		t.Fatal("Busiest found somewhere worth paving in untrodden wilderness")
 	}
+
 	// Paving settles the question, so the ground stops asking.
-	g.Pave(way)
-	if g.At(way).Traffic != 0 {
+	g.Pave(lone)
+	if g.At(lone).Traffic != 0 {
 		t.Fatal("a paved tile still reads as ground crying out for a road")
 	}
 }

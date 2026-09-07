@@ -41,9 +41,43 @@ func (g *Grid) Weather() {
 	}
 }
 
-// Busiest returns the most walked-on tile within radius of from that a road
-// could be laid on, and how worn it is. Ties go to the tile nearest the top
-// left, so that two agents reading the same ground reach for the same spot.
+// Draw is the case for laying a road on p: what people walk here, plus what
+// they walk on the ground beside it that could never be a street anyway.
+//
+// Most of the traffic a street carries is not on the street. It is on the
+// houses and fields the street runs between, and those are never paved, so
+// read on its own the gap beside a thronged doorway looks like empty ground.
+// In a close-built settlement that leaves nowhere at all worth paving, which
+// is what kept the value rule from laying a single length of road.
+//
+// Only ground that cannot be paved lends its wear. Open ground speaks for
+// itself: were it to lend as well, every tile near a busy one would read as
+// busy, and paving would come out in patches instead of the lines a road
+// wants. Roads lend nothing either - traffic already on a street is already
+// served, and counting it would pave the settlement outward from its first
+// road until the ground ran out.
+func (g *Grid) Draw(p entity.Pos) float64 {
+	if !g.In(p) {
+		return 0
+	}
+	d := g.At(p).Traffic
+	for _, off := range dirs {
+		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+		if !g.In(q) {
+			continue
+		}
+		if t := g.At(q); !t.Pavable() && t.Structure != Road {
+			d += t.Traffic
+		}
+	}
+	return d
+}
+
+// Busiest returns the tile within radius of from where a road would serve the
+// most traffic, and how strong the case for it is. Only ground a road could
+// actually be laid on is offered, but the case is read from the whole
+// neighbourhood: see Draw. Ties go to the tile nearest the top left, so that
+// two agents reading the same ground reach for the same spot.
 func (g *Grid) Busiest(from entity.Pos, radius int) (entity.Pos, float64, bool) {
 	var best entity.Pos
 	var worn float64
@@ -51,14 +85,12 @@ func (g *Grid) Busiest(from entity.Pos, radius int) (entity.Pos, float64, bool) 
 	for y := from.Y - radius; y <= from.Y+radius; y++ {
 		for x := from.X - radius; x <= from.X+radius; x++ {
 			p := entity.Pos{X: x, Y: y}
-			if !g.In(p) {
+			if !g.In(p) || !g.At(p).Pavable() {
 				continue
 			}
-			t := g.At(p)
-			if !t.Pavable() || t.Traffic <= worn {
-				continue
+			if d := g.Draw(p); d > worn {
+				best, worn, found = p, d, true
 			}
-			best, worn, found = p, t.Traffic, true
 		}
 	}
 	return best, worn, found

@@ -192,7 +192,7 @@ Tests under fit mode assert ordering (which action ranks first), not the sampled
 
 **The moment.** `Pave`'s prior is the settled one: `Wood 0.6, Shelter 0.7, Company 0.6, Charity 0.5, Industry 0.6, Near 0.5`. Shelter is what separates it from gathering and building, which want the opposite - you improve the common ground once your own roof is up. Charity and industry are what it shares with standing guard. It mentions neither hunger nor skill, for the reasons in "Writing priors".
 
-**Why it is not an esteem farm.** Paving has no provenance channel: a road pays back as slightly cheaper walking, forever, for everybody, and a needs-only reward would extinguish it. So like guard it pays the layer in standing - but deliberately less per tick than guard does. At esteem 0.05 / belonging 0.03 agents paved a third of the map and the settlement was worse for it (seed 5: 984 road tiles, pop 135). At 0.03 / 0.02, with `wornEnough` at 45, paving is common but self-limiting.
+**Why it is not an esteem farm.** Paving has no provenance channel: a road pays back as slightly cheaper walking, forever, for everybody, and a needs-only reward would extinguish it. So like guard it pays the layer in standing - but deliberately less per tick than guard does. At esteem 0.05 / belonging 0.03 agents paved a third of the map and the settlement was worse for it (seed 5: 984 road tiles, pop 135). At 0.03 / 0.02 paving is common but self-limiting.
 
 **Tuning.** `wornEnough` was measured, not guessed. Equilibrium wear on a tile is roughly crossings-per-tick x 200, so the threshold is what decides whether roads are a big-city luxury or an ordinary act. Sweeping it on seed 5 (6000 ticks, 25 founders):
 
@@ -217,4 +217,15 @@ At 80 the threshold was population-sensitive - only the largest settlements ever
 
 Equal or better on all six, which is the first change in this document to move the subsistence finding rather than work around it. The mechanism is the one the house toll exposed: recognition reads distance straight off the ground, so making the settlement cheaper to cross improves the judgement of everyone in it.
 
-**Known limitation: the value rule barely paves.** Over 4000 ticks on seeds 5, 7, 11, 21 and 31 the value rule laid 0, 0, 0, 2 and 0 tiles. The cause is not that a value maximiser cannot see the point of a road - it is that `wornEnough` is an absolute threshold and value-rule settlements are smaller. Diagnosed on seed 11 (pop 61): the busiest tile on the map had wear 118.7, but the busiest *pavable* one had 16.7, because traffic concentrates on the houses and fields agents walk over and those are never offered for paving. Fixes would be a threshold relative to the settlement's own traffic, or weighing a tile by its neighbours' wear so the gap beside a busy house reads as the place for a street. Both would need the recognition tuning above redone, so neither is taken while the value rule is the legacy path.
+**Where a street belongs.** A tile's case for a road (`Grid.Draw`) is its own wear plus the wear on neighbouring ground that could never be a street: houses, the market, claimed fields. Most of the traffic a street carries is not on the street but on what it runs between, so read on its own the gap beside a thronged doorway looks like empty ground - and in a close-built settlement that left nowhere at all worth paving. Two things deliberately lend nothing. Open ground speaks only for itself: when it lent too, every tile near a busy one read as busy and paving came out in patches instead of lines. Roads lend nothing either, because traffic already on a street is already served, and counting it paved the settlement outward from its first road until the ground ran out (seed 11: 1350 tiles, near half the map).
+
+This is what brought the value rule back. With `wornEnough` at 60, over six seeds and 6000 ticks:
+
+| | recognition, total pop | value rule, total pop | value rule, seeds that paved |
+|---|---|---|---|
+| own wear only, threshold 45 | 999 | 225 | 1 of 6 (2 tiles) |
+| neighbours lend, threshold 60 | 877 | 386 | 6 of 6 |
+
+The value rule improves on every one of the six seeds and lays roads on all of them. Recognition's total falls 12%, which is inside this system's noise - two of the six seeds improved, and the same configuration swings between 19 and 350 across seeds - but it is a fall, and it is recorded here rather than rounded away.
+
+**Cost.** `Busiest` scans a 25x25 window and reads nine tiles per candidate, once per deciding agent per decision, and it is now the most expensive thing in a tick: 2000 ticks of 40 agents went from 650ms to 917ms across the machine. It sits in the parallel phase, so the machine absorbs it. If it ever needs to be cheaper, `Draw` can be computed for the whole grid once per tick in `Weather` instead of per candidate.

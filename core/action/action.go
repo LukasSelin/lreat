@@ -285,7 +285,7 @@ const pavingWood = 1
 
 // wornEnough is how beaten the ground must be before anyone thinks of paving
 // it. Below this the wear is somebody having passed once, not a route.
-const wornEnough = 45
+const wornEnough = 60
 
 // pavingRadius is how far somebody will go to lay a road. Roads are laid
 // where the layer already lives and walks, not wherever the settlement's
