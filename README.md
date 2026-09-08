@@ -46,6 +46,17 @@ streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
 and everything it weighed before setting out. `esc` drops it, `q` quits.
 
+Every page here shows a dozen measurements at once and squeezes each into a
+row or a band. `↑` and `↓` step through whatever the page has — the kinds of
+work under the map, the measures down the world page, the curve and the two
+flows that make it on the vitals page — and open the one stepped onto out
+over the page's largest space, scaled to its own high-water mark, saying
+where it stands now and what its full height means. A kind of work holding a
+twentieth of the population is not drawn at all in a weave shared with six
+others, and is a chart of its own when it is stepped onto. The rest of the
+page stays where it was, with the row being read marked. Stepping past the
+last one, or `esc`, gives the whole page back.
+
 `d` swaps the map for the settlement's vital record, which is how a run that
 ended is read rather than guessed at: the population curve coloured by how well
 fed it was at the time, a ribbon under it saying which way each stretch of the
@@ -94,6 +105,36 @@ run exactly, however the goroutines happen to interleave.
 ```bash
 go test ./...
 ```
+
+## What a run leaves behind
+
+Every run of all three commands is kept, and says on its last line where it
+went:
+
+```
+runs/<branch>/20260908-234526-tune.md
+```
+
+The file is the terms the run was founded on — the command line, the branch,
+the commit and whether it was clean — then its scores, then everything it
+printed, verbatim. Beside the reports is an `index.jsonl` with one line per
+run: the same scores as JSON, so a folder of a hundred runs can be read
+without opening any of them.
+
+```bash
+cat runs/*/index.jsonl | jq -r '[.at, .scores["mean-pop"], .scores["gates-all"]] | @tsv'
+```
+
+The folder is named for the branch because several branches are usually being
+run at once and their numbers mean nothing mixed together. `runs/` is ignored
+and is meant to be: the numbers belong to the tree they were taken on, and
+master's are checked in at [docs/baseline.md](docs/baseline.md) instead.
+
+`tune -quiet` is about the terminal and not about the record — the table and
+the tally still go into the file. Set `LREAT_RUNS` to gather the branch
+folders of several worktrees in one place, or `LREAT_REPORTS=off` to keep
+nothing at all. A run killed part-way through leaves no report; it is written
+when the command ends of its own accord.
 
 ## How time works
 
@@ -156,6 +197,7 @@ carry on their own now.
 | `core/observe` | the read side: snapshots for renderers, and the perception filter |
 | `core/sim` | runs a world on its own goroutine; the only place wall-clock time lives |
 | `ui/ascii` | the terminal rendering |
+| `report` | what each run left behind, kept under `runs/` a branch at a time |
 | `cmd/` | `watch`, `headless`, `tune` |
 | `owl/` | `core/ontology` rendered as an OWL 2 document — its own module, so the simulation gains no dependency from it |
 

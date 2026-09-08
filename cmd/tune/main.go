@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 
@@ -17,6 +18,7 @@ import (
 	"lreat/core/observe"
 	"lreat/core/system"
 	"lreat/core/world"
+	"lreat/report"
 )
 
 type row struct {
@@ -43,6 +45,19 @@ func main() {
 	action.InheritNoise = *inherit
 	system.MaxPopulation = *cap
 	system.Workers = 1 // the seeds are the parallelism here
+
+	// The batch is kept as well as printed; see package report. -quiet is
+	// about the terminal and not about the record, so the table and the
+	// tally still go into the file when the terminal is only given the
+	// summary line — a batch is worth its few minutes twice over if the
+	// rows can be read a week later.
+	rep := report.Open("tune")
+	out := rep.Out(os.Stdout)
+	defer func() { fmt.Print(rep.Close()) }()
+	full := out
+	if *quiet {
+		full = rep
+	}
 
 	rows := make([]row, *seeds)
 	tally := map[string]int{}
@@ -127,16 +142,12 @@ func main() {
 	pops := make([]int, 0, len(rows))
 	var needs [5]float64
 	live := 0.0
-	if !*quiet {
-		fmt.Printf("%4s %4s %5s %6s %6s %6s | %5s %5s %5s %5s %5s | %5s\n",
-			"seed", "pop", "died", "births", "houses", "fields", "phys", "safe", "belng", "estm", "actl", "order")
-	}
+	fmt.Fprintf(full, "%4s %4s %5s %6s %6s %6s | %5s %5s %5s %5s %5s | %5s\n",
+		"seed", "pop", "died", "births", "houses", "fields", "phys", "safe", "belng", "estm", "actl", "order")
 	for _, r := range rows {
-		if !*quiet {
-			fmt.Printf("%4d %4d %5d %6d %6d %6d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f\n",
-				r.seed, r.pop, r.deaths, r.births, r.houses, r.fields,
-				r.needs[0], r.needs[1], r.needs[2], r.needs[3], r.needs[4], r.order)
-		}
+		fmt.Fprintf(full, "%4d %4d %5d %6d %6d %6d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f\n",
+			r.seed, r.pop, r.deaths, r.births, r.houses, r.fields,
+			r.needs[0], r.needs[1], r.needs[2], r.needs[3], r.needs[4], r.order)
 		sum += r.pop
 		pops = append(pops, r.pop)
 		if r.pop >= *agents {
@@ -157,27 +168,43 @@ func main() {
 			needs[t] /= live
 		}
 	}
-	if !*quiet {
-		total := 0
-		names := make([]string, 0, len(tally))
-		for k, v := range tally {
-			total += v
-			names = append(names, k)
-		}
-		sort.Slice(names, func(i, j int) bool { return tally[names[i]] > tally[names[j]] })
-		fmt.Println()
-		for _, n := range names {
-			fmt.Printf("%-34s %7d %5.1f%%\n", n, tally[n], 100*float64(tally[n])/float64(total))
-		}
-		fmt.Printf("\nborn %.2f inherit %.2f temp %.2f\n", *born, *inherit, *temp)
+	total := 0
+	names := make([]string, 0, len(tally))
+	for k, v := range tally {
+		total += v
+		names = append(names, k)
 	}
+	sort.Slice(names, func(i, j int) bool { return tally[names[i]] > tally[names[j]] })
+	fmt.Fprintln(full)
+	for _, n := range names {
+		fmt.Fprintf(full, "%-34s %7d %5.1f%%\n", n, tally[n], 100*float64(tally[n])/float64(total))
+	}
+	fmt.Fprintf(full, "\nborn %.2f inherit %.2f temp %.2f\n", *born, *inherit, *temp)
 	if gateRuns > 0 {
 		for k := range gates {
 			gates[k] /= gateRuns
 		}
 	}
-	fmt.Printf("gates: fed %.2f safe %.2f held %.2f all %.3f food %.2f hungry-with-food %.2f | ", gates[0], gates[1], gates[2], gates[3], gates[4], gates[5])
-	fmt.Printf("lasted %d/%d extinct %d mean %.1f median %d | phys %.2f safe %.2f belng %.2f estm %.2f\n",
+	fmt.Fprintf(out, "gates: fed %.2f safe %.2f held %.2f all %.3f food %.2f hungry-with-food %.2f | ", gates[0], gates[1], gates[2], gates[3], gates[4], gates[5])
+	fmt.Fprintf(out, "lasted %d/%d extinct %d mean %.1f median %d | phys %.2f safe %.2f belng %.2f estm %.2f\n",
 		lasted, *seeds, gone, float64(sum)/float64(*seeds), pops[len(pops)/2],
 		needs[0], needs[1], needs[2], needs[3])
+
+	// The headline, number by number, into the folder's index. These are
+	// what one batch is held against another by, and the thresholds they
+	// are worth believing at are in docs/baseline.md.
+	rep.Score("fed", gates[0])
+	rep.Score("safe", gates[1])
+	rep.Score("held", gates[2])
+	rep.Score("gates-all", gates[3])
+	rep.Score("food", gates[4])
+	rep.Score("hungry-with-food", gates[5])
+	rep.Score("lasted", float64(lasted))
+	rep.Score("extinct", float64(gone))
+	rep.Score("mean-pop", float64(sum)/float64(*seeds))
+	rep.Score("median-pop", float64(pops[len(pops)/2]))
+	rep.Score("phys", needs[0])
+	rep.Score("safe-need", needs[1])
+	rep.Score("belng", needs[2])
+	rep.Score("estm", needs[3])
 }

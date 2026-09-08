@@ -10,6 +10,7 @@ import (
 	"lreat/core/observe"
 	"lreat/core/system"
 	"lreat/core/world"
+	"lreat/report"
 )
 
 // The vitals page is the answer to the one question the map cannot answer:
@@ -228,12 +229,27 @@ func (v *view) drawVitals(sw, sh int) {
 	// making them. The curve shows the fall; the ribbon shows how long the
 	// settlement had been failing to replace itself before it.
 	cols := v.fit(sw)
-	v.drawPopulation(0, line, sw, cols)
+	// The curve's own space is where anything stepped onto is opened out:
+	// the births alone, or the burials, or how well fed the worst-fed
+	// person was, each scaled to its own high rather than shown as a
+	// colour on the curve. The ribbon under it stays whatever is up, since
+	// which way the settlement was going is the one thing worth having
+	// beside any of them. See focus.go.
+	open, opened := v.focused()
+	if opened {
+		v.drawOpen(0, line, sw, popHeight, open)
+	} else {
+		v.drawPopulation(0, line, sw, cols)
+	}
 	line += popHeight
 	v.drawFlow(0, line, sw, cols)
 	line++
-	put(dim, "the whole run, %d ticks →   full height is %d people   a column is %d ticks",
-		v.run(), max(v.peak, 1), v.run()/max(len(cols), 1))
+	if opened {
+		put(dim, "%s   a column is %d ticks", v.headline(open), v.run()/max(len(cols), 1))
+	} else {
+		put(dim, "the whole run, %d ticks →   full height is %d people   a column is %d ticks",
+			v.run(), max(v.peak, 1), v.run()/max(len(cols), 1))
+	}
 	line++
 
 	top := line
@@ -266,7 +282,7 @@ func (v *view) drawVitals(sw, sh int) {
 		}
 	}
 
-	puts(sc, 0, sh-1, dim, "d back to the map   w the world   space pause  +/- speed  . step  q quit")
+	puts(sc, 0, sh-1, dim, trim(v.keyed("d back to the map   w the world   q quit"), sw))
 	sc.Show()
 }
 
@@ -485,6 +501,32 @@ func (v *view) Report() string {
 		fmt.Fprintf(&b, "  t%-7d %s\n", s.Chronicle[i].Tick, s.Chronicle[i].Text)
 	}
 	return b.String()
+}
+
+// score is the same post-mortem reduced to the handful of numbers a run is
+// held against another run's by. The report keeps them beside its words so
+// that a folder of runs can be read at once — where the population peaked,
+// whether it died out, and how fed it was when it stopped.
+func (v *view) score(rep *report.Run) {
+	if v.snap == nil {
+		return
+	}
+	s := v.snap
+	rep.Score("ticks", float64(s.Tick))
+	rep.Score("pop", float64(s.Population))
+	rep.Score("peak", float64(v.peak))
+	rep.Score("peak-at", float64(v.peakAt))
+	rep.Score("died-out-at", float64(v.gone))
+	rep.Score("born", float64(s.Vitals.Births))
+	rep.Score("starved", float64(s.Vitals.Starved))
+	rep.Score("failed", float64(s.Vitals.Failed))
+	rep.Score("phys", s.MeanNeeds[0])
+	rep.Score("health", s.MeanHealth)
+	rep.Score("starving", float64(s.Starving))
+	rep.Score("houses", float64(s.Houses))
+	rep.Score("fields", float64(s.Fields))
+	rep.Score("forest", float64(s.Forest))
+	rep.Score("order", s.Safety)
 }
 
 const (

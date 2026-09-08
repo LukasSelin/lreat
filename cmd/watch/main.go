@@ -18,9 +18,17 @@
 // says a settlement has stopped; those two say why, and they are the reason
 // a run that ends is worth reading rather than restarting.
 //
+// Every page here shows a dozen measurements at once and squeezes each of
+// them into a row or a band. The arrows step through whatever the page has
+// and open the one stepped onto out over the page's largest space, scaled to
+// its own high-water mark: a kind of work holding a twentieth of the
+// population is not drawn at all in a weave shared with six others, and is a
+// chart of its own when it is stepped onto. See focus.go.
+//
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // r lays streets through the settlement, tab and shift-tab pick an agent
-// (or click one), esc drops it, d shows the vitals, w the world, q quits.
+// (or click one), up and down open a graph out, esc backs off the graph and
+// then the page, d shows the vitals, w the world, q quits.
 package main
 
 import (
@@ -28,6 +36,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -38,6 +47,7 @@ import (
 	"lreat/core/observe"
 	"lreat/core/sim"
 	"lreat/core/world"
+	"lreat/report"
 	"lreat/ui/ascii"
 )
 
@@ -104,6 +114,15 @@ func main() {
 	run(screen, s)
 }
 
+// choosing names the rule the figures decided under, for a report that has
+// to say afterwards what the run was of.
+func choosing(fit bool) string {
+	if fit {
+		return "recognition"
+	}
+	return "value"
+}
+
 // given says whether a flag was named on the command line rather than left
 // at what it defaults to.
 func given(name string) bool {
@@ -168,7 +187,20 @@ func run(screen tcell.Screen, s setup) {
 	// given up rather than into a display about to be torn down. A
 	// settlement nobody can report on afterwards is one nobody can tune
 	// against. See Report in vitals.go.
-	defer func() { fmt.Print(v.Report()) }()
+	//
+	// The same words are kept on disk, because a watched run is founded on
+	// whatever the menu was left at rather than on flags, and a terminal
+	// scrolled past is the only other place that ever said so. The terms
+	// go in first: without them the numbers under them are of nothing.
+	rep := report.Open("watch")
+	defer func() {
+		out := rep.Out(os.Stdout)
+		fmt.Fprintf(out, "\nfounded on seed %d, %d figures, %dx%d, temp %.2f, %s\n",
+			s.seed, s.agents, s.width, s.height, s.temp, choosing(s.fit))
+		fmt.Fprint(out, v.Report())
+		v.score(rep)
+		fmt.Print(rep.Close())
+	}()
 	defer screen.Fini()
 	screen.EnableMouse(tcell.MouseButtonEvents) // clicking a figure picks it
 
@@ -232,8 +264,11 @@ type view struct {
 	// both is kept whether either page is open or not: a settlement dies
 	// out once, and nobody is watching the right page when it does. See
 	// vitals.go and world.go.
-	vitals    bool
-	world     bool
+	vitals bool
+	world  bool
+	// focus is the graph on the page now up that is opened out, counted
+	// from one, and zero for none. See focus.go.
+	focus     int
 	traces    []trace
 	techs     []found
 	peak      int
@@ -281,13 +316,15 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Key() == tcell.KeyCtrlC || ev.Rune() == 'q':
 		return false
 	case ev.Key() == tcell.KeyEscape:
-		// Esc backs out one step at a time — off whichever page is up,
-		// then off whoever is being followed — and only quits when there is nothing
-		// left to back out of: dropping back to the settlement is the
-		// commoner move.
+		// Esc backs out one step at a time — off whichever graph is opened
+		// out, then off whichever page is up, then off whoever is being
+		// followed — and only quits when there is nothing left to back out
+		// of: dropping back to the settlement is the commoner move.
 		switch {
+		case v.focus != 0:
+			v.focus = 0
 		case v.vitals || v.world:
-			v.vitals, v.world = false, false
+			v.vitals, v.world, v.focus = false, false, 0
 		case v.sel != 0:
 			v.choose(0)
 		default:
@@ -315,10 +352,16 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 		v.pick(1)
 	case ev.Key() == tcell.KeyBacktab:
 		v.pick(-1)
+	case ev.Key() == tcell.KeyUp:
+		v.step(-1)
+	case ev.Key() == tcell.KeyDown:
+		v.step(1)
 	case ev.Rune() == 'd':
-		v.vitals, v.world = !v.vitals, false
+		// Every page has its own graphs to step through, so changing page
+		// closes whatever was opened out on the one being left.
+		v.vitals, v.world, v.focus = !v.vitals, false, 0
 	case ev.Rune() == 'w':
-		v.world, v.vitals = !v.world, false
+		v.world, v.vitals, v.focus = !v.world, false, 0
 	case ev.Rune() == 'r':
 		// Lay the whole street network at once. Agents pave for themselves
 		// now, a length at a time where they have worn the ground; this is
@@ -543,16 +586,28 @@ func (v *view) draw() {
 	for i, g := range ascii.Groups {
 		lx := i * cell
 		puts(sc, lx, s.Map.H, palette[g.Color], "█")
-		style := tcell.StyleDefault
-		if counts[i] == 0 {
+		// A kind of work nobody is doing is dim, and so is one that is
+		// simply not the one being read: while a band is opened out the
+		// legend says which of them it is. See focus.go.
+		style := v.markGroup(i)
+		if counts[i] == 0 && v.focus == 0 {
 			style = dim
 		}
 		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
 	}
-	v.drawGraph(0, s.Map.H+1, s.Map.W)
-	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d days →", min(len(v.hist), s.Map.W)*graphTicks))
+	// The band under the map is either the whole weave or the one kind of
+	// work stepped onto, drawn in the same rows and scaled to its own high
+	// so that a thin one can be read at all.
+	span := fmt.Sprintf("%d days →", min(len(v.hist), s.Map.W)*graphTicks)
+	if g, ok := v.focused(); ok {
+		v.drawOpen(0, s.Map.H+1, s.Map.W, graphHeight, g)
+		span = trim(v.headline(g)+"   "+span, s.Map.W)
+	} else {
+		v.drawGraph(0, s.Map.H+1, s.Map.W, graphHeight)
+	}
+	puts(sc, 0, s.Map.H+1+graphHeight, dim, span)
 	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  r pave")
-	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  d vitals  w world  q quit")
+	puts(sc, px, sh-1, dim, trim(v.keyed("tab pick  d vitals  w world  q quit"), panelWidth))
 	// A settlement that has ended says so across the empty map it left, and
 	// says where to go and read why. Without this the map simply stops
 	// moving and a finished run looks like a hung one.
@@ -568,15 +623,15 @@ func (v *view) draw() {
 // column on the left, the full height being the whole population and the gap
 // at the top those with nothing planned. What a single-tick list could never
 // show is here: whether a band is widening.
-func (v *view) drawGraph(x, y, w int) {
+func (v *view) drawGraph(x, y, w, h int) {
 	hist := v.hist
 	if len(hist) > w {
 		hist = hist[len(hist)-w:] // only what fits, the recent past
 	}
 	for i, col := range hist {
 		cx := x + w - len(hist) + i
-		for r := 0; r < graphHeight; r++ {
-			share := (float64(graphHeight-r) - 0.5) / float64(graphHeight)
+		for r := 0; r < h; r++ {
+			share := (float64(h-r) - 0.5) / float64(h)
 			var cum float64
 			for gi, g := range ascii.Groups {
 				cum += col[gi]
@@ -589,8 +644,14 @@ func (v *view) drawGraph(x, y, w int) {
 	}
 }
 
+// puts writes a line of text from x, one cell to the rune. Ranging over the
+// string itself would count in bytes, which is the same thing only while the
+// text is ASCII: the moment a line carries a rule, an arrow or a degree sign
+// it tears open, every glyph after the first multi-byte one pushed two cells
+// further right than it belongs and the tail of the line run off the width
+// it was trimmed to. Every header on every page is drawn through here.
 func puts(sc tcell.Screen, x, y int, style tcell.Style, text string) {
-	for i, r := range text {
+	for i, r := range []rune(text) {
 		sc.SetContent(x+i, y, r, nil, style)
 	}
 }

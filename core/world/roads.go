@@ -84,6 +84,10 @@ func (g *Grid) Weather() {
 // Ground the streets already run past has no case at all: see Served. That
 // is asked here rather than by the callers so that reading the whole map at
 // once and reading one neighbourhood by hand cannot disagree about it.
+//
+// What comes out is not the wear but the wear weighed by what a road there
+// would save, which is Saving. Two tiles walked alike do not make an equal
+// case for paving if one is meadow and the other a ford.
 var ProfDraw, ProfVisit int64
 
 func (g *Grid) Draw(p entity.Pos) float64 {
@@ -109,7 +113,7 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 				d += t.Traffic / float64(ways)
 			}
 		}
-		return d
+		return d * g.Saving(p)
 	}
 	for _, off := range dirs {
 		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
@@ -124,7 +128,7 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 			d += t.Traffic / float64(ways)
 		}
 	}
-	return d
+	return d * g.Saving(p)
 }
 
 // ways is how many gaps a building's traffic could leave by, and 0 once one

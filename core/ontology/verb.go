@@ -158,8 +158,10 @@ var Schemas = []Schema{
 	// founded on, so nothing gates it but the work.
 	{Verb: Raise, Inputs: []*Class{Timber, Stone}, Output: Market, Site: Open, Ticks: 4, Skill: entity.Building, Skilled: true, Reach0: reachMarket,
 		Valence: belief.Valence{belief.Industry: 0.3, belief.Charity: 0.3, belief.Tradition: 0.2}},
+	// No residue: what laying a road is like is what a road is, and that is
+	// said on the class. This schema carried the lot until the classes were
+	// asked to, and it was the only raising that did.
 	{Verb: Raise, Inputs: []*Class{Timber}, Output: Road, Site: Ground, CollapseSite: true, Ticks: 2, Reach0: reachPave,
-		Prior:   habit.Signature{habit.Shelter: 0.7, habit.Company: 0.6, habit.Charity: 0.5, habit.Industry: 0.3},
 		Valence: belief.Valence{belief.Industry: 0.4, belief.Charity: 0.3}},
 
 	// Eating is one act; which provision goes is decided when it is done.
