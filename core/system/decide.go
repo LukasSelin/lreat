@@ -121,6 +121,7 @@ func Decide(w *world.World) {
 	}
 	out := make([]decision, len(idle))
 	routers := w.Routers(workersFor(len(idle)))
+	action.Ready(w)
 	inParallel(len(idle), len(routers), func(i, worker int) {
 		out[i] = decide(idle[i], w, routers[worker])
 	})
