@@ -704,6 +704,12 @@ The catalog was a list of twenty-eight hand-written acts, each five closures and
 
 **Three trees and a set of relations.** Things are what an act operates on; sites are where it happens; roles are how a person stands to the actor. A class exists only if some verb treats it differently from its siblings; anything else is a trait.
 
+**Time is one of the facts a class carries.** The year turns in `core/world` and the calendar is in `core/clock`, and neither of those is a statement about what things *are*. This is: some things the year makes and some are simply there, and everything the season does to what can be done follows from which. `Class.Comes` is how long a stand takes to come on - timber six years, brush two, a crop a month - and a thing with no `Comes` is a stock rather than a crop: a seam of stone, a shoal of fish, there or not with no age to wait out. `Class.Warmth` is which half of the year the getting belongs to, signed, because the year has two halves and things are had in both: grain and berries are of the green half, and felling is winter work whoever does it. The two are independent, which is the point of holding both - timber is slow and of the cold half, a crop is quick and wholly of the warm one.
+
+Before this the ontology's whole account of time was a chill coordinate written by hand onto two classes, with nothing saying why berries carried one and stone did not; a third was hidden in the take detail for timber and a fourth in the residue of clearing a field. How long a stand took to come on lived out in `world/grow.go`, which is the one place it is not a fact about the thing. Now the composed prior takes the chill coordinate from `Warmth`, `world.Tile.Grown` asks the ontology how long a wood is in coming, and `Schema.Season` is the single sanctioned way an act may name a season it does not itself handle - clearing a field is warm-half work because a field is for grain. Three tests hold it together: that the two facts stay independent, that no chill coordinate enters a prior except through some class's `Warmth`, and that what grows is exactly what is taken off living ground.
+
+It is a restatement and not a retuning: every composed prior, valence, tick count and reach0 in the catalog is bit-identical across the change.
+
 ```
 Thing                                 Site
 ├─ Material                           ├─ Ground            [passable]

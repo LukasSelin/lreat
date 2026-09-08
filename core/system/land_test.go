@@ -70,7 +70,7 @@ func TestAPlantedStandComesOnBrushFirst(t *testing.T) {
 	if tile.Wood > 0.05 || tile.Wild > 0.05 {
 		t.Fatalf("a planting gives %.2f timber and %.2f wild food in its first year", tile.Wood, tile.Wild)
 	}
-	for i := 0; i < world.BrushAge; i++ {
+	for i := 0; i < int(world.BrushAge); i++ {
 		Land(w)
 	}
 	brush, timber := tile.Wild, tile.Wood

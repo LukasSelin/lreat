@@ -211,3 +211,66 @@ func TestWoodsAndFieldsAreLiving(t *testing.T) {
 		}
 	}
 }
+
+// Time, as the ontology has it. Two facts about a thing - how long it takes
+// to come on, and which half of the year it is had in - and they have to
+// stay independent, because the whole reason for holding both is that a
+// stand can be slow and seasonless or quick and wholly of its season.
+func TestTimeIsTwoFacts(t *testing.T) {
+	// Slow, and of the cold half: years in the growing, felled in winter.
+	if !ontology.Timber.Grown() {
+		t.Error("timber is something the year makes")
+	}
+	if ontology.Timber.Warmth >= 0 {
+		t.Errorf("timber's warmth is %.2f; felling is winter work", ontology.Timber.Warmth)
+	}
+	// Quick and wholly of its season.
+	if ontology.Grain.Ripens() >= ontology.Timber.Ripens() {
+		t.Error("a crop should come on faster than a wood")
+	}
+	if !(ontology.Grain.Warmth > ontology.Berries.Warmth) {
+		t.Error("a crop keeps the season's hours more closely than the brush does")
+	}
+	// A stock is neither: there or not, with no age to wait out.
+	if ontology.Fish.Grown() || ontology.Stone.Grown() {
+		t.Error("a shoal and a seam are stocks, not crops")
+	}
+}
+
+// The season an act belongs to is composed from what the act is about, not
+// written onto it. Nothing but a class's Warmth may put the chill
+// coordinate into a prior, or the concept is decoration.
+func TestTheSeasonOfAnActFollowsFromItsThing(t *testing.T) {
+	for _, in := range ontology.Instantiate() {
+		chill := in.Prior[habit.Chill]
+		if chill == 0 {
+			continue
+		}
+		var want float64
+		for _, c := range []*ontology.Class{in.Object, in.Schema.Output, in.Schema.Season} {
+			if c != nil && c.Warmth != 0 {
+				want = -c.Warmth
+			}
+		}
+		if math.Abs(chill-want) > 1e-9 {
+			t.Errorf("%s carries chill %.2f, but nothing it is about is worth %.2f", in.Key, chill, want)
+		}
+	}
+}
+
+// Anything the year makes is taken off ground that carries a standing crop,
+// and anything taken off such ground is something the year makes. The two
+// halves of the same statement live in different places - Comes on the
+// thing, Living on the site - and this is what keeps them one statement.
+func TestWhatGrowsIsTakenOffLivingGround(t *testing.T) {
+	for _, in := range ontology.Instantiate() {
+		if in.Schema.Verb != ontology.Take || in.Object == nil || in.Site == nil {
+			continue
+		}
+		living := in.Site.Has(ontology.Living)
+		if in.Object.Grown() != living {
+			t.Errorf("%s takes %s (grown %v) off %s (living %v); the two should agree",
+				in.Key, in.Object.Name, in.Object.Grown(), in.Site.Name, living)
+		}
+	}
+}

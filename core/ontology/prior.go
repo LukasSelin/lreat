@@ -127,6 +127,11 @@ func Compose(sc *Schema, object, site *Class) habit.Signature {
 	if sc.Role != nil {
 		add(&s, sc.Role.Prior, 1)
 	}
+	// An act that handles nothing of the season keeps the season of what it
+	// is for. See Schema.Season.
+	if sc.Season != nil {
+		add(&s, habit.Signature{habit.Chill: -sc.Season.Warmth}, 1)
+	}
 	if sc.Dir == Seize {
 		add(&s, SeizePrior, 1)
 	}
