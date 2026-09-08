@@ -122,7 +122,7 @@ func Compose(sc *Schema, object, site *Class) habit.Signature {
 		}
 	}
 	if site != nil {
-		add(&s, site.At, 1)
+		add(&s, site.DerivedAt(), 1)
 	}
 	if sc.Role != nil {
 		add(&s, sc.Role.Prior, 1)

@@ -36,6 +36,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -46,6 +47,7 @@ import (
 	"lreat/core/observe"
 	"lreat/core/sim"
 	"lreat/core/world"
+	"lreat/report"
 	"lreat/ui/ascii"
 )
 
@@ -112,6 +114,15 @@ func main() {
 	run(screen, s)
 }
 
+// choosing names the rule the figures decided under, for a report that has
+// to say afterwards what the run was of.
+func choosing(fit bool) string {
+	if fit {
+		return "recognition"
+	}
+	return "value"
+}
+
 // given says whether a flag was named on the command line rather than left
 // at what it defaults to.
 func given(name string) bool {
@@ -176,7 +187,20 @@ func run(screen tcell.Screen, s setup) {
 	// given up rather than into a display about to be torn down. A
 	// settlement nobody can report on afterwards is one nobody can tune
 	// against. See Report in vitals.go.
-	defer func() { fmt.Print(v.Report()) }()
+	//
+	// The same words are kept on disk, because a watched run is founded on
+	// whatever the menu was left at rather than on flags, and a terminal
+	// scrolled past is the only other place that ever said so. The terms
+	// go in first: without them the numbers under them are of nothing.
+	rep := report.Open("watch")
+	defer func() {
+		out := rep.Out(os.Stdout)
+		fmt.Fprintf(out, "\nfounded on seed %d, %d figures, %dx%d, temp %.2f, %s\n",
+			s.seed, s.agents, s.width, s.height, s.temp, choosing(s.fit))
+		fmt.Fprint(out, v.Report())
+		v.score(rep)
+		fmt.Print(rep.Close())
+	}()
 	defer screen.Fini()
 	screen.EnableMouse(tcell.MouseButtonEvents) // clicking a figure picks it
 

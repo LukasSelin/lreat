@@ -10,6 +10,7 @@ import (
 	"lreat/core/observe"
 	"lreat/core/system"
 	"lreat/core/world"
+	"lreat/report"
 )
 
 // The vitals page is the answer to the one question the map cannot answer:
@@ -500,6 +501,32 @@ func (v *view) Report() string {
 		fmt.Fprintf(&b, "  t%-7d %s\n", s.Chronicle[i].Tick, s.Chronicle[i].Text)
 	}
 	return b.String()
+}
+
+// score is the same post-mortem reduced to the handful of numbers a run is
+// held against another run's by. The report keeps them beside its words so
+// that a folder of runs can be read at once — where the population peaked,
+// whether it died out, and how fed it was when it stopped.
+func (v *view) score(rep *report.Run) {
+	if v.snap == nil {
+		return
+	}
+	s := v.snap
+	rep.Score("ticks", float64(s.Tick))
+	rep.Score("pop", float64(s.Population))
+	rep.Score("peak", float64(v.peak))
+	rep.Score("peak-at", float64(v.peakAt))
+	rep.Score("died-out-at", float64(v.gone))
+	rep.Score("born", float64(s.Vitals.Births))
+	rep.Score("starved", float64(s.Vitals.Starved))
+	rep.Score("failed", float64(s.Vitals.Failed))
+	rep.Score("phys", s.MeanNeeds[0])
+	rep.Score("health", s.MeanHealth)
+	rep.Score("starving", float64(s.Starving))
+	rep.Score("houses", float64(s.Houses))
+	rep.Score("fields", float64(s.Fields))
+	rep.Score("forest", float64(s.Forest))
+	rep.Score("order", s.Safety)
 }
 
 const (
