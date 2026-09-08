@@ -95,32 +95,9 @@ func Broaden(a *entity.Agent, w *world.World) {
 	}
 }
 
-// Reachable is what any showing does: the student receives a share of the
-// teacher's reach for the action the skill lives in, so a craft that was
-// out of sight comes within it.
-func Reachable(teacher, student *entity.Agent, s entity.Skill) {
-	d := ForSkill(s)
-	if d == nil {
-		return
-	}
-	Imprint(teacher)
-	Imprint(student)
-	i := Index(d)
-	student.Reach[i] = max(student.Reach[i], TaughtReach*teacher.Reach[i])
-}
-
 // Pass is what teaching does: the student receives a share of the teacher's
 // reach for the action the skill lives in, and its habit for that action
 // moves toward the teacher's. Recognition is handed over, not just skill.
-//
-// A parent showing its own child does not do this second half; see
-// TeachChild. A child already carries its parent's habits, drifted a little
-// at birth, and moving them back toward the parent's a second time rubs the
-// drift out - which is a settlement whose people all recognise the same
-// moments the same way, and therefore all do the same work. It was measured:
-// with rearing passing recognition, habit spread fell by a fifth and the
-// settlement's fishing halved, because a trade nobody drifts into is a trade
-// nobody keeps.
 func Pass(teacher, student *entity.Agent, s entity.Skill) {
 	d := ForSkill(s)
 	if d == nil {

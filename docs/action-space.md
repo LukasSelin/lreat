@@ -512,28 +512,6 @@ The age structure says where it went. Reading one settlement at sixty years: 116
 
 What is left of the gap is the childhood itself, and it should be left there. A quarter of a settlement being children is the fact; a settlement that cannot feed its children not growing is the mechanism working, not a regression.
 
-## Rearing, and what it cost
-
-A settlement that waits fifteen years for a birth to become a worker has dependants in it, and dependants were the one thing nothing in the catalog was about: everything an agent did for anybody else it did for whoever was nearest and worst off, which is charity, and charity is not what a household is. So kinship became a fact the world records (`entity.Agent.Parent`), the ontology got a role for it (`ontology.Child`), and a parent got two ordinary acts and a roof: `feed child`, `teach child`, and `system.Household`, which lets a parent's shelter reach over its own young because a house shelters the people asleep under it and shelter was kept per body.
-
-**It does not pay, and the way it fails is the interesting part.** Twenty-four seeds, sixty years, twenty founders:
-
-| | lasted | extinct | median | mean | fed | safe | all three gates |
-|---|---|---|---|---|---|---|---|
-| no rearing | 24/24 | 0 | 163 | 185 | 0.56 | 0.52 | 0.287 |
-| feed, teach, roof | 22/24 | 0 | 62 | 129 | 0.52 | 0.38 | 0.194 |
-| feed and teach, no roof | 22/24 | 0 | 67 | 114 | 0.52 | 0.44 | 0.225 |
-
-The third row is the bisect: the roof is near enough free and the two acts carry the whole cost.
-
-**Rearing works at the thing it is for.** Over six seeds the settlements buried 668 people against 2024 without it. Children that starved now live. The population is smaller anyway, which means the births fell further than the deaths did.
-
-**What it costs is the birth gate, and the mean hides it.** Every average need rose - physiological 0.59 to 0.64, belonging 0.55 to 0.68 - while the share of fertile adults over all three birth thresholds at once fell from 0.287 to 0.194. Both are true and they are about different people. The averages are over everyone, and rearing fills a settlement with comfortable children; the gates are over fertile adults, and rearing is a transfer out of them. The gate that moved is safety, 0.52 to 0.38, and the settlement builds half as many houses a head. Births need physiological, safety and belonging over their thresholds at the same instant, and that is a cliff - which is why acts that are under three per cent of everything anybody does can cost three fifths of the median population. A small standing charge on adults who are sitting on the edge of a cliff is not a small thing.
-
-**Two guesses that were wrong**, kept because they were measured rather than argued. The first build paid a parent 0.12 of belonging, which is more than giving to a stranger pays, and left belonging and standing at four fifths satisfied all year; cutting it to 0.04 changed the median by five. The first build also passed recognition down as well as the craft - `Pass` moves a pupil's habit toward the teacher's - which rubbed out the drift a child is born with, and the settlement's fishing halved: a trade nobody drifts into is a trade nobody keeps. Handing down the craft alone (`Reachable`) is right on its own terms and is kept, and it changed the median by five as well. Neither guess was the mechanism.
-
-**Why it does not pay is a fact about this world, not about rearing.** Births here are cheap: no gestation, no maternal cost, and no requirement that a child be tended at all. Children already survive well enough untended, so rearing is a charge on the parent with nothing on the other side of the ledger. For it to earn its keep the opposite would have to be true too - that a child nobody rears does badly - and making neglect expensive is a change to how a child lives, not a change to what a parent may do. That is the thread to pull, and it is a different one.
-
 ## The turning year
 
 The world had one weather and kept it for ever. Now it has a temperate year, and the settlement has a season to get through rather than a steady state to sit in. `core/world/climate.go`, `core/system/climate.go`.

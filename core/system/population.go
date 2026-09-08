@@ -113,7 +113,6 @@ func Population(w *world.World) {
 		w.Vitals.Born++
 		child := w.SpawnAt(fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
 		child.Born = w.Tick
-		child.Parent = a.ID
 		child.Inventory[entity.Food] = 1
 		child.Shelter = a.Shelter * 0.8
 		child.Vitality = w.InheritVitality(a.Vitality)

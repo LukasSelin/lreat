@@ -214,13 +214,6 @@ var Schemas = []Schema{
 		Valence: belief.Valence{belief.Charity: 0.8, belief.Honesty: 0.1}},
 	{Verb: Transfer, Object: Material, CollapseObject: true, Role: &Requester, Ticks: 3, Skilled: true, Reach0: reachEveryday,
 		Valence: belief.Valence{belief.Charity: 0.5, belief.Industry: 0.35}},
-	// A parent feeding its own. It is the same move as giving to a needy
-	// stranger and it is not the same act: it is done closer to the bone,
-	// it is done before the child is desperate rather than after, and what
-	// recognises it is custom rather than charity at large.
-	{Verb: Transfer, Object: Provision, CollapseObject: true, Role: &Child, Ticks: 1, Reach0: reachEveryday,
-		Valence: belief.Valence{belief.Charity: 0.6, belief.Tradition: 0.5}},
-
 	{Verb: Transfer, Object: Provision, CollapseObject: true, Role: &Holder, Dir: Seize, Ticks: 1, Reach0: reachEveryday,
 		Prior:   habit.Signature{habit.Order: -0.3, habit.Caution: -0.7},
 		Valence: belief.Valence{belief.Honesty: -1, belief.Charity: -0.4}},
@@ -228,18 +221,6 @@ var Schemas = []Schema{
 	// Knowledge, outward and inward.
 	{Verb: Pass, Object: Practice, Role: &Pupil, Ticks: 3, Skilled: true, Reach0: reachTeach,
 		Valence: belief.Valence{belief.Charity: 0.5, belief.Industry: 0.2, belief.Tradition: 0.3}},
-	// Bringing a child up in the work. Teaching at large waits on a pupil
-	// worth the trouble and on the standing it brings; this waits on
-	// neither, which is why a settlement passes its crafts down its
-	// families before it passes them along its streets.
-	// The skill coordinate is residue here because the child role cannot
-	// carry it: the same role feeds the child, and what a parent is good at
-	// has nothing to do with whether it feeds one. Having something to show
-	// belongs to showing it.
-	{Verb: Pass, Object: Practice, Role: &Child, Ticks: 3, Skilled: true, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Skill: 1, habit.Unproven: 0.3},
-		Valence: belief.Valence{belief.Charity: 0.4, belief.Industry: 0.3, belief.Tradition: 0.6}},
-
 	{Verb: Pass, Object: Practice, Role: &Self, Ticks: 4, Skill: entity.Scholarship, Skilled: true, Reach0: reachStudy,
 		Valence: belief.Valence{belief.Industry: 0.2, belief.Tradition: -0.5}},
 

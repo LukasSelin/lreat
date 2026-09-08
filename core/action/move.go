@@ -40,43 +40,15 @@ var grounds = map[*ontology.Class]ground{
 
 // whom is who stands in a role to the actor, given the material the act
 // is about: a holder has some to spare, the needy have none and are
-// hungry, one's child is one's own and short.
-//
-// A role is read against the actor and the day, not against the other
-// person alone: whose child somebody is depends on who is asking, and how
-// grown they are depends on when.
-var whom = map[*ontology.Role]func(m *ontology.Class) func(a *entity.Agent, w *world.World) func(o *entity.Agent) bool{
-	&ontology.Holder: func(m *ontology.Class) func(*entity.Agent, *world.World) func(*entity.Agent) bool {
-		return func(*entity.Agent, *world.World) func(*entity.Agent) bool {
-			return func(o *entity.Agent) bool { theirs, _ := pack(o, m); return theirs.Held() >= 1 }
-		}
+// hungry.
+var whom = map[*ontology.Role]func(m *ontology.Class) func(o *entity.Agent) bool{
+	&ontology.Holder: func(m *ontology.Class) func(o *entity.Agent) bool {
+		return func(o *entity.Agent) bool { theirs, _ := pack(o, m); return theirs.Held() >= 1 }
 	},
-	&ontology.Needy: func(m *ontology.Class) func(*entity.Agent, *world.World) func(*entity.Agent) bool {
-		return func(*entity.Agent, *world.World) func(*entity.Agent) bool {
-			return func(o *entity.Agent) bool {
-				theirs, _ := pack(o, m)
-				return o.Needs[need.Physiological] < 0.4 && theirs.Held() < 1
-			}
-		}
-	},
-	// A parent does not wait for its child to be desperate. The needy are
-	// noticed at four tenths, which is most of the way down; a child at
-	// somewhat over half, which is falling behind rather than starving.
-	// That gap is the whole mechanical difference between charity and
-	// rearing, and it is the reason a fed settlement still rears: the
-	// moment arrives while there is still something in the basket to
-	// answer it with.
-	//
-	// It cannot be much looser than this. At seven tenths every child in a
-	// settlement whose average sits near six qualified all year round, and
-	// a threshold that is always met is not a threshold.
-	&ontology.Child: func(m *ontology.Class) func(*entity.Agent, *world.World) func(*entity.Agent) bool {
-		return func(a *entity.Agent, w *world.World) func(*entity.Agent) bool {
-			return func(o *entity.Agent) bool {
-				theirs, _ := pack(o, m)
-				return o.Parent == a.ID && !entity.Adult(o.Age(w.Tick)) &&
-					o.Needs[need.Physiological] < 0.55 && theirs.Held() < 1
-			}
+	&ontology.Needy: func(m *ontology.Class) func(o *entity.Agent) bool {
+		return func(o *entity.Agent) bool {
+			theirs, _ := pack(o, m)
+			return o.Needs[need.Physiological] < 0.4 && theirs.Held() < 1
 		}
 	},
 }
@@ -272,22 +244,6 @@ var moves = map[string]move{
 			return fmt.Sprintf("%s stole food from %s", a.Name, o.Name)
 		},
 	},
-	// A parent feeds its own from a barer larder than it would feed a
-	// stranger from - one unit spare against two - and gets no standing
-	// for it, because nobody is watching and it is not that kind of act.
-	// What it gets is the tie, which is the largest in the table: a
-	// household is the one relation in this world that is not made by
-	// meeting somebody in the square.
-	"transfer/provision>child": {
-		Name: "feed child", Regard: 0.5, Bonds: struct{ Theirs, Mine float64 }{0.15, 0.1},
-		Each:  map[*ontology.Class]part{ontology.Provision: {Quantity: fixed(1), Spare: 1.5}},
-		Worth: levels(need.Levels{need.Belonging: rearingWarmth}),
-		Gives: need.Levels{need.Belonging: rearingWarmth},
-		Event: event.Given,
-		Report: func(a, o *entity.Agent, _, _ float64) string {
-			return fmt.Sprintf("%s fed %s", a.Name, o.Name)
-		},
-	},
 	// Giving costs the giver and helps the receiver. Nothing in the need
 	// model rewards it much; the charitable do it because their conscience
 	// pays them.
@@ -333,7 +289,7 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 		}
 		other := role(parts[0])
 		who := func(a *entity.Agent, w *world.World, radius int) *entity.Agent {
-			return nearestWith(a, w, radius, other(a, w))
+			return nearestWith(a, w, radius, other)
 		}
 		return far{
 			Find: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
