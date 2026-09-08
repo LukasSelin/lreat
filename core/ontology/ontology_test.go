@@ -31,6 +31,7 @@ var golden = map[string]string{
 	"raise/timber>dwelling@open":        "build shelter",
 	"raise/timber+stone>granary@open":   "build granary",
 	"raise/timber>tavern@open":          "build tavern",
+	"raise/timber+stone>market@open":    "found market",
 	"raise/timber>road@ground":          "lay road",
 	"consume/provision":                 "eat",
 	"dwell/rest":                        "rest",

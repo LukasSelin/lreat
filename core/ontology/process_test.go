@@ -134,6 +134,7 @@ func TestAPublicWorkFallsInWhoeverIsAlive(t *testing.T) {
 		rate float64
 	}{
 		{Granary, 1.0 / 3000},
+		{Tavern, 1.0 / 2000},
 	} {
 		for _, ownerGone := range []bool{false, true} {
 			tr := Befalling(c.of, ownerGone)
@@ -152,7 +153,7 @@ func TestAPublicWorkFallsInWhoeverIsAlive(t *testing.T) {
 	}
 	// Ordinary ground that somebody is alive to hold is not going anywhere,
 	// and must cost no draw: see system.wither.
-	for _, c := range []*Class{Open, Wood, Field, Dwelling, Road, Water, Tavern} {
+	for _, c := range []*Class{Open, Wood, Field, Dwelling, Road, Water} {
 		if tr := Befalling(c, false); tr != nil {
 			t.Errorf("a kept %s decays at %v with its holder alive", c.Name, tr.Rate)
 		}

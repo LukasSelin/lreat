@@ -18,6 +18,7 @@ func TestGatedIsTheCraftsAndLearning(t *testing.T) {
 		Craft: true, Teach: true, Study: true, Pave: true,
 		Fish: true, Hunt: true, Irrigate: true, PlantTrees: true,
 		Cook: true, Quarry: true, BuildGranary: true, Smelt: true, BuildTavern: true,
+		FoundMarket: true,
 	}
 	for _, i := range Gated() {
 		if !want[Catalog[i]] {

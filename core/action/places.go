@@ -20,8 +20,15 @@ const (
 	// placeRadius is how far from the companion a meeting place may lie.
 	placeRadius = 6
 	// tavernWood is what a tavern is built of, and tavernRadius how far from
-	// the market it may stand; tavernApart keeps a settlement to one until
-	// it has outgrown it.
+	// a square it may stand; tavernApart is how far it must be from the
+	// next tavern.
+	//
+	// Apart is a spacing and not a cap. A settlement used to be held to one
+	// tavern and one square outright, which is a rule about the settlement
+	// rather than about the ground: a town of four hundred that has walked
+	// down the valley wants a second of each, and could not have one. What
+	// there is call for is another beyond the walk to the last, and that is
+	// a question the map can answer.
 	tavernWood   = 3
 	tavernRadius = 6
 	tavernApart  = 12
@@ -46,6 +53,17 @@ func placeAt(w *world.World, p entity.Pos) (entity.Pos, bool) {
 // nearPlace finds the nearest tile of the given structure within radius of p.
 func nearPlace(w *world.World, p entity.Pos, radius int, s world.Structure) (entity.Pos, bool) {
 	return w.Grid.Nearest(p, radius, func(_ entity.Pos, t *world.Tile) bool { return t.Structure == s })
+}
+
+// roomApart reports whether there is call for another building of this kind
+// at p: there is, when the nearest one is further off than apart. It is
+// what replaces holding a settlement to one of a thing, and it is asked
+// where the building would stand rather than where its builder happens to
+// be - those are not the same place, and asking at the builder puts a
+// second tavern up against the first.
+func roomApart(w *world.World, p entity.Pos, apart int, s world.Structure) bool {
+	_, near := nearPlace(w, p, apart, s)
+	return !near
 }
 
 // outgoing reports whether an agent would rather meet where the crowd is.
@@ -177,7 +195,13 @@ func inTavern(w *world.World, p entity.Pos) bool {
 
 var BuildTavern = raise("raise/timber>tavern@open")
 
-const reachTavern = 0.2
+// FoundMarket lays a second square where the town has walked to.
+var FoundMarket = raise("raise/timber+stone>market@open")
+
+const (
+	reachTavern = 0.2
+	reachMarket = 0.2
+)
 
 func init() {
 	// A tavern belongs to the lonely with standing to win and timber to
@@ -186,4 +210,14 @@ func init() {
 		habit.Lonely: 0.5, habit.Unproven: 0.6, habit.Company: 0.5, habit.Charity: 0.3, habit.Tradition: 0.3, habit.Stock: 0.8,
 	})
 	BuildTavern.Skilled = uses(entity.Building)
+
+	// A square belongs to somebody with more on hand than they need and
+	// standing to win by it, among neighbours, and far enough out that the
+	// walk to the old square is the thing worth fixing. It is not a lonely
+	// act the way a tavern is: what a square is for is the trade, and the
+	// company is what comes of it.
+	seed(FoundMarket, reachMarket, habit.Signature{
+		habit.Unproven: 0.6, habit.Stock: 0.8, habit.Company: 0.4, habit.Charity: 0.3, habit.Tradition: 0.3,
+	})
+	FoundMarket.Skilled = uses(entity.Building)
 }

@@ -109,6 +109,7 @@ var mechanics = map[string]*Def{
 	"raise/timber>dwelling@open":        BuildShelter,
 	"raise/timber+stone>granary@open":   BuildGranary,
 	"raise/timber>tavern@open":          BuildTavern,
+	"raise/timber+stone>market@open":    FoundMarket,
 	"raise/timber>road@ground":          Pave,
 	"consume/provision":                 Eat,
 	"dwell/rest":                        Rest,
@@ -191,7 +192,12 @@ func always(*entity.Agent, *world.World) bool { return true }
 
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
 
-func atMarket(_ *entity.Agent, w *world.World) (entity.Pos, bool) { return w.MarketPos, true }
+// atMarket is the square this person trades and stands guard at: the
+// nearest one. A settlement may hold several, and an errand is walked to
+// the one at hand rather than to the one the town was founded on.
+func atMarket(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	return w.NearestMarket(a.Pos)
+}
 
 // foodValue is how much one more unit of food is worth to the physiological
 // tier. It falls off as the larder fills, so nobody hoards for its own sake.

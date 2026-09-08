@@ -21,6 +21,7 @@ import (
 var structures = map[*ontology.Class]world.Structure{
 	ontology.Dwelling: world.House,
 	ontology.Granary:  world.Granary,
+	ontology.Market:   world.Market,
 	ontology.Tavern:   world.Tavern,
 	ontology.Road:     world.Road,
 }
@@ -33,31 +34,61 @@ type plan struct {
 	Amounts []float64
 	// Site is where it stands.
 	Site func(a *entity.Agent, w *world.World) (entity.Pos, bool)
-	// Room reports whether there is call for another; nil means always.
-	Room func(a *entity.Agent, w *world.World) bool
+	// Room reports whether there is call for another where this one would
+	// stand. It is asked at the site and not at the builder, because those
+	// are not the same place: a public building goes up beside a square,
+	// and somebody standing well away from the last one would otherwise
+	// raise a second right on top of it. nil means always.
+	Room func(w *world.World, site entity.Pos) bool
 	// Learn is what raising it teaches of building, and Renown the
 	// standing it earns.
 	Learn, Renown float64
 	// Worth is what raising it is worth, by need tier. What it promises is
 	// what it gives.
 	Worth func(a *entity.Agent, w *world.World) need.Levels
-	// Done is what the structure does for the settlement once it stands.
-	Done func(w *world.World)
+	// Done is what the structure does for the settlement once it stands,
+	// given the ground it stands on.
+	Done func(w *world.World, p entity.Pos)
 	// Built is what the event says.
 	Built string
+}
+
+// marketWood and marketStone are what a square is laid with, and
+// marketApart how far it must stand from the next one. Apart is past the
+// distance at which people stop calling a square theirs - see
+// system.marketDrift - so a second is raised only where the first has
+// stopped being any use.
+const (
+	marketWood  = 3
+	marketStone = 3
+	marketApart = 14
+)
+
+// ownPlot is the ground the builder is standing on, or the nearest with
+// room around it. A public building beside the old square is no use to the
+// people who have walked away from it, so a square goes where they are.
+func ownPlot(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	if w.Grid.RoomToBuild(a.Pos) {
+		return a.Pos, true
+	}
+	return w.Grid.Nearest(a.Pos, 3, func(p entity.Pos, _ *world.Tile) bool { return w.Grid.RoomToBuild(p) })
 }
 
 // publicPlot is a plot beside the market with its own ground around it, or
 // failing that any open ground there. A public building is a door people
 // come to, and a door with a wall against it is no use to anybody.
 func publicPlot(radius int) func(*entity.Agent, *world.World) (entity.Pos, bool) {
-	return func(_ *entity.Agent, w *world.World) (entity.Pos, bool) {
-		if p, ok := w.Grid.Nearest(w.MarketPos, radius, func(p entity.Pos, _ *world.Tile) bool {
+	return func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+		square, ok := w.NearestMarket(a.Pos)
+		if !ok {
+			return entity.Pos{}, false
+		}
+		if p, ok := w.Grid.Nearest(square, radius, func(p entity.Pos, _ *world.Tile) bool {
 			return w.Grid.RoomToBuild(p)
 		}); ok {
 			return p, true
 		}
-		return w.Grid.Nearest(w.MarketPos, radius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+		return w.Grid.Nearest(square, radius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
 	}
 }
 
@@ -73,14 +104,29 @@ var plans = map[string]plan{
 		},
 		Built: "built a granary",
 	},
-	// A tavern is where people meet of an evening. One is enough for a
-	// settlement; a second would only split the company.
+	// A square is what a town raises when it has spread too far to walk to
+	// the one it has. It is not sited beside a market, for obvious reasons:
+	// it is sited where the builder is, so that a settlement which has
+	// walked down the valley gets its square where the walking ended.
+	"raise/timber+stone>market@open": {
+		Name: "found market", Amounts: []float64{marketWood, marketStone},
+		Site: ownPlot, Learn: 0.03, Renown: 0.3,
+		Room: func(w *world.World, site entity.Pos) bool {
+			return roomApart(w, site, marketApart, world.Market)
+		},
+		Worth: func(*entity.Agent, *world.World) need.Levels {
+			return need.Levels{need.Esteem: 0.25, need.Belonging: 0.1}
+		},
+		Done:  func(w *world.World, p entity.Pos) { w.FoundMarket(p) },
+		Built: "founded a market",
+	},
+	// A tavern is where people meet of an evening. A settlement holds as
+	// many as it has room for at tavernApart, which for a small one is one.
 	"raise/timber>tavern@open": {
 		Name: "build tavern", Amounts: []float64{tavernWood},
 		Site: publicPlot(tavernRadius), Learn: 0.03, Renown: 0.3,
-		Room: func(_ *entity.Agent, w *world.World) bool {
-			_, taken := nearPlace(w, w.MarketPos, tavernApart, world.Tavern)
-			return !taken
+		Room: func(w *world.World, site entity.Pos) bool {
+			return roomApart(w, site, tavernApart, world.Tavern)
 		},
 		Worth: func(*entity.Agent, *world.World) need.Levels {
 			return need.Levels{need.Esteem: 0.25, need.Belonging: 0.1}
@@ -114,7 +160,11 @@ func raising(in ontology.Instance) *Def {
 		if tech != "" && !known(a, w, tech, p.Name) {
 			return false
 		}
-		return p.Room == nil || p.Room(a, w)
+		if p.Room == nil {
+			return true
+		}
+		site, ok := p.Site(a, w)
+		return ok && p.Room(w, site)
 	}
 	d.Expect = func(a *entity.Agent, w *world.World, _ entity.Pos) need.Levels {
 		return p.Worth(a, w)
@@ -130,7 +180,7 @@ func raising(in ontology.Instance) *Def {
 			mine.Move(-p.Amounts[i])
 		}
 		if p.Done != nil {
-			p.Done(w)
+			p.Done(w, a.Pos)
 		}
 		a.Reputation += p.Renown
 		a.AddSkill(entity.Building, p.Learn)

@@ -22,7 +22,7 @@ func TestARaisingIsComposedFromAPlan(t *testing.T) {
 		Worth: func(*entity.Agent, *world.World) need.Levels {
 			return need.Levels{need.Esteem: 0.1, need.Belonging: 0.05, need.Safety: 0.5}
 		},
-		Done:  func(w *world.World) { w.Mods.Keeping = 0 },
+		Done:  func(w *world.World, _ entity.Pos) { w.Mods.Keeping = 0 },
 		Built: "walled a granary",
 	}
 	defer delete(plans, key)

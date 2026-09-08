@@ -101,8 +101,16 @@ type World struct {
 	RNG    *rand.Rand
 	Agents []*entity.Agent
 
-	Grid      *Grid
+	Grid *Grid
+	// MarketPos is the principal square: where the settlement was founded,
+	// where its roads are measured from, and what "in the settlement" is
+	// reckoned around. A town may hold several squares - see Markets - but
+	// one of them is still the middle of it.
 	MarketPos entity.Pos
+	// markets is every square trade may be done at, the principal one
+	// among them, in the order they were founded. Kept rather than counted
+	// because the nearest square is asked for by every agent every tick.
+	markets []entity.Pos
 
 	Market    MarketState
 	Climate   Climate // the weather over the whole map this tick
@@ -173,6 +181,60 @@ func NewSized(seed uint64, width, height int) *World {
 	w.GenerateTerrain(width, height)
 	w.Room()
 	return w
+}
+
+// Markets is every square in the settlement, oldest first.
+func (w *World) Markets() []entity.Pos { return w.markets }
+
+// FoundMarket records a square. A settlement founds its first at its
+// founding and raises the rest when it has spread too far to walk to the
+// ones it has.
+func (w *World) FoundMarket(p entity.Pos) {
+	for _, q := range w.markets {
+		if q == p {
+			return
+		}
+	}
+	w.markets = append(w.markets, p)
+}
+
+// CloseMarket forgets a square, for one that has been moved or built over.
+func (w *World) CloseMarket(p entity.Pos) {
+	for i, q := range w.markets {
+		if q == p {
+			w.markets = append(w.markets[:i], w.markets[i+1:]...)
+			return
+		}
+	}
+}
+
+// NearestMarket is the square p would trade at: the closest of them, and
+// the older where two are equally close, so that the answer does not
+// depend on which was raised last.
+//
+// The list is a cache and the ground is the truth, so a square that has
+// been moved or built over is passed over here rather than relied upon;
+// and a settlement whose cache has nothing left in it still has the square
+// it was founded on. What this must never do is return a tile with no
+// market on it, because every errand in the catalog is walked to it.
+func (w *World) NearestMarket(p entity.Pos) (entity.Pos, bool) {
+	best, bestD, found := entity.Pos{}, 0, false
+	for _, q := range w.markets {
+		if !w.isMarket(q) {
+			continue
+		}
+		if d := entity.Dist(p, q); !found || d < bestD {
+			best, bestD, found = q, d, true
+		}
+	}
+	if !found && w.isMarket(w.MarketPos) {
+		return w.MarketPos, true
+	}
+	return best, found
+}
+
+func (w *World) isMarket(p entity.Pos) bool {
+	return w.Grid != nil && w.Grid.In(p) && w.Grid.At(p).Structure == Market
 }
 
 // Room keeps the reach floor as long as there are slots.

@@ -99,13 +99,13 @@ type Transform struct {
 // leave a hundredth of the usual spoilage - a settlement whose food does
 // not go off.
 //
-// The tavern is deliberately not here. It falls the same way, but a
-// settlement only ever gets one - Room refuses a second - and building it
-// needs brewing and a reach that starts at 0.2, so a tavern that goes is a
-// tavern that may never come back. Left to decay it took the settlement's
-// meeting place with it for good, and feuds stopped forming anywhere: the
-// social life thinned out rather than turned over. Ruin is only worth
-// having where the thing ruined can be built again.
+// The tavern was tried here once and taken out again, because a settlement
+// then got only one - Room refused a second - so a tavern that went was one
+// that might never come back. Left to decay it took the meeting place with
+// it for good and feuds stopped forming anywhere: the social life thinned
+// out rather than turned over. Ruin is only worth having where the thing
+// ruined can be built again, and now that a settlement may hold as many
+// taverns as it has room for, it can be.
 var Transforms = []Transform{
 	{From: Provision, In: Market, Rate: 0.01, Unless: Granary},
 	{From: Meal, In: Market, Rate: 0.003, Unless: Granary},
@@ -127,6 +127,7 @@ var Transforms = []Transform{
 	{From: Dwelling, In: Person, Rate: 0.002},
 
 	{From: Granary, To: Open, Rate: 1.0 / 3000, Says: "a granary fell in"},
+	{From: Tavern, To: Open, Rate: 1.0 / 2000, Says: "the tavern fell empty"},
 
 	{From: Dwelling, To: Open, Rate: 1.0 / 300, Kept: true, Says: "an empty house fell in"},
 	{From: Field, To: Open, Rate: 1.0 / 300, Kept: true},

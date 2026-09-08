@@ -441,7 +441,8 @@ func moving(in ontology.Instance) *Def {
 			}
 			if other.Priced {
 				t := mv.Each[c]
-				theirs := other.Store(a, w, w.MarketPos, c, reachRadius)
+				square, _ := w.NearestMarket(a.Pos)
+				theirs := other.Store(a, w, square, c, reachRadius)
 				purse, _ := pack(a, ontology.Coin)
 				if theirs.Held() >= t.Least && purse.Held() >= price(w, c)*t.Quantity(a, w, theirs, nil, 1) {
 					return true
