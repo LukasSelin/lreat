@@ -91,7 +91,6 @@ var TeachChild = &Def{
 		a.Needs.Add(need.Belonging, rearingWarmth)
 		a.Needs.Add(need.Actualization, 0.03)
 		o.Needs.Add(need.Belonging, 0.08)
-		o.Tended = min(1, o.Tended+TendTeaching)
 		w.Emit(event.Taught, a.ID, o.ID, "%s brought %s up to %s", a.Name, o.Name, skill)
 	},
 }
@@ -110,16 +109,6 @@ var TeachChild = &Def{
 // does not go out, and the share of fertile adults over all three birth
 // gates at once fell from 0.31 to 0.17 while their average needs rose.
 const rearingWarmth = 0.04
-
-// What the two rearing acts are worth to a childhood. Feeding is worth more
-// than a showing because it is the one a child cannot do without, and both
-// are worth several months of the fade: a few visits a year is a childhood
-// somebody is keeping an eye on, and that is the cadence these are set to.
-// See system.Rearing, where the fade is.
-const (
-	TendFeeding  = 0.12
-	TendTeaching = 0.10
-)
 
 // childLearns is what one showing passes to a child. It is half again what a
 // pupil in the square takes from a lesson: a child is shown the work over and

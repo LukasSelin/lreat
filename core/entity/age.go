@@ -71,61 +71,6 @@ func Frailty(age int) float64 {
 	return endRisk * d * d
 }
 
-// What a childhood is worth, in the two places it can show: whether the
-// child lives through it, and what body it brings out the other side.
-//
-// Before this a child was a small adult that happened to be weak, and
-// nothing whatever depended on anybody looking after it - which made rearing
-// a charge on a parent with nothing on the other side of the ledger, and it
-// measured exactly as badly as that sounds. What the two together say is
-// that a settlement is not merely fed and housed but reared, and that the
-// people it has in thirty years are the ones somebody bothered with.
-const (
-	// neglectRisk is the daily chance a wholly untended newborn simply does
-	// not wake up. It is not the chance a childhood comes to: a newborn
-	// begins wholly tended and takes a couple of years to fall out of it,
-	// which shelters exactly the years the risk weighs heaviest, and the
-	// dependence falls away after that. Measured over a whole childhood it
-	// comes to about a third of untended children lost - a pre-modern
-	// figure, and meant to be. A world where every child lives is a world
-	// where rearing one is a hobby.
-	neglectRisk = 3.0e-4
-	// rearedBody is the span of grown body a childhood decides, either side
-	// of the ordinary one. It is narrower than the span bodies are born
-	// across, because how a child was fed should matter to what it becomes
-	// without swamping who it was.
-	rearedFloor = 0.85
-	rearedSpan  = 0.30
-)
-
-// Neglect is the daily chance a child of this age and this much tending is
-// lost. It is zero for a child that is looked after and zero for anybody
-// grown; between those it falls away with age, because an infant is wholly
-// somebody else's business and a fourteen-year-old is mostly its own.
-func Neglect(age int, tended float64) float64 {
-	if age < 0 || age >= Maturity {
-		return 0
-	}
-	if tended >= 1 {
-		return 0
-	}
-	depends := 1 - float64(age)/float64(Maturity)
-	return neglectRisk * (1 - tended) * depends
-}
-
-// RearedBody is the body a childhood this well tended builds toward. A body
-// is not set at birth and then merely worn: it is made, over fifteen years,
-// out of what the people around the child did about it.
-func RearedBody(tended float64) float64 {
-	if tended < 0 {
-		tended = 0
-	}
-	if tended > 1 {
-		tended = 1
-	}
-	return rearedFloor + rearedSpan*tended
-}
-
 // Adult reports whether an agent of this age has grown into its own body.
 func Adult(age int) bool { return age >= Maturity }
 

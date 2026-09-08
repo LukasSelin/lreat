@@ -70,11 +70,6 @@ func Population(w *world.World) {
 			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, clock.Years(age))
 			continue
 		}
-		// The other end of a life. A child nobody comes back to is lost
-		// long before it could starve on its own account.
-		if neglected(w, a, age) {
-			continue
-		}
 		alive = append(alive, a)
 	}
 	w.Agents = alive
@@ -119,10 +114,6 @@ func Population(w *world.World) {
 		child := w.SpawnAt(fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
 		child.Born = w.Tick
 		child.Parent = a.ID
-		// A newborn begins wholly tended. That is the grace an infant gets
-		// from having just been wanted, and it is what gives a parent a
-		// couple of years to come back before anything is at stake.
-		child.Tended = 1
 		child.Inventory[entity.Food] = 1
 		child.Shelter = a.Shelter * 0.8
 		child.Vitality = w.InheritVitality(a.Vitality)
