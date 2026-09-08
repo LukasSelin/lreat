@@ -36,10 +36,12 @@ func main() {
 	born := flag.Float64("born", action.BornNoise, "drift on a founder's habits")
 	inherit := flag.Float64("inherit", action.InheritNoise, "drift on a child's habits")
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "recognition temperature")
+	cap := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world")
 	quiet := flag.Bool("quiet", false, "summary only")
 	flag.Parse()
 	action.BornNoise = *born
 	action.InheritNoise = *inherit
+	system.MaxPopulation = *cap
 	system.Workers = 1 // the seeds are the parallelism here
 
 	rows := make([]row, *seeds)
