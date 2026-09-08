@@ -174,10 +174,113 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 		t.Fatal("Busiest found somewhere worth paving in untrodden wilderness")
 	}
 
-	// Paving settles the question, so the ground stops asking.
+	// Paving settles the question, and the ground stops asking because a road
+	// is not Pavable and lends nothing, not because the wear is thrown away.
+	// The wear stays on as the road's keep: see Walked.
+	worn = g.At(lone).Traffic
 	g.Pave(lone)
-	if g.At(lone).Traffic != 0 {
-		t.Fatal("a paved tile still reads as ground crying out for a road")
+	if _, _, ok := g.Busiest(lone, 0, nil); ok {
+		t.Fatal("a paved tile is still offered as ground crying out for a road")
+	}
+	if g.At(lone).Traffic != worn {
+		t.Fatalf("the road kept %.1f of the %.1f of wear that made the case for it",
+			g.At(lone).Traffic, worn)
+	}
+}
+
+// A doorway lends its wear once. Lent whole to every gap around it, one busy
+// house made the case for a street on all eight sides, and paving one side
+// took nothing off what it had to say about the other seven.
+func TestADoorwayLendsItsWearOnce(t *testing.T) {
+	g := NewGrid(20, 20)
+	door := entity.Pos{X: 10, Y: 10}
+	g.At(door).Structure = House
+	for i := 0; i < 800; i++ {
+		g.Tread(door)
+	}
+
+	// Eight ways out, so each gap hears an eighth of the errands.
+	gap := entity.Pos{X: 10, Y: 9}
+	if d := g.Draw(gap); d < 90 || d > 110 {
+		t.Fatalf("the gap beside a doorway worn %.0f drew %.1f, want about an eighth of it",
+			g.At(door).Traffic, d)
+	}
+
+	// Hem the house in and the one way left carries the lot: that gap really
+	// is the doorway, and there is nowhere else for the road to go.
+	for _, off := range dirs {
+		q := entity.Pos{X: door.X + off.X, Y: door.Y + off.Y}
+		if q != gap {
+			g.At(q).Structure = House
+		}
+	}
+	if d := g.Draw(gap); d < g.At(door).Traffic {
+		t.Fatalf("the only gap out of a hemmed-in house drew %.1f of its %.1f of wear",
+			d, g.At(door).Traffic)
+	}
+
+	// With a street outside it the house is served, and says nothing more.
+	g.At(gap).Structure = Road
+	other := entity.Pos{X: 10, Y: 11}
+	g.At(other).Structure, g.At(other).Traffic = None, 0
+	if d := g.Draw(other); d != 0 {
+		t.Fatalf("a house with a street outside it drew %.1f for a second one", d)
+	}
+}
+
+// Ground the streets already run past is passed over. A road is the cheapest
+// going on the map, so the tiles beside one carry the traffic that funnels on
+// and off it, and read as bare wear that is a standing case for paving the
+// next tile out for as long as anybody walks.
+func TestPavingDoesNotWidenAStreetItAlreadyHas(t *testing.T) {
+	g := NewGrid(20, 20)
+
+	// A length of street running east to west.
+	for x := 5; x <= 9; x++ {
+		g.At(entity.Pos{X: x, Y: 10}).Structure = Road
+	}
+
+	// Alongside it: three roads that already reach each other without it.
+	if !g.Served(entity.Pos{X: 7, Y: 11}) {
+		t.Fatal("the tile alongside a street is not on the street")
+	}
+	// Off its end: one road, and paving carries the way onward.
+	if g.Served(entity.Pos{X: 10, Y: 10}) {
+		t.Fatal("the ground off the end of a street counts as already served")
+	}
+	// Open country, with no street to be on.
+	if g.Served(entity.Pos{X: 2, Y: 2}) {
+		t.Fatal("untouched ground counts as already served")
+	}
+
+	// Two stubs that do not otherwise meet: the tile between them joins them,
+	// which is the one thing a road can do that its neighbours cannot.
+	g2 := NewGrid(20, 20)
+	g2.At(entity.Pos{X: 4, Y: 10}).Structure = Road
+	g2.At(entity.Pos{X: 6, Y: 10}).Structure = Road
+	if g2.Served(entity.Pos{X: 5, Y: 10}) {
+		t.Fatal("the gap between two separate ways counts as already served")
+	}
+
+	// So Busiest offers the end of the street and never its flank, however
+	// worn the flank is.
+	flank := entity.Pos{X: 7, Y: 11}
+	end := entity.Pos{X: 10, Y: 10}
+	for i := 0; i < 900; i++ {
+		g.Tread(flank)
+	}
+	for i := 0; i < 300; i++ {
+		g.Tread(end)
+	}
+	p, _, ok := g.Busiest(entity.Pos{X: 8, Y: 10}, 4, nil)
+	if !ok {
+		t.Fatal("nowhere worth paving beside a worn street")
+	}
+	if p == flank {
+		t.Fatalf("paving aimed at %v, alongside a street that already runs there", p)
+	}
+	if p != end {
+		t.Fatalf("paving aimed at %v, want the end of the street at %v", p, end)
 	}
 }
 

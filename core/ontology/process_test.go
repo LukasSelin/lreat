@@ -108,9 +108,9 @@ func TestWhatHappensOnItsOwnHappensAtTheRateItDid(t *testing.T) {
 	}
 }
 
-// What nobody is left to keep, and how fast it goes. A dwelling and a field
-// go at their own pace; anything else claimed and neither lived in nor sown
-// goes at once, because there is nothing there to fall down.
+// What nobody is left to keep, and how fast it goes. A dwelling, a field and
+// a road go at their own pace; anything else claimed and neither lived in nor
+// sown goes at once, because there is nothing there to fall down.
 func TestWhatNobodyKeepsGoesAtItsOwnPace(t *testing.T) {
 	for _, c := range []struct {
 		of   *Class
@@ -120,7 +120,7 @@ func TestWhatNobodyKeepsGoesAtItsOwnPace(t *testing.T) {
 		{Dwelling, 1.0 / (3 * clock.Year)},
 		{Field, 1.0 / (3 * clock.Year)},
 		{Open, 1},
-		{Road, 1},
+		{Road, 1.0 / (6 * clock.Year)},
 		{Wood, 1},
 	} {
 		tr := Unkept(c.of)

@@ -89,6 +89,26 @@ type Transform struct {
 // on, short enough that a settlement is not walled in by its dead. What was claimed and then neither lived in nor sown goes at once,
 // because there is nothing there to fall down - only a claim, and it lapses.
 //
+// A road is Kept, but not by anybody: what keeps a road is feet. It is the
+// one thing here whose keeping is not a person, which is why system.Upkeep
+// has to ask a different question of it - see world.Walked. Nobody owns a
+// road and nobody's dying takes it, but a way nobody walks is a way the grass
+// is closing over, and six years of that is enough. Without this roads were
+// the only built thing exempt from ruin, and so the only thing a settlement
+// could not stop having: every length ever laid was still there, and since a
+// road is the cheapest going on the map, the traffic that funnelled along it
+// made the case for the next one. Twenty thousand ticks in, settlements had
+// paved a third of the map and were down to a house or two.
+//
+// The pace is slow on purpose - twice a house's, because a roof falls in and
+// a road only has grass grow over it - and it is the second of two delays. A
+// road is laid on ground already worn past action.wornEnough and keeps that
+// wear, so before it is even unkept the wear has to fade from sixty to five
+// with nobody at all coming that way, which is about five hundred days, a
+// season and a half either side of a year. Only then does this rate start
+// running. A street that goes quiet for a winter is in no danger; one that
+// has been out of everybody's way since the last generation is.
+//
 // A public work is nobody's to keep, which is why the granary is not Kept:
 // no one person's dying takes it and no one person's living saves it. It
 // stands thirty years against a house's three, and the settlement puts
@@ -131,6 +151,7 @@ var Transforms = []Transform{
 	{From: Tavern, To: Open, Rate: 1.0 / (20 * clock.Year), Says: "the tavern fell empty"},
 
 	{From: Dwelling, To: Open, Rate: 1.0 / (3 * clock.Year), Kept: true, Says: "an empty house fell in"},
+	{From: Road, To: Open, Rate: 1.0 / (6 * clock.Year), Kept: true, Says: "a road nobody walked grew over"},
 	{From: Field, To: Open, Rate: 1.0 / (3 * clock.Year), Kept: true},
 	{From: Site, To: Open, Rate: 1, Kept: true},
 }

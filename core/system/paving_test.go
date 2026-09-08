@@ -114,3 +114,51 @@ func TestASettlementBridgesTheRiverItStraddles(t *testing.T) {
 			100*waded/crossed)
 	}
 }
+
+// A road is kept by feet. A way people still come down stands; a way that has
+// been out of everybody's road for a generation goes back to grass, which is
+// what stops a settlement's streets from being the only thing about it that
+// can never change. See ontology.Transforms and world.Walked.
+func TestAnUnwalkedRoadGrowsOver(t *testing.T) {
+	w := world.NewSized(4, 16, 16)
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass}
+	}
+	walked := entity.Pos{X: 4, Y: 4}
+	forgotten := entity.Pos{X: 11, Y: 11}
+	for _, p := range []entity.Pos{walked, forgotten} {
+		for i := 0; i < 200; i++ {
+			w.Grid.Tread(p)
+		}
+		if !w.Grid.Pave(p) {
+			t.Fatalf("could not lay a road at %v", p)
+		}
+	}
+	// A road starts life with the wear that made the case for it, so neither
+	// is in any danger yet however long nobody comes.
+	for i := 0; i < 200; i++ {
+		Upkeep(w)
+	}
+	for _, p := range []entity.Pos{walked, forgotten} {
+		if w.Grid.At(p).Structure != world.Road {
+			t.Fatalf("the road at %v went while it still had wear on it", p)
+		}
+	}
+	// Now let the years pass, with people still using the one and not the
+	// other. Weather is what fades the wear, so it runs as it does in Land.
+	// Twenty thousand days is some fifty-five years, against a road's six.
+	for i := 0; i < 20000; i++ {
+		w.Grid.Weather()
+		w.Grid.Tread(walked)
+		Upkeep(w)
+	}
+	if w.Grid.At(walked).Structure != world.Road {
+		t.Fatal("a road people were still walking every day grew over")
+	}
+	if s := w.Grid.At(forgotten).Structure; s != world.None {
+		t.Fatalf("a road nobody had walked for fifty years is still there as %v", s)
+	}
+	if !w.Grid.At(forgotten).Buildable() {
+		t.Fatal("the ground a road grew off is not open ground again")
+	}
+}

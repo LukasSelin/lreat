@@ -26,6 +26,19 @@ const (
 	Fade = 0.995
 )
 
+// Walked is how little wear a road may carry and still count as somebody's
+// way. Below it the road is not kept - see ontology.Transforms, where what
+// becomes of an unkept road is stated with everything else that falls down on
+// its own - and the grass starts closing over it.
+//
+// It is low, at about one crossing every forty ticks. The live streets of a
+// settlement sit around forty of wear and the quietest lane in it around ten,
+// so this takes a way nobody comes down at all and leaves everything anybody
+// still uses. What it is not is a measure of how busy a road ought to be: a
+// back lane to one house is worth keeping, and does not have to earn its
+// keep against the market square.
+const Walked = 5
+
 // Tread records that somebody crossed this tile.
 func (g *Grid) Tread(p entity.Pos) {
 	if g.In(p) {
@@ -42,8 +55,9 @@ func (g *Grid) Weather() {
 	}
 }
 
-// Draw is the case for laying a road on p: what people walk here, plus what
-// they walk on the ground beside it that could never be a street anyway.
+// Draw is the case for laying a road on p: what people walk here, plus a
+// share of what they walk on the ground beside it that could never be a
+// street anyway, and nothing at all where the streets already run past.
 //
 // Most of the traffic a street carries is not on the street. It is on the
 // houses and fields the street runs between, and those are never paved, so
@@ -51,17 +65,30 @@ func (g *Grid) Weather() {
 // In a close-built settlement that leaves nowhere at all worth paving, which
 // is what kept the value rule from laying a single length of road.
 //
+// What a doorway lends, though, it lends once. Lent whole to every gap around
+// it, one busy house argued for eight streets as loudly as for one, and since
+// paving a gap took nothing off what the house had to lend, the other seven
+// went on arguing just as loudly afterwards. Settlements came out ringed in
+// pavement, a road on every side of every house and nobody the quicker for
+// seven of them. So the wear is divided among the ways out of the building,
+// and a building with a street already outside it lends nothing at all: its
+// errands have their road, and counting them again only buys a second one.
+//
 // Only ground that cannot be paved lends its wear. Open ground speaks for
 // itself: were it to lend as well, every tile near a busy one would read as
 // busy, and paving would come out in patches instead of the lines a road
 // wants. Roads lend nothing either - traffic already on a street is already
 // served, and counting it would pave the settlement outward from its first
 // road until the ground ran out.
+//
+// Ground the streets already run past has no case at all: see Served. That
+// is asked here rather than by the callers so that reading the whole map at
+// once and reading one neighbourhood by hand cannot disagree about it.
 var ProfDraw, ProfVisit int64
 
 func (g *Grid) Draw(p entity.Pos) float64 {
 	ProfDraw++
-	if !g.In(p) {
+	if !g.In(p) || g.Served(p) {
 		return 0
 	}
 	i := p.Y*g.W + p.X
@@ -74,8 +101,12 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 	if p.X > 0 && p.Y > 0 && p.X < g.W-1 && p.Y < g.H-1 {
 		w := g.W
 		for _, o := range [8]int{-w - 1, -w, -w + 1, -1, 1, w - 1, w, w + 1} {
-			if t := &g.Tiles[i+o]; !t.Pavable() && t.Structure != Road {
-				d += t.Traffic
+			t := &g.Tiles[i+o]
+			if t.Pavable() || t.Structure == Road {
+				continue
+			}
+			if ways := g.ways(entity.Pos{X: (i + o) % w, Y: (i + o) / w}); ways > 0 {
+				d += t.Traffic / float64(ways)
 			}
 		}
 		return d
@@ -85,20 +116,102 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 		if !g.In(q) {
 			continue
 		}
-		if t := g.At(q); !t.Pavable() && t.Structure != Road {
-			d += t.Traffic
+		t := g.At(q)
+		if t.Pavable() || t.Structure == Road {
+			continue
+		}
+		if ways := g.ways(q); ways > 0 {
+			d += t.Traffic / float64(ways)
 		}
 	}
 	return d
+}
+
+// ways is how many gaps a building's traffic could leave by, and 0 once one
+// of them is a street. It is the divisor in Draw: what the errands in and out
+// of one door are worth is shared among the ground they could be walked on,
+// and spent entirely once any of that ground is paved.
+func (g *Grid) ways(p entity.Pos) int {
+	n := 0
+	for _, off := range dirs {
+		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+		if !g.In(q) {
+			continue
+		}
+		switch t := g.At(q); {
+		case t.Structure == Road:
+			return 0
+		case t.Pavable():
+			n++
+		}
+	}
+	return n
+}
+
+// Served reports whether p is already on the street: whether the ways it
+// touches run past it anyway, so that paving it would widen what is there
+// rather than carry it anywhere new.
+//
+// This is the difference between a road and a paved field. Ground beside a
+// street is busy precisely because the street is there - a road is the
+// cheapest going on the map, so every route that can bends onto it, and the
+// tiles alongside carry the traffic that funnels on and off. Read as bare
+// wear that is a standing case for paving the tile next to a road, and then
+// the tile next to that, for as long as anybody keeps walking. Left alone it
+// is what turns a settlement's streets into its ground: over twenty thousand
+// ticks the settlements grew a thousand tiles of road around a single house,
+// nine in ten of them touching no building at all.
+//
+// A tile with no road beside it is unserved: there is no street here yet. So
+// is a tile beside a single road, or beside two stubs that do not otherwise
+// meet - the first carries a way onward, the second joins two ways into one,
+// and both leave the settlement somewhere it could not go before. What is
+// refused is only the tile whose roads already reach each other without it.
+func (g *Grid) Served(p entity.Pos) bool {
+	// Kept in an array rather than a slice: this is asked of every tile the
+	// settlement could pave, on every tick anybody thinks about paving.
+	var near [8]entity.Pos
+	n := 0
+	for _, off := range dirs {
+		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+		if g.In(q) && g.At(q).Structure == Road {
+			near[n] = q
+			n++
+		}
+	}
+	if n < 2 {
+		return false // nothing to widen: no street here, or an end to carry on
+	}
+	// Are they all one way already? Walk the roads that touch p, stepping
+	// only between those that touch each other, and see whether that reaches
+	// them all. If it does not, p is where two ways would be joined.
+	var seen [8]bool
+	seen[0] = true
+	reached := 1
+	for grew := true; grew; {
+		grew = false
+		for i := 0; i < n; i++ {
+			if !seen[i] {
+				continue
+			}
+			for j := 0; j < n; j++ {
+				if seen[j] || entity.Dist(near[i], near[j]) > 1 {
+					continue
+				}
+				seen[j], reached, grew = true, reached+1, true
+			}
+		}
+	}
+	return reached == n
 }
 
 // Busiest returns the tile within radius of from where a road would serve the
 // most traffic, and how strong the case for it is. Only ground a road could
 // actually be laid on is offered, and only what ok admits - a caller short of
 // timber can rule out the water, which costs more to carry a road over. The
-// case is read from the whole neighbourhood: see Draw. Ties go to the tile
-// nearest the top left, so two agents reading the same ground reach for the
-// same spot.
+// case is read from the whole neighbourhood: see Draw, and ground the streets
+// already run past is passed over: see Served. Ties go to the tile nearest the
+// top left, so two agents reading the same ground reach for the same spot.
 func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity.Pos, float64, bool) {
 	var best entity.Pos
 	var worn float64
@@ -216,7 +329,12 @@ func (g *Grid) Pave(p entity.Pos) bool {
 	// Over water the road is a bridge, so the water stays: the fish go on
 	// swimming under it and the tile is still a river to look at.
 	t.Structure = Road
-	t.Traffic = 0 // the ground is no longer asking for a road; it has one
+	// The wear stays. On open ground it was the ground asking for a road,
+	// and nothing reads it that way any more - a road is not Pavable, and
+	// lends nothing to its neighbours, so it can no longer ask for anything.
+	// What it is now is the road's keep: the feet that made the case for the
+	// way are the same feet that hold the grass off it, and a road starts
+	// life with a good deal of that credit behind it. See Walked.
 	return true
 }
 
