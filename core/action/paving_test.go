@@ -87,7 +87,14 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	a := townsfolk(t, w)
 	a.Inventory[entity.Wood] = 4
 
-	// A ford one way, a well-walked lane the other, the lane busier.
+	// A ford one way, a well-walked lane the other, the lane busier - and
+	// nothing else worn anywhere, so that the two tiles being compared are
+	// the only two in the running. The way townsfolk wears beside the agent
+	// is a third candidate otherwise, and on a map that put a wood there it
+	// won on what a road through trees saves rather than on being walked.
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i].Traffic = 0
+	}
 	ford := entity.Pos{X: a.Pos.X - 2, Y: a.Pos.Y}
 	w.Grid.At(ford).Terrain = world.Water
 	for i := 0; i < 90; i++ {
