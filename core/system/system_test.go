@@ -171,12 +171,12 @@ func TestAgentsWalkBeforeActing(t *testing.T) {
 func TestCityDevelopsWithoutAPlayer(t *testing.T) {
 	w := valueWorld(7)
 	populate(w, 20)
-	Run(w, 6000)
+	Run(w, generation)
 	if len(w.Agents) == 0 {
 		t.Fatal("everyone starved")
 	}
 	if len(w.Techs()) == 0 {
-		t.Fatalf("no discoveries in 6000 ticks; knowledge=%.1f", w.Knowledge)
+		t.Fatalf("no discoveries in a lifetime; knowledge=%.1f", w.Knowledge)
 	}
 	s := observe.Take(w)
 	if s.Houses == 0 || s.Fields == 0 {

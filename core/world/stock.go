@@ -79,6 +79,12 @@ var stocks = map[*ontology.Class]func(*Tile) *float64{
 
 // Stock is the number on this tile that stands for how much of m is here.
 // ok is false where the ground affords m without keeping a count of it.
+// StockOf is Stock resolved for a material instead of for a tile: the number
+// on a tile that holds m, or nil where the ground has no stock of it and is
+// bottomless. It is for the searches that ask the same question of every tile
+// on the map, which would otherwise look the material up on each of them.
+func StockOf(m *ontology.Class) func(*Tile) *float64 { return stocks[m] }
+
 func Stock(t *Tile, m *ontology.Class) (*float64, bool) {
 	if s, ok := stocks[m]; ok {
 		return s(t), true

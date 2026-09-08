@@ -3,6 +3,7 @@ package system
 import (
 	"testing"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/world"
@@ -17,7 +18,7 @@ func TestASettlementLaysItsOwnRoads(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, 4000)
+	Run(w, 10*clock.Year)
 
 	roads := w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road })
 	if roads == 0 {
@@ -88,7 +89,7 @@ func TestASettlementBridgesTheRiverItStraddles(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			w.Spawn("a", w.RandomPersonality())
 		}
-		for tick := 0; tick < 4000; tick++ {
+		for tick := 0; tick < 10*clock.Year; tick++ {
 			Step(w)
 			for _, a := range w.Agents {
 				if tile := w.Grid.At(a.Pos); tile.Terrain == world.Water {
@@ -145,7 +146,8 @@ func TestAnUnwalkedRoadGrowsOver(t *testing.T) {
 	}
 	// Now let the years pass, with people still using the one and not the
 	// other. Weather is what fades the wear, so it runs as it does in Land.
-	for i := 0; i < 4000; i++ {
+	// Twenty thousand days is some fifty-five years, against a road's six.
+	for i := 0; i < 20000; i++ {
 		w.Grid.Weather()
 		w.Grid.Tread(walked)
 		Upkeep(w)
@@ -154,7 +156,7 @@ func TestAnUnwalkedRoadGrowsOver(t *testing.T) {
 		t.Fatal("a road people were still walking every day grew over")
 	}
 	if s := w.Grid.At(forgotten).Structure; s != world.None {
-		t.Fatalf("a road nobody had walked for four thousand ticks is still there as %v", s)
+		t.Fatalf("a road nobody had walked for fifty years is still there as %v", s)
 	}
 	if !w.Grid.At(forgotten).Buildable() {
 		t.Fatal("the ground a road grew off is not open ground again")

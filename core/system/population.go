@@ -5,6 +5,7 @@ import (
 
 	"lreat/core/action"
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -12,17 +13,53 @@ import (
 )
 
 const (
-	// StarvationTicks is how long an agent survives at the bottom of the
-	// physiological tier.
-	StarvationTicks = 60
-	// BirthChance is the per-tick probability that a thriving agent has a child.
-	BirthChance = 0.006
+	// Starvation is how long an agent survives at the bottom of the
+	// physiological tier. Two months of it is the end.
+	Starvation = 2 * clock.Month
+	// BirthChance is the daily probability that a thriving agent has a
+	// child. It is written against the year because what has to stay fixed
+	// as the calendar changes is how many children a fertile life brings,
+	// not how many a day does: one chance a year, over the twenty-five
+	// fertile years, for a parent whose lower three tiers are all met at
+	// once - which happens about three tenths of the time, so a fertile life
+	// that runs its course brings seven or eight children.
+	//
+	// That is a human number and it is set by the childhood. A settlement
+	// that waits fifteen years for a birth to become a worker, and feeds it
+	// the whole way, needs the fertility a pre-modern people actually had;
+	// at three fifths of this, which is what the five-year childhood was
+	// tuned with, the same settlements came out at a median of 92 against
+	// 163. See docs/action-space.md.
+	BirthChance = 1.0 / clock.Year
 	// MaxPopulation caps growth so runs stay bounded.
-	MaxPopulation = 400
 	// InheritedSkill is the share of a parent's skills a child is born with,
 	// under recognition.
 	InheritedSkill = 0.5
 )
+
+// MaxPopulation is a guard on the machine and not a fact about the world.
+// Nothing in the settlement knows it is there: agents do not feel crowded at
+// 4,999 and free at 5,001, and the land, the larder and the roofs are what a
+// settlement is supposed to run out of. It exists because most of a tick is
+// spent in loops over everybody - a fair number of them once per agent, so
+// the cost goes as the square - and a run that grew without limit would stop
+// finishing rather than tell anybody anything.
+//
+// It was 400, which was low enough to bind. A settlement held at a ceiling
+// looks exactly like a settlement that found its level, and the difference
+// is the whole of what a batch is read on, so the number it reported was
+// being quietly decided here rather than out on the land. Seed 1 at sixty
+// years stood at 400 with the cap on and climbed to 502 without it, and its
+// people were worse fed and lonelier at the top - which is what finding a
+// real ceiling looks like. The seeds that never reached 400 came out
+// identical to the digit.
+//
+// Five thousand is far enough above what the map has ever carried that the
+// land binds first, and near enough that a settlement which somehow ran away
+// still stops rather than running the batch into the ground. world.Crowded
+// counts who was turned away, which is how anybody can tell whether it is
+// binding again.
+var MaxPopulation = 5000
 
 // Population handles deaths and births. Births need the three lower tiers
 // met, which is why a city that cannot feed and protect its people does not
@@ -38,7 +75,7 @@ func Population(w *world.World) {
 	w.Vitals.Born, w.Vitals.Died, w.Vitals.Gates = 0, 0, [world.GateCount]int{}
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
-		if a.Starving > StarvationTicks {
+		if a.Starving > Starvation {
 			w.Deaths++
 			w.Vitals.Starved++
 			w.Vitals.Died++
@@ -53,7 +90,7 @@ func Population(w *world.World) {
 			w.Deaths++
 			w.Vitals.Failed++
 			w.Vitals.Died++
-			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, age)
+			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, clock.Years(age))
 			continue
 		}
 		alive = append(alive, a)

@@ -15,7 +15,7 @@ import (
 func TestDeathsAreCountedByCause(t *testing.T) {
 	w := world.NewSized(1, 40, 12)
 	starved := w.Spawn("Ada", need.Neutral())
-	starved.Starving = StarvationTicks + 1
+	starved.Starving = Starvation + 1
 	old := w.Spawn("Bo", need.Neutral())
 	old.Born = w.Tick - 100_000 // far enough past its prime that frailty is certain
 	old.Health = 0

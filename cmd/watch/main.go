@@ -32,6 +32,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/observe"
@@ -49,10 +50,12 @@ var names = []string{
 const (
 	panelWidth = 38
 	// The activity graph runs under the map at the map's own width. Each
-	// column is the mean of graphTicks ticks; graphMax columns are kept so
-	// a wider map simply shows more of the same history.
+	// column is the mean of graphTicks days; graphMax columns are kept so
+	// a wider map simply shows more of the same history. At twenty days a
+	// column a map-wide graph covers some four years, which is the span a
+	// settlement's changes of habit actually show up over.
 	graphHeight = 6
-	graphTicks  = 5
+	graphTicks  = 20
 	graphMax    = 320
 	// The settlement's figures sit in two columns of label and
 	// right-aligned number, both halves the same shape so the numbers line
@@ -62,25 +65,58 @@ const (
 	statCol   = statLabel + statValue + 2
 )
 
+// main opens the start screen and, if a settlement is started from it,
+// founds one on whatever terms the menu was left holding. The flags are
+// still there and still mean what they meant; they are the menu's opening
+// position now rather than the only way to say any of it, and -start skips
+// the menu for the runs that are launched from a shell script rather than
+// by hand. See menu.go.
 func main() {
-	seed := flag.Uint64("seed", 1, "world seed")
-	agents := flag.Int("agents", 20, "starting population")
-	tps := flag.Float64("tps", 20, "initial ticks per second")
-	width := flag.Int("width", world.DefaultWidth, "map width")
-	height := flag.Int("height", world.DefaultHeight, "map height")
+	d := defaults()
+	seed := flag.Uint64("seed", d.seed, "world seed")
+	agents := flag.Int("agents", d.agents, "starting population")
+	tps := flag.Float64("tps", d.tps, "initial ticks per second")
+	width := flag.Int("width", d.width, "map width")
+	height := flag.Int("height", d.height, "map height")
+	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
+	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
+	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
+	s := setup{
+		seed: *seed, agents: *agents, tps: *tps,
+		width: *width, height: *height,
+		fit: !*value, temp: *temp,
+	}
 
-	w := world.NewSized(*seed, *width, *height)
-	for i := 0; i < *agents; i++ {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := screen.Init(); err != nil {
+		log.Fatal(err)
+	}
+	if !*skip && !menu(screen, &s) {
+		screen.Fini() // left from the menu: there was never a settlement
+		return
+	}
+	run(screen, s)
+}
+
+// run founds the settlement and watches it until the user quits.
+func run(screen tcell.Screen, s setup) {
+	w := world.NewSized(s.seed, s.width, s.height)
+	w.Rules.Fit = s.fit
+	w.Rules.Temperature = s.temp
+	for i := 0; i < s.agents; i++ {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
-	runner := sim.New(w, *tps)
+	runner := sim.New(w, s.tps)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go runner.Run(ctx)
 
 	v := &view{
-		speed: *tps,
+		speed: s.tps,
 		// The panel reads one agent at a time straight off the simulation
 		// goroutine rather than out of the snapshot: a portrait is far more
 		// than the map needs, and nobody is looking at all of them at once.
@@ -94,19 +130,12 @@ func main() {
 		},
 	}
 	// However the run ends, it says how it went on the way out — and it is
-	// registered before the screen is, so that it prints to the terminal
-	// the screen has just been handed back rather than into a display about
-	// to be torn down. A settlement nobody can report on afterwards is one
-	// nobody can tune against. See Report in vitals.go.
+	// registered before the screen is handed back, so that, deferred calls
+	// running in reverse, it prints to the terminal the screen has just
+	// given up rather than into a display about to be torn down. A
+	// settlement nobody can report on afterwards is one nobody can tune
+	// against. See Report in vitals.go.
 	defer func() { fmt.Print(v.Report()) }()
-
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := screen.Init(); err != nil {
-		log.Fatal(err)
-	}
 	defer screen.Fini()
 	screen.EnableMouse(tcell.MouseButtonEvents) // clicking a figure picks it
 
@@ -402,7 +431,11 @@ func (v *view) draw() {
 	if v.paused {
 		state = "PAUSED"
 	}
-	put(bold, "tick %-7d pop %-5d %s", s.Tick, s.Population, state)
+	// The date rather than the tick count: what a settlement is living
+	// through is a year and a season, and the raw day is only useful for
+	// lining a run up against a log.
+	put(bold, "%-20s pop %-5d %s", s.Date, s.Population, state)
+	put(dim, "day %d", s.Tick)
 	line++
 	for _, t := range need.Tiers() {
 		put(tcell.StyleDefault, "%-13s %s %.2f", t, bar(s.MeanNeeds[t], 12), s.MeanNeeds[t])
@@ -445,7 +478,7 @@ func (v *view) draw() {
 	// thing on the panel that moves on its own schedule rather than the
 	// settlement's, and the growth figure says what the season is doing to
 	// the land.
-	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Season, s.Temp, s.Growth)
+	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Date.Season, s.Temp, s.Growth)
 	techs := "none yet"
 	if len(s.Techs) > 0 {
 		parts := make([]string, len(s.Techs))
@@ -484,7 +517,7 @@ func (v *view) draw() {
 		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
 	}
 	v.drawGraph(0, s.Map.H+1, s.Map.W)
-	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d ticks →", min(len(v.hist), s.Map.W)*graphTicks))
+	puts(sc, 0, s.Map.H+1+graphHeight, dim, fmt.Sprintf("%d days →", min(len(v.hist), s.Map.W)*graphTicks))
 	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  r pave")
 	puts(sc, px, sh-1, dim, "tab/click pick  esc drop  d vitals  w world  q quit")
 	// A settlement that has ended says so across the empty map it left, and
@@ -631,7 +664,7 @@ func (v *view) drawCard(x int, line *int, bottom int) {
 		return
 	}
 	last := p.Thinking[len(p.Thinking)-1]
-	put(bold, "weighed at tick %d  open %.2f", last.Tick, last.Entropy)
+	put(bold, "weighed on %s  open %.2f", clock.At(last.Tick), last.Entropy)
 	for i, c := range last.Weighed {
 		if i >= 5 && !c.Chosen {
 			continue

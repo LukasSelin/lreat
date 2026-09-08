@@ -5,6 +5,7 @@ import (
 
 	"lreat/core/action"
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -122,7 +123,7 @@ func TestFeudsFormInALivingSettlement(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			w.Spawn("a", w.RandomPersonality())
 		}
-		for i := 0; i < 4000; i++ {
+		for i := 0; i < 10*clock.Year; i++ {
 			Step(w)
 			for _, e := range w.Log.Since(w.Tick) {
 				switch e.Kind {

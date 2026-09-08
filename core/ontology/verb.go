@@ -69,7 +69,21 @@ type Schema struct {
 	SiteTrait    Trait
 	Role         *Role
 	Dir          Direction
+	// Season is the thing whose half of the year this act keeps, where that
+	// is not a thing the act itself touches. Clearing is warm-half work
+	// because a field is for grain, and the clearing handles no grain - so
+	// it names what the ground it makes is ultimately for, and takes that
+	// thing's Warmth. It is the only way a chill coordinate may enter a
+	// prior other than through what the act handles, and there is a test
+	// which says so.
+	Season *Class
 
+	// Ticks is how long the doing takes, in days - a day's work at one, the
+	// better part of a week at four. It is the third kind of time the
+	// ontology holds, and the only one about the act rather than the thing:
+	// Class.Comes is how long something takes to come on and Class.Warmth
+	// which half of the year it belongs to, while this is simply how long
+	// somebody is busy. See package clock, where the day is defined.
 	Ticks   int
 	Skill   entity.Skill
 	Skilled bool
@@ -113,7 +127,8 @@ var Schemas = []Schema{
 	// Tending changes the ground. Clearing is the half of farming that
 	// makes a field; harvesting is the Take above.
 	{Verb: Tend, Name: "clear", Site: Open, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachEveryday,
-		Prior:   habit.Signature{habit.Chill: -0.5, habit.Industry: 0.7, habit.Skill: 0.3, habit.Lack: 0.3},
+		Season:  Grain,
+		Prior:   habit.Signature{habit.Industry: 0.7, habit.Skill: 0.3, habit.Lack: 0.3},
 		Valence: belief.Valence{belief.Industry: 0.3}},
 	{Verb: Tend, Name: "water", Inputs: []*Class{Timber}, Site: Field, Ticks: 4, Skill: entity.Farming, Skilled: true, Reach0: reachWater, Tech: "irrigation",
 		Prior:   habit.Signature{habit.Industry: 0.7, habit.Skill: 0.4},
@@ -241,8 +256,8 @@ var takeDetail = map[*Class]struct {
 	// years a first field has.
 	Grain: {Skill: entity.Farming, Skilled: true, Reach0: reachEveryday, Ticks: 4,
 		Prior: habit.Signature{habit.Hunger: -0.8, habit.Industry: 0.7, habit.Skill: 0.3, habit.Lack: -0.5}},
-	// Felling is winter work whoever does it: the sap is down and there is
-	// least else to do.
-	Timber: {Reach0: reachEveryday, Ticks: 2, Prior: habit.Signature{habit.Chill: 0.3}},
+	// Felling is winter work, and the ontology now says so on the timber
+	// itself rather than here: see Timber's Warmth.
+	Timber: {Reach0: reachEveryday, Ticks: 2},
 	Stone:  {Skill: entity.Building, Skilled: true, Reach0: reachQuarry, Ticks: 3, Tech: "quarrying", Prior: habit.Signature{habit.Industry: 0.5, habit.Skill: 0.3}},
 }

@@ -12,13 +12,25 @@ import "lreat/core/ontology"
 // growing weather a stand has had, so a wood raised in the autumn stands
 // still until the thaw.
 
+// alive is the same question read as a table over the ground, worked out
+// once from the same bindings rather than asked of the ontology again. Every
+// tile on the map is asked whether it is alive on every tick, and gathering
+// the processes that run on it to answer allocates the gathering.
+var alive = func() (a [Tavern + 1][Rock + 1]bool) {
+	for s := range a {
+		for t := range a[s] {
+			tile := Tile{Structure: Structure(s), Terrain: Terrain(t)}
+			a[s][t] = len(ontology.Growing(ClassOf(&tile))) > 0
+		}
+	}
+	return a
+}()
+
 // Alive reports whether this tile carries a standing crop, which is to say
 // something that had to grow before it could be taken. It is exactly the
 // tiles some process runs on: the ontology says which ground carries
 // something alive, and ClassOf says which terrain that is.
-func (t *Tile) Alive() bool {
-	return len(ontology.Growing(ClassOf(t))) > 0
-}
+func (t *Tile) Alive() bool { return alive[t.Structure][t.Terrain] }
 
 // Along is how far through process p what stands here has come, in [0,1].
 // It is the reading a stage is asked for against, and it is p's share of

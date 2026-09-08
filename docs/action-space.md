@@ -157,7 +157,7 @@ Six seeds, 6000 ticks, 20 founders, against the same seeds with no tree line:
 
 The forest now settles between a sixth and a fifth of the map on every seed instead of anywhere between a seventh and four fifths, and the ground the settlement did not get to keep is the ground it farms. Five of the six seeds gained population; seed 3 lost a third of it, which is inside this system's spread across seeds.
 
-**What grows has an age.** A stand was a stock: a tile carried timber and wild food, and the numbers came back at a fixed rate whatever had happened there. So a thicket a planter put in this spring was the same thing as an old wood with less in it, and a strip cut yesterday was as good to cut again today. `ontology.Living` says which ground carries something growing - a wood and a field; not an outcrop, and not the water, whose fish are a stock that replenishes rather than a crop that has to come on - and `world.Tile.Age` is how much growing weather what stands there has had. It advances with the season, so a wood raised in the autumn stands still until the thaw, and `Tile.Grown` reads it against how long that kind of thing takes: `TimberAge` twenty years, `BrushAge` six, `CropAge` a quarter. Age bounds what a stand grows into and never takes away what is standing - woods grow and hold, they do not go over - and `Tile.Sow` starts one over wherever ground changes hands: a wood seeded, planted, felled to a clearing or paved, a strip broken, a strip cut.
+**What grows has an age.** A stand was a stock: a tile carried timber and wild food, and the numbers came back at a fixed rate whatever had happened there. So a thicket a planter put in this spring was the same thing as an old wood with less in it, and a strip cut yesterday was as good to cut again today. `ontology.Living` says which ground carries something growing - a wood and a field; not an outcrop, and not the water, whose fish are a stock that replenishes rather than a crop that has to come on - and `world.Tile.Age` is how much growing weather what stands there has had. It advances with the season, so a wood raised in the autumn stands still until the thaw, and `Tile.Grown` reads it against how long that kind of thing takes: `TimberAge` six years, `BrushAge` two, `CropAge` a month. Age bounds what a stand grows into and never takes away what is standing - woods grow and hold, they do not go over - and `Tile.Sow` starts one over wherever ground changes hands: a wood seeded, planted, felled to a clearing or paved, a strip broken, a strip cut.
 
 Three things follow, none of them written as a rule of its own:
 
@@ -306,7 +306,7 @@ Tests under fit mode assert ordering (which action ranks first), not the sampled
 
 `Pave` ("lay road", catalog position 13) is the first action added after the six phases. It is the trigger for the road material that already existed: nothing lays streets on the settlement's behalf any more, agents decide to.
 
-**The ground remembers.** `Tile.Traffic` rises by 1 whenever an agent steps onto a tile and fades by 0.5% a tick, a memory about 140 ticks long. It costs nothing to walk a worn tile - wear is not a road - it is only a record of where the settlement's errands actually run. `Grid.Busiest` returns the most-worn *pavable* tile within a radius, so houses and claimed fields are never offered: roads form in the gaps between buildings, which is what streets are.
+**The ground remembers.** `Tile.Traffic` rises by 1 whenever an agent steps onto a tile and fades by 0.5% a day, a memory about 140 days long - a season and a half. It costs nothing to walk a worn tile - wear is not a road - it is only a record of where the settlement's errands actually run. `Grid.Busiest` returns the most-worn *pavable* tile within a radius, so houses and claimed fields are never offered: roads form in the gaps between buildings, which is what streets are.
 
 **The moment.** `Pave`'s prior is the settled one: `Wood 0.6, Shelter 0.7, Company 0.6, Charity 0.5, Industry 0.6, Near 0.5`. Shelter is what separates it from gathering and building, which want the opposite - you improve the common ground once your own roof is up. Charity and industry are what it shares with standing guard. It mentions neither hunger nor skill, for the reasons in "Writing priors".
 
@@ -463,11 +463,85 @@ whether an agent is getting anywhere or turning on the spot between the same
 two errands — which is the thing the aggregate graph, by construction,
 averages away.
 
+## The calendar
+
+A tick is a day. `core/clock` is the only place that says so, and every duration in the world is written against it.
+
+**What was wrong.** A year was 100 ticks and a season 25. A walk from one corner of the map to the other is 80 ticks of open ground, and an ordinary errand out to a field and back is ten or fifteen. So a season was shorter than a journey and about two errands long: a settler who set out for a plot in the spring arrived in the autumn, and nothing anybody did could be timed against the year, because the year turned faster than anybody could act. The seasons were real physics that nobody could live inside. That is not a season, it is weather.
+
+**The calendar now.** A week is seven days, a month thirty, a season ninety, a year four seasons - 360 days. A season holds a journey across the whole map, or six to nine ordinary errands, or a crop sown, brought on and cut with the storing of it after. `clock.At` tells a tick as a date and `clock.Years` tells a span as an age, so the panel says `summer 12, year 3` and an agent is 34 rather than 12,240.
+
+**What scaled and what did not**, which is the whole of the care this needed:
+
+| kind of thing | what happened | why |
+|---|---|---|
+| the day's economy - hunger, spoilage, regrowth rates, what an act yields, what a step costs | untouched | the day is what the land renews by and what people take by. The balance between them is the one thing a calendar must not touch, and it is what every number in this document was tuned against. |
+| stand ages - `TimberAge`, `BrushAge`, `CropAge` | kept their length in days, restated in years | an age says what a stand may hold and a rate says how fast it fills toward it; they are a pair, and moving one without the other is a silent retuning of the land. |
+| a life - `Maturity`, `Prime`, `Lifespan` | restated in years, and then made human | a life is a span of years, not of ticks. The calendar is what made a fifteen-year childhood affordable at all; see the section below. |
+| chances read once a day against a life or a calendar - `Frailty`, `BirthChance`, `leftToFall` | divided by the same 3.6 | a daily chance over a span 3.6 times longer fires 3.6 times as often. `Frailty` is now written as a risk over the length of the decline rather than a bare number, so it cannot drift out of step again. |
+| intervals - `ErodeEvery`, `marketEvery` | said in seasons and years | an age of weather is a season and the market moves once a year; both were bare tick counts that happened to mean something under the old year. |
+
+**What it cost, measured.** Twenty-four seeds, sixty years, twenty founders - which is 6000 ticks on the old calendar and 21,600 on this one, the same sixty years of settlement either way:
+
+| | lasted | extinct | median | mean | fed | all three gates |
+|---|---|---|---|---|---|---|
+| the hundred-tick year | 23/24 | 0 | 139 | 157 | 0.49 | 0.136 |
+| the calendar | 24/24 | 0 | 218 | 212 | 0.55 | 0.214 |
+
+Better, and worth understanding rather than pocketing. Nothing was made more generous. What changed is that a settlement now gets 3.6 times as many days to work in per turn of the year, against a winter that is 3.6 times longer to sit through and stand ages that did not move - and it comes out ahead, which says the old year was not a hardship so much as a season nobody could organise around. The gate numbers say where it went: the share of fertile adults who clear all three birth gates at once went from 0.136 to 0.214, and births need all three at once.
+
+## A human childhood
+
+A life was five years to grow up, twenty-eight to the end of bearing and fifty-two to the end - the proportions the settlement had been tuned on, carried over from a world where a life had to be counted in ticks to fit a run inside it. A settlement whose children are grown before they can walk to the next field has no dependants in it. `Maturity`, `Prime` and `Lifespan` are fifteen, forty and sixty-five now. `core/entity/age.go`.
+
+The calendar is what made this affordable, and it is worth saying why: what a run has to cover is a number of generations, and a generation is a span of years, so lengthening the year is what buys a childhood. Under the hundred-tick year, fifteen years of childhood was 1500 ticks and a life 6500, and there was no run length at which a settlement turned over three times and a child took fifteen years to grow.
+
+**What it cost, and what the cost turned out to be.** Twenty-four seeds, sixty years, twenty founders:
+
+| | lasted | extinct | median | mean | fed | all three gates |
+|---|---|---|---|---|---|---|
+| grown at five | 24/24 | 0 | 218 | 212 | 0.55 | 0.214 |
+| grown at fifteen | 22/24 | 0 | 92 | 104 | 0.57 | 0.313 |
+| grown at fifteen, bearing to match | 23/24 | 0 | 163 | 185 | 0.56 | 0.287 |
+
+The middle row is the one to read carefully, because it is not what it looks like. The population halved and *every per-capita number went up*: fed 0.55 to 0.57, safe 0.41 to 0.56, belonging 0.73 to 0.84, and the share of fertile adults clearing all three birth gates at once from 0.214 to 0.313. A settlement in that row is not struggling. It is healthier than the one before it and there is less of it, which means the loss was never hardship - it was arithmetic.
+
+The age structure says where it went. Reading one settlement at sixty years: 116 alive, of whom 73 are children, 32 are of bearing age and 11 are elders. Half the population and better is now under fifteen, none of it bears, all of it eats, and each of them works at half a body growing into the rest. Fewer bearers per head, and a fifteen-year wait before a birth becomes a worker, compounds a great deal slower than a five-year one.
+
+**So the childhood sets the fertility.** A settlement that waits fifteen years for a birth to become a worker, and feeds it the whole way, needs the fertility a pre-modern people actually had. `BirthChance` was three fifths of a chance a year, which after the three birth gates comes to four or five children over a fertile life; it is one a year now, which comes to seven or eight, and that is the top of the human range rather than a number chosen to reach a population. The third row is that change, and it recovers most of the difference without touching anything else.
+
+What is left of the gap is the childhood itself, and it should be left there. A quarter of a settlement being children is the fact; a settlement that cannot feed its children not growing is the mechanism working, not a regression.
+
+## Rearing, and why it is not here
+
+A fifteen-year childhood puts dependants in a settlement, and dependants were the one thing nothing in the catalog was about: everything an agent did for anybody else it did for whoever was nearest and worst off, which is charity, and charity is not what a household is. So rearing was built, measured, and taken out again. It is recorded here because the measurement is worth more than the code was, and because the next person to think of it should start from the numbers rather than from the idea.
+
+**What was built.** Kinship as a fact the world records (`Agent.Parent`, on the agent rather than in a Bond, because an opinion can be evicted when the slots fill and whose child you are cannot); an `ontology.Child` role; two ordinary acts over it - feeding one's own, which notices a child at somewhat over half fed where the needy are noticed at four tenths, and bringing one up in the work, which is teaching without the audience; and a household roof, the one part that is not an act, because a roof is a thing that stands rather than something anybody decides each morning. Later, the other half of the ledger: a childhood as a stock that tending puts in and time takes out, a daily chance that an untended child is simply lost, and a grown body built out of how the childhood went.
+
+**What it measured.** Twenty-four seeds, sixty years, twenty founders:
+
+| | lasted | extinct | median | mean | all three gates |
+|---|---|---|---|---|---|
+| no rearing | 24/24 | 0 | 163 | 185 | 0.287 |
+| the two acts and the roof | 22/24 | 0 | 62 | 129 | 0.194 |
+| the same, without the roof | 22/24 | 0 | 67 | 114 | 0.225 |
+| acts, roof, and a childhood that can be lost | 18/24 | 1 | 87 | 131 | 0.202 |
+
+Rearing does the thing it is for: over six seeds the settlements buried 668 people against 2024 without it, and children that starved now live. They are smaller settlements anyway, so the births fell further than the deaths did. Every average need rose while the share of fertile adults over all three birth thresholds at once fell, and both are true because they are about different people - the averages are over everyone and rearing fills a settlement with comfortable children, while the gates are over the adults it is a transfer out of. Births need three needs over their thresholds at one instant, and that is a cliff: acts under three per cent of everything anybody does cost three fifths of the median population.
+
+**Two guesses that were wrong, and one thing that is structural.** Paying a parent 0.12 of belonging - more than giving to a stranger pays - left belonging and standing four fifths satisfied all year; cutting it to 0.04 moved the median by five. Passing recognition down with the craft rubbed out the drift a child is born with and halved the settlement's fishing, a trade nobody drifts into being a trade nobody keeps; handing down the craft alone is right on its own terms and moved the median by five as well. Neither was the mechanism.
+
+What is structural is this: **agents choose by recognition and cannot decide to rear harder.** Priors are fixed and no outcome revises them, so making neglect expensive cannot cause more rearing - it can only kill children. The one channel that could adapt is selection, since norms and habits are inherited, and sixty years is about two generations. Whether it comes right over four or five was never established; the long sweep would not run.
+
+**What would have to change for it to pay.** Births here are cheap - no gestation, no maternal cost - and children survive untended well enough, so rearing is a charge on the parent with nothing on the other side of the ledger. Tying survival to tending was the attempt at that other side and it did not close the gap, because it never touched what was actually costing the population. The version worth trying next makes bearing itself cost the bearer something, so that a settlement's choice is between few children well kept and many badly, rather than between rearing and not.
+
+The work is on the branch it was written on, with its tests, if anybody wants it back.
+
 ## The turning year
 
 The world had one weather and kept it for ever. Now it has a temperate year, and the settlement has a season to get through rather than a steady state to sit in. `core/world/climate.go`, `core/system/climate.go`.
 
-**The shape of it.** A year is 100 ticks, so a life is some fifty years and a run long enough to develop sees dozens of winters. Temperature is a sine about a mean of 10 degrees with a swing of 12, putting midsummer at 22 and midwinter at -2, and two AR(1) wanderings sit on top of it: a slow one, eight years to shed an anomaly and a standard deviation of 1.2 degrees, which makes a decade kind or unkind, and a fast one, six ticks and 2.5 degrees, which makes the warm week and the cold snap. Tick zero is early spring, so founders arrive with a growing season in front of them rather than behind them. It costs two draws from `World.RNG` a tick and nothing else, so a seed and a command log still reproduce a run exactly.
+**The shape of it.** A year is 360 ticks - see the calendar below - so a life is some fifty years and a run long enough to develop sees dozens of winters. Temperature is a sine about a mean of 10 degrees with a swing of 12, putting midsummer at 22 and midwinter at -2, and two AR(1) wanderings sit on top of it: a slow one, eight years to shed an anomaly and a standard deviation of 1.2 degrees, which makes a decade kind or unkind, and a fast one, a week and 2.5 degrees, which makes the warm spell and the cold snap. Tick zero is early spring, so founders arrive with a growing season in front of them rather than behind them. It costs two draws from `World.RNG` a tick and nothing else, so a seed and a command log still reproduce a run exactly.
 
 **Three things read it**, and the whole of the feature is in the three:
 
@@ -632,6 +706,12 @@ Cropping the best strip and letting the rest rest, rather than reading the harve
 The catalog was a list of twenty-eight hand-written acts, each five closures and a prior tuned by hand, in a fixed order that every habit table was indexed by and a fixed bound of thirty-two that it could not outgrow. That is a linear cost per act, and it never gets to an extensive catalog. `core/ontology` replaces the list with a statement of what the world is made of, from which what can be done with it follows.
 
 **Three trees and a set of relations.** Things are what an act operates on; sites are where it happens; roles are how a person stands to the actor. A class exists only if some verb treats it differently from its siblings; anything else is a trait.
+
+**Time is one of the facts a class carries.** The year turns in `core/world` and the calendar is in `core/clock`, and neither of those is a statement about what things *are*. This is: some things the year makes and some are simply there, and everything the season does to what can be done follows from which. `Class.Comes` is how long a stand takes to come on - timber six years, brush two, a crop a month - and a thing with no `Comes` is a stock rather than a crop: a seam of stone, a shoal of fish, there or not with no age to wait out. `Class.Warmth` is which half of the year the getting belongs to, signed, because the year has two halves and things are had in both: grain and berries are of the green half, and felling is winter work whoever does it. The two are independent, which is the point of holding both - timber is slow and of the cold half, a crop is quick and wholly of the warm one.
+
+Before this the ontology's whole account of time was a chill coordinate written by hand onto two classes, with nothing saying why berries carried one and stone did not; a third was hidden in the take detail for timber and a fourth in the residue of clearing a field. How long a stand took to come on lived out in `world/grow.go`, which is the one place it is not a fact about the thing. Now the composed prior takes the chill coordinate from `Warmth`, `world.Tile.Grown` asks the ontology how long a wood is in coming, and `Schema.Season` is the single sanctioned way an act may name a season it does not itself handle - clearing a field is warm-half work because a field is for grain. Three tests hold it together: that the two facts stay independent, that no chill coordinate enters a prior except through some class's `Warmth`, and that what grows is exactly what is taken off living ground.
+
+It is a restatement and not a retuning: every composed prior, valence, tick count and reach0 in the catalog is bit-identical across the change.
 
 ```
 Thing                                 Site

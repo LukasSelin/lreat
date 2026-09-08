@@ -5,6 +5,7 @@ import (
 
 	"lreat/core/action"
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -238,7 +239,7 @@ func TestRequestsAppearInALivingSettlement(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, 3000)
+	Run(w, 8*clock.Year)
 
 	var asked, done int
 	for _, e := range w.Log.All() {
@@ -250,7 +251,7 @@ func TestRequestsAppearInALivingSettlement(t *testing.T) {
 		}
 	}
 	if asked == 0 {
-		t.Fatal("nobody asked anybody for anything in 3000 ticks")
+		t.Fatal("nobody asked anybody for anything in eight years")
 	}
 	if done == 0 {
 		t.Fatalf("%d requests posted, none ever fulfilled", asked)

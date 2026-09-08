@@ -47,6 +47,16 @@ type Router struct {
 	g        *Grid
 	frontier []routeNode
 	scratch  Routes
+	// spread is the survey a decision routes off: one spread of the ground
+	// around the agent, read by every errand it weighs.
+	spread      Routes
+	spreadFrom  entity.Pos
+	spreadLaden bool
+	spreadLimit float64
+	surveyed    bool
+	// limit is the cost past which the next search need not go, set by
+	// Survey and spent by the search that follows it.
+	limit float64
 	// load is what the walker of the next route is carrying, set by Carrying
 	// and spent by the search that follows it.
 	load float64
@@ -110,6 +120,11 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 	// A load is given to one journey and does not outlive it.
 	laden := r.load > SwimLoad
 	r.load = 0
+	limit := r.limit
+	r.limit = 0
+	if limit <= 0 {
+		limit = math.Inf(1)
+	}
 	n := len(g.Tiles)
 	if len(f.seen) != n {
 		f.seen = make([]int32, n)
@@ -166,6 +181,9 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 		if top.idx == stop {
 			break
 		}
+		if here >= limit {
+			break
+		}
 		for d := range dirs {
 			cx, cy := px+dirs[d].X, py+dirs[d].Y
 			if cx < 0 || cy < 0 || cx >= g.W || cy >= g.H {
@@ -184,18 +202,10 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 			if laden && t.Deep() && j != stop && !g.Tiles[top.idx].Deep() {
 				continue
 			}
-			step := moveCost[t.Terrain]
-			if t.Structure != None {
-				step = structureCost[t.Structure]
-			}
-			// The climb into the tile, which is what makes a route follow a
-			// contour rather than go straight over the hill in the way.
-			if d := t.Height - g.Tiles[top.idx].Height; d > 0 {
-				step += Climb * d
-			} else {
-				step -= Descend * d
-			}
-			cost := here + step
+			// The step carries the climb into the tile, which is what makes
+			// a route follow a contour rather than go straight over the hill
+			// in the way.
+			cost := here + stepInto(g, top.idx, j)
 			rank := top.rank
 			if top.idx == src {
 				rank = int8(d)
@@ -213,6 +223,68 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 	}
 	r.frontier = q[:0]
 	return f
+}
+
+// Survey spreads out from one tile over everything within limit of it, and
+// keeps the answer for the errands the caller is about to cost. It is what
+// lets an agent weigh thirty errands off one look at the ground rather than
+// walking each of them in its head.
+func (r *Router) Survey(from entity.Pos, load, limit float64) {
+	r.load, r.limit = load, limit
+	r.route(&r.spread, from, -1, offMap)
+	r.spreadFrom, r.spreadLaden, r.spreadLimit, r.surveyed = from, load > SwimLoad, limit, true
+}
+
+// Forget drops the survey, so the next cost is walked afresh.
+func (r *Router) Forget() { r.surveyed = false }
+
+// fromSurvey reads a cost straight out of the standing survey. Anything the
+// survey did not reach is at least limit away, which is all the caller asked
+// to be able to tell.
+func (r *Router) fromSurvey(to entity.Pos) float64 {
+	f := &r.spread
+	g := r.g
+	i := int32(to.Y*g.W + to.X)
+	if f.seen[i] == f.gen && f.cost[i] < r.spreadLimit {
+		return f.cost[i]
+	}
+	// The end of a journey may be open water even for a laden walker, so a
+	// water tile the spread would not step into is costed from its bank.
+	if r.spreadLaden && g.Tiles[i].Deep() {
+		best := r.spreadLimit
+		for d := range dirs {
+			cx, cy := to.X+dirs[d].X, to.Y+dirs[d].Y
+			if cx < 0 || cy < 0 || cx >= g.W || cy >= g.H {
+				continue
+			}
+			j := int32(cy*g.W + cx)
+			if f.seen[j] != f.gen || f.cost[j] >= r.spreadLimit {
+				continue
+			}
+			c := f.cost[j] + stepInto(g, j, i)
+			if c < best {
+				best = c
+			}
+		}
+		return best
+	}
+	return r.spreadLimit
+}
+
+// stepInto is what entering one tile from a neighbour costs: the ground
+// being entered, and the climb or the descent into it.
+func stepInto(g *Grid, from, to int32) float64 {
+	t := &g.Tiles[to]
+	step := moveCost[t.Terrain]
+	if t.Structure != None {
+		step = structureCost[t.Structure]
+	}
+	if d := t.Height - g.Tiles[from].Height; d > 0 {
+		step += Climb * d
+	} else {
+		step -= Descend * d
+	}
+	return step
 }
 
 func siftUp(q []routeNode, i int) {

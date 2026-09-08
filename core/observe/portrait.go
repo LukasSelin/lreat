@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/world"
@@ -47,7 +48,7 @@ type Tie struct {
 type Portrait struct {
 	ID   entity.ID
 	Name string
-	Age  int
+	Age  int // in years
 	Pos  entity.Pos
 
 	Home     entity.Pos
@@ -123,7 +124,7 @@ func Look(w *world.World, id entity.ID) *Portrait {
 		return nil
 	}
 	p := &Portrait{
-		ID: a.ID, Name: a.Name, Age: a.Age(w.Tick), Pos: a.Pos,
+		ID: a.ID, Name: a.Name, Age: clock.Years(a.Age(w.Tick)), Pos: a.Pos,
 		Home: a.Home, HasHome: a.HasHome, Field: a.Field, HasField: a.HasField,
 		Needs: a.Needs, Urgency: need.Urgencies(a.Needs), Personality: a.Personality,
 		Health: a.Health, Vitality: a.Vitality, Shelter: a.Shelter,

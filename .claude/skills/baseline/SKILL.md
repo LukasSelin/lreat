@@ -6,7 +6,7 @@ description: Judge whether a change to the simulation helped, using the checked-
 # Judging a change against the baseline
 
 `go run ./cmd/tune` is the only thing here that says whether a change to the
-simulation helped. It costs about two minutes for the default batch, and it is
+simulation helped. It costs a few minutes for the default batch, and it is
 deterministic: the same tree gives the same numbers, however the goroutines
 interleave.
 
@@ -22,7 +22,7 @@ of the before-measurement.
 
 **Run it once, at the end**, when the change is settled and `go test ./...`
 passes. A batch taken over unfinished work measures work that no longer exists,
-and every rerun after that is two minutes buying nothing.
+and every rerun after that is a few minutes buying nothing.
 
 If the change is large enough that you want to know mid-way whether you are
 going the right direction, run a cheap probe — `-seeds 8 -ticks 3000 -quiet` —
@@ -32,7 +32,7 @@ compares to the file.
 ## The run
 
 ```bash
-go run ./cmd/tune -seeds 24 -ticks 6000
+go run ./cmd/tune -seeds 24 -ticks 21600
 ```
 
 Exactly those flags. `-seeds`, `-ticks`, `-agents`, `-born`, `-inherit`, `-temp`
@@ -46,13 +46,14 @@ The last line is the headline. Most of what is on it is noise:
 | reading | worth believing at |
 |---|---|
 | fed, and the four mean needs | a move of 0.05 on two batches that agree |
-| gates all | a move of 0.04 |
+| gates all | a move of 0.05 |
 | lasted, extinct | a move of 5 of 24 |
 | mean and median population | never on its own |
 
-Twenty-four seeds swing the mean population by 60% with no change to the code at
-all — 157, 116, 97 on three batches of master. The "How much of that is chance"
-section of docs/baseline.md has the evidence. So:
+Twenty-four seeds swing the mean population by about a tenth of itself with no
+change to the code at all — 177, 174, 190 on three batches of master, and the
+median by more. The "How much of that is chance" section of docs/baseline.md has
+the evidence. So:
 
 - A change that only moved population has not been shown to do anything. Confirm
   it on an independent batch, `-offset 24`, before believing it, and say in the

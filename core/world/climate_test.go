@@ -4,6 +4,8 @@ import (
 	"math"
 	"math/rand/v2"
 	"testing"
+
+	"lreat/core/clock"
 )
 
 // The year should be a year: warm in the middle of summer, cold in the
@@ -20,7 +22,7 @@ func TestTheYearTurns(t *testing.T) {
 	if got := seasonal(Year) - seasonal(0); math.Abs(got) > 0.01 {
 		t.Errorf("a year on, the season is %.2f off where it began", got)
 	}
-	if SeasonOf(0) != "spring" || SeasonOf(Year/4) != "summer" || SeasonOf(3*Year/4) != "winter" {
+	if SeasonOf(0) != clock.Spring || SeasonOf(Year/4) != clock.Summer || SeasonOf(3*Year/4) != clock.Winter {
 		t.Errorf("seasons are misnamed: %s %s %s", SeasonOf(0), SeasonOf(Year/4), SeasonOf(3*Year/4))
 	}
 }

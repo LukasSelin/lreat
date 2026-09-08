@@ -107,6 +107,9 @@ type Grid struct {
 	steepLine float64
 	woodsLine float64
 	woodsRead bool
+	// holds is whether trees will take on each tile, read at the same time
+	// as the lines above and from the same ground. See readHolds.
+	holds []bool
 
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
@@ -161,28 +164,45 @@ func (g *Grid) Count(ok func(*Tile) bool) int {
 // ok. It walks square rings outward in a fixed order, so results are
 // deterministic and ties resolve the same way every run.
 func (g *Grid) Nearest(from entity.Pos, maxR int, ok func(p entity.Pos, t *Tile) bool) (entity.Pos, bool) {
-	check := func(p entity.Pos) bool { return g.In(p) && ok(p, g.At(p)) }
-	if check(from) {
+	check := func(p entity.Pos) bool { return ok(p, g.At(p)) }
+	if g.In(from) && check(from) {
 		return from, true
 	}
 	for r := 1; r <= maxR; r++ {
 		if from.X-r < 0 && from.Y-r < 0 && from.X+r >= g.W && from.Y+r >= g.H {
 			break
 		}
-		for dx := -r; dx <= r; dx++ {
-			if p := (entity.Pos{X: from.X + dx, Y: from.Y - r}); check(p) {
-				return p, true
+		// The ring is clipped to the map before it is walked rather than
+		// tile by tile as it is. A search that reaches to the far side of
+		// the map spends most of its rings off the edge of it, and asking
+		// after each of those tiles in turn was the greater part of the
+		// cost of not finding anything.
+		x0, x1 := max(-r, -from.X), min(r, g.W-1-from.X)
+		top, bottom := from.Y-r >= 0, from.Y+r < g.H
+		for dx := x0; dx <= x1; dx++ {
+			if top {
+				if p := (entity.Pos{X: from.X + dx, Y: from.Y - r}); check(p) {
+					return p, true
+				}
 			}
-			if p := (entity.Pos{X: from.X + dx, Y: from.Y + r}); check(p) {
-				return p, true
+			if bottom {
+				if p := (entity.Pos{X: from.X + dx, Y: from.Y + r}); check(p) {
+					return p, true
+				}
 			}
 		}
-		for dy := -r + 1; dy <= r-1; dy++ {
-			if p := (entity.Pos{X: from.X - r, Y: from.Y + dy}); check(p) {
-				return p, true
+		y0, y1 := max(-r+1, -from.Y), min(r-1, g.H-1-from.Y)
+		left, right := from.X-r >= 0, from.X+r < g.W
+		for dy := y0; dy <= y1; dy++ {
+			if left {
+				if p := (entity.Pos{X: from.X - r, Y: from.Y + dy}); check(p) {
+					return p, true
+				}
 			}
-			if p := (entity.Pos{X: from.X + r, Y: from.Y + dy}); check(p) {
-				return p, true
+			if right {
+				if p := (entity.Pos{X: from.X + r, Y: from.Y + dy}); check(p) {
+					return p, true
+				}
 			}
 		}
 	}

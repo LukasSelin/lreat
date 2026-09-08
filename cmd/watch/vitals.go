@@ -375,7 +375,7 @@ func (v *view) drawLarder(x, y, bottom int, s *observe.Snapshot) {
 		style = tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true)
 	}
 	row(style, "starving", "%d of %d", s.Starving, s.Population)
-	row(tcell.StyleDefault.Dim(true), "  dead in", "%d ticks", system.StarvationTicks)
+	row(tcell.StyleDefault.Dim(true), "  dead in", "%d days", system.Starvation)
 	row(tcell.StyleDefault, "carried", "%.2f", s.MeanFood)
 	row(tcell.StyleDefault, "in market", "%.1f", s.FoodStock)
 	row(tcell.StyleDefault, "price", "%.2f", s.FoodPrice)
