@@ -280,7 +280,9 @@ func (m *menuState) draw() {
 	puts(sc, m.x, line, titleStyle, "lreat")
 	line++
 	puts(sc, m.x, line, dimStyle, "a settlement of people living in a world, and nobody playing it")
-	line += 2
+	line++
+	m.rule(&line)
+	line++
 
 	if m.opts {
 		m.drawOptions(&line, h)
@@ -288,12 +290,9 @@ func (m *menuState) draw() {
 		m.drawFront(&line)
 	}
 
-	// The keys are named in words for the same reason the page has no rules
-	// drawn on it: an arrow is a glyph some terminals give two columns to,
-	// and the legend would come apart on those.
-	keys := [][2]string{{"arrows", "move"}, {"enter", "choose"}, {"q", "quit"}}
+	keys := [][2]string{{"↑↓", "move"}, {"enter", "choose"}, {"q", "quit"}}
 	if m.opts {
-		keys = [][2]string{{"arrows", "move and change"}, {"0-9", "type"},
+		keys = [][2]string{{"↑↓", "move"}, {"←→", "change"}, {"0-9", "type"},
 			{"d", "defaults"}, {"esc", "back"}, {"q", "quit"}}
 	}
 	legend(sc, m.x, max(line+1, h-1), keys)
@@ -305,19 +304,23 @@ func (m *menuState) draw() {
 // page that jumped as its help text rewrapped would be.
 func (m *menuState) depth() int {
 	if m.opts {
-		return len(options()) + len(groups) + 13
+		return len(options()) + len(groups) + 14
 	}
-	return len(front) + 10
+	return len(front) + 11
 }
 
-// heading is what a run of lines is gathered under. It is the only thing
-// dividing one part of the page from another: a drawn rule would be a line
-// of box-drawing glyphs, and this page is laid out by counting columns —
-// anything the terminal decides to give two of them to walks the rest of
-// the line sideways. Blank space and a dim word do the same work and cannot
-// be measured wrong.
+// heading is what a run of lines is gathered under: a dim word, and under
+// the title a rule the width of the block. Both are the least visible thing
+// on the page, which is what a divider should be.
 func (m *menuState) heading(line *int, s string) {
 	puts(m.screen, m.x, *line, dimStyle, s)
+	*line++
+}
+
+// rule is the thin line under the title, dividing the name of the thing
+// from the working of it.
+func (m *menuState) rule(line *int) {
+	puts(m.screen, m.x, *line, dimStyle, strings.Repeat("─", menuWidth))
 	*line++
 }
 
@@ -375,10 +378,10 @@ func (m *menuState) drawFront(line *int) {
 		rule = "value"
 	}
 	puts(m.screen, m.x+menuName, *line, dimStyle,
-		fmt.Sprintf("seed %d   %d figures   %s", s.seed, s.agents, ground))
+		fmt.Sprintf("seed %d · %d figures · %s", s.seed, s.agents, ground))
 	*line++
 	puts(m.screen, m.x+menuName, *line, dimStyle,
-		fmt.Sprintf("%.2f t/s   %s", s.tps, rule))
+		fmt.Sprintf("%.2f t/s · %s", s.tps, rule))
 	*line += 2
 }
 

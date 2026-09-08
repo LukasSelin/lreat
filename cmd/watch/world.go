@@ -79,8 +79,15 @@ const (
 	measureName  = 11
 	measureValue = 9
 	measureNote  = 34
-	// workHeight is the whole-run weave of what people have been doing.
+	// workHeight is the least the whole-run weave of what people have been
+	// doing is drawn at. It takes whatever the page has left over above
+	// that: the weave is the one thing here with no natural height, and a
+	// tall terminal spent on blank rows under it is a tall terminal wasted.
 	workHeight = 6
+	// workBelow is what stands under the weave and has to be left room for:
+	// the legend, a blank line, the technologies, and a blank line over the
+	// keys along the foot.
+	workBelow = 4
 )
 
 // found is a technology and the tick the settlement came to it. Discovery is
@@ -125,33 +132,58 @@ func (v *view) drawWorld(sw, sh int) {
 
 	width := sw - measureName - measureValue - measureNote - 2
 	cols := v.fit(max(width, 1))
+	open, opened := v.focused()
 	for _, m := range measures {
-		if line >= sh-workHeight-4 {
+		// A measure is dropped rather than drawn over the weave: the page
+		// gives the weave its floor and the keys their line whatever the
+		// window is, and what will not fit above that simply is not shown.
+		if line >= sh-1-workBelow-workHeight {
 			break
 		}
-		v.drawMeasure(line, width, m, cols)
+		v.drawMeasure(line, width, m, cols, opened && open.name == m.name)
 		line++
 	}
 	line++
 
-	// What the settlement has spent its people on, over the whole run. The
-	// legend is the map page's, in the same colours in the same order, so
-	// that the two weaves read as one measurement at two lengths.
-	puts(sc, 0, line, tcell.StyleDefault.Bold(true), "what they have been doing with themselves")
+	// Under the measures stands whatever is being read closely: the weave
+	// of what the settlement has spent its people on, or the one measure
+	// stepped onto, opened out over the same space and scaled to its own
+	// high-water mark. A measure squeezed into a row says whether it went
+	// up; the same measure over twenty rows says the shape it went up in.
+	title := "what they have been doing with themselves"
+	if opened {
+		title = v.headline(open)
+	}
+	puts(sc, 0, line, tcell.StyleDefault.Bold(true), trim(title, sw))
 	line++
-	// The weave gets the screen's whole width rather than the measures'
-	// narrower one, so it is squeezed on its own terms.
-	v.drawWork(0, line, sw, v.fit(sw))
-	line += workHeight
+	// The space gets the screen's whole width rather than the measures'
+	// narrower one, so it is squeezed on its own terms, and whatever height
+	// the page has not already spent.
+	weave := max(workHeight, sh-1-workBelow-line)
+	if opened {
+		v.drawOpen(0, line, sw, weave, open)
+	} else {
+		v.drawWork(0, line, sw, weave, v.fit(sw))
+	}
+	line += weave
 	// The legend carries each kind's share of the whole run beside its
 	// name. The weave is six rows deep and one kind of work usually takes
 	// most of them, which leaves the rest too thin to see at all: the
 	// numbers say what the bands cannot.
-	cell := max(sw/len(ascii.Groups), 4)
-	share := v.workShare()
-	for i, g := range ascii.Groups {
-		puts(sc, i*cell, line, palette[g.Color], "█")
-		puts(sc, i*cell+2, line, dim, trim(fmt.Sprintf("%s %.0f%%", g.Name, 100*share[i]), cell-3))
+	if opened && open.whole == nil {
+		// The legend belongs to the weave, and the weave is not up: a row
+		// of shares under a chart of something else would be read as that
+		// chart's own. What stands there instead is what the chart is made
+		// of — how much of the run each of its columns is.
+		puts(sc, 0, line, dim, trim(fmt.Sprintf("oldest on the left, a column to every %d days of the run",
+			max(v.run()/max(len(cols), 1), 1)), sw))
+	} else {
+		cell := max(sw/len(ascii.Groups), 4)
+		share := v.workShare()
+		for i, g := range ascii.Groups {
+			puts(sc, i*cell, line, palette[g.Color], "█")
+			puts(sc, i*cell+2, line, dim, trim(fmt.Sprintf("%s %.0f%%", g.Name, 100*share[i]), cell-3))
+		}
 	}
 	line += 2
 
@@ -167,7 +199,7 @@ func (v *view) drawWorld(sw, sh int) {
 	}
 	puts(sc, 0, line, tcell.StyleDefault, trim("worked out: "+strings.Join(techs, "   "), sw))
 
-	puts(sc, 0, sh-1, dim, "w back to the map   d vitals   space pause  +/- speed  q quit")
+	puts(sc, 0, sh-1, dim, trim(v.keyed("w back to the map   d vitals   q quit"), sw))
 	sc.Show()
 }
 
@@ -176,10 +208,20 @@ func (v *view) drawWorld(sw, sh int) {
 // worth saying about it. Each row is scaled to itself, so the shape of every
 // measure is legible whatever the others are doing; the number at the right
 // is what the full height means.
-func (v *view) drawMeasure(y, width int, m measure, cols []bucket) {
+func (v *view) drawMeasure(y, width int, m measure, cols []bucket, open bool) {
 	sc := v.screen
 	style := palette[m.color]
-	puts(sc, 0, y, tcell.StyleDefault.Dim(true), trim(m.name, measureName-1))
+	// The row of the measure being read closely is picked out where it
+	// always stood, so that what is opened out below the page is plainly
+	// this line and the page is not rearranged around it. The mark stands
+	// in the blank column between the number and its history, pointing at
+	// the line it belongs to. See focus.go.
+	name := tcell.StyleDefault.Dim(true)
+	if open {
+		name = tcell.StyleDefault.Bold(true)
+		puts(sc, measureName+measureValue-1, y, tcell.StyleDefault.Bold(true), "▸")
+	}
+	puts(sc, 0, y, name, trim(m.name, measureName-1))
 
 	var top float64
 	for _, t := range v.traces {
@@ -248,14 +290,14 @@ func (v *view) glyph(m measure, b bucket, top float64) rune {
 
 // drawWork stacks the kinds of work over the whole run, in the same order
 // and colours as the band under the map.
-func (v *view) drawWork(x, y, w int, cols []bucket) {
+func (v *view) drawWork(x, y, w, h int, cols []bucket) {
 	for i, b := range cols {
 		if b.span == 0 {
 			continue
 		}
 		cx := x + w - len(cols) + i
-		for r := 0; r < workHeight; r++ {
-			share := (float64(workHeight-r) - 0.5) / float64(workHeight)
+		for r := 0; r < h; r++ {
+			share := (float64(h-r) - 0.5) / float64(h)
 			var cum float64
 			for gi, g := range ascii.Groups {
 				cum += b.work[gi]

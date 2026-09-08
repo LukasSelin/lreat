@@ -220,10 +220,12 @@ var (
 
 // Sites: where an act happens.
 var (
-	Site   = New("site", nil, 0, habit.Signature{})
-	Ground = New("ground", Site, Passable, habit.Signature{})
+	Site = New("site", nil, 0, habit.Signature{})
+	// Being near to hand is what every kind of ground has in common, so it
+	// is said here once rather than on each of them.
+	Ground = at(New("ground", Site, Passable, habit.Signature{}), habit.Signature{habit.Near: 0.5})
 	// Open ground is unclaimed grass: nothing to take, room to build.
-	Open = at(New("open", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
+	Open = New("open", Ground, 0, habit.Signature{})
 	// A wood and a field are Living: what a taking draws on there is not a
 	// seam that is simply there, it is a standing crop, and a stand has an
 	// age. A thicket a planter raised this spring is not an old wood, and a
@@ -235,10 +237,10 @@ var (
 	// The other grounds are not. An outcrop is stone and does not grow; the
 	// water's fish come back, but a shoal is a stock that replenishes, not a
 	// crop that has to come on before it can be cut.
-	Wood    = at(New("wood", Ground, Living, habit.Signature{}), habit.Signature{habit.Near: 0.5})
-	Water   = at(New("water", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
-	Outcrop = at(New("outcrop", Ground, 0, habit.Signature{}), habit.Signature{habit.Near: 0.5})
-	Field   = at(New("field", Ground, Living|Owned, habit.Signature{}), habit.Signature{habit.Near: 0.5})
+	Wood    = New("wood", Ground, Living, habit.Signature{})
+	Water   = New("water", Ground, 0, habit.Signature{})
+	Outcrop = New("outcrop", Ground, 0, habit.Signature{})
+	Field   = New("field", Ground, Living|Owned, habit.Signature{})
 
 	Built = New("built", Site, 0, habit.Signature{})
 	// Lacking a roof is the unsafe, unsheltered moment, and a little more
@@ -259,7 +261,18 @@ var (
 	Granary = New("granary", Built, Roofed|Public|Store, habit.Signature{habit.Unproven: 0.7, habit.Charity: 0.4, habit.Tradition: 0.4})
 	Tavern  = at(New("tavern", Built, Roofed|Public|Hearth|Company,
 		habit.Signature{habit.Unproven: 0.6, habit.Lonely: 0.4, habit.Charity: 0.4, habit.Tradition: 0.3}), habit.Signature{habit.Company: 0.6})
-	Road = New("road", Built, Passable, habit.Signature{})
+	// A road is a public work like the granary and the tavern, and what
+	// wanting one is like is said here for the same reason theirs is: it is
+	// a fact about roads, not about the one schema that happens to raise
+	// them. It belongs to somebody already roofed - the timber is what is
+	// left over once there is a roof, not what is chosen instead of one -
+	// with neighbours around to walk it and enough charity to spend a day
+	// on ground that is nobody's. It says nothing of hunger and nothing of
+	// skill: a newcomer believes itself unskilled at everything, and a
+	// prior that mentions skill taxes exactly the acts a young settlement
+	// needs.
+	Road = New("road", Built, Passable|Public, habit.Signature{
+		habit.Shelter: 0.7, habit.Company: 0.6, habit.Charity: 0.5, habit.Industry: 0.3})
 )
 
 // Time, as the ontology has it, in two halves that are held apart on
@@ -309,10 +322,28 @@ func (c *Class) Short() float64 {
 	return 0
 }
 
-// at sets what being at a site is like.
+// at sets what being at a site is like, as a delta on what being at the kind
+// of site it is is like. See DerivedAt.
 func at(c *Class, s habit.Signature) *Class {
 	c.At = s
 	return c
+}
+
+// DerivedAt is the sum of At deltas from root to c, the way DerivedPrior is
+// for Prior. Being at a site is being at every kind of site it is: what is
+// true of standing on ground is true of standing on a meadow, and saying it
+// on the meadow, the wood, the water, the outcrop and the field separately
+// left it unsaid for anybody standing on ground as such. The one act whose
+// site is ground itself is paving - a road may be laid on any of them - and
+// it was the one act that fell through the gap.
+func (c *Class) DerivedAt() habit.Signature {
+	var s habit.Signature
+	for x := c; x != nil; x = x.Parent {
+		for i := range s {
+			s[i] += x.At[i]
+		}
+	}
+	return s
 }
 
 // Role is how a person stands to the actor, decided at the moment of acting

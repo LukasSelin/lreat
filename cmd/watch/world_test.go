@@ -85,3 +85,67 @@ func TestReportCarriesTheWorld(t *testing.T) {
 		}
 	}
 }
+
+// puts counts in cells, not in bytes. Ranging over a string gives byte
+// offsets, which is the same thing only while the text is ASCII: with a
+// rule or an arrow in the line every glyph after it lands two cells too far
+// right and the tail runs off the width the line was trimmed to. Every
+// header on every page is drawn through puts, so this is all of them.
+func TestPutsWritesOneCellPerRune(t *testing.T) {
+	sc := vitalScreen(t)
+	sc.Clear()
+	text := "─ the world ─ 40 by 12 →"
+	puts(sc, 0, 0, tcell.StyleDefault, text)
+	sc.Show()
+
+	cells, w, _ := sc.GetContents()
+	for i, r := range []rune(text) {
+		if got := cells[i].Runes[0]; got != r {
+			t.Fatalf("cell %d holds %q, want %q — the line is spread over %d cells",
+				i, string(got), string(r), len(text))
+		}
+	}
+	if got := cells[len([]rune(text))].Runes[0]; got != ' ' {
+		t.Fatalf("the line runs past its last rune, into %q", string(got))
+	}
+	_ = w
+}
+
+// row is where a piece of text stands on the screen, counted from the top.
+func row(t *testing.T, sc tcell.SimulationScreen, want string) int {
+	t.Helper()
+	for i, line := range strings.Split(screenText(sc), "\n") {
+		if strings.Contains(line, want) {
+			return i
+		}
+	}
+	t.Fatalf("nothing on the screen says %q:\n%s", want, screenText(sc))
+	return 0
+}
+
+// The world page spends the window it is given. The weave of what people
+// have been doing is the one thing on it with no natural height, so it
+// takes whatever the measures above it have not: a taller terminal buys a
+// finer weave rather than a taller blank.
+func TestWorldPageFillsTheWindow(t *testing.T) {
+	sc := vitalScreen(t)
+	v := &view{screen: sc, world: true}
+	for i := 1; i <= 1000; i++ {
+		s := tick(i, 30, world.Vitals{Births: i / 100})
+		land(&s, 900-i/2, i/50, i/100, 1+float64(i)/1000)
+		s.Activity = []observe.Activity{{Action: "eat", Agents: 20}}
+		v.snap = &s
+		v.record(&s)
+	}
+	for _, h := range []int{30, 46, 60} {
+		sc.SetSize(100, h)
+		v.draw()
+		// The legend under the weave is the last thing before the run's
+		// discoveries and the keys, so where it sits says how much of the
+		// window the page above it took.
+		if at := row(t, sc, "other"); at < h-6 {
+			t.Errorf("on a %d-row terminal the weave ends at row %d, leaving %d rows blank under it",
+				h, at, h-at)
+		}
+	}
+}
