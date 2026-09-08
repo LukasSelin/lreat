@@ -70,7 +70,11 @@ func TestChildrenDoNotBear(t *testing.T) {
 	before := len(w.Agents)
 	for i := 0; i < entity.Maturity; i++ {
 		for _, a := range w.Agents {
+			// Held at the top of every need, and looked after: the
+			// question here is whether the young bear, not whether they
+			// live, and a childhood nobody tends is its own test.
 			a.Needs = need.Levels{1, 1, 1, 1, 1}
+			a.Tended = 1
 		}
 		Population(w)
 	}

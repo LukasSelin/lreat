@@ -101,8 +101,37 @@ type Snapshot struct {
 	ChoiceEntropy float64
 	Deaths        int
 
+	// The demographic record. Vitals says what the deaths were of and what
+	// stood between everyone else and a child; Chronicle is the last of the
+	// births, deaths, and discoveries in the settlement's own words. A
+	// population curve says when a settlement died out. These two are how
+	// it is told why.
+	Vitals    world.Vitals
+	Chronicle []world.Note
+
+	// The shape of the generations under the headcount. Children have not
+	// grown up yet and Bearing are in their fertile years; Elders is above.
+	// A settlement can be at full strength and already finished, if none of
+	// the strength is of bearing age.
+	Children int
+	Bearing  int
+	// Starving is how many are at the bottom of the physiological tier
+	// right now, each of them on a clock that runs out in
+	// system.StarvationTicks. It moves hundreds of ticks ahead of the
+	// deaths it becomes.
+	Starving int
+	// What there is to live on. FoodStock is the market's, MeanFood is what
+	// the average agent is carrying, MeanShelter how much roof it has.
+	FoodStock   float64
+	MeanFood    float64
+	MeanShelter float64
+
 	Houses, Fields, Forest, Roads int
-	Map                           *MapView
+	// Forest0 is how much forest there was before anyone touched it. Beside
+	// Forest it says what the settlement has taken out of the land, which
+	// the count on its own never can.
+	Forest0 int
+	Map     *MapView
 }
 
 // Take builds a Snapshot. It must run on the simulation goroutine.
@@ -123,10 +152,14 @@ func Take(w *world.World) Snapshot {
 		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Field }),
 		Forest:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest }),
 		Roads:      w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road }),
+		Forest0:    w.Forest0,
 
 		OpenRequests: len(w.Requests),
 		Deaths:       w.Deaths,
+		Vitals:       w.Vitals,
+		FoodStock:    w.Market.Stock[entity.Food],
 	}
+	s.Chronicle = append(s.Chronicle, w.Chronicle...)
 	if w.Choices > 0 {
 		s.ChoiceEntropy = w.Entropy / float64(w.Choices)
 	}
@@ -155,9 +188,19 @@ func Take(w *world.World) Snapshot {
 			s.MeanNorms[n] += a.Norms[n]
 		}
 		s.MeanHealth += a.Health
+		s.MeanShelter += a.Shelter
+		s.MeanFood += a.Inventory[entity.Food] + a.Inventory[entity.Meals]
+		if a.Starving > 0 {
+			s.Starving++
+		}
 		age := a.Age(w.Tick)
 		s.MeanAge += age
-		if age >= entity.Prime {
+		switch {
+		case age < entity.Maturity:
+			s.Children++
+		case age < entity.Prime:
+			s.Bearing++
+		default:
 			s.Elders++
 		}
 		mark := Mark{ID: a.ID, Pos: a.Pos}
@@ -196,6 +239,8 @@ func Take(w *world.World) Snapshot {
 		s.MeanNeeds[t] /= float64(len(w.Agents))
 	}
 	s.MeanHealth /= float64(len(w.Agents))
+	s.MeanShelter /= float64(len(w.Agents))
+	s.MeanFood /= float64(len(w.Agents))
 	s.MeanAge = clock.Years(s.MeanAge / len(w.Agents))
 	for n := range s.MeanNorms {
 		s.MeanNorms[n] /= float64(len(w.Agents))

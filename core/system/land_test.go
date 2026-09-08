@@ -3,8 +3,8 @@ package system
 import (
 	"testing"
 
-	"lreat/core/clock"
 	"lreat/core/entity"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -34,7 +34,7 @@ func TestTheWoodsCreepBackAndThenStop(t *testing.T) {
 	}
 	start := woods(w)
 
-	for i := 0; i < 15*clock.Year; i++ {
+	for i := 0; i < 6000; i++ {
 		w.Tick++
 		w.Climate.Advance(w.Tick, w.RNG)
 		Land(w)
@@ -70,7 +70,7 @@ func TestAPlantedStandComesOnBrushFirst(t *testing.T) {
 	if tile.Wood > 0.05 || tile.Wild > 0.05 {
 		t.Fatalf("a planting gives %.2f timber and %.2f wild food in its first year", tile.Wood, tile.Wild)
 	}
-	for i := 0; i < int(world.BrushAge); i++ {
+	for i := 0; i < int(ontology.Brush.Full()); i++ {
 		Land(w)
 	}
 	brush, timber := tile.Wild, tile.Wood

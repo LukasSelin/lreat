@@ -33,11 +33,25 @@ const (
 )
 
 // Event is one thing that happened at a tick.
+//
+// Text is the sentence, and it is what the settlement's own record and
+// anyone watching it read. Nothing reads it to find anything out: what a
+// reader needs to know is in the fields beside it, because a log that has to
+// be parsed back into facts is a log that will be parsed wrong.
 type Event struct {
 	Tick   int
 	Kind   Kind
 	Actor  entity.ID // zero for world-level events
 	Target entity.ID // zero when nobody else was involved
+	// Act is the ontology key of the act this came out of, take/grain@field.
+	// It is empty for everything the world did on its own, which is most of
+	// what happens: a crop coming on is nobody's act.
+	Act string
+	// Where is the ground it happened on. Placed says whether Where means
+	// anything, because tile zero is a real tile and a zero position cannot
+	// stand for nowhere.
+	Where  entity.Pos
+	Placed bool
 	Text   string
 }
 

@@ -31,6 +31,7 @@ var golden = map[string]string{
 	"raise/timber>dwelling@open":        "build shelter",
 	"raise/timber+stone>granary@open":   "build granary",
 	"raise/timber>tavern@open":          "build tavern",
+	"raise/timber+stone>market@open":    "found market",
 	"raise/timber>road@ground":          "lay road",
 	"consume/provision":                 "eat",
 	"dwell/rest":                        "rest",
@@ -212,28 +213,32 @@ func TestWoodsAndFieldsAreLiving(t *testing.T) {
 	}
 }
 
-// Time, as the ontology has it. Two facts about a thing - how long it takes
-// to come on, and which half of the year it is had in - and they have to
-// stay independent, because the whole reason for holding both is that a
-// stand can be slow and seasonless or quick and wholly of its season.
+// Time, as the ontology has it: how long a thing takes to come on, which is
+// a Process, and which half of the year the getting belongs to, which is the
+// thing's own Warmth. The two have to stay independent, because the whole
+// reason for holding both is that a stand can be slow and of the cold half
+// or quick and wholly of the warm one.
 func TestTimeIsTwoFacts(t *testing.T) {
 	// Slow, and of the cold half: years in the growing, felled in winter.
-	if !ontology.Timber.Grown() {
-		t.Error("timber is something the year makes")
+	if ontology.Timbering.Full() < float64(2*ontology.Year) {
+		t.Errorf("timber comes on in %.0f days, want years of it", ontology.Timbering.Full())
 	}
 	if ontology.Timber.Warmth >= 0 {
 		t.Errorf("timber's warmth is %.2f; felling is winter work", ontology.Timber.Warmth)
 	}
-	// Quick and wholly of its season.
-	if ontology.Grain.Ripens() >= ontology.Timber.Ripens() {
+	// Quick, and wholly of its season.
+	if ontology.Crop.Full() >= ontology.Timbering.Full() {
 		t.Error("a crop should come on faster than a wood")
 	}
 	if !(ontology.Grain.Warmth > ontology.Berries.Warmth) {
 		t.Error("a crop keeps the season's hours more closely than the brush does")
 	}
-	// A stock is neither: there or not, with no age to wait out.
-	if ontology.Fish.Grown() || ontology.Stone.Grown() {
-		t.Error("a shoal and a seam are stocks, not crops")
+	// A stock is neither: there or not, with no age to wait out, and no
+	// half of the year it belongs to.
+	for _, c := range []*ontology.Class{ontology.Fish, ontology.Stone} {
+		if len(ontology.Growing(c)) > 0 || c.Warmth != 0 {
+			t.Errorf("%s is a stock; it should neither come on nor keep a season", c.Name)
+		}
 	}
 }
 
@@ -260,17 +265,23 @@ func TestTheSeasonOfAnActFollowsFromItsThing(t *testing.T) {
 
 // Anything the year makes is taken off ground that carries a standing crop,
 // and anything taken off such ground is something the year makes. The two
-// halves of the same statement live in different places - Comes on the
-// thing, Living on the site - and this is what keeps them one statement.
+// halves of the same statement live in different places - the process on one
+// side, the Living trait on the site on the other - and this is what keeps
+// them one statement.
 func TestWhatGrowsIsTakenOffLivingGround(t *testing.T) {
 	for _, in := range ontology.Instantiate() {
 		if in.Schema.Verb != ontology.Take || in.Object == nil || in.Site == nil {
 			continue
 		}
-		living := in.Site.Has(ontology.Living)
-		if in.Object.Grown() != living {
+		// A stand is one stand however many things are had off it: the
+		// brush a forager picks is the brush a trapper hunts over, and the
+		// ontology names one process for it. So the question is whether
+		// anything grows here at all, not whether a process is named for
+		// this particular thing.
+		grows := len(ontology.Growing(in.Site)) > 0
+		if living := in.Site.Has(ontology.Living); grows != living {
 			t.Errorf("%s takes %s (grown %v) off %s (living %v); the two should agree",
-				in.Key, in.Object.Name, in.Object.Grown(), in.Site.Name, living)
+				in.Key, in.Object.Name, grows, in.Site.Name, living)
 		}
 	}
 }

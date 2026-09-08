@@ -43,11 +43,19 @@ const (
 // grow no matter how much food is in the market. They also need a parent in
 // the years between growing up and declining, so a settlement's ability to
 // replace itself depends on how many of its people are that age.
+//
+// It also writes the settlement's vital record on the way past: what each
+// death was of, and — for everyone who had no child — the first thing that
+// stood in the way. Neither is anything the simulation reads; both are what
+// makes a population curve afterwards say why it went the way it did.
 func Population(w *world.World) {
+	w.Vitals.Born, w.Vitals.Died, w.Vitals.Gates = 0, 0, [world.GateCount]int{}
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
 		if a.Starving > Starvation {
 			w.Deaths++
+			w.Vitals.Starved++
+			w.Vitals.Died++
 			w.Emit(event.Died, a.ID, 0, "%s starved", a.Name)
 			continue
 		}
@@ -57,6 +65,8 @@ func Population(w *world.World) {
 		age := a.Age(w.Tick)
 		if w.RNG.Float64() < entity.Frailty(age)*(1.5-need.Clamp(a.Health)) {
 			w.Deaths++
+			w.Vitals.Failed++
+			w.Vitals.Died++
 			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, clock.Years(age))
 			continue
 		}
@@ -73,17 +83,39 @@ func Population(w *world.World) {
 	for i := 0; i < n; i++ {
 		a := w.Agents[i]
 		if len(w.Agents) >= MaxPopulation {
+			w.Vitals.Gates[world.Crowded] += n - i
 			break
 		}
-		if !entity.Fertile(a.Age(w.Tick)) {
+		// Every agent is counted under the first thing standing between it
+		// and a child, in the order the conditions are checked, so that the
+		// gates add up to the population and can be read as a funnel.
+		age := a.Age(w.Tick)
+		if !entity.Fertile(age) {
+			if age < entity.Maturity {
+				w.Vitals.Gates[world.Young]++
+			} else {
+				w.Vitals.Gates[world.Spent]++
+			}
 			continue
 		}
-		if a.Needs[need.Physiological] < 0.7 || a.Needs[need.Safety] < 0.6 || a.Needs[need.Belonging] < 0.6 {
+		switch {
+		case a.Needs[need.Physiological] < 0.7:
+			w.Vitals.Gates[world.Hungry]++
+			continue
+		case a.Needs[need.Safety] < 0.6:
+			w.Vitals.Gates[world.Unsafe]++
+			continue
+		case a.Needs[need.Belonging] < 0.6:
+			w.Vitals.Gates[world.Alone]++
 			continue
 		}
+		// Nothing was in the way; from here it is only the draw.
+		w.Vitals.Gates[world.Ready]++
 		if w.RNG.Float64() >= BirthChance {
 			continue
 		}
+		w.Vitals.Births++
+		w.Vitals.Born++
 		child := w.SpawnAt(fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
 		child.Born = w.Tick
 		child.Parent = a.ID

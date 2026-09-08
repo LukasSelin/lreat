@@ -101,6 +101,8 @@ func neglected(w *world.World, a *entity.Agent, age int) bool {
 		return false
 	}
 	w.Deaths++
+	w.Vitals.Lost++
+	w.Vitals.Died++
 	w.Emit(event.Died, a.ID, a.Parent, "%s was lost at %d, untended", a.Name, clock.Years(age))
 	return true
 }

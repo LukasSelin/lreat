@@ -18,9 +18,12 @@ import (
 // The place is temperate. Midsummer is warm and midwinter bites without
 // being fatal on its own; what kills is a winter met without a roof.
 
-// The year and its quarters come from the calendar; see package clock. They
-// are named here as well because everything the weather does is said against
-// them.
+// Year is the length of a year, and Season a quarter of it. A life is some
+// fifty of these, so a run long enough to develop sees dozens of winters.
+//
+// The calendar itself is package clock's, where a tick is a day. The
+// ontology names it too, because what grows is measured in it; these are
+// that same calendar under the names the weather already calls it by.
 const (
 	Year   = clock.Year
 	Season = clock.Season

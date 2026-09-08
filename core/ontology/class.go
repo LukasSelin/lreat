@@ -16,7 +16,6 @@ package ontology
 import (
 	"strings"
 
-	"lreat/core/clock"
 	"lreat/core/habit"
 )
 
@@ -88,12 +87,10 @@ type Class struct {
 	// and on the stock coordinate when an act would spend it. Inherited.
 	Lack float64
 
-	// Time, in the two ways a thing can have any. Comes is how long a stand
-	// of this takes to grow before it is all there, in days of growing
-	// weather, and Warmth is which half of the year getting it belongs to:
-	// positive for the green half, negative for the cold one, zero for a
-	// thing had in any weather. See grows.
-	Comes  int
+	// Warmth is which half of the year getting this belongs to: positive
+	// for the green half, negative for the cold one, zero for a thing had
+	// in any weather. See season. How long a thing takes to come on is the
+	// other half of its time and is a Process; see process.go.
 	Warmth float64
 
 	children []*Class
@@ -191,21 +188,21 @@ var (
 	// as one: a couple of years from a clearing being made. Picking it
 	// keeps the season's hours and hunting over it does not, which is the
 	// two facts pulling apart on the same stand.
-	Berries = grows(New("berries", Provision, Perishable, habit.Signature{}), 2*clock.Year, 0.3)
-	Game    = grows(New("game", Provision, Perishable, habit.Signature{}), 2*clock.Year, 0)
+	Berries = season(New("berries", Provision, Perishable, habit.Signature{}), 0.3)
+	Game    = New("game", Provision, Perishable, habit.Signature{})
 	// A shoal is a stock and not a crop: it comes back without having to
 	// come on, so there is no age on it to wait out.
 	Fish = New("fish", Provision, Perishable, habit.Signature{})
 	// The fastest thing the year makes, and the most of its season: sown,
 	// in ear within the month, and cut before it is anything else.
-	Grain = grows(New("grain", Provision, 0, habit.Signature{}), clock.Month, 0.5)
+	Grain = season(New("grain", Provision, 0, habit.Signature{}), 0.5)
 	Meal  = New("meal", Provision, Perishable, habit.Signature{})
 
 	// The slowest thing the year makes, and the one thing here had in the
 	// cold half rather than the green one: a stand a planter raised is
 	// years off being beams, and the felling of it is winter work whoever
 	// does it.
-	Timber = grows(lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6), 6*clock.Year, -0.3)
+	Timber = season(lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6), -0.3)
 	Stone  = lack(New("stone", Material, Buildable|Heavy, habit.Signature{}), 0.5)
 	Tool   = lack(New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5}), 0.5)
 	// Coin is a thing so that money can be made, given, and stolen like
@@ -252,60 +249,49 @@ var (
 	// those with something to win and a settlement they mean to stay in.
 	Dwelling = at(New("dwelling", Built, Roofed|Owned|Bench|Hearth|Forge|Desk,
 		habit.Signature{habit.Unsafe: 1, habit.Shelter: -1, habit.Exposure: 0.3}), habit.Signature{habit.Near: 0.4})
-	Market  = at(New("market", Built, Public|Bench|Desk|Trade, habit.Signature{}), habit.Signature{habit.Near: 0.4})
+	// Lacking a square is wanting somewhere to bring what one has made.
+	// It is not a want of the body: it belongs to a person with more on
+	// hand than they need, standing to win, and neighbours far enough off
+	// that the walk to the old square is a day's work.
+	Market = at(New("market", Built, Public|Bench|Desk|Trade,
+		habit.Signature{habit.Unproven: 0.6, habit.Stock: 0.6, habit.Company: 0.4, habit.Charity: 0.3, habit.Tradition: 0.3}),
+		habit.Signature{habit.Near: 0.4})
 	Granary = New("granary", Built, Roofed|Public|Store, habit.Signature{habit.Unproven: 0.7, habit.Charity: 0.4, habit.Tradition: 0.4})
 	Tavern  = at(New("tavern", Built, Roofed|Public|Hearth|Company,
 		habit.Signature{habit.Unproven: 0.6, habit.Lonely: 0.4, habit.Charity: 0.4, habit.Tradition: 0.3}), habit.Signature{habit.Company: 0.6})
 	Road = New("road", Built, Passable, habit.Signature{})
 )
 
-// Time, as the ontology has it.
+// Time, as the ontology has it, in two halves that are held apart on
+// purpose.
 //
-// The year turns in core/world and the calendar is in core/clock, and
-// neither of them is a statement about what things are. This is: some things
-// the year makes and some things are simply there, and everything the season
-// does to what can be done follows from which. Before it, the whole of the
-// ontology's account of time was a chill coordinate written by hand onto two
-// classes, with no concept behind it saying why berries carried one and
-// stone did not, and how long a stand took to come on lived out in the map,
-// which is the one place it is not a fact about the thing.
+// How long a thing takes to come on is a Process: stages, on a clock, over
+// the thing they happen to. See process.go, which states them, and note that
+// nothing about that is a fact about the *getting* - a wood takes six years
+// whether anybody fells it or not.
 //
-// Two facts, and they are independent, which is the point of having both.
-// Comes is how long the growing takes: timber is years and a crop is a
-// month, and a thing with no Comes - stone, a shoal of fish - is a stock
-// that is there or is not, rather than a crop that has to come on. Warmth is
-// which half of the year the getting belongs to, and it is signed, because
-// the year has two halves and things are had in both: berries and grain are
+// Which half of the year the getting belongs to is Warmth, and it is here,
+// on the thing, because it is a fact about the thing. It is signed, because
+// the year has two halves and things are had in both: grain and berries are
 // of the green half, and felling is winter work whoever does it, the sap
-// being down and there being least else to do. A thing can therefore be slow
-// and of the cold half, or quick and wholly of the warm one, and the two say
-// different things about it.
+// being down and there being least else to do. The two are independent,
+// which is the point of holding both - timber is slow and of the cold half,
+// a crop is quick and wholly of the warm one, and neither can be read off
+// the other.
 //
-// What reads them: the composed prior takes Warmth as the chill coordinate,
-// so an act's season follows from what it is about rather than from a number
-// somebody wrote on it; and world.Tile.Grown takes Comes, so the map asks
-// the ontology how long a wood is in coming instead of keeping its own
-// table of ages.
-func grows(c *Class, comes int, warmth float64) *Class {
-	c.Comes, c.Warmth = comes, warmth
+// Before this the whole of the ontology's account of the second was a chill
+// coordinate written by hand onto two classes, with nothing saying why
+// berries carried one and stone did not, a third hidden in the take detail
+// for timber, and a fourth in the residue of clearing a field.
+//
+// What reads it: the composed prior takes Warmth as the chill coordinate, so
+// an act's season follows from what it is about rather than from a number
+// somebody wrote on it.
+func season(c *Class, warmth float64) *Class {
+	c.Warmth = warmth
 	c.Prior[habit.Chill] = -warmth
 	return c
 }
-
-// Ripens is how long a stand of c takes to come on, walking up the tree as
-// Short does. Zero means the year does not make this: it is a stock, and
-// what there is of it is what there is.
-func (c *Class) Ripens() int {
-	for x := c; x != nil; x = x.Parent {
-		if x.Comes != 0 {
-			return x.Comes
-		}
-	}
-	return 0
-}
-
-// Grown reports whether c is something the year makes.
-func (c *Class) Grown() bool { return c.Ripens() != 0 }
 
 // lack sets how strongly being short of a material registers.
 func lack(c *Class, l float64) *Class {

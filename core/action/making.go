@@ -53,6 +53,18 @@ const (
 	farmWearTool = 0.02
 )
 
+// GranaryKeeping is what the settlement's standing granaries leave of the
+// market's spoilage. It is read off the granaries that are there, not off
+// the ones that were built: each one is a further share kept, and a store
+// that has fallen in stops keeping the moment it does.
+func GranaryKeeping(w *world.World) float64 {
+	k := 1.0
+	for i := w.Granaries(); i > 0; i-- {
+		k *= granaryKeeping
+	}
+	return k
+}
+
 func isRock(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Rock }
 
 // rockNear reports whether there is stone to cut within reach of p.

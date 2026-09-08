@@ -23,6 +23,26 @@ streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
 and everything it weighed before setting out. `esc` drops it, `q` quits.
 
+`d` swaps the map for the settlement's vital record, which is how a run that
+ended is read rather than guessed at: the population curve coloured by how well
+fed it was at the time, a ribbon under it saying which way each stretch of the
+run was going, what people died of, how the generations are shaped, what there
+is to live on — and the fertility funnel, which is every living figure counted
+under the first thing standing between it and a child. A settlement that starved
+and one that simply stopped bearing look identical on the map and nothing alike
+there.
+
+`w` is the same for the ground rather than the people: the wood taken out of
+the map against what was there to begin with, the fields and houses and roads
+that went up, what food cost and how much of it was kept, what the settlement
+knew, how equally it held what it had — each drawn over the whole run, so that
+every figure is read against its own past — and under them the whole run's
+weave of what it has been spending its people on, with everything it ever
+worked out and the tick it got there.
+
+Both pages are also printed in plain words when the run ends, so a settlement
+that is over can still be reported on rather than only restarted.
+
 Run a settlement with no display and print how it went:
 
 ```bash
@@ -35,6 +55,14 @@ judged against another — a single seed is a coin toss:
 ```bash
 go run ./cmd/tune -seeds 24 -ticks 21600
 ```
+
+What that batch prints on master is checked in at
+[docs/baseline.md](docs/baseline.md), so a change is judged against a file
+rather than against a batch run to find out where master already stood. Take the
+one run that measures the change once it is settled, and refresh the file in the
+commit that lands it. The `baseline` skill in
+[.claude/skills](.claude/skills/baseline/SKILL.md) is that procedure written
+out, including which of the numbers are steady enough to believe.
 
 All three take `-seed` and `-agents`, and count in ticks, which are days: the
 defaults above are fifty and sixty years. A seed plus a command log reproduces a
@@ -99,7 +127,7 @@ carry on their own now.
 | `core/need` | the leaky hierarchy of needs that drives every agent |
 | `core/habit` | the space in which a moment is recognised; a leaf package |
 | `core/action` | the catalog of what can be done, and the priors behind it |
-| `core/ontology` | what the world is made of, arranged so that what can be done follows from what it is |
+| `core/ontology` | what the world is made of, arranged so that what can be done follows from what it is — and what happens to it with nobody doing anything |
 | `core/belief` | what agents think is true and what they think is right — neither guaranteed to match the world |
 | `core/event` | the append-only record of everything that happened |
 | `core/observe` | the read side: snapshots for renderers, and the perception filter |

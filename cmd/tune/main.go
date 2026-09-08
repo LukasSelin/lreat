@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 
 	"lreat/core/action"
@@ -90,10 +89,8 @@ func main() {
 					}
 				}
 				for _, e := range w.Log.Since(last) {
-					if e.Kind == event.Acted {
-						if k := strings.Index(e.Text, " finished "); k >= 0 {
-							acts[e.Text[k+len(" finished "):]]++
-						}
+					if e.Kind == event.Acted && e.Act != "" {
+						acts[e.Act]++
 					}
 				}
 				last = w.Tick + 1
@@ -168,7 +165,7 @@ func main() {
 		sort.Slice(names, func(i, j int) bool { return tally[names[i]] > tally[names[j]] })
 		fmt.Println()
 		for _, n := range names {
-			fmt.Printf("%-16s %6d %5.1f%%\n", n, tally[n], 100*float64(tally[n])/float64(total))
+			fmt.Printf("%-34s %7d %5.1f%%\n", n, tally[n], 100*float64(tally[n])/float64(total))
 		}
 		fmt.Printf("\nborn %.2f inherit %.2f temp %.2f\n", *born, *inherit, *temp)
 	}

@@ -86,7 +86,7 @@ func TestTheTreesSayWhoHoldsWhat(t *testing.T) {
 		{ontology.Market, ontology.Tool, true},
 		{ontology.Market, ontology.Practice, false},
 	} {
-		if got := ontology.Held(c.holder, c.material); got != c.want {
+		if got := ontology.Offers(c.holder, c.material); got != c.want {
 			t.Errorf("%s holds %s: %v, want %v", c.holder.Name, c.material.Name, got, c.want)
 		}
 	}
