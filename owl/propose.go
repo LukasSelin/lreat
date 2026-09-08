@@ -1,0 +1,749 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+
+	"gowl/owl"
+
+	"lreat/core/habit"
+	"lreat/core/ontology"
+)
+
+// The document runs the other way here. Rendering core/ontology as OWL is a
+// reading of what is already decided; this is for deciding, which is a
+// different job and wants a different guard.
+//
+// The guard is the vocabulary. A proposal is read against the closed set of
+// terms the current document defines, so :requiresTech cannot be misspelt into
+// existence and a class cannot be invented by referring to it. What a proposal
+// may do is declare - one Declaration and the term is yours, and everything
+// after it has to stay inside the vocabulary as extended. That is the whole
+// rule, and it is the difference between growing an ontology and drifting
+// away from one.
+//
+// What comes back is not a patch. Go stays the source, because the prose in
+// core/ontology carries the reasoning and no generator is going to write "the
+// slowest thing the year makes". What comes back is the declaration to paste
+// and, more usefully, what the trees would then entail: the catalog is
+// instantiated before and after, so a proposal is answered with the acts it
+// wins and the acts it costs.
+//
+// The costly ones are the point. Hanging a child off a class that had none
+// turns a leaf into a branch, and Instantiate walks leaves - so every act
+// keyed on that leaf is re-keyed under its children, which orphans the habit
+// slots kept under the old keys. That is invisible in the axioms and obvious
+// in the catalog, which is the whole reason for instantiating rather than
+// reasoning about it.
+
+// propose reads a proposal and reports what accepting it would mean.
+func propose(path string, current *owl.Ontology, w io.Writer) error {
+	axioms, removed, err := readProposal(path, current)
+	if err != nil {
+		return err
+	}
+	if len(axioms) == 0 && len(removed) == 0 {
+		fmt.Fprintln(w, "nothing proposed")
+		return nil
+	}
+
+	vocab := owl.NewVocabulary(current)
+	fresh := declaredIn(axioms)
+	if err := checkTerms(axioms, vocab, fresh, current, w); err != nil {
+		return err
+	}
+
+	rendered = current.Render
+	concepts := gather(axioms, fresh)
+	drops := gatherRemovals(removed)
+	before := keysOf(ontology.Instantiate())
+	var applied int
+
+	// Every removal is surveyed before any is applied, because applying one
+	// stops the trees saying what the next is about to be asked. Dropping a
+	// class and the Affords row that named it is one edit, and done in the
+	// other order the class reports no row at all.
+	for _, d := range drops {
+		d.survey()
+	}
+
+	// Removals go first, and not only in the report. Dropping a row from
+	// Affords and adding a class that wants one are the same proposal, and
+	// applying them the other way round would leave the new class briefly
+	// afforded by a row on its way out.
+	for _, d := range drops {
+		if d.applyRemoval() {
+			applied++
+		}
+	}
+
+	// Everything is applied to the trees before anything is reported, because
+	// a concept is answered by what the trees then entail and the trees are
+	// not whole until the last one is in: a material proposed in one axiom and
+	// afforded in the next is one concept written in two places. Affords is a
+	// second pass for the same reason, since a row may name a class an earlier
+	// concept has only just created.
+	for _, c := range concepts {
+		if c.apply() {
+			applied++
+		}
+	}
+	for _, c := range concepts {
+		c.applyAffords()
+	}
+
+	// A move arrives as two axioms, one out and one in, and is one decision.
+	// The removal side alone reads as a class left hanging; paired with the
+	// addition it is a reparenting, and saying both would be saying it twice
+	// and contradicting itself once.
+	moving := map[*ontology.Class]bool{}
+	for _, c := range concepts {
+		if c.moveTo != nil {
+			moving[c.existing] = true
+		}
+	}
+	kept := drops[:0]
+	for _, d := range drops {
+		if d.unparented && moving[d.self] {
+			continue
+		}
+		kept = append(kept, d)
+	}
+	drops = kept
+
+	fmt.Fprintf(w, "%d axiom(s) in, %d out: %d concept(s), %d removal(s)\n",
+		len(axioms), len(removed), len(concepts), len(drops))
+	for _, d := range drops {
+		fmt.Fprintln(w)
+		d.report(w)
+	}
+	for _, c := range concepts {
+		fmt.Fprintln(w)
+		c.report(w)
+	}
+	uncounted := detached(drops) || len(moving) > 0
+	if applied == 0 && !uncounted {
+		return nil
+	}
+
+	fmt.Fprintln(w)
+	reportCatalog(before, keysOf(ontology.Instantiate()), w)
+	if uncounted {
+		fmt.Fprintln(w, "\n  The catalog above counts neither the class removals nor the moves. A")
+		fmt.Fprintln(w, "  class cannot be taken off its parent from out here, which is why both")
+		fmt.Fprintln(w, "  are answered with what they would carry instead.")
+	}
+	return nil
+}
+
+// detached reports whether any removal is one that could not be applied.
+func detached(drops []*dropping) bool {
+	for _, d := range drops {
+		if d.class != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// readProposal accepts either a whole document, which is diffed against the
+// current one, or a file of one axiom per line, which is read as additions.
+// The second is what a person writes by hand; the first is what comes back
+// from editing the generated document in a tool.
+func readProposal(path string, current *owl.Ontology) (added, removed []owl.Axiom, err error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	src := string(data)
+	if isDocument(src) {
+		authored, err := owl.ParseFunctionalString(src)
+		if err != nil {
+			return nil, nil, err
+		}
+		d := owl.DiffOntologies(current, authored)
+		return d.AddedAxioms, d.RemovedAxioms, nil
+	}
+
+	var out []owl.Axiom
+	s := bufio.NewScanner(strings.NewReader(src))
+	for line := 1; s.Scan(); line++ {
+		text := strings.TrimSpace(s.Text())
+		if text == "" || strings.HasPrefix(text, "#") {
+			continue
+		}
+		ax, err := owl.ParseAxiom(text, current.Prefixes)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s:%d: %w", path, line, err)
+		}
+		out = append(out, ax)
+	}
+	// A line-oriented proposal has no way to say what it takes away, and
+	// should not: a removal is a thing to be looked at against the whole
+	// document, which is what the document form is for.
+	return out, nil, s.Err()
+}
+
+func isDocument(src string) bool {
+	for _, line := range strings.Split(src, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		return strings.HasPrefix(line, "Prefix(") || strings.HasPrefix(line, "Ontology(")
+	}
+	return false
+}
+
+// declaredIn is the set of terms the proposal introduces. Declaring is the one
+// way past the vocabulary, and it has to be deliberate: a term used without
+// being declared is a misspelling far more often than it is an intention.
+func declaredIn(axioms []owl.Axiom) map[owl.IRI]owl.Entity {
+	out := map[owl.IRI]owl.Entity{}
+	for _, ax := range axioms {
+		if d, ok := owl.Unwrap(ax).(owl.Declaration); ok {
+			out[d.Entity.IRI()] = d.Entity
+		}
+	}
+	return out
+}
+
+func checkTerms(axioms []owl.Axiom, v *owl.Vocabulary, fresh map[owl.IRI]owl.Entity, o *owl.Ontology, w io.Writer) error {
+	var bad int
+	for _, ax := range axioms {
+		for _, e := range v.Unknown(ax) {
+			if _, ok := fresh[e.IRI()]; ok || owl.IsBuiltin(e) {
+				continue
+			}
+			bad++
+			name := shortOf(e.IRI())
+			fmt.Fprintf(w, "unknown %s %s\n", strings.ToLower(e.Kind().String()), name)
+			fmt.Fprintf(w, "  in %s\n", o.Render(ax))
+			if near := nearby(v, e); len(near) > 0 {
+				fmt.Fprintf(w, "  did you mean %s?\n", strings.Join(near, ", "))
+			}
+			fmt.Fprintln(w, "  or declare it, if it is meant to be new:")
+			fmt.Fprintf(w, "      Declaration(%s(%s))\n", e.Kind(), name)
+		}
+	}
+	if bad > 0 {
+		return fmt.Errorf("%d unknown term(s); nothing applied", bad)
+	}
+	return nil
+}
+
+// nearby offers terms of the same kind that a name is plausibly a slip for.
+// gowl's own Resolve suggests only across case and punctuation, deliberately,
+// so this covers the rest of the near misses: one name sitting inside the
+// other, or the two opening alike.
+func nearby(v *owl.Vocabulary, e owl.Entity) []string {
+	want := fold(shortOf(e.IRI()))
+	var out []string
+	for _, t := range v.TermsOfKind(e.Kind()) {
+		got := fold(t.Name)
+		switch {
+		case strings.Contains(got, want), strings.Contains(want, got):
+		case len(want) >= 4 && len(got) >= 4 && got[:4] == want[:4]:
+		default:
+			continue
+		}
+		if out = append(out, t.Name); len(out) == 3 {
+			break
+		}
+	}
+	return out
+}
+
+func fold(s string) string {
+	return strings.ToLower(strings.TrimPrefix(strings.TrimSpace(s), ":"))
+}
+
+func shortOf(i owl.IRI) string {
+	if n := strings.LastIndexAny(string(i), "#/"); n >= 0 {
+		return ":" + string(i)[n+1:]
+	}
+	return string(i)
+}
+
+// concept is one proposed thing, gathered from every axiom about it. A
+// proposal names a concept in as many axioms as it likes and they are answered
+// together, because one class is one decision however it is written down.
+type concept struct {
+	name    string // local name, without the colon
+	entity  owl.Entity
+	parent  owl.Class
+	traits  []owl.Class
+	data    map[string]float64
+	affords []owl.Class // what this holder offers
+	other   []owl.Axiom // axioms about it this does not read
+
+	// what apply worked out.
+	added         *ontology.Class
+	parentClass   *ontology.Class
+	existing      *ontology.Class // named a class the trees already have
+	moveTo        *ontology.Class // and given a different parent
+	wasLeaf       bool
+	orphansParent bool // the parent it leaves has no other child
+	acts          []string
+	newTraits     ontology.Trait // the ones existing did not already have
+	newAffords    []*ontology.Class
+}
+
+func gather(axioms []owl.Axiom, fresh map[owl.IRI]owl.Entity) []*concept {
+	byIRI := map[owl.IRI]*concept{}
+	var order []*concept
+	get := func(i owl.IRI, e owl.Entity) *concept {
+		if c, ok := byIRI[i]; ok {
+			return c
+		}
+		c := &concept{name: strings.TrimPrefix(shortOf(i), ":"), entity: e, data: map[string]float64{}}
+		byIRI[i] = c
+		order = append(order, c)
+		return c
+	}
+	for i, e := range fresh {
+		get(i, e)
+	}
+
+	for _, ax := range axioms {
+		sc, ok := owl.Unwrap(ax).(owl.SubClassOf)
+		if !ok {
+			continue
+		}
+		sub, ok := sc.Sub.(owl.Class)
+		if !ok {
+			continue
+		}
+		// An axiom about an existing class is a change to that class, and is
+		// gathered under it the same way.
+		c := get(sub.IRI(), sub)
+		switch super := sc.Super.(type) {
+		case owl.Class:
+			if isTrait(super) {
+				c.traits = append(c.traits, super)
+			} else {
+				c.parent = super
+			}
+		case owl.ObjectSomeValuesFrom:
+			p, _ := super.Property.(owl.ObjectProperty)
+			f, _ := super.Filler.(owl.Class)
+			if shortOf(p.IRI()) == ":affords" {
+				c.affords = append(c.affords, f)
+			} else {
+				c.other = append(c.other, ax)
+			}
+		case owl.DataHasValue:
+			p, _ := super.Property.(owl.DataProperty)
+			v, err := strconv.ParseFloat(super.Value.Value, 64)
+			if err != nil {
+				c.other = append(c.other, ax)
+				continue
+			}
+			c.data[strings.TrimPrefix(shortOf(p.IRI()), ":")] = v
+		default:
+			c.other = append(c.other, ax)
+		}
+	}
+	sort.Slice(order, func(i, j int) bool { return order[i].name < order[j].name })
+	return order
+}
+
+// apply puts the concept into the live trees, so the catalog can be
+// instantiated as it would be if the proposal were accepted. The process is
+// about to exit and nothing else reads the trees after this.
+func (c *concept) apply() bool {
+	self, parent := lreatClass(owl.Class(c.entity.IRI())), lreatClass(c.parent)
+
+	// A class the trees already have, given a different parent, is a move
+	// rather than a new class. Reading it as new was making a second class of
+	// the same name and leaving the first where it was, which is a tree the
+	// catalog was then instantiated over.
+	if self != nil && parent != nil && parent != self.Parent {
+		c.existing, c.moveTo = self, parent
+		c.wasLeaf = len(parent.Children()) == 0
+		c.orphansParent = len(self.Parent.Children()) == 1
+		c.acts = actsNaming(self)
+		return false
+	}
+	if self == nil && parent != nil {
+		c.parentClass = parent
+		c.wasLeaf = len(parent.Children()) == 0
+		added := ontology.New(strings.ToLower(c.name), parent, c.traitMask(), c.prior("prior-"))
+		if l, ok := c.data["lack"]; ok {
+			added.Lack = l
+		}
+		if wm, ok := c.data["warmth"]; ok {
+			added.Warmth = wm
+			added.Prior[habit.Chill] = -wm
+		}
+		if at := c.prior("at-"); at != (habit.Signature{}) {
+			added.At = at
+		}
+		c.added = added
+		// A class the proposal declares has to be findable by the concepts
+		// after it: that is how one axiom adds a material and the next says
+		// what affords it.
+		classByName[classIRI(added)] = added
+		return true
+	}
+	// Not a new class, then, but perhaps a change to one the trees have: a
+	// trait it should have had, a row in Affords, a number retuned.
+	if self != nil {
+		c.existing = self
+		c.newTraits = c.traitMask() &^ self.All()
+		self.Traits |= c.newTraits
+		return c.newTraits != 0 || len(c.affords) > 0
+	}
+	return false
+}
+
+func (c *concept) applyAffords() {
+	holder := c.existing
+	if holder == nil {
+		holder = c.added
+	}
+	if holder == nil {
+		return
+	}
+	for _, a := range c.affords {
+		m := lreatClass(a)
+		if m == nil || ontology.Offers(holder, m) {
+			continue
+		}
+		c.newAffords = append(c.newAffords, m)
+		ontology.Affords[holder] = append(ontology.Affords[holder], m)
+	}
+}
+
+// report says what one concept costs.
+func (c *concept) report(w io.Writer) {
+	switch {
+	case c.added != nil:
+		c.reportClass(w)
+	case c.moveTo != nil:
+		c.reportMove(w)
+	case c.existing != nil:
+		c.reportExisting(w)
+	default:
+		fmt.Fprintf(w, ":%s\n", c.name)
+		fmt.Fprintln(w, "  Not a class under either tree, so there is no declaration to paste.")
+		fmt.Fprintf(w, "  %s\n", whereItWouldGo(c))
+	}
+}
+
+func (c *concept) reportClass(w io.Writer) {
+	parent, added := c.parentClass, c.added
+	root := "Things"
+	if parent.IsA(ontology.Site) {
+		root = "Sites"
+	}
+
+	fmt.Fprintf(w, ":%s  (class, under :%s)\n", c.name, title(parent.Name))
+	fmt.Fprintf(w, "  core/ontology/class.go, in the %s block:\n\n", root)
+	fmt.Fprintf(w, "      %s\n", c.goDecl(parent))
+
+	// A class nothing can reach is the commonest thing a proposal gets
+	// wrong, and it is the same mistake on both sides of the world: a
+	// material nowhere to be got, a site nothing puts on the map. Neither
+	// shows up in the catalog, because the catalog is what the trees entail
+	// and an unreachable class entails nothing.
+	if added.IsA(ontology.Material) && !gettable(added) && !madeBy(added) {
+		fmt.Fprintf(w, "\n  Nothing affords it and no schema makes it, so nothing can put one in\n")
+		fmt.Fprintf(w, "  anybody's hands. Either a row in Affords - Take instantiates one act\n")
+		fmt.Fprintf(w, "  per (material, ground) pair there and none otherwise:\n")
+		fmt.Fprintf(w, "      SubClassOf(:Wood ObjectSomeValuesFrom(:affords :%s))\n", c.name)
+		fmt.Fprintf(w, "  or a Make or Raise schema in core/ontology/verb.go with it as Output.\n")
+	}
+	if added.IsA(ontology.Site) {
+		c.reportSite(w, added)
+	}
+	if c.wasLeaf {
+		fmt.Fprintf(w, "\n  ! %s had no children of its own. Adding one makes it a branch, and\n", parent.Name)
+		fmt.Fprintf(w, "    Instantiate walks leaves, so every act keyed on %s is re-keyed\n", parent.Name)
+		fmt.Fprintf(w, "    under its children. See the catalog below.\n")
+	}
+	for _, ax := range c.other {
+		fmt.Fprintf(w, "\n  not read: %s\n", rendered(ax))
+	}
+}
+
+// reportSite says how a proposed site would be reached, which is two separate
+// questions the catalog answers neither of on its own. A built site has to be
+// raised by somebody or it is never on the map at all; and a site nothing
+// names is a site nothing happens at, however well described.
+func (c *concept) reportSite(w io.Writer, added *ontology.Class) {
+	if added.IsA(ontology.Built) && !madeBy(added) {
+		fmt.Fprintf(w, "\n  Nothing raises it. A built site is somebody's work before it is a\n")
+		fmt.Fprintf(w, "  place, and Raise instantiates from schemas whose Output names one, so\n")
+		fmt.Fprintf(w, "  as proposed nothing can ever put a %s on the map. Add a schema to\n", added.Name)
+		fmt.Fprintf(w, "  core/ontology/verb.go:\n")
+		fmt.Fprintf(w, "      {Verb: Raise, Inputs: []*Class{Timber}, Output: %s, Site: Open, ...}\n", title(added.Name))
+	}
+	if len(actsNaming(added)) == 0 {
+		fmt.Fprintf(w, "\n  No act happens here. Nothing in the catalog is sited at it, so it is\n")
+		fmt.Fprintf(w, "  somewhere to be rather than somewhere to do anything.\n")
+	}
+	// The workplaces are the exception, and it is worth saying which way
+	// round it works: a schema placed by a trait is one act for the trait,
+	// not one act per site that has it.
+	if work := added.Traits & workplaceTraits; work != 0 {
+		fmt.Fprintf(w, "\n  It lends %s. That reaches the acts placed by those traits without\n", work)
+		fmt.Fprintf(w, "  adding any: such a schema instantiates once, keyed on the trait, and\n")
+		fmt.Fprintf(w, "  any site carrying it will do at the moment of acting.\n")
+	}
+}
+
+// workplaceTraits are the traits that lend an act its tools rather than
+// describing the ground. See the groups in traits().
+const workplaceTraits = ontology.Bench | ontology.Hearth | ontology.Forge |
+	ontology.Desk | ontology.Company | ontology.Trade | ontology.Store
+
+// madeBy reports whether any schema has c as its Output, which is the only
+// way anything comes into the world that is not taken off the ground.
+func madeBy(c *ontology.Class) bool {
+	for i := range ontology.Schemas {
+		if ontology.Schemas[i].Output == c {
+			return true
+		}
+	}
+	return false
+}
+
+// reportMove answers a class given a different parent. Like a deletion it
+// cannot be applied - the same unexported slice holds it where it is - so it
+// is answered with what the move would carry it out of and into. That is the
+// interesting half anyway: a class inherits its traits, its lack and its prior
+// from above it, so moving one changes what it is before it changes where it
+// sits.
+func (c *concept) reportMove(w io.Writer) {
+	self, to := c.existing, c.moveTo
+	from := self.Parent
+
+	fmt.Fprintf(w, ":%s  would move from :%s to :%s\n", title(self.Name), title(from.Name), title(to.Name))
+	fmt.Fprintf(w, "  core/ontology/class.go: change the parent in %s's declaration.\n", self.Name)
+
+	fmt.Fprintf(w, "\n  it stops inheriting: %s\n", inheritedFrom(from))
+	fmt.Fprintf(w, "  it starts inheriting: %s\n", inheritedFrom(to))
+
+	if c.wasLeaf {
+		fmt.Fprintf(w, "\n  ! %s had no children of its own, so it becomes a branch and the acts\n", to.Name)
+		fmt.Fprintf(w, "    keyed on %s re-key under %s.\n", to.Name, self.Name)
+	}
+	if c.orphansParent {
+		fmt.Fprintf(w, "\n  ! %s has no other child, so it becomes a leaf and gains the acts it\n", from.Name)
+		fmt.Fprintf(w, "    had been lending to %s.\n", self.Name)
+	}
+	if len(c.acts) > 0 {
+		fmt.Fprintf(w, "\n  %d act(s) in the catalog are keyed on it:\n", len(c.acts))
+		for _, k := range c.acts {
+			fmt.Fprintf(w, "      %s\n", k)
+		}
+	}
+}
+
+// reportExisting answers a proposal about a class the trees already have. The
+// common case is that it says nothing new, and saying so plainly is worth more
+// than an edit nobody needs to make.
+func (c *concept) reportExisting(w io.Writer) {
+	e := c.existing
+	fmt.Fprintf(w, ":%s  (%s, already in the trees)\n", c.name, e.Path())
+	if c.newTraits == 0 && len(c.newAffords) == 0 {
+		fmt.Fprintln(w, "  The trees already say this. Nothing to change.")
+		return
+	}
+	if c.newTraits != 0 {
+		fmt.Fprintf(w, "  core/ontology/class.go, on %s:\n\n", e.Name)
+		fmt.Fprintf(w, "      add %s to its traits\n", c.newTraits)
+	}
+	if len(c.newAffords) > 0 {
+		names := make([]string, len(c.newAffords))
+		for i, m := range c.newAffords {
+			names[i] = title(m.Name)
+		}
+		fmt.Fprintf(w, "  core/ontology/relation.go, in Affords:\n\n")
+		fmt.Fprintf(w, "      %s: {..., %s},\n", title(e.Name), strings.Join(names, ", "))
+	}
+}
+
+// goDecl renders the declaration to paste, wrapped the way class.go wraps
+// them: New innermost, with lack, season and at outside it.
+func (c *concept) goDecl(parent *ontology.Class) string {
+	expr := fmt.Sprintf("New(%q, %s, %s, %s)",
+		strings.ToLower(c.name), title(parent.Name), traitExpr(c.traits), sigExpr(c.prior("prior-")))
+	if l, ok := c.data["lack"]; ok {
+		expr = fmt.Sprintf("lack(%s, %s)", expr, num(l))
+	}
+	if wm, ok := c.data["warmth"]; ok {
+		expr = fmt.Sprintf("season(%s, %s)", expr, num(wm))
+	}
+	if at := c.prior("at-"); at != (habit.Signature{}) {
+		expr = fmt.Sprintf("at(%s, %s)", expr, sigExpr(at))
+	}
+	return title(c.name) + " = " + expr
+}
+
+func (c *concept) traitMask() ontology.Trait {
+	var t ontology.Trait
+	for _, tc := range c.traits {
+		t |= lreatTrait(tc)
+	}
+	return t
+}
+
+// prior reads one family of coordinate properties back into a signature.
+func (c *concept) prior(family string) habit.Signature {
+	var s habit.Signature
+	for k, v := range c.data {
+		for i, n := range habit.Names {
+			if k == family+n {
+				s[i] = v
+			}
+		}
+	}
+	return s
+}
+
+// --- rendering Go ----------------------------------------------------------
+
+func traitExpr(traits []owl.Class) string {
+	if len(traits) == 0 {
+		return "0"
+	}
+	names := make([]string, 0, len(traits))
+	for _, t := range traits {
+		names = append(names, title(strings.TrimPrefix(shortOf(t.IRI()), ":")))
+	}
+	sort.Strings(names)
+	return strings.Join(names, "|")
+}
+
+func sigExpr(s habit.Signature) string {
+	var parts []string
+	for i, v := range s {
+		if v != 0 {
+			parts = append(parts, fmt.Sprintf("habit.%s: %s", title(habit.Names[i]), num(v)))
+		}
+	}
+	return "habit.Signature{" + strings.Join(parts, ", ") + "}"
+}
+
+func num(v float64) string { return strconv.FormatFloat(v, 'g', -1, 64) }
+
+// whereItWouldGo names the file for the kinds of thing this does not paste.
+// Everything below the line is a Go declaration with prose attached, and the
+// prose is the part worth writing by hand.
+func whereItWouldGo(c *concept) string {
+	switch shortOf(c.parent.IRI()) {
+	case ":Act":
+		return "Acts are instantiated, not declared: add a Schema to core/ontology/verb.go and the trees will expand it over their leaves."
+	case ":Transform":
+		return "Add a row to Transforms in core/ontology/relation.go."
+	case ":Process", ":Stage":
+		return "Add a Process to core/ontology/process.go; a stage is one of its Stages."
+	case ":Verb":
+		return "Add a Verb constant in core/ontology/verb.go and its moment to VerbPrior in prior.go."
+	case ":Role":
+		return "Add a Role var in core/ontology/class.go."
+	case ":Skill":
+		return "Skills are core/entity's, not the ontology's: add one to entity.Skill."
+	case ":Technology":
+		return "A technology is a string on a Schema: set Tech on one in core/ontology/verb.go."
+	}
+	return "Nothing says what it is under, so nothing here can say where it goes."
+}
+
+// --- the catalog before and after ------------------------------------------
+
+// rendered is set once, so that an axiom echoed back reads the way the
+// proposal wrote it rather than as a line of full IRIs.
+var rendered = owl.Functional
+
+func keysOf(in []ontology.Instance) map[string]bool {
+	out := make(map[string]bool, len(in))
+	for _, i := range in {
+		out[i.Key] = true
+	}
+	return out
+}
+
+func reportCatalog(before, after map[string]bool, w io.Writer) {
+	var gained, lost []string
+	for k := range after {
+		if !before[k] {
+			gained = append(gained, k)
+		}
+	}
+	for k := range before {
+		if !after[k] {
+			lost = append(lost, k)
+		}
+	}
+	sort.Strings(gained)
+	sort.Strings(lost)
+
+	fmt.Fprintf(w, "catalog: %d acts before, %d after\n", len(before), len(after))
+	if len(gained) == 0 && len(lost) == 0 {
+		fmt.Fprintln(w, "  no change")
+		return
+	}
+	for _, k := range lost {
+		fmt.Fprintf(w, "  - %s\n", k)
+	}
+	for _, k := range gained {
+		fmt.Fprintf(w, "  + %s\n", k)
+	}
+	if len(lost) > 0 {
+		fmt.Fprintf(w, "\n  A key that goes takes its habit slot with it: everyone who had learned\n")
+		fmt.Fprintf(w, "  the act keeps a slot nothing reads, and whatever replaced it starts\n")
+		fmt.Fprintf(w, "  unlearned for the whole settlement.\n")
+	}
+}
+
+// --- looking lreat things up by their rendered name ------------------------
+
+var (
+	classByName = map[string]*ontology.Class{}
+	traitByName = map[string]ontology.Trait{}
+)
+
+func init() {
+	for _, root := range []*ontology.Class{ontology.Thing, ontology.Site} {
+		for _, c := range root.Family() {
+			classByName[classIRI(c)] = c
+		}
+	}
+	for bit := ontology.Trait(1); bit != 0; bit <<= 1 {
+		if bit.String() != "" {
+			traitByName[traitIRI(bit)] = bit
+		}
+	}
+}
+
+func lreatClass(c owl.Class) *ontology.Class {
+	if c == "" {
+		return nil
+	}
+	return classByName[shortOf(c.IRI())]
+}
+
+func lreatTrait(c owl.Class) ontology.Trait { return traitByName[shortOf(c.IRI())] }
+
+func isTrait(c owl.Class) bool { _, ok := traitByName[shortOf(c.IRI())]; return ok }
+
+// gettable reports whether any ground affords m, which is the condition Take
+// instantiates on. A person and the market afford Material in general - that
+// is how a pack and a shelf hold anything - so asking whether m is afforded
+// at all would answer yes for everything and say nothing.
+func gettable(m *ontology.Class) bool {
+	for holder := range ontology.Affords {
+		if holder.IsA(ontology.Ground) && ontology.Offers(holder, m) {
+			return true
+		}
+	}
+	return false
+}

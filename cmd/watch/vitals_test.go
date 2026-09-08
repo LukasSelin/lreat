@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -9,6 +11,7 @@ import (
 	"lreat/core/event"
 	"lreat/core/observe"
 	"lreat/core/world"
+	"lreat/report"
 )
 
 // tick makes a snapshot of a settlement at one moment, enough of one for the
@@ -190,5 +193,43 @@ func TestReportSurvivesAnEmptyRun(t *testing.T) {
 	v := &view{}
 	if got := v.Report(); !strings.Contains(got, "nothing ran") {
 		t.Fatalf("an empty run reports %q", got)
+	}
+}
+
+// The kept report carries the same run as numbers, so that a folder of them
+// can be read without opening any. A run nobody watched scores nothing and
+// does not panic trying.
+func TestScoreCarriesTheRunAsNumbers(t *testing.T) {
+	t.Setenv("LREAT_RUNS", t.TempDir())
+	rep := report.Open("watch")
+
+	empty := &view{}
+	empty.score(rep)
+
+	v := &view{}
+	for i := 1; i <= 1000; i++ {
+		s := tick(i, 12, world.Vitals{Births: i / 100})
+		v.record(&s)
+	}
+	end := tick(1200, 0, world.Vitals{Births: 10, Starved: 20, Failed: 2})
+	v.snap = &end
+	v.record(&end)
+	v.score(rep)
+
+	if line := rep.Close(); line == "" {
+		t.Fatal("the run was not kept")
+	}
+	paths, _ := filepath.Glob(filepath.Join(os.Getenv("LREAT_RUNS"), "*", "*.md"))
+	if len(paths) != 1 {
+		t.Fatalf("expected one report, found %v", paths)
+	}
+	b, err := os.ReadFile(paths[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"died-out-at", "1200.000", "starved", "20.000", "peak"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("the report never says %q:\n%s", want, b)
+		}
 	}
 }

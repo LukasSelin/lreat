@@ -39,6 +39,13 @@ Exactly those flags. `-seeds`, `-ticks`, `-agents`, `-born`, `-inherit`, `-temp`
 and `-value` all move the numbers, so a batch taken under any other flags is not
 comparable to the file and must not be reported as if it were.
 
+Every batch files itself under `runs/<branch>/` on the way out and says so on
+its last line — the table, the tally, the summary and the scores as JSON in
+that folder's `index.jsonl`. So a batch taken earlier in the branch does not
+have to be run again to be quoted, and two batches can be compared without
+either being retaken. The folder is local and ignored; only master's numbers
+are checked in.
+
 ## Reading it
 
 The last line is the headline. Most of what is on it is noise:

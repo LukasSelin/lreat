@@ -6,6 +6,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"lreat/core/clock"
@@ -13,6 +15,7 @@ import (
 	"lreat/core/observe"
 	"lreat/core/system"
 	"lreat/core/world"
+	"lreat/report"
 	"lreat/ui/ascii"
 )
 
@@ -35,6 +38,13 @@ func main() {
 	flag.Parse()
 	system.Workers = *workers
 
+	// The run is kept as well as printed. Everything below goes through out,
+	// so the file is what was on the terminal rather than a second account
+	// of it. See package report.
+	rep := report.Open("headless")
+	out := rep.Out(os.Stdout)
+	defer func() { fmt.Print(rep.Close()) }()
+
 	w := world.New(*seed)
 	w.Rules.Fit = !*value
 	w.Rules.Temperature = *temp
@@ -42,7 +52,7 @@ func main() {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
 
-	fmt.Printf("%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %-18s %5s | %s\n",
+	fmt.Fprintf(out, "%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %-18s %5s | %s\n",
 		"day", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "wood", "frnd", "feud", "reach", "sprd", "open", "date", "deg", "doing")
 	lastReported := 0
 	for w.Tick < *ticks {
@@ -55,26 +65,47 @@ func main() {
 		}
 		if w.Tick%*every == 0 || w.Tick == *ticks {
 			s := observe.Take(w)
-			report(s)
+			row(out, s)
 			for _, e := range w.Log.Since(lastReported) {
 				if e.Kind == event.Discovered || e.Kind == event.Died {
-					fmt.Printf("       %-4s   %s\n", "", e.Text)
+					fmt.Fprintf(out, "       %-4s   %s\n", "", e.Text)
 				}
 			}
 			lastReported = w.Tick + 1
 			if *showMap {
-				fmt.Println(strings.Join(ascii.Lines(s.Map), "\n"))
+				fmt.Fprintln(out, strings.Join(ascii.Lines(s.Map), "\n"))
 			}
 		}
 	}
 	if !*showMap {
-		fmt.Println()
-		fmt.Println(strings.Join(ascii.Lines(observe.Take(w).Map), "\n"))
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, strings.Join(ascii.Lines(observe.Take(w).Map), "\n"))
 	}
-	fmt.Printf("\ntechs: %v\nevents: %d retained, %d dropped\n", w.Techs(), w.Log.Len(), w.Log.Dropped())
+	fmt.Fprintf(out, "\ntechs: %v\nevents: %d retained, %d dropped\n", w.Techs(), w.Log.Len(), w.Log.Dropped())
+	score(rep, observe.Take(w))
 }
 
-func report(s observe.Snapshot) {
+// score picks the few numbers off the last tick worth holding against
+// another run's. They go into the folder's index as well as the report, so
+// that a run can be found again by how it came out rather than only by when
+// it was taken.
+func score(rep *report.Run, s observe.Snapshot) {
+	rep.Score("pop", float64(s.Population))
+	rep.Score("died", float64(s.Deaths))
+	rep.Score("phys", s.MeanNeeds[0])
+	rep.Score("safe", s.MeanNeeds[1])
+	rep.Score("belng", s.MeanNeeds[2])
+	rep.Score("estm", s.MeanNeeds[3])
+	rep.Score("actl", s.MeanNeeds[4])
+	rep.Score("health", s.MeanHealth)
+	rep.Score("houses", float64(s.Houses))
+	rep.Score("fields", float64(s.Fields))
+	rep.Score("forest", float64(s.Forest))
+	rep.Score("knowledge", s.Knowledge)
+	rep.Score("order", s.Safety)
+}
+
+func row(out io.Writer, s observe.Snapshot) {
 	var doing []string
 	for i, a := range s.Activity {
 		if i == 3 {
@@ -83,7 +114,7 @@ func report(s observe.Snapshot) {
 		doing = append(doing, fmt.Sprintf("%s:%d", a.Action, a.Agents))
 	}
 	n := s.MeanNeeds
-	fmt.Printf("%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %6s %5.1f | %s\n",
+	fmt.Fprintf(out, "%6d %4d %4d | %5.2f %5.2f %5.2f %5.2f %5.2f | %5.2f %5d %4d | %5.2f %5.2f %6.1f | %4d %4d %4d %4d | %4d %4d | %5.2f %5.2f %5.2f | %6s %5.1f | %s\n",
 		s.Tick, s.Population, s.Deaths, n[0], n[1], n[2], n[3], n[4], s.MeanHealth, s.MeanAge, s.Elders,
 		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Forest, s.Friendships, s.Feuds,
 		s.GatedReach, s.HabitSpread, s.ChoiceEntropy, s.Date, s.Temp, strings.Join(doing, " "))
