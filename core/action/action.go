@@ -709,26 +709,36 @@ func timberFor(t *world.Tile) float64 {
 	return pavingWood
 }
 
-// wornEnough is how beaten the ground must be before anyone thinks of paving
-// it. Below this the wear is somebody having passed once, not a route.
+// wornEnough is how beaten a tile is when it is a route rather than somebody
+// having passed once. It is the scale of a busy tile, and it is read straight
+// off the ground: see groundWorth, where a house astride a thoroughfare is
+// priced against it.
 const wornEnough = 60
 
-// fordEnough is the same question asked of a crossing, and it is a quarter of
-// what a street has to show. A ford cannot be judged against a street on wear,
-// because wear is exactly what a ford does not get: the water is dear to cross
-// and shut altogether to anybody carrying anything, so everybody who can avoid
-// it does, and what shows on the ground is the few who could not. The traffic
-// a bridge would carry is not the traffic the ford carries - it is all the
-// errands the river is currently stopping, and none of those leave a mark.
+// worthPaving is how strong the case for a road has to be before anybody
+// lays one. It is not the same number as wornEnough and no longer can be,
+// because what it is compared against is not wear but wear weighed by what a
+// road there would save - see world.Saving - and only on grass are those the
+// same thing.
 //
-// A quarter is where the crossings the settlement actually needs come out.
-// Left at the full bar, bridges went from thirteen settlements in sixteen to
-// two, and the far bank went back to being another country. That the old
-// reading cleared the full bar was an accident of Draw lending a riverside
-// house's whole wear to every tile around it, water included: it did not
-// measure the crossing, it measured the house, eight times over, and a
-// settlement that fell for it paved sixteen tiles of river.
-const fordEnough = wornEnough / 4
+// The two were one constant until the weighing went in, and leaving them one
+// was a mistake worth writing down: with the case for dear ground multiplied
+// by up to six and the bar left where it was for level going, the bar had
+// quietly been lowered for every tile that was not a meadow. Sixteen
+// settlements went from 762 lengths of road to 1983 and lost a tenth of their
+// woods to the paving. The weighing is right - a road is worth what it saves,
+// and a ford is worth six lanes to whoever crosses it - but it says which
+// ground deserves the timber, not how much timber a settlement should be
+// laying, and that second question is this constant's.
+//
+// Twice is where the same settlements lay about the road they laid before
+// the weighing - 836 lengths against 762 - and keep their woods, at 433 tiles
+// against 443. Three times was tried and it took the road down to 461 and the
+// crossings with it, from fourteen settlements bridged to eleven. What twice
+// buys is not less road but better placed road: the same fourteen settlements
+// are bridged on half the bridge tiles, 34 against 65, because a crossing now
+// wins where it is worth winning instead of being paved along.
+const worthPaving = 2 * wornEnough
 
 // pavingRadius is how far somebody will go to lay a road. Roads are laid
 // where the layer already lives and walks, not wherever the settlement's
@@ -752,16 +762,19 @@ func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	// its way, so the busiest ground will be paved sooner or later whoever
 	// gets to it; a river is the one thing a road cannot go round, and the
 	// ford is never the busiest ground in a settlement because everybody who
-	// can avoid it does. Left to compete on wear alone a bridge is never
-	// built, and the two banks stay two settlements.
-	if ford.Found && ford.Worn >= fordEnough {
+	// can avoid it does. That is about the river being irreplaceable and not
+	// about what it costs: what the crossing is worth is in the bar it has to
+	// clear, which world.Saving already weighs six times an ordinary lane's.
+	// A ford asked for a lane's allowance and given a lane's reading was
+	// never built, and the two banks stayed two settlements.
+	if ford.Found && ford.Worn >= worthPaving {
 		return ford.Pos, true
 	}
 	street := dry
 	if ford.Worn > street.Worn || (ford.Found && ford.Worn == street.Worn && earlier(ford.Pos, street.Pos)) {
 		street = ford
 	}
-	if !street.Found || street.Worn < wornEnough {
+	if !street.Found || street.Worn < worthPaving {
 		return entity.Pos{}, false
 	}
 	return street.Pos, true
