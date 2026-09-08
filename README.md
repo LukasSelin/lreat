@@ -95,6 +95,36 @@ run exactly, however the goroutines happen to interleave.
 go test ./...
 ```
 
+## What a run leaves behind
+
+Every run of all three commands is kept, and says on its last line where it
+went:
+
+```
+runs/<branch>/20260908-234526-tune.md
+```
+
+The file is the terms the run was founded on — the command line, the branch,
+the commit and whether it was clean — then its scores, then everything it
+printed, verbatim. Beside the reports is an `index.jsonl` with one line per
+run: the same scores as JSON, so a folder of a hundred runs can be read
+without opening any of them.
+
+```bash
+cat runs/*/index.jsonl | jq -r '[.at, .scores["mean-pop"], .scores["gates-all"]] | @tsv'
+```
+
+The folder is named for the branch because several branches are usually being
+run at once and their numbers mean nothing mixed together. `runs/` is ignored
+and is meant to be: the numbers belong to the tree they were taken on, and
+master's are checked in at [docs/baseline.md](docs/baseline.md) instead.
+
+`tune -quiet` is about the terminal and not about the record — the table and
+the tally still go into the file. Set `LREAT_RUNS` to gather the branch
+folders of several worktrees in one place, or `LREAT_REPORTS=off` to keep
+nothing at all. A run killed part-way through leaves no report; it is written
+when the command ends of its own accord.
+
 ## How time works
 
 A tick is a day. That is the only convention, and `core/clock` is the only place
@@ -156,6 +186,7 @@ carry on their own now.
 | `core/observe` | the read side: snapshots for renderers, and the perception filter |
 | `core/sim` | runs a world on its own goroutine; the only place wall-clock time lives |
 | `ui/ascii` | the terminal rendering |
+| `report` | what each run left behind, kept under `runs/` a branch at a time |
 | `cmd/` | `watch`, `headless`, `tune` |
 
 Exactly one goroutine drives a world. Deciding is spread over several — it only
