@@ -107,6 +107,27 @@ worse than one turned down. Declaring is the one way past it, and it has to be
 deliberate, because a term used without one is a slip far more often than an
 intention.
 
+**A class nothing can reach is named as such.** It is the commonest thing a
+proposal gets wrong, and it never shows up in the catalog — an unreachable
+class entails nothing, so the answer is a silent *no change*. A material has to
+be afforded by some ground or be the `Output` of a schema; a built site has to
+be raised by one, or nothing ever puts one on the map:
+
+```
+:Mill  (class, under :Built)
+      Mill = at(New("mill", Built, Bench|Owned|Roofed, ...), ...)
+
+  Nothing raises it. A built site is somebody's work before it is a
+  place ... as proposed nothing can ever put a mill on the map.
+
+  No act happens here. Nothing in the catalog is sited at it, so it is
+  somewhere to be rather than somewhere to do anything.
+
+  It lends bench. That reaches the acts placed by those traits without
+  adding any: such a schema instantiates once, keyed on the trait, and
+  any site carrying it will do at the moment of acting.
+```
+
 **The catalog is instantiated, not predicted.** The proposal is applied to the
 trees and `Instantiate` is run again, so the answer is the real before and
 after. That is how the expensive edits show themselves:

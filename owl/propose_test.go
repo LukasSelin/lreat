@@ -100,6 +100,36 @@ SubClassOf(:Orchard ObjectSomeValuesFrom(:affords :Berries))`,
 			`at(New("orchard", Ground, Living, habit.Signature{}), habit.Signature{habit.Near: 0.5})`,
 			"+ take/berries@orchard",
 		},
+		// A ground that affords something is reached by taking from it, and
+		// needs nothing to raise it.
+		notWant: []string{"No act happens here", "Nothing raises it"},
+	}, {
+		// A built site is somebody's work before it is a place. Nothing in
+		// the catalog changes when one is added that no schema raises, so
+		// without saying why, the answer is a silent "no change".
+		name: "a built site nothing raises",
+		proposal: `Declaration(Class(:Mill))
+SubClassOf(:Mill :Built)
+SubClassOf(:Mill :Roofed)
+SubClassOf(:Mill :Bench)`,
+		want: []string{
+			"Nothing raises it",
+			"nothing can ever put a mill on the map",
+			"No act happens here",
+			// A workplace trait reaches acts without adding any, and which
+			// way round that works is worth saying rather than leaving to
+			// be inferred from a catalog that did not move.
+			"It lends bench",
+			"instantiates once, keyed on the trait",
+		},
+	}, {
+		// A material can arrive either way, and the message has to name both
+		// or it is wrong for half the cases: tool and meal are never
+		// afforded by any ground, they are made.
+		name: "a material neither afforded nor made",
+		proposal: `Declaration(Class(:Pitch))
+SubClassOf(:Pitch :Material)`,
+		want: []string{"Nothing affords it and no schema makes it", "with it as Output"},
 	}, {
 		// The vocabulary is the guard, and a slip has to stop everything: a
 		// proposal half applied is worse than one refused.

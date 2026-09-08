@@ -447,13 +447,20 @@ func (c *concept) reportClass(w io.Writer) {
 	fmt.Fprintf(w, "  core/ontology/class.go, in the %s block:\n\n", root)
 	fmt.Fprintf(w, "      %s\n", c.goDecl(parent))
 
-	// A proposal that adds a material usually means it to be got somewhere,
-	// and saying where is not optional: Take instantiates one act per
-	// (material, ground) pair in Affords, and none otherwise.
-	if added.IsA(ontology.Material) && !gettable(added) {
-		fmt.Fprintf(w, "\n  Nothing affords it, so no act can get it. Add a row to Affords in\n")
-		fmt.Fprintf(w, "  core/ontology/relation.go, or say so in the proposal:\n")
+	// A class nothing can reach is the commonest thing a proposal gets
+	// wrong, and it is the same mistake on both sides of the world: a
+	// material nowhere to be got, a site nothing puts on the map. Neither
+	// shows up in the catalog, because the catalog is what the trees entail
+	// and an unreachable class entails nothing.
+	if added.IsA(ontology.Material) && !gettable(added) && !madeBy(added) {
+		fmt.Fprintf(w, "\n  Nothing affords it and no schema makes it, so nothing can put one in\n")
+		fmt.Fprintf(w, "  anybody's hands. Either a row in Affords - Take instantiates one act\n")
+		fmt.Fprintf(w, "  per (material, ground) pair there and none otherwise:\n")
 		fmt.Fprintf(w, "      SubClassOf(:Wood ObjectSomeValuesFrom(:affords :%s))\n", c.name)
+		fmt.Fprintf(w, "  or a Make or Raise schema in core/ontology/verb.go with it as Output.\n")
+	}
+	if added.IsA(ontology.Site) {
+		c.reportSite(w, added)
 	}
 	if c.wasLeaf {
 		fmt.Fprintf(w, "\n  ! %s had no children of its own. Adding one makes it a branch, and\n", parent.Name)
@@ -463,6 +470,48 @@ func (c *concept) reportClass(w io.Writer) {
 	for _, ax := range c.other {
 		fmt.Fprintf(w, "\n  not read: %s\n", rendered(ax))
 	}
+}
+
+// reportSite says how a proposed site would be reached, which is two separate
+// questions the catalog answers neither of on its own. A built site has to be
+// raised by somebody or it is never on the map at all; and a site nothing
+// names is a site nothing happens at, however well described.
+func (c *concept) reportSite(w io.Writer, added *ontology.Class) {
+	if added.IsA(ontology.Built) && !madeBy(added) {
+		fmt.Fprintf(w, "\n  Nothing raises it. A built site is somebody's work before it is a\n")
+		fmt.Fprintf(w, "  place, and Raise instantiates from schemas whose Output names one, so\n")
+		fmt.Fprintf(w, "  as proposed nothing can ever put a %s on the map. Add a schema to\n", added.Name)
+		fmt.Fprintf(w, "  core/ontology/verb.go:\n")
+		fmt.Fprintf(w, "      {Verb: Raise, Inputs: []*Class{Timber}, Output: %s, Site: Open, ...}\n", title(added.Name))
+	}
+	if len(actsNaming(added)) == 0 {
+		fmt.Fprintf(w, "\n  No act happens here. Nothing in the catalog is sited at it, so it is\n")
+		fmt.Fprintf(w, "  somewhere to be rather than somewhere to do anything.\n")
+	}
+	// The workplaces are the exception, and it is worth saying which way
+	// round it works: a schema placed by a trait is one act for the trait,
+	// not one act per site that has it.
+	if work := added.Traits & workplaceTraits; work != 0 {
+		fmt.Fprintf(w, "\n  It lends %s. That reaches the acts placed by those traits without\n", work)
+		fmt.Fprintf(w, "  adding any: such a schema instantiates once, keyed on the trait, and\n")
+		fmt.Fprintf(w, "  any site carrying it will do at the moment of acting.\n")
+	}
+}
+
+// workplaceTraits are the traits that lend an act its tools rather than
+// describing the ground. See the groups in traits().
+const workplaceTraits = ontology.Bench | ontology.Hearth | ontology.Forge |
+	ontology.Desk | ontology.Company | ontology.Trade | ontology.Store
+
+// madeBy reports whether any schema has c as its Output, which is the only
+// way anything comes into the world that is not taken off the ground.
+func madeBy(c *ontology.Class) bool {
+	for i := range ontology.Schemas {
+		if ontology.Schemas[i].Output == c {
+			return true
+		}
+	}
+	return false
 }
 
 // reportMove answers a class given a different parent. Like a deletion it
