@@ -65,25 +65,58 @@ const (
 	statCol   = statLabel + statValue + 2
 )
 
+// main opens the start screen and, if a settlement is started from it,
+// founds one on whatever terms the menu was left holding. The flags are
+// still there and still mean what they meant; they are the menu's opening
+// position now rather than the only way to say any of it, and -start skips
+// the menu for the runs that are launched from a shell script rather than
+// by hand. See menu.go.
 func main() {
-	seed := flag.Uint64("seed", 1, "world seed")
-	agents := flag.Int("agents", 20, "starting population")
-	tps := flag.Float64("tps", 20, "initial ticks per second")
-	width := flag.Int("width", world.DefaultWidth, "map width")
-	height := flag.Int("height", world.DefaultHeight, "map height")
+	d := defaults()
+	seed := flag.Uint64("seed", d.seed, "world seed")
+	agents := flag.Int("agents", d.agents, "starting population")
+	tps := flag.Float64("tps", d.tps, "initial ticks per second")
+	width := flag.Int("width", d.width, "map width")
+	height := flag.Int("height", d.height, "map height")
+	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
+	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
+	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
+	s := setup{
+		seed: *seed, agents: *agents, tps: *tps,
+		width: *width, height: *height,
+		fit: !*value, temp: *temp,
+	}
 
-	w := world.NewSized(*seed, *width, *height)
-	for i := 0; i < *agents; i++ {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := screen.Init(); err != nil {
+		log.Fatal(err)
+	}
+	if !*skip && !menu(screen, &s) {
+		screen.Fini() // left from the menu: there was never a settlement
+		return
+	}
+	run(screen, s)
+}
+
+// run founds the settlement and watches it until the user quits.
+func run(screen tcell.Screen, s setup) {
+	w := world.NewSized(s.seed, s.width, s.height)
+	w.Rules.Fit = s.fit
+	w.Rules.Temperature = s.temp
+	for i := 0; i < s.agents; i++ {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
-	runner := sim.New(w, *tps)
+	runner := sim.New(w, s.tps)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go runner.Run(ctx)
 
 	v := &view{
-		speed: *tps,
+		speed: s.tps,
 		// The panel reads one agent at a time straight off the simulation
 		// goroutine rather than out of the snapshot: a portrait is far more
 		// than the map needs, and nobody is looking at all of them at once.
@@ -97,19 +130,12 @@ func main() {
 		},
 	}
 	// However the run ends, it says how it went on the way out — and it is
-	// registered before the screen is, so that it prints to the terminal
-	// the screen has just been handed back rather than into a display about
-	// to be torn down. A settlement nobody can report on afterwards is one
-	// nobody can tune against. See Report in vitals.go.
+	// registered before the screen is handed back, so that, deferred calls
+	// running in reverse, it prints to the terminal the screen has just
+	// given up rather than into a display about to be torn down. A
+	// settlement nobody can report on afterwards is one nobody can tune
+	// against. See Report in vitals.go.
 	defer func() { fmt.Print(v.Report()) }()
-
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := screen.Init(); err != nil {
-		log.Fatal(err)
-	}
 	defer screen.Fini()
 	screen.EnableMouse(tcell.MouseButtonEvents) // clicking a figure picks it
 
