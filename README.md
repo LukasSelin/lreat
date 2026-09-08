@@ -46,6 +46,17 @@ streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
 and everything it weighed before setting out. `esc` drops it, `q` quits.
 
+Every page here shows a dozen measurements at once and squeezes each into a
+row or a band. `↑` and `↓` step through whatever the page has — the kinds of
+work under the map, the measures down the world page, the curve and the two
+flows that make it on the vitals page — and open the one stepped onto out
+over the page's largest space, scaled to its own high-water mark, saying
+where it stands now and what its full height means. A kind of work holding a
+twentieth of the population is not drawn at all in a weave shared with six
+others, and is a chart of its own when it is stepped onto. The rest of the
+page stays where it was, with the row being read marked. Stepping past the
+last one, or `esc`, gives the whole page back.
+
 `d` swaps the map for the settlement's vital record, which is how a run that
 ended is read rather than guessed at: the population curve coloured by how well
 fed it was at the time, a ribbon under it saying which way each stretch of the

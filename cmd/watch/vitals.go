@@ -228,12 +228,27 @@ func (v *view) drawVitals(sw, sh int) {
 	// making them. The curve shows the fall; the ribbon shows how long the
 	// settlement had been failing to replace itself before it.
 	cols := v.fit(sw)
-	v.drawPopulation(0, line, sw, cols)
+	// The curve's own space is where anything stepped onto is opened out:
+	// the births alone, or the burials, or how well fed the worst-fed
+	// person was, each scaled to its own high rather than shown as a
+	// colour on the curve. The ribbon under it stays whatever is up, since
+	// which way the settlement was going is the one thing worth having
+	// beside any of them. See focus.go.
+	open, opened := v.focused()
+	if opened {
+		v.drawOpen(0, line, sw, popHeight, open)
+	} else {
+		v.drawPopulation(0, line, sw, cols)
+	}
 	line += popHeight
 	v.drawFlow(0, line, sw, cols)
 	line++
-	put(dim, "the whole run, %d ticks →   full height is %d people   a column is %d ticks",
-		v.run(), max(v.peak, 1), v.run()/max(len(cols), 1))
+	if opened {
+		put(dim, "%s   a column is %d ticks", v.headline(open), v.run()/max(len(cols), 1))
+	} else {
+		put(dim, "the whole run, %d ticks →   full height is %d people   a column is %d ticks",
+			v.run(), max(v.peak, 1), v.run()/max(len(cols), 1))
+	}
 	line++
 
 	top := line
@@ -266,7 +281,7 @@ func (v *view) drawVitals(sw, sh int) {
 		}
 	}
 
-	puts(sc, 0, sh-1, dim, "d back to the map   w the world   space pause  +/- speed  . step  q quit")
+	puts(sc, 0, sh-1, dim, trim(v.keyed("d back to the map   w the world   q quit"), sw))
 	sc.Show()
 }
 
