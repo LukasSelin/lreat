@@ -3,6 +3,7 @@ package system
 import (
 	"lreat/core/clock"
 	"lreat/core/entity"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -34,7 +35,7 @@ const (
 	ErodeEvery = 10 * clock.Year
 )
 
-func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
+func isForest(t *world.Tile) bool { return t.Is(ontology.Wood) }
 
 // Land lets forests regrow and slowly reclaim unclaimed grass beside them,
 // weathers the ground every so often so that the hills wear into the valleys

@@ -45,6 +45,41 @@ func ClassOf(t *Tile) *ontology.Class {
 	return grounds[t.Terrain]
 }
 
+// GroundOf is what the bare ground of this tile is, whatever has been put on
+// top of it. It is not ClassOf and the difference is the bridge: a road over
+// water is a road to walk on and still a river to fish in, so what a tile
+// affords is the ground's to say and never the structure's.
+func GroundOf(t *Tile) *ontology.Class { return grounds[t.Terrain] }
+
+// Is reports whether the ground here is c, or any kind of c. It is the
+// identity question asked of the ontology instead of of the terrain, so that
+// a wood goes on being a wood however many kinds of wood the trees come to
+// hold, and the caller does not have to be found again when they do.
+func (t *Tile) Is(c *ontology.Class) bool {
+	g := GroundOf(t)
+	return g != nil && g.IsA(c)
+}
+
+// Offers is how much of m this tile has to give: nothing where the ground is
+// not the kind that affords m at all, the standing stock where there is a
+// count of it, and one where the ground affords m without keeping a count,
+// stone in an outcrop being bottomless.
+//
+// This is the question most callers of the terrain actually meant. What a
+// timber search looks for is not a forest, it is somewhere with wood standing
+// on it; asking the first while meaning the second is what makes every new
+// kind of ground a hunt through the callers, since the compiler has nothing
+// to say about a comparison that stayed valid and stopped being right.
+func (t *Tile) Offers(m *ontology.Class) float64 {
+	if !ontology.Offers(GroundOf(t), m) {
+		return 0
+	}
+	if s, ok := Stock(t, m); ok {
+		return *s
+	}
+	return 1
+}
+
 // goods is what a material is in a pack. A material that is nothing in a
 // pack cannot be carried.
 var goods = map[*ontology.Class]entity.Good{

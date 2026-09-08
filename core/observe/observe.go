@@ -15,6 +15,7 @@ import (
 	"lreat/core/event"
 	"lreat/core/habit"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -149,8 +150,8 @@ func Take(w *world.World) Snapshot {
 		Growth:     w.Climate.Growth(),
 		Events:     w.Log.Len(),
 		Houses:     w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.House }),
-		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Field }),
-		Forest:     w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest }),
+		Fields:     w.Grid.Count(func(t *world.Tile) bool { return t.Is(ontology.Field) }),
+		Forest:     w.Grid.Count(func(t *world.Tile) bool { return t.Is(ontology.Wood) }),
 		Roads:      w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road }),
 		Forest0:    w.Forest0,
 
