@@ -32,11 +32,34 @@ const (
 	// 163. See docs/action-space.md.
 	BirthChance = 1.0 / clock.Year
 	// MaxPopulation caps growth so runs stay bounded.
-	MaxPopulation = 400
 	// InheritedSkill is the share of a parent's skills a child is born with,
 	// under recognition.
 	InheritedSkill = 0.5
 )
+
+// MaxPopulation is a guard on the machine and not a fact about the world.
+// Nothing in the settlement knows it is there: agents do not feel crowded at
+// 4,999 and free at 5,001, and the land, the larder and the roofs are what a
+// settlement is supposed to run out of. It exists because most of a tick is
+// spent in loops over everybody - a fair number of them once per agent, so
+// the cost goes as the square - and a run that grew without limit would stop
+// finishing rather than tell anybody anything.
+//
+// It was 400, which was low enough to bind. A settlement held at a ceiling
+// looks exactly like a settlement that found its level, and the difference
+// is the whole of what a batch is read on, so the number it reported was
+// being quietly decided here rather than out on the land. Seed 1 at sixty
+// years stood at 400 with the cap on and climbed to 502 without it, and its
+// people were worse fed and lonelier at the top - which is what finding a
+// real ceiling looks like. The seeds that never reached 400 came out
+// identical to the digit.
+//
+// Five thousand is far enough above what the map has ever carried that the
+// land binds first, and near enough that a settlement which somehow ran away
+// still stops rather than running the batch into the ground. world.Crowded
+// counts who was turned away, which is how anybody can tell whether it is
+// binding again.
+var MaxPopulation = 5000
 
 // Population handles deaths and births. Births need the three lower tiers
 // met, which is why a city that cannot feed and protect its people does not

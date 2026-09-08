@@ -40,7 +40,7 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  400   502      7    131    212 |  0.72  0.47  0.60  0.64  0.03 |  1.00
+   1  502   555     35    130    210 |  0.67  0.46  0.49  0.53  0.02 |  1.00
    2  279   291     32    111    130 |  0.56  0.51  0.62  0.65  0.09 |  1.00
    3  220   339     31     69    104 |  0.53  0.50  0.58  0.58  0.08 |  1.00
    4   80   220     23     32     70 |  0.56  0.56  0.60  0.69  0.15 |  1.00
@@ -60,46 +60,46 @@ seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
   18  203   299     28     88    123 |  0.56  0.49  0.25  0.46  0.04 |  1.00
   19  246   309     62    135    127 |  0.61  0.51  0.51  0.57  0.05 |  0.95
   20  239   271     37     99     68 |  0.55  0.51  0.45  0.56  0.11 |  1.00
-  21  400   614      4     97    338 |  0.72  0.52  0.71  0.68  0.08 |  1.00
+  21  508   705     40     99    352 |  0.65  0.50  0.60  0.53  0.06 |  1.00
   22   22   175     57     15     24 |  0.64  0.58  0.61  0.68  0.13 |  0.87
   23   96   272     42     50     88 |  0.58  0.58  0.58  0.72  0.03 |  1.00
   24  157   219     45     71    141 |  0.56  0.53  0.47  0.57  0.06 |  1.00
 
-dwell/rest                         3655042  29.2%
-take/berries@wood                  2875806  23.0%
-consume/provision                  2131539  17.0%
-pass/practice>pupil                1047544   8.4%
-dwell/guard@market                  915102   7.3%
-take/fish@water                     660131   5.3%
-dwell/meet@tavern>neighbour         324545   2.6%
-take/timber@wood                    186009   1.5%
-take/grain@field                    155603   1.2%
-transfer/provision>needy            128931   1.0%
-pass/practice>self                  124776   1.0%
-tend/plant@open                      56326   0.4%
-exchange/coin>provision@market       56157   0.4%
-raise/timber>dwelling@open           54813   0.4%
-exchange/material>coin@market        53433   0.4%
-transfer/provision<holder            24452   0.2%
-raise/timber>road@ground             19727   0.2%
-transfer/material>requester          17523   0.1%
-make/timber>tool@bench                9018   0.1%
-tend/clear@open                       7008   0.1%
-strike/person>wrongdoer               6152   0.0%
-take/game@wood                        4553   0.0%
-tend/water@field                      4153   0.0%
-take/stone@outcrop                    2501   0.0%
+dwell/rest                         3666536  29.2%
+take/berries@wood                  2895911  23.0%
+consume/provision                  2142027  17.0%
+pass/practice>pupil                1049193   8.3%
+dwell/guard@market                  915760   7.3%
+take/fish@water                     662772   5.3%
+dwell/meet@tavern>neighbour         325816   2.6%
+take/timber@wood                    186983   1.5%
+take/grain@field                    155168   1.2%
+transfer/provision>needy            129509   1.0%
+pass/practice>self                  124586   1.0%
+tend/plant@open                      58151   0.5%
+exchange/coin>provision@market       56618   0.5%
+raise/timber>dwelling@open           55000   0.4%
+exchange/material>coin@market        53257   0.4%
+transfer/provision<holder            24792   0.2%
+raise/timber>road@ground             19787   0.2%
+transfer/material>requester          17673   0.1%
+make/timber>tool@bench                9024   0.1%
+tend/clear@open                       7028   0.1%
+strike/person>wrongdoer               6155   0.0%
+take/game@wood                        4559   0.0%
+tend/water@field                      4151   0.0%
+take/stone@outcrop                    2516   0.0%
 dwell/look                             458   0.0%
 raise/timber>tavern@open               173   0.0%
-make/provision+timber>meal@hearth      169   0.0%
+make/provision+timber>meal@hearth      167   0.0%
 move@dwelling                          112   0.0%
-raise/timber+stone>granary@open         67   0.0%
+raise/timber+stone>granary@open         68   0.0%
 make/stone+timber>tool@forge            49   0.0%
 raise/timber+stone>market@open          44   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
 
-gates: fed 0.57 safe 0.54 held 0.80 all 0.293 food 4.58 hungry-with-food 0.26 | lasted 23/24 extinct 0 mean 177.2 median 168 | phys 0.58 safe 0.53 belng 0.55 estm 0.61
+gates: fed 0.57 safe 0.54 held 0.80 all 0.293 food 4.58 hungry-with-food 0.26 | lasted 23/24 extinct 0 mean 186.0 median 168 | phys 0.57 safe 0.53 belng 0.54 estm 0.59
 ```
 
 ## How much of that is chance
@@ -113,28 +113,51 @@ go run ./cmd/tune -seeds 24 -ticks 21600 -offset 48 -quiet
 ```
 
 ```
-offset  0: gates: fed 0.57 safe 0.54 held 0.80 all 0.293 food 4.58 hungry-with-food 0.26 | lasted 23/24 extinct 0 mean 177.2 median 168 | phys 0.58 safe 0.53 belng 0.55 estm 0.61
-offset 24: gates: fed 0.57 safe 0.51 held 0.81 all 0.277 food 4.49 hungry-with-food 0.24 | lasted 23/24 extinct 1 mean 173.8 median 192 | phys 0.59 safe 0.51 belng 0.59 estm 0.63
-offset 48: gates: fed 0.57 safe 0.55 held 0.83 all 0.310 food 6.19 hungry-with-food 0.28 | lasted 23/24 extinct 0 mean 189.8 median 172 | phys 0.59 safe 0.54 belng 0.59 estm 0.68
+offset  0: gates: fed 0.57 safe 0.54 held 0.80 all 0.293 food 4.58 hungry-with-food 0.26 | lasted 23/24 extinct 0 mean 186.0 median 168 | phys 0.57 safe 0.53 belng 0.54 estm 0.59
+offset 24: gates: fed 0.57 safe 0.51 held 0.81 all 0.277 food 4.49 hungry-with-food 0.24 | lasted 23/24 extinct 1 mean 173.1 median 192 | phys 0.58 safe 0.51 belng 0.58 estm 0.63
+offset 48: gates: fed 0.57 safe 0.55 held 0.83 all 0.309 food 6.06 hungry-with-food 0.28 | lasted 23/24 extinct 0 mean 236.5 median 172 | phys 0.58 safe 0.53 belng 0.58 estm 0.66
 ```
 
 Nothing changed between those three but which seeds were drawn, and the mean
-population went 177, 174, 190, the median 168, 192, 172. `lasted` was 23 of 24
+population went 186, 173, 237, the median 168, 192, 172. `lasted` was 23 of 24
 in all three, and one of the three lost a settlement outright where the others
-lost none. A settlement that runs away is worth as much as the twenty that did
-not - two seeds in the batch above sat on the 400 cap - so the thresholds below
-are kept wide.
+lost none. The mean is the loosest reading here and always has been: a
+settlement that runs away is worth as much as the twenty that did not, and the
+two seeds above sitting over five hundred are most of the distance between the
+draws.
 
 What holds still is the per-agent side. `fed` was 0.57 in all three, the mean
-needs moved by 0.01 to 0.07, and `all` sat between 0.277 and 0.310. So:
+needs moved by 0.01 to 0.07, and `all` sat between 0.277 and 0.309. So:
 
 | reading | moved by chance | worth believing at |
 |---|---|---|
 | fed, and the four mean needs | 0.00-0.07 | 0.05 on two batches that agree |
-| gates all | 0.033 | 0.05 |
+| gates all | 0.032 | 0.05 |
 | lasted, extinct | 0 of 24, 1 of 24 | 5 of 24 |
-| mean and median population | 9% and 14% of themselves | a second batch that agrees |
+| mean population | 27% of itself | a second batch that agrees |
+| median population | 14% of itself | a second batch that agrees |
 
 A change that only moves the population numbers has not been shown to do
 anything. Run it again on `-offset 24` before believing it, and say in the
 commit that both batches agreed.
+
+## What the ceiling is doing
+
+`system.MaxPopulation` is 5000, and none of the seventy-two settlements above
+comes near it: the largest is 508. That is the point of where it sits. It was
+400 until the batch above, which two of these seeds stood exactly on, and a
+settlement held at a ceiling reads the same as one that found its level - so
+the headline number was being decided in a constant rather than out on the
+land.
+
+Lifting it moved nothing but the tail. Every per-agent reading came out the
+same to the digit - `fed` 0.57, `all` 0.293, 0.277, 0.309 against 0.293, 0.277,
+0.310 - and every median was unchanged, because the two seeds that were pinned
+were the only ones affected: seed 1 went 400 to 502, seed 21 400 to 508, and
+the mean moved with them. Both are worse fed and lonelier at their new size
+than they were at 400, which is what a settlement finding its own ceiling looks
+like.
+
+`world.Crowded` counts everyone turned away by the cap on a tick, and it is
+what to read if the question comes up again. While it stays at nothing, the
+land is doing the binding.
