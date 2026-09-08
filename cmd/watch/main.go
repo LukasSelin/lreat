@@ -80,7 +80,7 @@ func main() {
 	height := flag.Int("height", d.height, "map height")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
-	snug := flag.Bool("fit", false, "size the map to the terminal instead of to -width and -height")
+	snug := flag.Bool("fit", d.snug, "size the map to the terminal; -fit=false takes -width and -height instead")
 	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
 	s := setup{
@@ -88,6 +88,7 @@ func main() {
 		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp,
 	}
+	s.snug = snugFrom(*snug, given("width") || given("height"), given("fit"))
 
 	screen, err := tcell.NewScreen()
 	if err != nil {
@@ -101,6 +102,30 @@ func main() {
 		return
 	}
 	run(screen, s)
+}
+
+// given says whether a flag was named on the command line rather than left
+// at what it defaults to.
+func given(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
+// snugFrom is whether the map comes off the window, out of what -fit says
+// and what else was named alongside it. A size asked for by name is a size
+// meant: -width or -height takes the map off the window without anyone
+// having to say -fit=false as well. Naming -fit outright settles it either
+// way, so that a run can ask for both and get the window.
+func snugFrom(fit, sized, fitGiven bool) bool {
+	if sized && !fitGiven {
+		return false
+	}
+	return fit
 }
 
 // run founds the settlement and watches it until the user quits.

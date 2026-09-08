@@ -225,8 +225,10 @@ func TestMenuFitsMapToTerminal(t *testing.T) {
 	sc.SetSize(140, 50)
 
 	s := defaults()
+	if !s.snug {
+		t.Fatal("a settlement is founded on the window by default; it was not")
+	}
 	m := &menuState{screen: sc, s: &s, opts: true, at: lineOf(t, "map")}
-	press(m, key(tcell.KeyEnter)) // fit to terminal
 	m.draw()
 	wantW, wantH := fitMap(140, 50)
 	if s.width != wantW || s.height != wantH {
@@ -250,5 +252,36 @@ func TestMenuFitsMapToTerminal(t *testing.T) {
 	}
 	if text := screenText(sc); !strings.Contains(text, "from the window") {
 		t.Fatalf("the page does not say where the size came from:\n%s", text)
+	}
+
+	// Taken off the window's hands, the two lines answer to a hand again.
+	m.at = lineOf(t, "map")
+	press(m, key(tcell.KeyEnter))
+	m.at = lineOf(t, "map width")
+	press(m, rune_('9'), rune_('0'), key(tcell.KeyDown))
+	if s.width != 90 {
+		t.Fatalf("map width is %d after fitting was turned off and 90 typed, want 90", s.width)
+	}
+}
+
+// What the command line asks for about the map's size, and what it means.
+// A stated size is meant, so it takes the map off the window; -fit said
+// outright settles it either way, including in favour of the window over a
+// size stated alongside it.
+func TestSnugFromFlags(t *testing.T) {
+	for _, c := range []struct {
+		what              string
+		fit, sized, given bool
+		want              bool
+	}{
+		{"nothing said at all", true, false, false, true},
+		{"-fit=false", false, false, true, false},
+		{"-width 120", true, true, false, false},
+		{"-width 120 -fit", true, true, true, true},
+		{"-width 120 -fit=false", false, true, true, false},
+	} {
+		if got := snugFrom(c.fit, c.sized, c.given); got != c.want {
+			t.Errorf("%s: the map comes off the window = %v, want %v", c.what, got, c.want)
+		}
 	}
 }

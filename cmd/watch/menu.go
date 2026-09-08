@@ -31,11 +31,14 @@ type setup struct {
 	width  int
 	height int
 	// snug takes the map's size off the terminal instead of the width and
-	// height above, which are then whatever the window last came to. A map
-	// the window cannot hold is drawn as an apology and nothing else, and
-	// one much smaller than the window wastes ground nobody asked to do
-	// without; either way the number to give is one nobody can know before
-	// the program is looking at the terminal it was run in.
+	// height above, which are then whatever the window last came to. It is
+	// how a settlement is founded unless somebody says otherwise: a map the
+	// window cannot hold is drawn as an apology and nothing else, and one
+	// much smaller than the window wastes ground nobody asked to do
+	// without, and neither number is one anybody can know before the
+	// program is looking at the terminal it was run in. Nothing that has to
+	// be reproduced is founded here — headless and tune both take the fixed
+	// default size — so what this view owes is the window it is in.
 	snug bool
 	tps  float64
 	fit  bool
@@ -59,8 +62,11 @@ func defaults() setup {
 	return setup{
 		seed:   1,
 		agents: 20,
+		// The width and height stand behind the fitting as what a map is
+		// when somebody takes it off the window's hands.
 		width:  world.DefaultWidth,
 		height: world.DefaultHeight,
+		snug:   true,
 		tps:    20,
 		fit:    r.Fit,
 		temp:   r.Temperature,
@@ -105,7 +111,7 @@ func options() []option {
 		digits: func(s *setup, n uint64) { s.agents = clampInt(int(n), 1, 500) },
 	}, {
 		name: "map",
-		help: "fit takes the ground off the window this is running in, as large as it will hold; by hand keeps the two lines under it whatever the window is",
+		help: "fit takes the ground off the window this is running in, as large as it will hold, and is how a settlement is founded unless this says otherwise; by hand keeps the two lines under it whatever the window is",
 		show: func(s *setup) string {
 			if s.snug {
 				return "fit to terminal"
