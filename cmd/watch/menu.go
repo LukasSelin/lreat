@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -77,6 +78,10 @@ func defaults() setup {
 // about itself, how it reads, and how the arrow keys move it. digits is how
 // a number typed straight in lands, nil on the lines that are not numbers.
 type option struct {
+	// group is the heading this line is drawn under. The lines are kept in
+	// their groups' order, so a group is a run of them rather than a
+	// scattering.
+	group  string
 	name   string
 	help   string
 	show   func(*setup) string
@@ -91,11 +96,17 @@ type option struct {
 // settable is whether a line takes a hand on it as things stand.
 func (o option) settable(s *setup) bool { return o.fixed == nil || !o.fixed(s) }
 
+// groups are the questions the options answer, in the order they are asked:
+// what world this is, who is in it, and how it is to be watched. Everything
+// on the page belongs to one of them.
+var groups = []string{"the world", "the people", "the watching"}
+
 func options() []option {
-	return []option{{
-		name: "seed",
-		help: "the world's one source of chance: the same seed is the same run, every time (r deals a fresh one)",
-		show: func(s *setup) string { return fmt.Sprintf("%d", s.seed) },
+	all := []option{{
+		group: "the world",
+		name:  "seed",
+		help:  "the world's one source of chance: the same seed is the same run, every time (r deals a fresh one)",
+		show:  func(s *setup) string { return fmt.Sprintf("%d", s.seed) },
 		step: func(s *setup, d int) {
 			if d < 0 && s.seed == 0 {
 				return
@@ -104,14 +115,16 @@ func options() []option {
 		},
 		digits: func(s *setup, n uint64) { s.seed = n },
 	}, {
+		group:  "the people",
 		name:   "figures",
 		help:   "how many people the settlement is founded with; too few and one bad winter ends it",
 		show:   func(s *setup) string { return fmt.Sprintf("%d", s.agents) },
 		step:   func(s *setup, d int) { s.agents = clampInt(s.agents+d, 1, 500) },
 		digits: func(s *setup, n uint64) { s.agents = clampInt(int(n), 1, 500) },
 	}, {
-		name: "map",
-		help: "fit takes the ground off the window this is running in, as large as it will hold, and is how a settlement is founded unless this says otherwise; by hand keeps the two lines under it whatever the window is",
+		group: "the world",
+		name:  "map",
+		help:  "fit takes the ground off the window this is running in, as large as it will hold, and is how a settlement is founded unless this says otherwise; by hand keeps the two lines under it whatever the window is",
 		show: func(s *setup) string {
 			if s.snug {
 				return "fit to terminal"
@@ -120,9 +133,10 @@ func options() []option {
 		},
 		step: func(s *setup, _ int) { s.snug = !s.snug },
 	}, {
-		name: "map width",
-		help: "how wide the ground is; a bigger map is more forest to walk to and more room to spread into",
-		show: func(s *setup) string { return fmt.Sprintf("%d", s.width) },
+		group: "the world",
+		name:  "map width",
+		help:  "how wide the ground is; a bigger map is more forest to walk to and more room to spread into",
+		show:  func(s *setup) string { return fmt.Sprintf("%d", s.width) },
 		step: func(s *setup, d int) {
 			if s.snug {
 				return // the terminal is setting this; see the map line
@@ -138,9 +152,10 @@ func options() []option {
 		// set: the number is true, and moving it would be a lie.
 		fixed: func(s *setup) bool { return s.snug },
 	}, {
-		name: "map height",
-		help: "how deep the ground is; the map, the panel beside it and the graph under it all have to fit the terminal",
-		show: func(s *setup) string { return fmt.Sprintf("%d", s.height) },
+		group: "the world",
+		name:  "map height",
+		help:  "how deep the ground is; the map, the panel beside it and the graph under it all have to fit the terminal",
+		show:  func(s *setup) string { return fmt.Sprintf("%d", s.height) },
 		step: func(s *setup, d int) {
 			if s.snug {
 				return
@@ -154,9 +169,10 @@ func options() []option {
 		},
 		fixed: func(s *setup) bool { return s.snug },
 	}, {
-		name: "speed",
-		help: "days per second to begin at; + and - change it again while the settlement runs",
-		show: func(s *setup) string { return fmt.Sprintf("%.2f t/s", s.tps) },
+		group: "the watching",
+		name:  "speed",
+		help:  "days per second to begin at; + and - change it again while the settlement runs",
+		show:  func(s *setup) string { return fmt.Sprintf("%.2f t/s", s.tps) },
 		step: func(s *setup, d int) {
 			if d > 0 {
 				s.tps *= 2
@@ -166,8 +182,9 @@ func options() []option {
 			s.tps = clampFloat(s.tps, 0.25, 512)
 		},
 	}, {
-		name: "choosing",
-		help: "recognition takes the action whose habit fits the moment; value prices every option, the older rule",
+		group: "the people",
+		name:  "choosing",
+		help:  "recognition takes the action whose habit fits the moment; value prices every option, the older rule",
 		show: func(s *setup) string {
 			if s.fit {
 				return "recognition"
@@ -176,8 +193,9 @@ func options() []option {
 		},
 		step: func(s *setup, _ int) { s.fit = !s.fit },
 	}, {
-		name: "temperature",
-		help: "how loosely recognition is followed: 0 always takes the best fit, higher wanders further from it",
+		group: "the people",
+		name:  "temperature",
+		help:  "how loosely recognition is followed: 0 always takes the best fit, higher wanders further from it",
 		show: func(s *setup) string {
 			if !s.fit {
 				return "—"
@@ -186,6 +204,14 @@ func options() []option {
 		},
 		step: func(s *setup, d int) { s.temp = clampFloat(s.temp+0.05*float64(d), 0, 2) },
 	}}
+	// The lines are written above in the order they read best beside one
+	// another and come out in their groups' order, because a heading stands
+	// over a run of lines: a stray line falling outside its own run would
+	// have the page saying "the world" twice.
+	slices.SortStableFunc(all, func(a, b option) int {
+		return slices.Index(groups, a.group) - slices.Index(groups, b.group)
+	})
+	return all
 }
 
 func clampInt(v, lo, hi int) int { return min(max(v, lo), hi) }
@@ -217,9 +243,25 @@ func menu(sc tcell.Screen, s *setup) bool {
 // the cursor is on actually does, because a menu that only names its
 // settings is a list of words to look up elsewhere.
 const (
-	menuLeft  = 2
-	menuTop   = 1
-	menuLabel = 14
+	// The page is laid out in a block of its own rather than against the
+	// left edge: a start screen in a full-screen terminal is otherwise a
+	// handful of words in one corner of an empty field.
+	menuWidth = 64
+	menuMark  = 2  // the cursor's own column
+	menuName  = 4  // the names, indented under their heading
+	menuValue = 18 // where the values stand, so the page reads down as well as across
+)
+
+// The page borrows the settlement's own colours rather than inventing any:
+// the title in the green of the ground, the cursor in the yellow of a field,
+// and everything that is there to be read rather than chosen kept dim. The
+// cursor is the only moving thing on the screen and wants to be findable
+// without being looked for.
+var (
+	titleStyle  = tcell.StyleDefault.Foreground(tcell.ColorGreen).Bold(true)
+	markStyle   = tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true)
+	chosenStyle = tcell.StyleDefault.Bold(true)
+	dimStyle    = tcell.StyleDefault.Dim(true)
 )
 
 func (m *menuState) draw() {
@@ -232,81 +274,132 @@ func (m *menuState) draw() {
 	if m.s.snug {
 		m.s.width, m.s.height = fitMap(w, h)
 	}
-	bold := tcell.StyleDefault.Bold(true)
-	dim := tcell.StyleDefault.Dim(true)
-	line := menuTop
-	put := func(style tcell.Style, format string, args ...any) {
-		puts(sc, menuLeft, line, style, trim(fmt.Sprintf(format, args...), max(1, w-menuLeft)))
-		line++
-	}
+	m.x = max(0, (w-menuWidth)/2)
+	line := max(1, (h-m.depth())/2)
 
-	put(bold, "lreat")
-	put(dim, "a settlement of people living in a world, and nobody playing it")
+	puts(sc, m.x, line, titleStyle, "lreat")
 	line++
+	puts(sc, m.x, line, dimStyle, "a settlement of people living in a world, and nobody playing it")
+	line += 2
 
 	if m.opts {
-		m.drawOptions(&line, w, h)
+		m.drawOptions(&line, h)
 	} else {
 		m.drawFront(&line)
 	}
 
-	keys := "↑↓ move   enter choose   q quit"
+	// The keys are named in words for the same reason the page has no rules
+	// drawn on it: an arrow is a glyph some terminals give two columns to,
+	// and the legend would come apart on those.
+	keys := [][2]string{{"arrows", "move"}, {"enter", "choose"}, {"q", "quit"}}
 	if m.opts {
-		keys = "↑↓ move   ←→ change   type a number   d defaults   esc back   q quit"
+		keys = [][2]string{{"arrows", "move and change"}, {"0-9", "type"},
+			{"d", "defaults"}, {"esc", "back"}, {"q", "quit"}}
 	}
-	puts(sc, menuLeft, max(line+1, h-1), dim, trim(keys, max(1, w-menuLeft)))
+	legend(sc, m.x, max(line+1, h-1), keys)
 	sc.Show()
+}
+
+// depth is roughly how tall the page is, which is all the centring needs:
+// a line or two out either way is not something the eye picks up, and a
+// page that jumped as its help text rewrapped would be.
+func (m *menuState) depth() int {
+	if m.opts {
+		return len(options()) + len(groups) + 13
+	}
+	return len(front) + 10
+}
+
+// heading is what a run of lines is gathered under. It is the only thing
+// dividing one part of the page from another: a drawn rule would be a line
+// of box-drawing glyphs, and this page is laid out by counting columns —
+// anything the terminal decides to give two of them to walks the rest of
+// the line sideways. Blank space and a dim word do the same work and cannot
+// be measured wrong.
+func (m *menuState) heading(line *int, s string) {
+	puts(m.screen, m.x, *line, dimStyle, s)
+	*line++
+}
+
+// row draws one line of a page: the cursor in its own column, the name, and
+// the value out at the column they all share. The cursor keeps a column to
+// itself because a mark that pushed its line sideways would make the page
+// shuffle under the eye every time it moved.
+func (m *menuState) row(line *int, on bool, name string, nameStyle tcell.Style, value string, valueStyle tcell.Style) {
+	sc := m.screen
+	if on {
+		puts(sc, m.x+menuMark, *line, markStyle, "▸")
+	}
+	puts(sc, m.x+menuName, *line, nameStyle, name)
+	puts(sc, m.x+menuValue, *line, valueStyle, trim(value, max(1, menuWidth-menuValue)))
+	*line++
+}
+
+// legend writes the keys along the foot of the page, each standing out of
+// the dim word for what it does.
+func legend(sc tcell.Screen, x, y int, keys [][2]string) {
+	for _, k := range keys {
+		puts(sc, x, y, tcell.StyleDefault, k[0])
+		x += len([]rune(k[0])) + 1
+		puts(sc, x, y, dimStyle, k[1])
+		x += len([]rune(k[1])) + 3
+	}
 }
 
 // drawFront is the front page: the three things to do, and under them the
 // terms the settlement would be founded on if it were started now. Start is
 // never a leap in the dark — what it would do is written under it.
 func (m *menuState) drawFront(line *int) {
-	sc := m.screen
-	dim := tcell.StyleDefault.Dim(true)
 	labels := map[string]string{
 		"start":   "found a settlement and watch it",
 		"options": "set the terms it is founded on",
 		"quit":    "leave",
 	}
 	for i, name := range front {
-		style, mark := tcell.StyleDefault, " "
+		style := tcell.StyleDefault
 		if i == m.at {
-			style, mark = tcell.StyleDefault.Bold(true), "▸"
+			style = chosenStyle
 		}
-		// The cursor keeps a column of its own to the left of the names:
-		// a mark that pushed the line it is on sideways would make the
-		// page shuffle under the eye every time it moved.
-		puts(sc, menuLeft, *line, style, mark)
-		puts(sc, menuLeft+2, *line, style, fmt.Sprintf("%-9s", name))
-		puts(sc, menuLeft+menuLabel, *line, dim, labels[name])
-		*line++
+		m.row(line, i == m.at, name, style, labels[name], dimStyle)
 	}
-	*line += 2
+	*line++
+	m.heading(line, "as it stands")
+
 	s := m.s
+	ground := fmt.Sprintf("%d by %d", s.width, s.height)
+	if s.snug {
+		ground += " from the window"
+	}
 	rule := "recognition"
 	if !s.fit {
 		rule = "value"
 	}
-	ground := fmt.Sprintf("%d by %d", s.width, s.height)
-	if s.snug {
-		ground += " (the window)"
-	}
-	puts(sc, menuLeft+2, *line, dim, fmt.Sprintf("seed %d   %d figures   %s   %.2f t/s   %s",
-		s.seed, s.agents, ground, s.tps, rule))
+	puts(m.screen, m.x+menuName, *line, dimStyle,
+		fmt.Sprintf("seed %d   %d figures   %s", s.seed, s.agents, ground))
 	*line++
+	puts(m.screen, m.x+menuName, *line, dimStyle,
+		fmt.Sprintf("%.2f t/s   %s", s.tps, rule))
+	*line += 2
 }
 
-// drawOptions is the options page: the terms one to a line, the start under
-// them, and what the line the cursor is on means under that.
-func (m *menuState) drawOptions(line *int, w, h int) {
-	sc := m.screen
-	dim := tcell.StyleDefault.Dim(true)
+// drawOptions is the options page: the terms under the headings they belong
+// to, the start under them, and what the line the cursor is on means under
+// that. The headings are there because these are not eight settings but
+// three questions — what world, what people, and how it is to be watched.
+func (m *menuState) drawOptions(line *int, h int) {
 	opts := options()
+	group := ""
 	for i, o := range opts {
-		style, mark := tcell.StyleDefault, " "
+		if o.group != group {
+			group = o.group
+			if i > 0 {
+				*line++
+			}
+			m.heading(line, group)
+		}
+		style := tcell.StyleDefault
 		if i == m.at {
-			style, mark = tcell.StyleDefault.Bold(true), "▸"
+			style = chosenStyle
 		}
 		value := o.show(m.s)
 		if i == m.at && m.typed != "" {
@@ -318,33 +411,30 @@ func (m *menuState) drawOptions(line *int, w, h int) {
 			// The terminal is filling this one in: the number is true and
 			// there is nothing to be done to it, so it is dim even under
 			// the cursor, and says where it came from.
-			style = dim
+			style = dimStyle
 			value += "   from the window"
 		}
-		puts(sc, menuLeft, *line, style, mark)
-		puts(sc, menuLeft+2, *line, dim, o.name)
-		puts(sc, menuLeft+menuLabel+2, *line, style, trim(value, max(1, w-menuLeft-menuLabel-2)))
-		*line++
+		m.row(line, i == m.at, o.name, dimStyle, value, style)
 	}
-	*line++
-	style, mark := tcell.StyleDefault, " "
-	if m.at >= len(opts) {
-		style, mark = tcell.StyleDefault.Bold(true), "▸"
+	*line += 2
+
+	at := m.at >= len(opts)
+	style := tcell.StyleDefault
+	if at {
+		style = chosenStyle
 	}
-	puts(sc, menuLeft, *line, style, mark)
-	puts(sc, menuLeft+2, *line, style, "start")
-	puts(sc, menuLeft+menuLabel+2, *line, dim, "found the settlement on these terms")
+	m.row(line, at, "start", style, "found the settlement on these terms", dimStyle)
 	*line += 2
 
 	help := "found the settlement on the terms above"
 	if m.at < len(opts) {
 		help = opts[m.at].help
 	}
-	for _, s := range wrap(help, max(20, w-menuLeft-2)) {
+	for _, s := range wrap(help, menuWidth-menuName) {
 		if *line >= h-1 {
 			break
 		}
-		puts(sc, menuLeft+2, *line, dim, s)
+		puts(m.screen, m.x+menuName, *line, dimStyle, s)
 		*line++
 	}
 }
@@ -383,6 +473,9 @@ type menuState struct {
 	opts  bool
 	at    int
 	typed string
+	// x is the left edge of the block the page was last drawn in, which
+	// follows the window's width. See draw.
+	x int
 }
 
 // front is the three things that can be done before a settlement exists.

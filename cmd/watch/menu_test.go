@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -67,7 +68,8 @@ func TestMenuOptionsTune(t *testing.T) {
 	if s.seed != 427 {
 		t.Fatalf("seed is %d after typing 427 and moving on, want 427", s.seed)
 	}
-	// The cursor is on the figures now: one right adds a settler.
+	// One right on the figures adds a settler.
+	m.at = lineOf(t, "figures")
 	press(m, key(tcell.KeyRight))
 	if s.agents != defaults().agents+1 {
 		t.Fatalf("figures is %d, want %d", s.agents, defaults().agents+1)
@@ -282,6 +284,50 @@ func TestSnugFromFlags(t *testing.T) {
 	} {
 		if got := snugFrom(c.fit, c.sized, c.given); got != c.want {
 			t.Errorf("%s: the map comes off the window = %v, want %v", c.what, got, c.want)
+		}
+	}
+}
+
+// A heading stands over a run of lines, so every option belongs to one of
+// the known groups and each group comes out in one piece. Written in any
+// order, they are sorted into their groups; a line whose group were
+// misspelt would fall out of every run and the page would say a heading
+// twice.
+func TestOptionsComeOutGrouped(t *testing.T) {
+	var order []string
+	for _, o := range options() {
+		if !slices.Contains(groups, o.group) {
+			t.Fatalf("the %q line is under %q, which is no heading on the page", o.name, o.group)
+		}
+		if len(order) == 0 || order[len(order)-1] != o.group {
+			order = append(order, o.group)
+		}
+	}
+	for i, g := range order {
+		if slices.Index(order, g) != i {
+			t.Fatalf("%q is a heading in two places: %v", g, order)
+		}
+	}
+}
+
+// The options page is read down under its headings rather than as one list
+// of eight settings.
+func TestMenuDrawsHeadings(t *testing.T) {
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(110, 34)
+
+	s := defaults()
+	m := &menuState{screen: sc, s: &s, opts: true}
+	m.draw()
+
+	text := screenText(sc)
+	for _, g := range groups {
+		if !strings.Contains(text, g) {
+			t.Fatalf("the page has no %q heading:\n%s", g, text)
 		}
 	}
 }
