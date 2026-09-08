@@ -80,13 +80,15 @@ func main() {
 	height := flag.Int("height", d.height, "map height")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
+	snug := flag.Bool("fit", d.snug, "size the map to the terminal; -fit=false takes -width and -height instead")
 	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
 	s := setup{
 		seed: *seed, agents: *agents, tps: *tps,
-		width: *width, height: *height,
+		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp,
 	}
+	s.snug = snugFrom(*snug, given("width") || given("height"), given("fit"))
 
 	screen, err := tcell.NewScreen()
 	if err != nil {
@@ -102,8 +104,39 @@ func main() {
 	run(screen, s)
 }
 
+// given says whether a flag was named on the command line rather than left
+// at what it defaults to.
+func given(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
+// snugFrom is whether the map comes off the window, out of what -fit says
+// and what else was named alongside it. A size asked for by name is a size
+// meant: -width or -height takes the map off the window without anyone
+// having to say -fit=false as well. Naming -fit outright settles it either
+// way, so that a run can ask for both and get the window.
+func snugFrom(fit, sized, fitGiven bool) bool {
+	if sized && !fitGiven {
+		return false
+	}
+	return fit
+}
+
 // run founds the settlement and watches it until the user quits.
 func run(screen tcell.Screen, s setup) {
+	// A fitted map is measured here, against the terminal as it stands at
+	// the moment of founding, because that is the last moment it can be:
+	// the ground is generated once and a window resized afterwards finds
+	// the map it was given rather than the map it would now ask for.
+	if s.snug {
+		s.width, s.height = fitMap(screen.Size())
+	}
 	w := world.NewSized(s.seed, s.width, s.height)
 	w.Rules.Fit = s.fit
 	w.Rules.Temperature = s.temp

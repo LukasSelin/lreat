@@ -103,14 +103,25 @@ func TestMenuStartsFromOptions(t *testing.T) {
 	}
 }
 
+// lineOf is where an option sits on the page. Tests ask for it by name:
+// the page grows a line now and then, and a test that counted them would
+// fail for the wrong reason every time it did.
+func lineOf(t *testing.T, name string) int {
+	t.Helper()
+	for i, o := range options() {
+		if o.name == name {
+			return i
+		}
+	}
+	t.Fatalf("no %q line on the options page", name)
+	return 0
+}
+
 // Choosing is a toggle: enter is what moves it, and the rule it is left on
 // is the one the world is given.
 func TestMenuTogglesChoiceRule(t *testing.T) {
 	s := defaults()
-	m := &menuState{s: &s, opts: true, at: 5}
-	if options()[m.at].name != "choosing" {
-		t.Fatalf("line 5 is %q, not the choice rule", options()[m.at].name)
-	}
+	m := &menuState{s: &s, opts: true, at: lineOf(t, "choosing")}
 	press(m, key(tcell.KeyEnter))
 	if s.fit {
 		t.Fatal("enter did not move the choice rule off recognition")
@@ -172,6 +183,105 @@ func TestMenuFrontShowsTerms(t *testing.T) {
 	for _, want := range []string{"start", "options", "quit", "seed 7", "33 figures"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("front page has no %q:\n%s", want, text)
+		}
+	}
+}
+
+// A fitted map leaves room for everything drawn around it: the panel beside
+// it, and the legend, graph and span under it. Anything larger and the view
+// refuses to draw at all, which is the failure this option exists to end.
+func TestFitMapLeavesRoomForTheView(t *testing.T) {
+	for _, size := range [][2]int{{120, 40}, {200, 60}, {90, 30}} {
+		w, h := fitMap(size[0], size[1])
+		if w+panelWidth > size[0] {
+			t.Fatalf("a %dx%d terminal was given a %d-wide map, %d too wide",
+				size[0], size[1], w, w+panelWidth-size[0])
+		}
+		if h+graphHeight+3 > size[1] {
+			t.Fatalf("a %dx%d terminal was given a %d-deep map, %d too deep",
+				size[0], size[1], h, h+graphHeight+3-size[1])
+		}
+	}
+}
+
+// A terminal too small to hold even the smallest map still gets one: a bad
+// map is a settlement that cannot be read, but no map is a program that
+// will not run.
+func TestFitMapHasAFloor(t *testing.T) {
+	w, h := fitMap(10, 4)
+	if w < 20 || h < 10 {
+		t.Fatalf("a tiny terminal got a %dx%d map, want the floor of 20x10", w, h)
+	}
+}
+
+// With fitting on, the width and height are read off the window every time
+// the page is drawn, and there is no setting them by hand.
+func TestMenuFitsMapToTerminal(t *testing.T) {
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(140, 50)
+
+	s := defaults()
+	if !s.snug {
+		t.Fatal("a settlement is founded on the window by default; it was not")
+	}
+	m := &menuState{screen: sc, s: &s, opts: true, at: lineOf(t, "map")}
+	m.draw()
+	wantW, wantH := fitMap(140, 50)
+	if s.width != wantW || s.height != wantH {
+		t.Fatalf("fitting a 140x50 terminal gave a %dx%d map, want %dx%d", s.width, s.height, wantW, wantH)
+	}
+
+	// The window is what says how big the map is now: the arrows and a
+	// typed number both leave it alone.
+	m.at = lineOf(t, "map width")
+	press(m, key(tcell.KeyRight), rune_('5'), rune_('0'), key(tcell.KeyDown))
+	if s.width != wantW {
+		t.Fatalf("map width is %d after being pushed at by hand, want the window's %d", s.width, wantW)
+	}
+
+	// A window resized under the menu is answered by the next draw.
+	sc.SetSize(100, 30)
+	m.draw()
+	wantW, wantH = fitMap(100, 30)
+	if s.width != wantW || s.height != wantH {
+		t.Fatalf("after a resize the map is %dx%d, want %dx%d", s.width, s.height, wantW, wantH)
+	}
+	if text := screenText(sc); !strings.Contains(text, "from the window") {
+		t.Fatalf("the page does not say where the size came from:\n%s", text)
+	}
+
+	// Taken off the window's hands, the two lines answer to a hand again.
+	m.at = lineOf(t, "map")
+	press(m, key(tcell.KeyEnter))
+	m.at = lineOf(t, "map width")
+	press(m, rune_('9'), rune_('0'), key(tcell.KeyDown))
+	if s.width != 90 {
+		t.Fatalf("map width is %d after fitting was turned off and 90 typed, want 90", s.width)
+	}
+}
+
+// What the command line asks for about the map's size, and what it means.
+// A stated size is meant, so it takes the map off the window; -fit said
+// outright settles it either way, including in favour of the window over a
+// size stated alongside it.
+func TestSnugFromFlags(t *testing.T) {
+	for _, c := range []struct {
+		what              string
+		fit, sized, given bool
+		want              bool
+	}{
+		{"nothing said at all", true, false, false, true},
+		{"-fit=false", false, false, true, false},
+		{"-width 120", true, true, false, false},
+		{"-width 120 -fit", true, true, true, true},
+		{"-width 120 -fit=false", false, true, true, false},
+	} {
+		if got := snugFrom(c.fit, c.sized, c.given); got != c.want {
+			t.Errorf("%s: the map comes off the window = %v, want %v", c.what, got, c.want)
 		}
 	}
 }

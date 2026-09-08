@@ -29,6 +29,18 @@ tuned. The flags are still there and still mean the same things; they are
 what the menu opens on now, and `-start` skips the menu for a run launched by
 a script rather than by hand.
 
+The ground is taken off the window by default. The `map` line says so —
+`fit to terminal` — and the width and height under it are then read rather
+than set: the largest map that still leaves room for the panel beside it and
+the graph under it, measured when the settlement is founded. A map bigger
+than the window shows an apology instead of a settlement and one much smaller
+wastes ground, and neither number is knowable before the program has looked
+at the terminal it was started in. Set the line to `by hand` for a map of a
+stated size; `-fit=false`, or simply giving `-width` or `-height`, is the same
+from the command line. Nothing that has to be reproduced is founded here —
+`headless` and `tune`, which the baseline is taken on, both keep the fixed
+default size.
+
 Space pauses, `+` and `-` change speed, `.` steps once while paused, `r` lays
 streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
