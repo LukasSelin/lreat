@@ -157,6 +157,7 @@ carry on their own now.
 | `core/sim` | runs a world on its own goroutine; the only place wall-clock time lives |
 | `ui/ascii` | the terminal rendering |
 | `cmd/` | `watch`, `headless`, `tune` |
+| `owl/` | `core/ontology` rendered as an OWL 2 document — its own module, so the simulation gains no dependency from it |
 
 Exactly one goroutine drives a world. Deciding is spread over several — it only
 reads — while everything that changes the world runs one at a time.
