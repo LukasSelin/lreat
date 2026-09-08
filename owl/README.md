@@ -136,6 +136,50 @@ What comes back is a declaration to paste, not a patch. Go stays the source:
 the prose in `core/ontology` carries the reasoning, and no generator is going
 to write *the slowest thing the year makes*.
 
+### Taking things out
+
+Edit the generated document, delete lines, and pass the whole file. Removals
+are diffed out of it — a line-oriented proposal has no way to say what it
+takes away, and should not, since a deletion is a thing to weigh against the
+whole document rather than in isolation.
+
+Taking a row out of `Affords` or a trait off a class is applied, so the
+catalog answers for real:
+
+```
+:Wood  stops affording Timber
+  core/ontology/relation.go: drop Timber from Wood's row in Affords.
+
+catalog: 31 acts before, 30 after
+  - take/timber@wood
+```
+
+Deleting a whole class is not applied, and cannot be: a class hangs off its
+parent through an unexported slice and `core/ontology` offers no way to detach
+one — which is right, since nothing in a running world should be pulling
+classes out of the trees. So it is answered with everything that names it,
+which is the better answer anyway. What stops a class being deleted is never
+the size of the catalog; it is the schemas that will no longer compile.
+
+```
+:Coin  (thing/material/coin) would go
+  core/ontology/class.go: delete the declaration.
+
+  2 act(s) in the catalog name it:
+      exchange/coin>provision@market
+      exchange/material>coin@market
+
+  2 schema(s) in core/ontology/verb.go name it and will not compile:
+      exchange material > coin @market
+      exchange coin > provision @market
+```
+
+It reads `Affords`, `Transforms` and `Processes` for mentions too, warns when
+the parent is left with no other child (the leaf case again, running the other
+way), and says when a trait nothing in the ontology reads has stopped earning
+its place — *a class exists only if some verb treats it differently from its
+siblings*, and the same is true of a trait.
+
 ## Why this is its own module
 
 lreat has no dependency beyond the terminal library, and `go build ./...` at

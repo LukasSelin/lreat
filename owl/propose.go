@@ -43,11 +43,11 @@ import (
 
 // propose reads a proposal and reports what accepting it would mean.
 func propose(path string, current *owl.Ontology, w io.Writer) error {
-	axioms, err := readProposal(path, current)
+	axioms, removed, err := readProposal(path, current)
 	if err != nil {
 		return err
 	}
-	if len(axioms) == 0 {
+	if len(axioms) == 0 && len(removed) == 0 {
 		fmt.Fprintln(w, "nothing proposed")
 		return nil
 	}
@@ -60,7 +60,19 @@ func propose(path string, current *owl.Ontology, w io.Writer) error {
 
 	rendered = current.Render
 	concepts := gather(axioms, fresh)
+	drops := gatherRemovals(removed)
 	before := keysOf(ontology.Instantiate())
+	var applied int
+
+	// Removals go first, and not only in the report. Dropping a row from
+	// Affords and adding a class that wants one are the same proposal, and
+	// applying them the other way round would leave the new class briefly
+	// afforded by a row on its way out.
+	for _, d := range drops {
+		if d.applyRemoval() {
+			applied++
+		}
+	}
 
 	// Everything is applied to the trees before anything is reported, because
 	// a concept is answered by what the trees then entail and the trees are
@@ -68,7 +80,6 @@ func propose(path string, current *owl.Ontology, w io.Writer) error {
 	// afforded in the next is one concept written in two places. Affords is a
 	// second pass for the same reason, since a row may name a class an earlier
 	// concept has only just created.
-	var applied int
 	for _, c := range concepts {
 		if c.apply() {
 			applied++
@@ -78,40 +89,57 @@ func propose(path string, current *owl.Ontology, w io.Writer) error {
 		c.applyAffords()
 	}
 
-	fmt.Fprintf(w, "%d axioms, %d concept(s)\n", len(axioms), len(concepts))
+	fmt.Fprintf(w, "%d axiom(s) in, %d out: %d concept(s), %d removal(s)\n",
+		len(axioms), len(removed), len(concepts), len(drops))
+	for _, d := range drops {
+		fmt.Fprintln(w)
+		d.report(w)
+	}
 	for _, c := range concepts {
 		fmt.Fprintln(w)
 		c.report(w)
 	}
-	if applied == 0 {
+	if applied == 0 && !detached(drops) {
 		return nil
 	}
 
 	fmt.Fprintln(w)
 	reportCatalog(before, keysOf(ontology.Instantiate()), w)
+	if detached(drops) {
+		fmt.Fprintln(w, "\n  The catalog above does not count the class removals. A class cannot be")
+		fmt.Fprintln(w, "  taken off its parent from out here, which is why they are answered")
+		fmt.Fprintln(w, "  with everything that names them instead.")
+	}
 	return nil
+}
+
+// detached reports whether any removal is one that could not be applied.
+func detached(drops []*dropping) bool {
+	for _, d := range drops {
+		if d.class != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // readProposal accepts either a whole document, which is diffed against the
 // current one, or a file of one axiom per line, which is read as additions.
 // The second is what a person writes by hand; the first is what comes back
 // from editing the generated document in a tool.
-func readProposal(path string, current *owl.Ontology) ([]owl.Axiom, error) {
+func readProposal(path string, current *owl.Ontology) (added, removed []owl.Axiom, err error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	src := string(data)
 	if isDocument(src) {
 		authored, err := owl.ParseFunctionalString(src)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		d := owl.DiffOntologies(current, authored)
-		for _, ax := range d.RemovedAxioms {
-			fmt.Fprintf(os.Stderr, "owl: proposal drops %s; removals are read but not acted on\n", owl.Functional(ax))
-		}
-		return d.AddedAxioms, nil
+		return d.AddedAxioms, d.RemovedAxioms, nil
 	}
 
 	var out []owl.Axiom
@@ -123,11 +151,14 @@ func readProposal(path string, current *owl.Ontology) ([]owl.Axiom, error) {
 		}
 		ax, err := owl.ParseAxiom(text, current.Prefixes)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%d: %w", path, line, err)
+			return nil, nil, fmt.Errorf("%s:%d: %w", path, line, err)
 		}
 		out = append(out, ax)
 	}
-	return out, s.Err()
+	// A line-oriented proposal has no way to say what it takes away, and
+	// should not: a removal is a thing to be looked at against the whole
+	// document, which is what the document form is for.
+	return out, nil, s.Err()
 }
 
 func isDocument(src string) bool {
