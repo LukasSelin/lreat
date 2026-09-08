@@ -79,8 +79,15 @@ const (
 	measureName  = 11
 	measureValue = 9
 	measureNote  = 34
-	// workHeight is the whole-run weave of what people have been doing.
+	// workHeight is the least the whole-run weave of what people have been
+	// doing is drawn at. It takes whatever the page has left over above
+	// that: the weave is the one thing here with no natural height, and a
+	// tall terminal spent on blank rows under it is a tall terminal wasted.
 	workHeight = 6
+	// workBelow is what stands under the weave and has to be left room for:
+	// the legend, a blank line, the technologies, and a blank line over the
+	// keys along the foot.
+	workBelow = 4
 )
 
 // found is a technology and the tick the settlement came to it. Discovery is
@@ -126,7 +133,10 @@ func (v *view) drawWorld(sw, sh int) {
 	width := sw - measureName - measureValue - measureNote - 2
 	cols := v.fit(max(width, 1))
 	for _, m := range measures {
-		if line >= sh-workHeight-4 {
+		// A measure is dropped rather than drawn over the weave: the page
+		// gives the weave its floor and the keys their line whatever the
+		// window is, and what will not fit above that simply is not shown.
+		if line >= sh-1-workBelow-workHeight {
 			break
 		}
 		v.drawMeasure(line, width, m, cols)
@@ -140,9 +150,11 @@ func (v *view) drawWorld(sw, sh int) {
 	puts(sc, 0, line, tcell.StyleDefault.Bold(true), "what they have been doing with themselves")
 	line++
 	// The weave gets the screen's whole width rather than the measures'
-	// narrower one, so it is squeezed on its own terms.
-	v.drawWork(0, line, sw, v.fit(sw))
-	line += workHeight
+	// narrower one, so it is squeezed on its own terms, and whatever height
+	// the page has not already spent.
+	weave := max(workHeight, sh-1-workBelow-line)
+	v.drawWork(0, line, sw, weave, v.fit(sw))
+	line += weave
 	// The legend carries each kind's share of the whole run beside its
 	// name. The weave is six rows deep and one kind of work usually takes
 	// most of them, which leaves the rest too thin to see at all: the
@@ -248,14 +260,14 @@ func (v *view) glyph(m measure, b bucket, top float64) rune {
 
 // drawWork stacks the kinds of work over the whole run, in the same order
 // and colours as the band under the map.
-func (v *view) drawWork(x, y, w int, cols []bucket) {
+func (v *view) drawWork(x, y, w, h int, cols []bucket) {
 	for i, b := range cols {
 		if b.span == 0 {
 			continue
 		}
 		cx := x + w - len(cols) + i
-		for r := 0; r < workHeight; r++ {
-			share := (float64(workHeight-r) - 0.5) / float64(workHeight)
+		for r := 0; r < h; r++ {
+			share := (float64(h-r) - 0.5) / float64(h)
 			var cum float64
 			for gi, g := range ascii.Groups {
 				cum += b.work[gi]
