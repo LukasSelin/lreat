@@ -8,6 +8,7 @@ import (
 
 	"gowl/owl"
 
+	"lreat/core/habit"
 	"lreat/core/ontology"
 )
 
@@ -41,17 +42,48 @@ type dropping struct {
 	traitOf *ontology.Class // a class loses traits
 	holder  *ontology.Class // a holder stops affording things
 
-	traits  ontology.Trait
-	offered []*ontology.Class
-	data    []string
-	other   []owl.Axiom
+	traits     ontology.Trait
+	offered    []*ontology.Class
+	data       []string
+	other      []owl.Axiom
+	unparented bool // the link to its parent was dropped
+	self       *ontology.Class
 
-	// Read off the trees before applyRemoval changes them, because after it
-	// the trees no longer say what was true.
+	// Everything below is read off the trees by survey, before any removal is
+	// applied to them. It has to be: a proposal is usually several removals,
+	// and each one applied makes the trees stop saying what the next one is
+	// about to be asked. Dropping a class and the Affords row that named it
+	// is one edit, and the class was left reporting no row at all.
 	ownTraits       ontology.Trait
 	inheritedTraits ontology.Trait
 	readers         []string
+	acts            []string
+	schemas         []string
+	tables          []string
+	kids            []string
+	lastChild       bool
 }
+
+// survey reads what the removal costs while the trees still say it.
+func (d *dropping) survey() {
+	if c := d.class; c != nil {
+		d.acts = actsNaming(c)
+		d.schemas = schemasNaming(c)
+		d.tables = tablesNaming(c)
+		for _, k := range c.Children() {
+			d.kids = append(d.kids, k.Name)
+		}
+		d.lastChild = c.Parent != nil && len(c.Parent.Children()) == 1
+	}
+	if d.traitOf != nil && d.class == nil {
+		d.ownTraits = d.traits & d.traitOf.Traits
+		d.inheritedTraits = d.traits &^ d.traitOf.Traits
+		d.readers = traitReaders(d.traits)
+	}
+}
+
+// habitZero is the empty signature, to compare a derived prior against.
+var habitZero habit.Signature
 
 // gatherRemovals reads the removed axioms into one entry per thing removed. A
 // class going is written as a Declaration and a handful of SubClassOf axioms;
@@ -63,7 +95,7 @@ func gatherRemovals(axioms []owl.Axiom) []*dropping {
 		if d, ok := byName[c.Name]; ok {
 			return d
 		}
-		d := &dropping{name: c.Name}
+		d := &dropping{name: c.Name, self: c}
 		byName[c.Name] = d
 		order = append(order, d)
 		return d
@@ -93,10 +125,11 @@ func gatherRemovals(axioms []owl.Axiom) []*dropping {
 					d.traitOf, d.traits = c, d.traits|t
 					continue
 				}
-				// The class's own parent: part of the class going, and
-				// nothing on its own.
+				// The link to its own parent. Usually that is the class
+				// itself going and says nothing on its own; on its own it
+				// is a class left hanging, which says a great deal.
 				if c.Parent != nil && classIRI(c.Parent) == shortOf(super.IRI()) {
-					get(c)
+					get(c).unparented = true
 					continue
 				}
 			case owl.ObjectSomeValuesFrom:
@@ -119,6 +152,28 @@ func gatherRemovals(axioms []owl.Axiom) []*dropping {
 		loose = append(loose, ax)
 	}
 	sort.SliceStable(order, func(i, j int) bool { return order[i].name < order[j].name })
+
+	// A class whose parent is going was written down only because its link to
+	// that parent went with it. It is not a decision of its own and it is
+	// already counted, under the parent, as one of the children hanging off
+	// it. Left in, deleting one class reports six removals, five of them
+	// blank.
+	leaving := map[*ontology.Class]bool{}
+	for _, d := range order {
+		if d.class != nil {
+			leaving[d.class] = true
+		}
+	}
+	kept := order[:0]
+	for _, d := range order {
+		if d.unparented && d.self != nil && leaving[d.self.Parent] {
+			d.unparented = false
+		}
+		if d.class != nil || d.traitOf != nil || d.holder != nil || d.unparented || len(d.data) > 0 {
+			kept = append(kept, d)
+		}
+	}
+	order = kept
 
 	// An axiom left over because it mentions a class that is going is not
 	// left over at all: a label on a deleted class, the disjointness it was
@@ -178,14 +233,9 @@ func (d *dropping) applyRemoval() bool {
 	// Only a class's own traits can go. An inherited one belongs to an
 	// ancestor, and taking it off here would take it off every sibling too,
 	// which is a different proposal.
-	if d.traitOf != nil && d.class == nil {
-		d.ownTraits = d.traits & d.traitOf.Traits
-		d.inheritedTraits = d.traits &^ d.traitOf.Traits
-		d.readers = traitReaders(d.traits)
-		if d.ownTraits != 0 {
-			d.traitOf.Traits &^= d.ownTraits
-			did = true
-		}
+	if d.traitOf != nil && d.class == nil && d.ownTraits != 0 {
+		d.traitOf.Traits &^= d.ownTraits
+		did = true
 	}
 	return did
 }
@@ -198,6 +248,8 @@ func (d *dropping) report(w io.Writer) {
 		d.reportTraits(w)
 	case d.holder != nil:
 		d.reportAffords(w)
+	case d.unparented:
+		d.reportUnparented(w)
 	case len(d.data) > 0:
 		fmt.Fprintf(w, ":%s  loses %s\n", title(d.name), strings.Join(d.data, ", "))
 		fmt.Fprintln(w, "  core/ontology/class.go: drop it from the declaration.")
@@ -215,36 +267,33 @@ func (d *dropping) reportClass(w io.Writer) {
 	fmt.Fprintf(w, ":%s  (%s) would go\n", title(c.Name), c.Path())
 	fmt.Fprintln(w, "  core/ontology/class.go: delete the declaration.")
 
-	if kids := c.Children(); len(kids) > 0 {
-		names := make([]string, len(kids))
-		for i, k := range kids {
-			names[i] = k.Name
-		}
-		fmt.Fprintf(w, "\n  It is not a leaf. %s hang off it and go too, or need somewhere\n", strings.Join(names, ", "))
-		fmt.Fprintln(w, "  else to hang; this counts none of what they carry.")
+	if len(d.kids) > 0 {
+		fmt.Fprintf(w, "\n  It is not a leaf. %s hang off it and go too, or\n", strings.Join(d.kids, ", "))
+		fmt.Fprintln(w, "  need somewhere else to hang; this counts none of what they carry.")
 	}
-	if p := c.Parent; p != nil && len(p.Children()) == 1 {
+	if d.lastChild {
+		p := c.Parent
 		fmt.Fprintf(w, "\n  ! %s has no other child, so it becomes a leaf again and the acts\n", p.Name)
 		fmt.Fprintf(w, "    below re-key onto %s rather than simply going. Either way the keys\n", p.Name)
 		fmt.Fprintln(w, "    that exist now stop existing, and their habit slots with them.")
 	}
 
-	if acts := actsNaming(c); len(acts) > 0 {
-		fmt.Fprintf(w, "\n  %d act(s) in the catalog name it:\n", len(acts))
-		for _, k := range acts {
+	if len(d.acts) > 0 {
+		fmt.Fprintf(w, "\n  %d act(s) in the catalog name it:\n", len(d.acts))
+		for _, k := range d.acts {
 			fmt.Fprintf(w, "      %s\n", k)
 		}
 	} else {
 		fmt.Fprintln(w, "\n  No act in the catalog names it.")
 	}
 
-	if sch := schemasNaming(c); len(sch) > 0 {
-		fmt.Fprintf(w, "\n  %d schema(s) in core/ontology/verb.go name it and will not compile:\n", len(sch))
-		for _, s := range sch {
+	if len(d.schemas) > 0 {
+		fmt.Fprintf(w, "\n  %d schema(s) in core/ontology/verb.go name it and will not compile:\n", len(d.schemas))
+		for _, s := range d.schemas {
 			fmt.Fprintf(w, "      %s\n", s)
 		}
 	}
-	for _, line := range tablesNaming(c) {
+	for _, line := range d.tables {
 		fmt.Fprintf(w, "\n  %s\n", line)
 	}
 }
@@ -274,6 +323,37 @@ func (d *dropping) reportTraits(w io.Writer) {
 		fmt.Fprintln(w, "\n  Nothing in the ontology reads it. The simulation may still test it;")
 		fmt.Fprintln(w, "  grep the trait name before deleting it outright.")
 	}
+}
+
+// reportUnparented answers a class cut loose from its parent while its parent
+// stays. The trees are single-inheritance and everything hangs off thing or
+// site, so there is no such state to move to: either it goes somewhere else or
+// it goes.
+func (d *dropping) reportUnparented(w io.Writer) {
+	c := d.self
+	fmt.Fprintf(w, ":%s  would no longer be under :%s\n", title(c.Name), title(c.Parent.Name))
+	fmt.Fprintln(w, "  Nothing in the trees can hold a class with no parent, and its parent is")
+	fmt.Fprintln(w, "  staying. Say which class it hangs off instead, and this will answer for")
+	fmt.Fprintln(w, "  the move; as written it is neither a removal nor a reparenting.")
+	fmt.Fprintf(w, "\n  What it would stop inheriting from %s: %s\n", c.Parent.Name, inherits(c))
+}
+
+// inherits is what a class gets from above it and would lose on the way out.
+func inherits(c *ontology.Class) string {
+	var parts []string
+	if t := c.Parent.All(); t != 0 {
+		parts = append(parts, "traits "+t.String())
+	}
+	if l := c.Parent.Short(); l != 0 {
+		parts = append(parts, fmt.Sprintf("lack %s", num(l)))
+	}
+	if p := c.Parent.DerivedPrior(); p != (habitZero) {
+		parts = append(parts, "the prior "+sigExpr(p))
+	}
+	if len(parts) == 0 {
+		return "nothing it does not already have of its own"
+	}
+	return strings.Join(parts, ", ")
 }
 
 func (d *dropping) reportAffords(w io.Writer) {

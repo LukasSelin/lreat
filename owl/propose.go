@@ -64,6 +64,14 @@ func propose(path string, current *owl.Ontology, w io.Writer) error {
 	before := keysOf(ontology.Instantiate())
 	var applied int
 
+	// Every removal is surveyed before any is applied, because applying one
+	// stops the trees saying what the next is about to be asked. Dropping a
+	// class and the Affords row that named it is one edit, and done in the
+	// other order the class reports no row at all.
+	for _, d := range drops {
+		d.survey()
+	}
+
 	// Removals go first, and not only in the report. Dropping a row from
 	// Affords and adding a class that wants one are the same proposal, and
 	// applying them the other way round would leave the new class briefly

@@ -38,6 +38,88 @@ func withoutLines(t *testing.T, drop ...string) string {
 	return strings.Join(kept, "\n")
 }
 
+// withoutClass is the edit a person actually makes: delete every line that
+// mentions the class. Word-bounded, so :Timber does not take :Timbering with
+// it if one is ever added.
+func withoutClass(t *testing.T, name string) string {
+	t.Helper()
+	o, err := Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+	o.Sort()
+	var kept []string
+	for _, line := range strings.Split(o.Functional(), "\n") {
+		if !mentionsClass(line, name) {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
+}
+
+func mentionsClass(line, name string) bool {
+	for i := 0; ; {
+		j := strings.Index(line[i:], name)
+		if j < 0 {
+			return false
+		}
+		end := i + j + len(name)
+		if end == len(line) || !isNameByte(line[end]) {
+			return true
+		}
+		i = end
+	}
+}
+
+func isNameByte(b byte) bool {
+	return b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || b == '-'
+}
+
+// Deleting a class deletes the rows that named it, and the two are surveyed
+// before either is applied. Done the other way round the class reports no row
+// in Affords at all, because the row is already gone by the time it looks.
+func TestRemovalIsSurveyedBeforeItIsApplied(t *testing.T) {
+	out := runPropose(t, withoutClass(t, ":Timber"))
+	for _, want := range []string{
+		"Affords in relation.go names it under: wood",
+		"Transforms in relation.go: timber in market",
+		"Processes in process.go: timber",
+		":Wood  stops affording Timber",
+		"- take/timber@wood",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
+// One class deleted is one removal, however many lines it took out. The
+// children lose their link to it and are counted under it, not beside it.
+func TestRemovingAClassWithChildrenIsOneRemoval(t *testing.T) {
+	out := runPropose(t, withoutClass(t, ":Provision"))
+	if !strings.Contains(out, "1 removal(s)") {
+		t.Errorf("children reported as removals of their own:\n%s", out)
+	}
+	if !strings.Contains(out, "berries, game, fish, grain, meal hang off it") {
+		t.Errorf("the children are not counted under it:\n%s", out)
+	}
+}
+
+// A class cut loose while its parent stays is neither a deletion nor a move,
+// and used to be read as nothing at all.
+func TestAClassCutLooseIsNotSilent(t *testing.T) {
+	out := runPropose(t, withoutLines(t, "SubClassOf(:Berries :Provision)"))
+	for _, want := range []string{
+		":Berries  would no longer be under :Provision",
+		"neither a removal nor a reparenting",
+		"traits edible",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
 func TestRemoval(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
