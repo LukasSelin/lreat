@@ -331,3 +331,50 @@ func TestWaysSaysWhatWalkingTheGroundSaid(t *testing.T) {
 		}
 	}
 }
+
+// A road costs the same timber wherever it goes and does not save the same
+// amount, so ground walked alike does not make an equal case for paving. Read
+// on wear alone a settlement paves the flat it was already crossing easily
+// and leaves the thicket and the river, which is where a road is the point.
+func TestTheCaseForARoadIsWeighedByWhatItSaves(t *testing.T) {
+	g := NewGrid(20, 20)
+
+	// Grass is the unit: open ground reads exactly as worn as it is walked.
+	meadow := entity.Pos{X: 3, Y: 3}
+	for i := 0; i < 100; i++ {
+		g.Tread(meadow)
+	}
+	if d := g.Draw(meadow); d != g.At(meadow).Traffic {
+		t.Fatalf("grass drew %.1f against %.1f of wear; it is meant to be the unit",
+			d, g.At(meadow).Traffic)
+	}
+
+	// The same wear on dearer going makes a better case, in the order the
+	// ground is dear to cross: grass, field, rock, wood, water.
+	var last float64
+	for _, c := range []struct {
+		terrain Terrain
+		name    string
+	}{{Grass, "grass"}, {Field, "field"}, {Rock, "rock"}, {Forest, "wood"}, {Water, "water"}} {
+		p := entity.Pos{X: 10, Y: 10}
+		g.At(p).Terrain = c.terrain
+		g.At(p).Traffic = 100
+		d := g.Draw(p)
+		if d <= last {
+			t.Fatalf("%s drew %.1f, no better than the easier going before it at %.1f",
+				c.name, d, last)
+		}
+		last = d
+	}
+
+	// And a ford is worth six lengths of ordinary street to whoever crosses
+	// it, which is what lets a crossing clear the same bar as a lane on a
+	// sixth of the wear rather than on an allowance of its own.
+	ford := entity.Pos{X: 10, Y: 10} // still water from the walk above
+	lane := entity.Pos{X: 14, Y: 14}
+	g.At(ford).Traffic = 100
+	g.At(lane).Traffic = 600
+	if w, l := g.Draw(ford), g.Draw(lane); w < l*0.99 || w > l*1.01 {
+		t.Fatalf("a ford worn 100 drew %.1f against a lane worn 600 at %.1f; want them level", w, l)
+	}
+}

@@ -54,6 +54,35 @@ var structureCost = [...]float64{
 	Road:    0.5,
 }
 
+// Saving is what a road laid on p would take off each crossing of it, as a
+// multiple of what a road on grass takes off. It is the other half of what a
+// length of road is worth, and until it was asked the only half being read
+// was how many people walk there.
+//
+// A road costs the same timber wherever it goes but does not save the same
+// amount. On grass it turns a 1 into a 0.5; through a wood a 2.2, and over
+// water a 3.5, and that last is why a bridge is worth six lengths of ordinary
+// street to the people who cross it. Read on wear alone a settlement paves
+// the flat ground it was already crossing easily and leaves the marsh, the
+// thicket and the river - the places where the going is dear, which is to say
+// the places where a road is the whole point. Weighing the wear by this is
+// what lets a crossing win on its merits: it earned an exception before,
+// because the bar it could not clear was written for a lane.
+//
+// Grass is the unit, so open ground reads exactly as worn as it is walked.
+// The bodily saving is not in here: a road is easier underfoot as well as
+// quicker, but roadDrain is the same wherever the road lies, so it says
+// nothing about which ground is worth paving. Nor is the climb, which a road
+// does not flatten - see StepCost, where the slope is added whatever is
+// built on the tile.
+func (g *Grid) Saving(p entity.Pos) float64 {
+	if !g.In(p) {
+		return 0
+	}
+	paved := structureCost[Road]
+	return (moveCost[g.At(p).Terrain] - paved) / (moveCost[Grass] - paved)
+}
+
 // roadDrain is how much of the ordinary bodily cost a tick of walking on a
 // road exacts. Paving saves more than the time it saves: a firm level surface
 // is easier underfoot as well as quicker, so a road is cheap twice over. This
