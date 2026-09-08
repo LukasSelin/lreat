@@ -12,13 +12,12 @@ import "lreat/core/event"
 // Nothing in the simulation reads any of this. It is written on the way
 // past by the population system and only ever looked at from outside.
 type Vitals struct {
-	// The cumulative record. Starved, Failed and Lost together are every
-	// death there has been, so the three of them against Births is the whole
-	// of whether a settlement is replacing itself.
+	// The cumulative record. Starved and Failed together are every death
+	// there has been, so the two of them against Births is the whole of
+	// whether a settlement is replacing itself.
 	Births  int
 	Starved int // ran out of food and stayed out
 	Failed  int // a body gave out with age
-	Lost    int // a child nobody was tending
 
 	// What this tick alone did, so that a rate can be read off a run of
 	// ticks rather than inferred from totals that only ever climb.

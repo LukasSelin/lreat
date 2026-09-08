@@ -101,7 +101,7 @@ func (v *view) keep(s *observe.Snapshot) {
 func (v *view) plot(s *observe.Snapshot) {
 	t := trace{
 		tick: s.Tick, pop: s.Population,
-		births: s.Vitals.Births, starved: s.Vitals.Starved, failed: s.Vitals.Failed + s.Vitals.Lost,
+		births: s.Vitals.Births, starved: s.Vitals.Starved, failed: s.Vitals.Failed,
 		phys: s.MeanNeeds[0], health: s.MeanHealth, carried: s.MeanFood,
 		forest: s.Forest, fields: s.Fields, houses: s.Houses, roads: s.Roads,
 		stock: s.FoodStock, price: s.FoodPrice, knowledge: s.Knowledge, safety: s.Safety,
@@ -315,11 +315,10 @@ func (v *view) drawTurnover(x, y, bottom int, s *observe.Snapshot) {
 	row := v.block(x, y, bottom, "turnover")
 	vi := s.Vitals
 	row(tcell.StyleDefault, "born", "%d", vi.Births)
-	row(tcell.StyleDefault, "died", "%d", vi.Starved+vi.Failed+vi.Lost)
+	row(tcell.StyleDefault, "died", "%d", vi.Starved+vi.Failed)
 	row(tcell.StyleDefault.Foreground(tcell.ColorRed), "  starved", "%d", vi.Starved)
-	row(tcell.StyleDefault.Foreground(tcell.ColorRed), "  untended", "%d", vi.Lost)
 	row(tcell.StyleDefault, "  old age", "%d", vi.Failed)
-	row(tcell.StyleDefault, "net", "%+d", vi.Births-(vi.Starved+vi.Failed+vi.Lost))
+	row(tcell.StyleDefault, "net", "%+d", vi.Births-(vi.Starved+vi.Failed))
 	born, died, ok := v.span(rateSpan)
 	label := fmt.Sprintf("last %dt", rateSpan)
 	style := tcell.StyleDefault
@@ -460,9 +459,8 @@ func (v *view) Report() string {
 	line("last birth", "%s", ago(v.lastBirth, s.Tick))
 	line("last death", "%s", ago(v.lastDeath, s.Tick))
 	vi := s.Vitals
-	line("turnover", "born %d, died %d (starved %d, untended %d, old age %d), net %+d",
-		vi.Births, vi.Starved+vi.Failed+vi.Lost, vi.Starved, vi.Lost, vi.Failed,
-		vi.Births-vi.Starved-vi.Failed-vi.Lost)
+	line("turnover", "born %d, died %d (starved %d, old age %d), net %+d",
+		vi.Births, vi.Starved+vi.Failed, vi.Starved, vi.Failed, vi.Births-vi.Starved-vi.Failed)
 	if born, died, ok := v.span(rateSpan); ok {
 		line(fmt.Sprintf("last %d ticks", rateSpan), "+%d -%d", born, died)
 	}

@@ -512,6 +512,31 @@ The age structure says where it went. Reading one settlement at sixty years: 116
 
 What is left of the gap is the childhood itself, and it should be left there. A quarter of a settlement being children is the fact; a settlement that cannot feed its children not growing is the mechanism working, not a regression.
 
+## Rearing, and why it is not here
+
+A fifteen-year childhood puts dependants in a settlement, and dependants were the one thing nothing in the catalog was about: everything an agent did for anybody else it did for whoever was nearest and worst off, which is charity, and charity is not what a household is. So rearing was built, measured, and taken out again. It is recorded here because the measurement is worth more than the code was, and because the next person to think of it should start from the numbers rather than from the idea.
+
+**What was built.** Kinship as a fact the world records (`Agent.Parent`, on the agent rather than in a Bond, because an opinion can be evicted when the slots fill and whose child you are cannot); an `ontology.Child` role; two ordinary acts over it - feeding one's own, which notices a child at somewhat over half fed where the needy are noticed at four tenths, and bringing one up in the work, which is teaching without the audience; and a household roof, the one part that is not an act, because a roof is a thing that stands rather than something anybody decides each morning. Later, the other half of the ledger: a childhood as a stock that tending puts in and time takes out, a daily chance that an untended child is simply lost, and a grown body built out of how the childhood went.
+
+**What it measured.** Twenty-four seeds, sixty years, twenty founders:
+
+| | lasted | extinct | median | mean | all three gates |
+|---|---|---|---|---|---|
+| no rearing | 24/24 | 0 | 163 | 185 | 0.287 |
+| the two acts and the roof | 22/24 | 0 | 62 | 129 | 0.194 |
+| the same, without the roof | 22/24 | 0 | 67 | 114 | 0.225 |
+| acts, roof, and a childhood that can be lost | 18/24 | 1 | 87 | 131 | 0.202 |
+
+Rearing does the thing it is for: over six seeds the settlements buried 668 people against 2024 without it, and children that starved now live. They are smaller settlements anyway, so the births fell further than the deaths did. Every average need rose while the share of fertile adults over all three birth thresholds at once fell, and both are true because they are about different people - the averages are over everyone and rearing fills a settlement with comfortable children, while the gates are over the adults it is a transfer out of. Births need three needs over their thresholds at one instant, and that is a cliff: acts under three per cent of everything anybody does cost three fifths of the median population.
+
+**Two guesses that were wrong, and one thing that is structural.** Paying a parent 0.12 of belonging - more than giving to a stranger pays - left belonging and standing four fifths satisfied all year; cutting it to 0.04 moved the median by five. Passing recognition down with the craft rubbed out the drift a child is born with and halved the settlement's fishing, a trade nobody drifts into being a trade nobody keeps; handing down the craft alone is right on its own terms and moved the median by five as well. Neither was the mechanism.
+
+What is structural is this: **agents choose by recognition and cannot decide to rear harder.** Priors are fixed and no outcome revises them, so making neglect expensive cannot cause more rearing - it can only kill children. The one channel that could adapt is selection, since norms and habits are inherited, and sixty years is about two generations. Whether it comes right over four or five was never established; the long sweep would not run.
+
+**What would have to change for it to pay.** Births here are cheap - no gestation, no maternal cost - and children survive untended well enough, so rearing is a charge on the parent with nothing on the other side of the ledger. Tying survival to tending was the attempt at that other side and it did not close the gap, because it never touched what was actually costing the population. The version worth trying next makes bearing itself cost the bearer something, so that a settlement's choice is between few children well kept and many badly, rather than between rearing and not.
+
+The work is on the branch it was written on, with its tests, if anybody wants it back.
+
 ## The turning year
 
 The world had one weather and kept it for ever. Now it has a temperate year, and the settlement has a season to get through rather than a steady state to sit in. `core/world/climate.go`, `core/system/climate.go`.

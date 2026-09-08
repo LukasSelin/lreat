@@ -272,11 +272,6 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 		Temperament: entity.RandomTemperament(w.RNG),
 		Vitality:    w.RandomVitality(),
 		Health:      0.9,
-		// Anyone the world puts into itself arrives wholly tended: a
-		// founder because it is grown and nothing reads it, a newborn
-		// because it has just been wanted. Only time takes it away, and
-		// only for those young enough to need it. See system.Rearing.
-		Tended: 1,
 	}
 	// Everyone starts believing they are unremarkable. Confidence is earned
 	// by doing, and can outrun or lag the skill it is meant to describe.

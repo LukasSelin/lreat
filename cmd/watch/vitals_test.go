@@ -174,7 +174,7 @@ func TestReportSaysHowTheRunWent(t *testing.T) {
 	got := v.Report()
 	for _, want := range []string{
 		"DIED OUT at tick 1200",
-		"born 10, died 22 (starved 20, untended 0, old age 2)",
+		"born 10, died 22 (starved 20, old age 2)",
 		"hungry 3",
 		"peak",
 		"Ada starved",
