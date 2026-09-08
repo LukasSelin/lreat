@@ -174,6 +174,25 @@ the size of the catalog; it is the schemas that will no longer compile.
       exchange coin > provision @market
 ```
 
+Changing which class a `SubClassOf` points at is a move, and is read as one
+rather than as a deletion and a declaration:
+
+```
+:Fish  would move from :Provision to :Game
+  core/ontology/class.go: change the parent in fish's declaration.
+
+  it stops inheriting: traits edible, lack 0.8
+  it starts inheriting: traits edible+perishable, lack 0.8
+
+  ! game had no children of its own, so it becomes a branch and the acts
+    keyed on game re-key under fish.
+```
+
+What a class inherits is the interesting half: traits, lack and prior all come
+from above it, so a move changes what a thing *is* before it changes where it
+sits. A move cannot be applied either, for the same reason a deletion cannot,
+and the catalog says so rather than counting it.
+
 It reads `Affords`, `Transforms` and `Processes` for mentions too, warns when
 the parent is left with no other child (the leaf case again, running the other
 way), and says when a trait nothing in the ontology reads has stopped earning

@@ -97,6 +97,25 @@ func propose(path string, current *owl.Ontology, w io.Writer) error {
 		c.applyAffords()
 	}
 
+	// A move arrives as two axioms, one out and one in, and is one decision.
+	// The removal side alone reads as a class left hanging; paired with the
+	// addition it is a reparenting, and saying both would be saying it twice
+	// and contradicting itself once.
+	moving := map[*ontology.Class]bool{}
+	for _, c := range concepts {
+		if c.moveTo != nil {
+			moving[c.existing] = true
+		}
+	}
+	kept := drops[:0]
+	for _, d := range drops {
+		if d.unparented && moving[d.self] {
+			continue
+		}
+		kept = append(kept, d)
+	}
+	drops = kept
+
 	fmt.Fprintf(w, "%d axiom(s) in, %d out: %d concept(s), %d removal(s)\n",
 		len(axioms), len(removed), len(concepts), len(drops))
 	for _, d := range drops {
@@ -107,16 +126,17 @@ func propose(path string, current *owl.Ontology, w io.Writer) error {
 		fmt.Fprintln(w)
 		c.report(w)
 	}
-	if applied == 0 && !detached(drops) {
+	uncounted := detached(drops) || len(moving) > 0
+	if applied == 0 && !uncounted {
 		return nil
 	}
 
 	fmt.Fprintln(w)
 	reportCatalog(before, keysOf(ontology.Instantiate()), w)
-	if detached(drops) {
-		fmt.Fprintln(w, "\n  The catalog above does not count the class removals. A class cannot be")
-		fmt.Fprintln(w, "  taken off its parent from out here, which is why they are answered")
-		fmt.Fprintln(w, "  with everything that names them instead.")
+	if uncounted {
+		fmt.Fprintln(w, "\n  The catalog above counts neither the class removals nor the moves. A")
+		fmt.Fprintln(w, "  class cannot be taken off its parent from out here, which is why both")
+		fmt.Fprintln(w, "  are answered with what they would carry instead.")
 	}
 	return nil
 }
@@ -263,12 +283,15 @@ type concept struct {
 	other   []owl.Axiom // axioms about it this does not read
 
 	// what apply worked out.
-	added       *ontology.Class
-	parentClass *ontology.Class
-	existing    *ontology.Class // named a class the trees already have
-	wasLeaf     bool
-	newTraits   ontology.Trait // the ones existing did not already have
-	newAffords  []*ontology.Class
+	added         *ontology.Class
+	parentClass   *ontology.Class
+	existing      *ontology.Class // named a class the trees already have
+	moveTo        *ontology.Class // and given a different parent
+	wasLeaf       bool
+	orphansParent bool // the parent it leaves has no other child
+	acts          []string
+	newTraits     ontology.Trait // the ones existing did not already have
+	newAffords    []*ontology.Class
 }
 
 func gather(axioms []owl.Axiom, fresh map[owl.IRI]owl.Entity) []*concept {
@@ -334,7 +357,20 @@ func gather(axioms []owl.Axiom, fresh map[owl.IRI]owl.Entity) []*concept {
 // instantiated as it would be if the proposal were accepted. The process is
 // about to exit and nothing else reads the trees after this.
 func (c *concept) apply() bool {
-	if parent := lreatClass(c.parent); parent != nil {
+	self, parent := lreatClass(owl.Class(c.entity.IRI())), lreatClass(c.parent)
+
+	// A class the trees already have, given a different parent, is a move
+	// rather than a new class. Reading it as new was making a second class of
+	// the same name and leaving the first where it was, which is a tree the
+	// catalog was then instantiated over.
+	if self != nil && parent != nil && parent != self.Parent {
+		c.existing, c.moveTo = self, parent
+		c.wasLeaf = len(parent.Children()) == 0
+		c.orphansParent = len(self.Parent.Children()) == 1
+		c.acts = actsNaming(self)
+		return false
+	}
+	if self == nil && parent != nil {
 		c.parentClass = parent
 		c.wasLeaf = len(parent.Children()) == 0
 		added := ontology.New(strings.ToLower(c.name), parent, c.traitMask(), c.prior("prior-"))
@@ -357,10 +393,10 @@ func (c *concept) apply() bool {
 	}
 	// Not a new class, then, but perhaps a change to one the trees have: a
 	// trait it should have had, a row in Affords, a number retuned.
-	if existing := lreatClass(owl.Class(c.entity.IRI())); existing != nil {
-		c.existing = existing
-		c.newTraits = c.traitMask() &^ existing.All()
-		existing.Traits |= c.newTraits
+	if self != nil {
+		c.existing = self
+		c.newTraits = c.traitMask() &^ self.All()
+		self.Traits |= c.newTraits
 		return c.newTraits != 0 || len(c.affords) > 0
 	}
 	return false
@@ -389,6 +425,8 @@ func (c *concept) report(w io.Writer) {
 	switch {
 	case c.added != nil:
 		c.reportClass(w)
+	case c.moveTo != nil:
+		c.reportMove(w)
 	case c.existing != nil:
 		c.reportExisting(w)
 	default:
@@ -424,6 +462,38 @@ func (c *concept) reportClass(w io.Writer) {
 	}
 	for _, ax := range c.other {
 		fmt.Fprintf(w, "\n  not read: %s\n", rendered(ax))
+	}
+}
+
+// reportMove answers a class given a different parent. Like a deletion it
+// cannot be applied - the same unexported slice holds it where it is - so it
+// is answered with what the move would carry it out of and into. That is the
+// interesting half anyway: a class inherits its traits, its lack and its prior
+// from above it, so moving one changes what it is before it changes where it
+// sits.
+func (c *concept) reportMove(w io.Writer) {
+	self, to := c.existing, c.moveTo
+	from := self.Parent
+
+	fmt.Fprintf(w, ":%s  would move from :%s to :%s\n", title(self.Name), title(from.Name), title(to.Name))
+	fmt.Fprintf(w, "  core/ontology/class.go: change the parent in %s's declaration.\n", self.Name)
+
+	fmt.Fprintf(w, "\n  it stops inheriting: %s\n", inheritedFrom(from))
+	fmt.Fprintf(w, "  it starts inheriting: %s\n", inheritedFrom(to))
+
+	if c.wasLeaf {
+		fmt.Fprintf(w, "\n  ! %s had no children of its own, so it becomes a branch and the acts\n", to.Name)
+		fmt.Fprintf(w, "    keyed on %s re-key under %s.\n", to.Name, self.Name)
+	}
+	if c.orphansParent {
+		fmt.Fprintf(w, "\n  ! %s has no other child, so it becomes a leaf and gains the acts it\n", from.Name)
+		fmt.Fprintf(w, "    had been lending to %s.\n", self.Name)
+	}
+	if len(c.acts) > 0 {
+		fmt.Fprintf(w, "\n  %d act(s) in the catalog are keyed on it:\n", len(c.acts))
+		for _, k := range c.acts {
+			fmt.Fprintf(w, "      %s\n", k)
+		}
 	}
 }
 

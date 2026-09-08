@@ -335,23 +335,24 @@ func (d *dropping) reportUnparented(w io.Writer) {
 	fmt.Fprintln(w, "  Nothing in the trees can hold a class with no parent, and its parent is")
 	fmt.Fprintln(w, "  staying. Say which class it hangs off instead, and this will answer for")
 	fmt.Fprintln(w, "  the move; as written it is neither a removal nor a reparenting.")
-	fmt.Fprintf(w, "\n  What it would stop inheriting from %s: %s\n", c.Parent.Name, inherits(c))
+	fmt.Fprintf(w, "\n  What it would stop inheriting from %s: %s\n", c.Parent.Name, inheritedFrom(c.Parent))
 }
 
-// inherits is what a class gets from above it and would lose on the way out.
-func inherits(c *ontology.Class) string {
+// inheritedFrom is what hanging off p gets a class: what it would lose on the
+// way out of p, or gain on the way in.
+func inheritedFrom(p *ontology.Class) string {
 	var parts []string
-	if t := c.Parent.All(); t != 0 {
+	if t := p.All(); t != 0 {
 		parts = append(parts, "traits "+t.String())
 	}
-	if l := c.Parent.Short(); l != 0 {
+	if l := p.Short(); l != 0 {
 		parts = append(parts, fmt.Sprintf("lack %s", num(l)))
 	}
-	if p := c.Parent.DerivedPrior(); p != (habitZero) {
-		parts = append(parts, "the prior "+sigExpr(p))
+	if s := p.DerivedPrior(); s != habitZero {
+		parts = append(parts, "the prior "+sigExpr(s))
 	}
 	if len(parts) == 0 {
-		return "nothing it does not already have of its own"
+		return "nothing"
 	}
 	return strings.Join(parts, ", ")
 }

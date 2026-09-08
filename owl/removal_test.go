@@ -120,6 +120,73 @@ func TestAClassCutLooseIsNotSilent(t *testing.T) {
 	}
 }
 
+// replacingLine is a move written the way a person writes one: change which
+// class the SubClassOf points at.
+func replacingLine(t *testing.T, from, to string) string {
+	t.Helper()
+	o, err := Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+	o.Sort()
+	var found bool
+	lines := strings.Split(o.Functional(), "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) == from {
+			lines[i], found = strings.Replace(line, from, to, 1), true
+		}
+	}
+	if !found {
+		t.Fatalf("the document has no line %q; the test is stale", from)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// A move arrives as one axiom out and one in. Read as two it is a class left
+// hanging and a class newly declared, and the second of those made a whole
+// second class of the same name while the first stayed where it was - a tree
+// the catalog was then instantiated over.
+func TestReparenting(t *testing.T) {
+	out := runPropose(t, replacingLine(t, "SubClassOf(:Fish :Provision)", "SubClassOf(:Fish :Game)"))
+	for _, want := range []string{
+		":Fish  would move from :Provision to :Game",
+		"it stops inheriting: traits edible, lack 0.8",
+		"it starts inheriting: traits edible+perishable, lack 0.8",
+		"game had no children of its own",
+		"counts neither the class removals nor the moves",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	for _, no := range []string{
+		// The removal half, reported on its own, contradicts the move.
+		"would no longer be under",
+		// A move is not a declaration, and writing one made a second fish.
+		`Fish = New(`,
+	} {
+		if strings.Contains(out, no) {
+			t.Errorf("unwanted %q in:\n%s", no, out)
+		}
+	}
+	// The proof that no second class was made: a move cannot be applied, so
+	// the catalog has to come back untouched.
+	if !strings.Contains(out, "no change") {
+		t.Errorf("a move that cannot be applied moved the catalog:\n%s", out)
+	}
+}
+
+// Pointing a class at the parent it already has is not a move.
+func TestReparentingToTheSameParentIsNothing(t *testing.T) {
+	out := runPropose(t, "SubClassOf(:Fish :Provision)")
+	if strings.Contains(out, "would move") {
+		t.Errorf("re-asserting a parent read as a move:\n%s", out)
+	}
+	if !strings.Contains(out, "The trees already say this") {
+		t.Errorf("re-asserting a parent was not recognised:\n%s", out)
+	}
+}
+
 func TestRemoval(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -146,7 +213,7 @@ func TestRemoval(t *testing.T) {
 			":Coin  (thing/material/coin) would go",
 			"exchange/coin>provision@market",
 			"will not compile",
-			"does not count the class removals",
+			"counts neither the class removals nor the moves",
 		},
 	}, {
 		// A trait a class owns can go, and what else reads it is the thing
