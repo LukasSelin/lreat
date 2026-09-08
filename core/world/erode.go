@@ -9,9 +9,10 @@ import (
 
 // Weathering: the land does not hold still.
 //
-// An age of weather strips soil off the ground in proportion to how much water
-// crosses it, how steeply it lies, and how little is holding it down; carries
-// what it strips downhill; and lays it down again where the water slows. The
+// An age of weather - a decade of it - strips soil off the ground in
+// proportion to how much water crosses it, how steeply it lies, and how
+// little is holding it down; carries what it strips downhill; and lays it
+// down again where the water slows. The
 // heights change, so the drainage is worked out again, so the rivers are where
 // the new ground sends them. Nothing is moved by hand.
 //
@@ -23,14 +24,21 @@ import (
 // it. Nobody decides that; it falls out of where they chose to put their
 // fields.
 
-// Wash is how much soil an age of weather takes off a tile, given the water
-// crossing it and the steepness of it. What the water can lift goes as the
-// root of how much of it there is rather than in proportion: taken in
-// proportion, the valley floor carries so much of the map's water that it
-// scoured itself out instead of silting up, which is the opposite of what a
-// flood plain is. The root is the usual reading, and with it the channel
-// still cuts down while the ground beside it fills.
-const Wash = 25
+// Wash is how much soil an age of weather - a decade of it; see
+// system.ErodeEvery - takes off a tile, given the water crossing it and the
+// steepness of it. What the water can lift goes as the root of how much of it
+// there is rather than in proportion: taken in proportion, the valley floor
+// carries so much of the map's water that it scoured itself out instead of
+// silting up, which is the opposite of what a flood plain is. The root is the
+// usual reading, and with it the channel still cuts down while the ground
+// beside it fills.
+//
+// The size of it is what makes the ground move at the speed ground moves: a
+// ploughed slope loses a few centimetres of soil a decade and a wooded one a
+// few millimetres, so a hillside farmed hard is worn out in a century or two
+// and one left standing keeps what it has for longer than anybody watching it
+// will be alive.
+const Wash = 12
 
 // Settle is the share of what the water is carrying that it puts down on
 // gentle ground each tile it crosses. Steep ground keeps its load moving.

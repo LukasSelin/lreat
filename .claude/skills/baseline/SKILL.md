@@ -45,7 +45,7 @@ The last line is the headline. Most of what is on it is noise:
 
 | reading | worth believing at |
 |---|---|
-| fed, and the four mean needs | a move of 0.05 |
+| fed, and the four mean needs | a move of 0.05 on two batches that agree |
 | gates all | a move of 0.04 |
 | lasted, extinct | a move of 5 of 24 |
 | mean and median population | never on its own |
