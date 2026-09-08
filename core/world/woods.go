@@ -70,7 +70,7 @@ func (g *Grid) HoldsWood(p entity.Pos) bool {
 	if !g.woodsRead {
 		g.readWoods()
 	}
-	return !g.TooSteep(p) && g.WoodsAt(p) >= g.woodsLine
+	return g.holds[p.Y*g.W+p.X]
 }
 
 // readWoods takes the map's measure of itself: how steep its steep ground is,
@@ -94,8 +94,27 @@ func (g *Grid) readWoods() {
 		}
 		suits = append(suits, g.WoodsAt(entity.Pos{X: i % g.W, Y: i / g.W}))
 	}
-	if len(suits) == 0 {
-		return
+	if len(suits) > 0 {
+		g.woodsLine = quantile(suits, 1-woodsShare)
 	}
-	g.woodsLine = quantile(suits, 1-woodsShare)
+	g.readHolds()
+}
+
+// readHolds writes down, for every tile, whether trees will take on it. The
+// answer is a reading of the ground and of nothing else, so it moves only
+// when the ground does - which is why it is taken here, where the tree line
+// itself is taken, and not again until the weather has been over the map.
+//
+// Somebody looking for somewhere to plant asks this of a few hundred tiles
+// at a time, and it costs a slope and a dampness on each of them; asked
+// afresh every time, that search was half of all the looking the settlement
+// did for anywhere to do anything.
+func (g *Grid) readHolds() {
+	if len(g.holds) != len(g.Tiles) {
+		g.holds = make([]bool, len(g.Tiles))
+	}
+	for i := range g.Tiles {
+		p := entity.Pos{X: i % g.W, Y: i / g.W}
+		g.holds[i] = !g.TooSteep(p) && g.WoodsAt(p) >= g.woodsLine
+	}
 }

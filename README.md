@@ -18,6 +18,17 @@ Watch a settlement develop live:
 go run ./cmd/watch
 ```
 
+That opens the start screen rather than a settlement. `start` founds one on
+the defaults straight away; `options` is the terms it would be founded on —
+the seed, how many figures, how much ground, what speed to begin at, and
+whether anyone chooses by recognition or by expected value — each written out
+in a line under the one being looked at, arrows to change it or a number
+typed straight in, `r` for a fresh seed, `d` to put everything back, and a
+`start` at the foot of the page so a tuned run is founded from where it was
+tuned. The flags are still there and still mean the same things; they are
+what the menu opens on now, and `-start` skips the menu for a run launched by
+a script rather than by hand.
+
 Space pauses, `+` and `-` change speed, `.` steps once while paused, `r` lays
 streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,

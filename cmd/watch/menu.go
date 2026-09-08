@@ -1,0 +1,442 @@
+package main
+
+import (
+	"fmt"
+	"math/rand/v2"
+	"strings"
+
+	"github.com/gdamore/tcell/v2"
+
+	"lreat/core/world"
+)
+
+// The start screen is the front door. A settlement is founded on a handful
+// of decisions — how many people, how much ground, which seed, and by what
+// rule anyone chooses anything — and until now the only place to make them
+// was the command line, which meant knowing every flag before the first run
+// and restarting the program to change one. The menu asks the same
+// questions in the place where the answers are needed, and answers them
+// itself for anyone who would rather just watch a settlement.
+//
+// Options are laid out one to a line with what they do written under the
+// one being looked at, because these are not settings so much as the terms
+// the run is founded on: what temperature does to a settlement is not
+// something the word "temperature" says.
+
+// setup is everything decided before a world exists. Flags fill it, the
+// menu edits it, and main founds the settlement out of it.
+type setup struct {
+	seed   uint64
+	agents int
+	width  int
+	height int
+	tps    float64
+	fit    bool
+	temp   float64
+}
+
+// defaults are what start founds a settlement on: the same run the command
+// used to make with no flags at all.
+func defaults() setup {
+	r := world.DefaultRules()
+	return setup{
+		seed:   1,
+		agents: 20,
+		width:  world.DefaultWidth,
+		height: world.DefaultHeight,
+		tps:    20,
+		fit:    r.Fit,
+		temp:   r.Temperature,
+	}
+}
+
+// option is one line of the options page: what it is called, what it says
+// about itself, how it reads, and how the arrow keys move it. digits is how
+// a number typed straight in lands, nil on the lines that are not numbers.
+type option struct {
+	name   string
+	help   string
+	show   func(*setup) string
+	step   func(*setup, int)
+	digits func(*setup, uint64)
+}
+
+func options() []option {
+	return []option{{
+		name: "seed",
+		help: "the world's one source of chance: the same seed is the same run, every time (r deals a fresh one)",
+		show: func(s *setup) string { return fmt.Sprintf("%d", s.seed) },
+		step: func(s *setup, d int) {
+			if d < 0 && s.seed == 0 {
+				return
+			}
+			s.seed = uint64(int64(s.seed) + int64(d))
+		},
+		digits: func(s *setup, n uint64) { s.seed = n },
+	}, {
+		name:   "figures",
+		help:   "how many people the settlement is founded with; too few and one bad winter ends it",
+		show:   func(s *setup) string { return fmt.Sprintf("%d", s.agents) },
+		step:   func(s *setup, d int) { s.agents = clampInt(s.agents+d, 1, 500) },
+		digits: func(s *setup, n uint64) { s.agents = clampInt(int(n), 1, 500) },
+	}, {
+		name:   "map width",
+		help:   "how wide the ground is; a bigger map is more forest to walk to and more room to spread into",
+		show:   func(s *setup) string { return fmt.Sprintf("%d", s.width) },
+		step:   func(s *setup, d int) { s.width = clampInt(s.width+4*d, 20, 400) },
+		digits: func(s *setup, n uint64) { s.width = clampInt(int(n), 20, 400) },
+	}, {
+		name:   "map height",
+		help:   "how deep the ground is; the map and the panel beside it both have to fit the terminal",
+		show:   func(s *setup) string { return fmt.Sprintf("%d", s.height) },
+		step:   func(s *setup, d int) { s.height = clampInt(s.height+2*d, 10, 200) },
+		digits: func(s *setup, n uint64) { s.height = clampInt(int(n), 10, 200) },
+	}, {
+		name: "speed",
+		help: "days per second to begin at; + and - change it again while the settlement runs",
+		show: func(s *setup) string { return fmt.Sprintf("%.2f t/s", s.tps) },
+		step: func(s *setup, d int) {
+			if d > 0 {
+				s.tps *= 2
+			} else {
+				s.tps /= 2
+			}
+			s.tps = clampFloat(s.tps, 0.25, 512)
+		},
+	}, {
+		name: "choosing",
+		help: "recognition takes the action whose habit fits the moment; value prices every option, the older rule",
+		show: func(s *setup) string {
+			if s.fit {
+				return "recognition"
+			}
+			return "value"
+		},
+		step: func(s *setup, _ int) { s.fit = !s.fit },
+	}, {
+		name: "temperature",
+		help: "how loosely recognition is followed: 0 always takes the best fit, higher wanders further from it",
+		show: func(s *setup) string {
+			if !s.fit {
+				return "—"
+			}
+			return fmt.Sprintf("%.2f", s.temp)
+		},
+		step: func(s *setup, d int) { s.temp = clampFloat(s.temp+0.05*float64(d), 0, 2) },
+	}}
+}
+
+func clampInt(v, lo, hi int) int { return min(max(v, lo), hi) }
+
+func clampFloat(v, lo, hi float64) float64 { return min(max(v, lo), hi) }
+
+// menu runs the start screen on an already-initialised screen and reports
+// whether to go on and found the settlement; false is the user leaving
+// before there is one. It edits s in place, so whatever the flags said is
+// what the options page opens on.
+func menu(sc tcell.Screen, s *setup) bool {
+	m := &menuState{screen: sc, s: s}
+	for {
+		m.draw()
+		ev, ok := sc.PollEvent().(*tcell.EventKey)
+		if !ok {
+			continue // a resize or a click: draw again and keep waiting
+		}
+		if done, start := m.key(ev); done {
+			return start
+		}
+	}
+}
+
+// The page is drawn with the same restraint as the settlement's own panel:
+// a dim label, the value where the eye already is, and the cursor the only
+// bright thing on the screen. The line under the options is what the option
+// the cursor is on actually does, because a menu that only names its
+// settings is a list of words to look up elsewhere.
+const (
+	menuLeft  = 2
+	menuTop   = 1
+	menuLabel = 14
+)
+
+func (m *menuState) draw() {
+	sc := m.screen
+	sc.Clear()
+	w, h := sc.Size()
+	bold := tcell.StyleDefault.Bold(true)
+	dim := tcell.StyleDefault.Dim(true)
+	line := menuTop
+	put := func(style tcell.Style, format string, args ...any) {
+		puts(sc, menuLeft, line, style, trim(fmt.Sprintf(format, args...), max(1, w-menuLeft)))
+		line++
+	}
+
+	put(bold, "lreat")
+	put(dim, "a settlement of people living in a world, and nobody playing it")
+	line++
+
+	if m.opts {
+		m.drawOptions(&line, w, h)
+	} else {
+		m.drawFront(&line)
+	}
+
+	keys := "↑↓ move   enter choose   q quit"
+	if m.opts {
+		keys = "↑↓ move   ←→ change   type a number   d defaults   esc back   q quit"
+	}
+	puts(sc, menuLeft, max(line+1, h-1), dim, trim(keys, max(1, w-menuLeft)))
+	sc.Show()
+}
+
+// drawFront is the front page: the three things to do, and under them the
+// terms the settlement would be founded on if it were started now. Start is
+// never a leap in the dark — what it would do is written under it.
+func (m *menuState) drawFront(line *int) {
+	sc := m.screen
+	dim := tcell.StyleDefault.Dim(true)
+	labels := map[string]string{
+		"start":   "found a settlement and watch it",
+		"options": "set the terms it is founded on",
+		"quit":    "leave",
+	}
+	for i, name := range front {
+		style, mark := tcell.StyleDefault, " "
+		if i == m.at {
+			style, mark = tcell.StyleDefault.Bold(true), "▸"
+		}
+		// The cursor keeps a column of its own to the left of the names:
+		// a mark that pushed the line it is on sideways would make the
+		// page shuffle under the eye every time it moved.
+		puts(sc, menuLeft, *line, style, mark)
+		puts(sc, menuLeft+2, *line, style, fmt.Sprintf("%-9s", name))
+		puts(sc, menuLeft+menuLabel, *line, dim, labels[name])
+		*line++
+	}
+	*line += 2
+	s := m.s
+	rule := "recognition"
+	if !s.fit {
+		rule = "value"
+	}
+	puts(sc, menuLeft+2, *line, dim, fmt.Sprintf("seed %d   %d figures   %d by %d   %.2f t/s   %s",
+		s.seed, s.agents, s.width, s.height, s.tps, rule))
+	*line++
+}
+
+// drawOptions is the options page: the terms one to a line, the start under
+// them, and what the line the cursor is on means under that.
+func (m *menuState) drawOptions(line *int, w, h int) {
+	sc := m.screen
+	dim := tcell.StyleDefault.Dim(true)
+	opts := options()
+	for i, o := range opts {
+		style, mark := tcell.StyleDefault, " "
+		if i == m.at {
+			style, mark = tcell.StyleDefault.Bold(true), "▸"
+		}
+		value := o.show(m.s)
+		if i == m.at && m.typed != "" {
+			// What is being typed stands where the value does, marked as
+			// unfinished: it is not the setting until the cursor leaves.
+			value = m.typed + "_"
+		}
+		puts(sc, menuLeft, *line, style, mark)
+		puts(sc, menuLeft+2, *line, dim, o.name)
+		puts(sc, menuLeft+menuLabel+2, *line, style, trim(value, max(1, w-menuLeft-menuLabel-2)))
+		*line++
+	}
+	*line++
+	style, mark := tcell.StyleDefault, " "
+	if m.at >= len(opts) {
+		style, mark = tcell.StyleDefault.Bold(true), "▸"
+	}
+	puts(sc, menuLeft, *line, style, mark)
+	puts(sc, menuLeft+2, *line, style, "start")
+	puts(sc, menuLeft+menuLabel+2, *line, dim, "found the settlement on these terms")
+	*line += 2
+
+	help := "found the settlement on the terms above"
+	if m.at < len(opts) {
+		help = opts[m.at].help
+	}
+	for _, s := range wrap(help, max(20, w-menuLeft-2)) {
+		if *line >= h-1 {
+			break
+		}
+		puts(sc, menuLeft+2, *line, dim, s)
+		*line++
+	}
+}
+
+// wrap breaks a line of help into lines that fit, on spaces. The help is
+// written as sentences rather than as labels, and a sentence cut off at the
+// edge of the terminal explains nothing.
+func wrap(s string, width int) []string {
+	var lines []string
+	line := ""
+	for _, word := range strings.Fields(s) {
+		switch {
+		case line == "":
+			line = word
+		case len([]rune(line))+1+len([]rune(word)) <= width:
+			line += " " + word
+		default:
+			lines = append(lines, line)
+			line = word
+		}
+	}
+	if line != "" {
+		lines = append(lines, line)
+	}
+	return lines
+}
+
+// menuState is where the cursor is: which page, which line, and the digits
+// typed at that line so far. Typing is kept apart from the value itself so
+// that a half-typed number is never a world size.
+type menuState struct {
+	screen tcell.Screen
+	s      *setup
+	// opts is the options page rather than the front page, at is the line
+	// the cursor is on, and typed is the number being entered there.
+	opts  bool
+	at    int
+	typed string
+}
+
+// front is the three things that can be done before a settlement exists.
+var front = []string{"start", "options", "quit"}
+
+// rows is how many lines the current page has. The options page carries one
+// more than it has options: the start at the foot of it, so that tuning and
+// founding are one movement down the page rather than a trip back.
+func (m *menuState) rows() int {
+	if m.opts {
+		return len(options()) + 1
+	}
+	return len(front)
+}
+
+// key acts on a press. It returns done when the menu is over, and start when
+// what is over it is a settlement rather than the program.
+func (m *menuState) key(ev *tcell.EventKey) (done, start bool) {
+	switch {
+	case ev.Key() == tcell.KeyCtrlC:
+		return true, false
+	case ev.Key() == tcell.KeyUp || ev.Key() == tcell.KeyBacktab:
+		m.move(-1)
+	case ev.Key() == tcell.KeyDown || ev.Key() == tcell.KeyTab:
+		m.move(1)
+	case ev.Key() == tcell.KeyEscape:
+		if !m.opts {
+			return true, false
+		}
+		// Esc backs out of the options onto the line that opened them,
+		// keeping everything tuned there: leaving the page is not
+		// changing one's mind about it.
+		m.commit()
+		m.opts, m.at = false, 1
+	case ev.Key() == tcell.KeyLeft:
+		m.adjust(-1)
+	case ev.Key() == tcell.KeyRight:
+		m.adjust(1)
+	case ev.Key() == tcell.KeyEnter || ev.Rune() == ' ':
+		return m.enter()
+	case ev.Key() == tcell.KeyBackspace || ev.Key() == tcell.KeyBackspace2:
+		if m.typed != "" {
+			m.typed = m.typed[:len(m.typed)-1]
+		}
+	case ev.Rune() >= '0' && ev.Rune() <= '9':
+		m.digit(ev.Rune())
+	case ev.Rune() == 'r' && m.opts && m.at == 0:
+		// A seed nobody chose is the commonest thing to want and the most
+		// tedious to type: r deals a fresh one, short enough to write down.
+		m.s.seed, m.typed = rand.Uint64N(100000), ""
+	case ev.Rune() == 'd':
+		*m.s, m.typed = defaults(), ""
+	case ev.Rune() == 'q':
+		return true, false
+	}
+	return false, false
+}
+
+func (m *menuState) move(d int) {
+	m.commit()
+	n := m.rows()
+	m.at = (m.at + d + n) % n
+}
+
+// enter acts on the line the cursor is on. On the front page that is the
+// choice itself; on the options page it founds the settlement from the last
+// line and otherwise only moves the toggles, which have nowhere to be
+// adjusted to but the other side.
+func (m *menuState) enter() (done, start bool) {
+	m.commit()
+	if !m.opts {
+		switch front[m.at] {
+		case "start":
+			return true, true
+		case "options":
+			m.opts, m.at = true, 0
+		case "quit":
+			return true, false
+		}
+		return false, false
+	}
+	opts := options()
+	if m.at >= len(opts) {
+		return true, true // the start at the foot of the options
+	}
+	if opts[m.at].digits == nil {
+		opts[m.at].step(m.s, 1)
+	}
+	return false, false
+}
+
+func (m *menuState) adjust(d int) {
+	if !m.opts {
+		return
+	}
+	opts := options()
+	if m.at >= len(opts) {
+		return
+	}
+	m.typed = "" // the arrows move the value itself, not the number being typed
+	opts[m.at].step(m.s, d)
+}
+
+// digit takes a number typed straight at a line. It is held as text until
+// the cursor leaves the line, so that typing 120 does not pass through 1
+// and 12 and get clamped on the way.
+func (m *menuState) digit(r rune) {
+	if !m.opts {
+		return
+	}
+	opts := options()
+	if m.at >= len(opts) || opts[m.at].digits == nil {
+		return
+	}
+	if len(m.typed) < 18 { // beyond that no uint64 will hold it
+		m.typed += string(r)
+	}
+}
+
+// commit lands whatever has been typed at the current line. Everything that
+// moves the cursor or founds a settlement goes through it, so a number
+// typed and walked away from is a number that took.
+func (m *menuState) commit() {
+	typed := m.typed
+	m.typed = ""
+	if typed == "" || !m.opts {
+		return
+	}
+	opts := options()
+	if m.at >= len(opts) || opts[m.at].digits == nil {
+		return
+	}
+	var n uint64
+	if _, err := fmt.Sscanf(typed, "%d", &n); err == nil {
+		opts[m.at].digits(m.s, n)
+	}
+}

@@ -107,6 +107,9 @@ type Grid struct {
 	steepLine float64
 	woodsLine float64
 	woodsRead bool
+	// holds is whether trees will take on each tile, read at the same time
+	// as the lines above and from the same ground. See readHolds.
+	holds []bool
 
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
