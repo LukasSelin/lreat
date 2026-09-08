@@ -25,6 +25,7 @@ import (
 func main() {
 	out := flag.String("o", "", "where to write the document; - for standard output")
 	check := flag.Bool("lint", false, "report lint findings instead of writing")
+	from := flag.String("propose", "", "read a proposal and report what accepting it would mean")
 	flag.Parse()
 
 	o, err := Build()
@@ -32,6 +33,13 @@ func main() {
 		fail(err)
 	}
 	o.Sort()
+
+	if *from != "" {
+		if err := propose(*from, o, os.Stdout); err != nil {
+			fail(err)
+		}
+		return
+	}
 
 	if *check {
 		// The roots are orphans by construction — :Act and :Thing are under

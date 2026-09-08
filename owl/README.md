@@ -9,9 +9,10 @@ run time, so the way to change it is to change `core/ontology` and run this
 again.
 
 ```bash
-go run ./owl            # rewrite owl/lreat.ofn
+go run ./owl                       # rewrite owl/lreat.ofn
 go run ./owl -o - | less
-go run ./owl -lint      # what gowl makes of it
+go run ./owl -lint                 # what gowl makes of it
+go run ./owl -propose new.ofn      # what accepting a change would cost
 ```
 
 `go test ./owl` compares the two sides rather than the document against a
@@ -64,6 +65,76 @@ discovers fishing and a person is good at fishing, and until the technology
 took a suffix those were one class, sitting under both `:Skill` and
 `:Technology`. Every generated name is now claimed against one map, so the
 next collision of that shape is a build failure instead.
+
+## Thinking in the ontology first
+
+`-propose` runs the other way. You write what you want in OWL and it answers
+with what the world would then be — which is the order you want when the
+concept is not settled yet, because the axioms are quicker to write than the
+Go and much quicker to throw away.
+
+A proposal is a file of axioms, one per line, or a whole edited document.
+
+```
+Declaration(Class(:Pitch))
+SubClassOf(:Pitch :Material)
+SubClassOf(:Pitch :Burnable)
+SubClassOf(:Pitch DataHasValue(:lack "0.5"^^xsd:decimal))
+SubClassOf(:Wood ObjectSomeValuesFrom(:affords :Pitch))
+```
+
+```
+:Pitch  (class, under :Material)
+  core/ontology/class.go, in the Things block:
+
+      Pitch = lack(New("pitch", Material, Burnable, habit.Signature{}), 0.5)
+
+:Wood  (thing/site/ground/wood, already in the trees)
+  core/ontology/relation.go, in Affords:
+
+      Wood: {..., Pitch},
+
+catalog: 31 acts before, 32 after
+  + take/pitch@wood
+```
+
+Two things make this worth running rather than reasoning about.
+
+**The vocabulary is closed.** Every term has to be one the document already
+defines, or be declared in the proposal itself. `:Materal` is refused with
+`did you mean :Material?` and nothing is applied — a proposal half accepted is
+worse than one turned down. Declaring is the one way past it, and it has to be
+deliberate, because a term used without one is a slip far more often than an
+intention.
+
+**The catalog is instantiated, not predicted.** The proposal is applied to the
+trees and `Instantiate` is run again, so the answer is the real before and
+after. That is how the expensive edits show themselves:
+
+```
+Declaration(Class(:Granite))
+SubClassOf(:Granite :Stone)
+```
+```
+  ! stone had no children of its own. Adding one makes it a branch, and
+    Instantiate walks leaves, so every act keyed on stone is re-keyed
+    under its children.
+
+catalog: 31 acts before, 31 after
+  - take/stone@outcrop
+  + take/granite@outcrop
+
+  A key that goes takes its habit slot with it: everyone who had learned
+  the act keeps a slot nothing reads, and whatever replaced it starts
+  unlearned for the whole settlement.
+```
+
+Nothing in the axioms says that. It is a fact about `Leaves`, and the only way
+to see it is to run the thing.
+
+What comes back is a declaration to paste, not a patch. Go stays the source:
+the prose in `core/ontology` carries the reasoning, and no generator is going
+to write *the slowest thing the year makes*.
 
 ## Why this is its own module
 
