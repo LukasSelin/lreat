@@ -141,6 +141,20 @@ type Agent struct {
 	// one.
 	Parent ID
 
+	// Tended is how the childhood is going, in [0,1]: a stock that being
+	// fed, taught and housed by a parent puts into a child and that time
+	// takes back out. A newborn starts with all of it, which is the grace
+	// an infant gets from having just been wanted, and a child nobody
+	// comes back to has none of it inside a couple of years.
+	//
+	// It is what makes rearing worth doing rather than merely kind. A
+	// tended child grows into a body worth having and mostly lives to use
+	// it; an untended one is a third likely not to reach fifteen at all,
+	// and reaches it slighter if it does. Nothing reads it after maturity -
+	// what a childhood did is already in the body by then. See
+	// entity.Neglect and system.Rearing.
+	Tended float64
+
 	// Luck is the agent's own stream of chance, seeded when it is born. An
 	// agent draws from this rather than from the world's one stream so that
 	// what it decides depends on what it has drawn before and not on who

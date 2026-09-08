@@ -133,6 +133,11 @@ type move struct {
 	Skill   entity.Skill
 	Skilled bool
 	Learn   float64
+	// Tends is what the move puts into the far side's childhood, where the
+	// far side is a child of the actor's. Nothing else in the table moves
+	// it: being handed food by a stranger is food, and being handed food by
+	// your mother is being brought up.
+	Tends float64
 	// Regard is how the other party comes to think of the actor for it,
 	// Bonds what it adds to the tie each way, and Rift what it takes from
 	// the other's tie to the actor.
@@ -279,7 +284,7 @@ var moves = map[string]move{
 	// household is the one relation in this world that is not made by
 	// meeting somebody in the square.
 	"transfer/provision>child": {
-		Name: "feed child", Regard: 0.5, Bonds: struct{ Theirs, Mine float64 }{0.15, 0.1},
+		Name: "feed child", Regard: 0.5, Tends: TendFeeding, Bonds: struct{ Theirs, Mine float64 }{0.15, 0.1},
 		Each:  map[*ontology.Class]part{ontology.Provision: {Quantity: fixed(1), Spare: 1.5}},
 		Worth: levels(need.Levels{need.Belonging: rearingWarmth}),
 		Gives: need.Levels{need.Belonging: rearingWarmth},
@@ -569,6 +574,9 @@ func moving(in ontology.Instance) *Def {
 			a.AddSkill(mv.Skill, mv.Learn)
 		}
 		if o != nil {
+			if mv.Tends > 0 && o.Parent == a.ID {
+				o.Tended = min(1, o.Tended+mv.Tends)
+			}
 			o.Judge(a.ID, mv.Regard, w.Tick)
 			if mv.Bonds.Theirs > 0 {
 				o.AddBond(a.ID, mv.Bonds.Theirs)
