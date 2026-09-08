@@ -210,3 +210,76 @@ func TestWoodsAndFieldsAreLiving(t *testing.T) {
 		}
 	}
 }
+
+// Time, as the ontology has it: how long a thing takes to come on, which is
+// a Process, and which half of the year the getting belongs to, which is the
+// thing's own Warmth. The two have to stay independent, because the whole
+// reason for holding both is that a stand can be slow and of the cold half
+// or quick and wholly of the warm one.
+func TestTimeIsTwoFacts(t *testing.T) {
+	// Slow, and of the cold half: years in the growing, felled in winter.
+	if ontology.Timbering.Full() < float64(2*ontology.Year) {
+		t.Errorf("timber comes on in %.0f days, want years of it", ontology.Timbering.Full())
+	}
+	if ontology.Timber.Warmth >= 0 {
+		t.Errorf("timber's warmth is %.2f; felling is winter work", ontology.Timber.Warmth)
+	}
+	// Quick, and wholly of its season.
+	if ontology.Crop.Full() >= ontology.Timbering.Full() {
+		t.Error("a crop should come on faster than a wood")
+	}
+	if !(ontology.Grain.Warmth > ontology.Berries.Warmth) {
+		t.Error("a crop keeps the season's hours more closely than the brush does")
+	}
+	// A stock is neither: there or not, with no age to wait out, and no
+	// half of the year it belongs to.
+	for _, c := range []*ontology.Class{ontology.Fish, ontology.Stone} {
+		if len(ontology.Growing(c)) > 0 || c.Warmth != 0 {
+			t.Errorf("%s is a stock; it should neither come on nor keep a season", c.Name)
+		}
+	}
+}
+
+// The season an act belongs to is composed from what the act is about, not
+// written onto it. Nothing but a class's Warmth may put the chill
+// coordinate into a prior, or the concept is decoration.
+func TestTheSeasonOfAnActFollowsFromItsThing(t *testing.T) {
+	for _, in := range ontology.Instantiate() {
+		chill := in.Prior[habit.Chill]
+		if chill == 0 {
+			continue
+		}
+		var want float64
+		for _, c := range []*ontology.Class{in.Object, in.Schema.Output, in.Schema.Season} {
+			if c != nil && c.Warmth != 0 {
+				want = -c.Warmth
+			}
+		}
+		if math.Abs(chill-want) > 1e-9 {
+			t.Errorf("%s carries chill %.2f, but nothing it is about is worth %.2f", in.Key, chill, want)
+		}
+	}
+}
+
+// Anything the year makes is taken off ground that carries a standing crop,
+// and anything taken off such ground is something the year makes. The two
+// halves of the same statement live in different places - the process on one
+// side, the Living trait on the site on the other - and this is what keeps
+// them one statement.
+func TestWhatGrowsIsTakenOffLivingGround(t *testing.T) {
+	for _, in := range ontology.Instantiate() {
+		if in.Schema.Verb != ontology.Take || in.Object == nil || in.Site == nil {
+			continue
+		}
+		// A stand is one stand however many things are had off it: the
+		// brush a forager picks is the brush a trapper hunts over, and the
+		// ontology names one process for it. So the question is whether
+		// anything grows here at all, not whether a process is named for
+		// this particular thing.
+		grows := len(ontology.Growing(in.Site)) > 0
+		if living := in.Site.Has(ontology.Living); grows != living {
+			t.Errorf("%s takes %s (grown %v) off %s (living %v); the two should agree",
+				in.Key, in.Object.Name, grows, in.Site.Name, living)
+		}
+	}
+}

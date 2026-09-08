@@ -1,18 +1,31 @@
 package ontology
 
-import "testing"
+import (
+	"testing"
+
+	"lreat/core/clock"
+)
 
 // The stage durations are written out again here rather than referred to,
 // so that the numbers cannot be retuned by editing one side. If a stage
 // changes, this test is where the change has to be said out loud.
+//
+// Said out loud, then: these were 25, 600 and 2000 under a hundred-tick
+// year, called a season, six years and twenty. The days are near enough the
+// same days and the years they are called have changed, because the year
+// is 360 days now rather than 100. What a stand takes to come on deliberately
+// did not lengthen with the calendar - the day is what the land renews by
+// and the day is what people take by, and the Rate beside each of these was
+// tuned against these very spans - so the numbers moved only as far as
+// rounding them onto the new calendar's months and years took them.
 func TestWhatGrowsTakesTheTimeItTook(t *testing.T) {
 	for _, c := range []struct {
 		p    *Process
 		full float64
 	}{
-		{Crop, 25},        // a season
-		{Brush, 600},      // six years
-		{Timbering, 2000}, // twenty
+		{Crop, clock.Month},         // 30 days, was 25
+		{Brush, 2 * clock.Year},     // 720, was 600
+		{Timbering, 6 * clock.Year}, // 2160, was 2000
 	} {
 		if got := c.p.Full(); got != c.full {
 			t.Errorf("%s comes on in %v, want %v", c.p.Name, got, c.full)
@@ -103,8 +116,9 @@ func TestWhatNobodyKeepsGoesAtItsOwnPace(t *testing.T) {
 		of   *Class
 		rate float64
 	}{
-		{Dwelling, 1.0 / 300},
-		{Field, 1.0 / 300},
+		// Three years, as before; it was 1/300 when a year was 100 days.
+		{Dwelling, 1.0 / (3 * clock.Year)},
+		{Field, 1.0 / (3 * clock.Year)},
 		{Open, 1},
 		{Road, 1},
 		{Wood, 1},
@@ -133,8 +147,8 @@ func TestAPublicWorkFallsInWhoeverIsAlive(t *testing.T) {
 		of   *Class
 		rate float64
 	}{
-		{Granary, 1.0 / 3000},
-		{Tavern, 1.0 / 2000},
+		{Granary, 1.0 / (30 * clock.Year)},
+		{Tavern, 1.0 / (20 * clock.Year)},
 	} {
 		for _, ownerGone := range []bool{false, true} {
 			tr := Befalling(c.of, ownerGone)

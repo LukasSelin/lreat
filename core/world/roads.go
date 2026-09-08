@@ -16,10 +16,11 @@ import (
 // themselves, in action.Pave, by recognising worn ground as calling for one.
 
 // Wear is how much one crossing marks the ground, and Fade is the share of
-// that marking a tile keeps from one tick to the next. Together they give the
-// map a memory about a hundred and forty ticks long: long enough that a route
-// walked daily stands out from one walked once, short enough that a way people
-// have stopped using stops asking to be paved.
+// that marking a tile keeps from one day to the next. Together they give the
+// map a memory about a hundred and forty days long - a season and a half:
+// long enough that a route walked daily stands out from one walked once,
+// short enough that a way people have stopped using stops asking to be
+// paved.
 const (
 	Wear = 1
 	Fade = 0.995

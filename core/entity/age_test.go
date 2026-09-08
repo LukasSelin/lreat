@@ -1,6 +1,10 @@
 package entity
 
-import "testing"
+import (
+	"testing"
+
+	"lreat/core/clock"
+)
 
 func TestAgeFactorRisesThenFalls(t *testing.T) {
 	child, adult, elder := AgeFactor(0), AgeFactor(Prime-1), AgeFactor(Lifespan)
@@ -52,5 +56,26 @@ func TestOnlyGrownAgentsBear(t *testing.T) {
 	}
 	if !Adult(Lifespan) {
 		t.Fatal("an elder is still a grown agent")
+	}
+}
+
+// A life is human, and a settlement is meant to feel it. A childhood that is
+// a rounding error on a lifetime is a settlement with no dependants in it -
+// which is what these spans were while the year was a hundred ticks long and
+// a life had to be counted in ticks to fit a run inside it.
+func TestALifeIsHuman(t *testing.T) {
+	if got := clock.Years(Maturity); got < 12 || got > 18 {
+		t.Errorf("a childhood lasts %d years, want a human one", got)
+	}
+	if got := clock.Years(Lifespan); got < 55 || got > 80 {
+		t.Errorf("a life lasts %d years, want a human one", got)
+	}
+	if got := clock.Years(Prime - Maturity); got < 20 {
+		t.Errorf("the bearing years are %d long, want a generation's worth", got)
+	}
+	// The dependants are the cost of the childhood and the reason to have
+	// one: a settlement that cannot feed its children does not grow.
+	if share := float64(Maturity) / float64(Lifespan); share < 0.15 {
+		t.Errorf("children are %.2f of a life, want a settlement that carries some", share)
 	}
 }

@@ -1,5 +1,7 @@
 package ontology
 
+import "lreat/core/clock"
+
 // Affords says what a site or a holder offers: the ground offers what lies
 // in it, a person what is in their pack and their purse, the market what is
 // on its shelves. It is the static half of opportunity - what a kind of
@@ -82,15 +84,14 @@ type Transform struct {
 // only ever accumulates: every roof its founders raised is still standing
 // three generations later, in everybody's way, and the land under it can
 // never be put to anything else. Ruin is what gives a settlement the room to
-// be something other than what it first was. About three hundred ticks
-// either way: long enough that a house outlives its builder and an heir
-// could take it on, short enough that a settlement is not walled in by its
-// dead. What was claimed and then neither lived in nor sown goes at once,
+// be something other than what it first was. About three years either way:
+// long enough that a house outlives its builder and an heir could take it
+// on, short enough that a settlement is not walled in by its dead. What was claimed and then neither lived in nor sown goes at once,
 // because there is nothing there to fall down - only a claim, and it lapses.
 //
 // A public work is nobody's to keep, which is why the granary is not Kept:
 // no one person's dying takes it and no one person's living saves it. It
-// stands some thirty years against a house's three, and the settlement puts
+// stands thirty years against a house's three, and the settlement puts
 // up another if it still wants one - which it does, because a granary is
 // cheap in standing and there is no limit on how many may go up. Without
 // this it stood forever, since nothing ever owns one: the raising sets a
@@ -126,11 +127,11 @@ var Transforms = []Transform{
 	// cost everyone pays a little of.
 	{From: Dwelling, In: Person, Rate: 0.002},
 
-	{From: Granary, To: Open, Rate: 1.0 / 3000, Says: "a granary fell in"},
-	{From: Tavern, To: Open, Rate: 1.0 / 2000, Says: "the tavern fell empty"},
+	{From: Granary, To: Open, Rate: 1.0 / (30 * clock.Year), Says: "a granary fell in"},
+	{From: Tavern, To: Open, Rate: 1.0 / (20 * clock.Year), Says: "the tavern fell empty"},
 
-	{From: Dwelling, To: Open, Rate: 1.0 / 300, Kept: true, Says: "an empty house fell in"},
-	{From: Field, To: Open, Rate: 1.0 / 300, Kept: true},
+	{From: Dwelling, To: Open, Rate: 1.0 / (3 * clock.Year), Kept: true, Says: "an empty house fell in"},
+	{From: Field, To: Open, Rate: 1.0 / (3 * clock.Year), Kept: true},
 	{From: Site, To: Open, Rate: 1, Kept: true},
 }
 

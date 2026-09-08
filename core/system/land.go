@@ -1,6 +1,7 @@
 package system
 
 import (
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/world"
 )
@@ -18,19 +19,19 @@ const (
 	// spontaneous reforestation from a wooded neighbor.
 	reseedSamples = 3
 	reseedChance  = 0.3
-	// ErodeEvery is how many ticks an age of weather covers. An age is a
-	// decade, not a season: the land is not weather, and a hillside that
-	// moved every year would be a different thing altogether - a settlement
-	// would watch its own river wander in the time it took to raise a barn.
-	// What the ground does, it does over decades and centuries, so a run of
-	// a few generations sees the slopes it cleared begin to go and a run of
+	// ErodeEvery is how long an age of weather covers. An age is a decade,
+	// not a season: the land is not weather, and a hillside that moved every
+	// year would be a different thing altogether - a settlement would watch
+	// its own river wander in the time it took to raise a barn. What the
+	// ground does, it does over decades and centuries, so a run of a few
+	// generations sees the slopes it cleared begin to go and a run of
 	// several sees the valley they went into.
 	//
 	// It is also why the land is worked over as a whole rather than a little
-	// each tick: the drainage has to be recomputed for the whole map at once
-	// for the rivers to be anywhere sensible, and doing that every tick would
+	// each day: the drainage has to be recomputed for the whole map at once
+	// for the rivers to be anywhere sensible, and doing that every day would
 	// buy nothing but a slower run.
-	ErodeEvery = 10 * world.Year
+	ErodeEvery = 10 * clock.Year
 )
 
 func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }

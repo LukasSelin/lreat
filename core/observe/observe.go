@@ -10,6 +10,7 @@ import (
 
 	"lreat/core/action"
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/habit"
@@ -45,16 +46,21 @@ func (m *MapView) At(p entity.Pos) *world.Tile { return &m.Tiles[p.Y*m.W+p.X] }
 
 // Snapshot is a copy of the aggregate state at one tick.
 type Snapshot struct {
+	// Tick is the day the world has reached, and Date is that day said as a
+	// calendar date. Everything a settlement does is easier to read against
+	// the second than the first: a famine in the winter of year nine means
+	// something, and a famine at tick 3140 does not.
 	Tick       int
+	Date       clock.Date
 	Population int
 	MeanNeeds  need.Levels
 	// MeanHealth is the population's average condition. It moves slowly, so
 	// a settlement that is wearing its people down shows here long before it
 	// shows in the death log.
 	MeanHealth float64
-	// MeanAge and Elders describe the shape of the generations: a settlement
-	// of the old is one that has stopped replacing itself, whatever its
-	// headcount says today.
+	// MeanAge, in years, and Elders describe the shape of the generations: a
+	// settlement of the old is one that has stopped replacing itself,
+	// whatever its headcount says today.
 	MeanAge    int
 	Elders     int        // agents past their prime
 	Activity   []Activity // most common first
@@ -68,7 +74,7 @@ type Snapshot struct {
 	// quarter of the year it falls in; Growth is what the season lets the
 	// land put back, 1 being an ordinary year's average.
 	Temp   float64
-	Season string
+	Season clock.Quarter
 	Growth float64
 
 	// The moral and contractual state of the settlement. MeanNorms is what
@@ -132,6 +138,7 @@ type Snapshot struct {
 func Take(w *world.World) Snapshot {
 	s := Snapshot{
 		Tick:       w.Tick,
+		Date:       clock.At(w.Tick),
 		Population: len(w.Agents),
 		Knowledge:  w.Knowledge,
 		Techs:      w.Techs(),
@@ -234,7 +241,7 @@ func Take(w *world.World) Snapshot {
 	s.MeanHealth /= float64(len(w.Agents))
 	s.MeanShelter /= float64(len(w.Agents))
 	s.MeanFood /= float64(len(w.Agents))
-	s.MeanAge /= len(w.Agents)
+	s.MeanAge = clock.Years(s.MeanAge / len(w.Agents))
 	for n := range s.MeanNorms {
 		s.MeanNorms[n] /= float64(len(w.Agents))
 	}

@@ -87,6 +87,12 @@ type Class struct {
 	// and on the stock coordinate when an act would spend it. Inherited.
 	Lack float64
 
+	// Warmth is which half of the year getting this belongs to: positive
+	// for the green half, negative for the cold one, zero for a thing had
+	// in any weather. See season. How long a thing takes to come on is the
+	// other half of its time and is a Process; see process.go.
+	Warmth float64
+
 	children []*Class
 }
 
@@ -178,13 +184,25 @@ var (
 	// A class's prior is its stock coordinate and nothing else: what it is
 	// for comes through Wanting, and what taking it takes is in takeDetail.
 	Provision = lack(New("provision", Material, Edible, habit.Signature{}), 0.8)
-	Berries   = New("berries", Provision, Perishable, habit.Signature{habit.Chill: -0.3})
-	Game      = New("game", Provision, Perishable, habit.Signature{})
-	Fish      = New("fish", Provision, Perishable, habit.Signature{})
-	Grain     = New("grain", Provision, 0, habit.Signature{habit.Chill: -0.5})
-	Meal      = New("meal", Provision, Perishable, habit.Signature{})
+	// The brush a forager and a trapper live off is one stand and comes on
+	// as one: a couple of years from a clearing being made. Picking it
+	// keeps the season's hours and hunting over it does not, which is the
+	// two facts pulling apart on the same stand.
+	Berries = season(New("berries", Provision, Perishable, habit.Signature{}), 0.3)
+	Game    = New("game", Provision, Perishable, habit.Signature{})
+	// A shoal is a stock and not a crop: it comes back without having to
+	// come on, so there is no age on it to wait out.
+	Fish = New("fish", Provision, Perishable, habit.Signature{})
+	// The fastest thing the year makes, and the most of its season: sown,
+	// in ear within the month, and cut before it is anything else.
+	Grain = season(New("grain", Provision, 0, habit.Signature{}), 0.5)
+	Meal  = New("meal", Provision, Perishable, habit.Signature{})
 
-	Timber = lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6)
+	// The slowest thing the year makes, and the one thing here had in the
+	// cold half rather than the green one: a stand a planter raised is
+	// years off being beams, and the felling of it is winter work whoever
+	// does it.
+	Timber = season(lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6), -0.3)
 	Stone  = lack(New("stone", Material, Buildable|Heavy, habit.Signature{}), 0.5)
 	Tool   = lack(New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5}), 0.5)
 	// Coin is a thing so that money can be made, given, and stolen like
@@ -243,6 +261,37 @@ var (
 		habit.Signature{habit.Unproven: 0.6, habit.Lonely: 0.4, habit.Charity: 0.4, habit.Tradition: 0.3}), habit.Signature{habit.Company: 0.6})
 	Road = New("road", Built, Passable, habit.Signature{})
 )
+
+// Time, as the ontology has it, in two halves that are held apart on
+// purpose.
+//
+// How long a thing takes to come on is a Process: stages, on a clock, over
+// the thing they happen to. See process.go, which states them, and note that
+// nothing about that is a fact about the *getting* - a wood takes six years
+// whether anybody fells it or not.
+//
+// Which half of the year the getting belongs to is Warmth, and it is here,
+// on the thing, because it is a fact about the thing. It is signed, because
+// the year has two halves and things are had in both: grain and berries are
+// of the green half, and felling is winter work whoever does it, the sap
+// being down and there being least else to do. The two are independent,
+// which is the point of holding both - timber is slow and of the cold half,
+// a crop is quick and wholly of the warm one, and neither can be read off
+// the other.
+//
+// Before this the whole of the ontology's account of the second was a chill
+// coordinate written by hand onto two classes, with nothing saying why
+// berries carried one and stone did not, a third hidden in the take detail
+// for timber, and a fourth in the residue of clearing a field.
+//
+// What reads it: the composed prior takes Warmth as the chill coordinate, so
+// an act's season follows from what it is about rather than from a number
+// somebody wrote on it.
+func season(c *Class, warmth float64) *Class {
+	c.Warmth = warmth
+	c.Prior[habit.Chill] = -warmth
+	return c
+}
 
 // lack sets how strongly being short of a material registers.
 func lack(c *Class, l float64) *Class {

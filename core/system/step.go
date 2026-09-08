@@ -1,11 +1,12 @@
-// Package system holds the per-tick rules. Each system is a function over
-// the world, run in a fixed order. None of them reads the clock or any
-// randomness outside World.RNG.
+// Package system holds the rules of a day. Each system is a function over
+// the world, run in a fixed order. None of them reads the wall clock or any
+// randomness outside World.RNG; how long anything takes is said in package
+// clock, where a tick is a day.
 package system
 
 import "lreat/core/world"
 
-// Step advances the world by one tick.
+// Step advances the world by one day.
 func Step(w *world.World) {
 	w.Tick++
 	Climate(w)

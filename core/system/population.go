@@ -5,6 +5,7 @@ import (
 
 	"lreat/core/action"
 	"lreat/core/belief"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -12,11 +13,24 @@ import (
 )
 
 const (
-	// StarvationTicks is how long an agent survives at the bottom of the
-	// physiological tier.
-	StarvationTicks = 60
-	// BirthChance is the per-tick probability that a thriving agent has a child.
-	BirthChance = 0.006
+	// Starvation is how long an agent survives at the bottom of the
+	// physiological tier. Two months of it is the end.
+	Starvation = 2 * clock.Month
+	// BirthChance is the daily probability that a thriving agent has a
+	// child. It is written against the year because what has to stay fixed
+	// as the calendar changes is how many children a fertile life brings,
+	// not how many a day does: one chance a year, over the twenty-five
+	// fertile years, for a parent whose lower three tiers are all met at
+	// once - which happens about three tenths of the time, so a fertile life
+	// that runs its course brings seven or eight children.
+	//
+	// That is a human number and it is set by the childhood. A settlement
+	// that waits fifteen years for a birth to become a worker, and feeds it
+	// the whole way, needs the fertility a pre-modern people actually had;
+	// at three fifths of this, which is what the five-year childhood was
+	// tuned with, the same settlements came out at a median of 92 against
+	// 163. See docs/action-space.md.
+	BirthChance = 1.0 / clock.Year
 	// MaxPopulation caps growth so runs stay bounded.
 	MaxPopulation = 400
 	// InheritedSkill is the share of a parent's skills a child is born with,
@@ -38,7 +52,7 @@ func Population(w *world.World) {
 	w.Vitals.Born, w.Vitals.Died, w.Vitals.Gates = 0, 0, [world.GateCount]int{}
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
-		if a.Starving > StarvationTicks {
+		if a.Starving > Starvation {
 			w.Deaths++
 			w.Vitals.Starved++
 			w.Vitals.Died++
@@ -53,7 +67,7 @@ func Population(w *world.World) {
 			w.Deaths++
 			w.Vitals.Failed++
 			w.Vitals.Died++
-			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, age)
+			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, clock.Years(age))
 			continue
 		}
 		alive = append(alive, a)

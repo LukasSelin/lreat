@@ -3,6 +3,7 @@ package system
 import (
 	"testing"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/world"
@@ -17,7 +18,7 @@ func TestASettlementLaysItsOwnRoads(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
-	Run(w, 4000)
+	Run(w, 10*clock.Year)
 
 	roads := w.Grid.Count(func(t *world.Tile) bool { return t.Structure == world.Road })
 	if roads == 0 {
@@ -88,7 +89,7 @@ func TestASettlementBridgesTheRiverItStraddles(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			w.Spawn("a", w.RandomPersonality())
 		}
-		for tick := 0; tick < 4000; tick++ {
+		for tick := 0; tick < 10*clock.Year; tick++ {
 			Step(w)
 			for _, a := range w.Agents {
 				if tile := w.Grid.At(a.Pos); tile.Terrain == world.Water {

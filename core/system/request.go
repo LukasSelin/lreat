@@ -3,6 +3,7 @@ package system
 import (
 	"math"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
@@ -17,8 +18,8 @@ const (
 	// pay rather than spend its own time, even when perfectly capable.
 	GreedWealth = 12
 	// RequestLife is how long a request stays on the board before the
-	// requester gives up on it.
-	RequestLife = 80
+	// requester gives up on it: the better part of a season.
+	RequestLife = 80 * clock.Day
 	// AskChance throttles how often an eligible agent actually asks.
 	AskChance = 0.08
 )

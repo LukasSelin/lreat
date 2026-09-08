@@ -1,5 +1,7 @@
 package ontology
 
+import "lreat/core/clock"
+
 // What happens on its own.
 //
 // The rest of this package states what an agent can do and to what. This
@@ -19,13 +21,14 @@ package ontology
 // See system.ripen, system.wither and system.spoil, which run them, and
 // world.ClassOf, which says what a tile is in these terms.
 
-// Year is the length of a year in ticks, and Season a quarter of it. It is
-// stated here rather than with the weather because what grows is measured
-// in it: a crop takes a season, brush a few years, timber a lifetime. The
-// world keeps the same calendar - see world.Year, which is this one.
+// Year is the length of a year, and Season a quarter of it. They are named
+// here because what grows is measured in them - a crop takes a month, brush
+// a couple of years, timber six - and the ontology is where what grows is
+// stated. The lengths themselves are the calendar's: package clock, where a
+// tick is a day. The world keeps the same one; see world.Year.
 const (
-	Year   = 100
-	Season = Year / 4
+	Year   = clock.Year
+	Season = clock.Season
 )
 
 // Stage is one named span of a process. Ticks is how much growing weather
@@ -112,15 +115,20 @@ func (p *Process) Phase(name string) Phase {
 // strip gives over a year - the yield is the growth, so half a crop taken
 // twice as often comes to the same bread - it decides what a holding is for.
 //
-// The halves of a crop are written 12.5 and not Season/2 on purpose: a
-// season is 25 ticks, and two integer halves of it come to 24.
+// The spans are in days of growing weather, and they did not lengthen when
+// the year did. That is deliberate and it is the one thing the calendar was
+// not allowed to touch: the day is what the land renews by and the day is
+// what people take by, so an age and the Rate beside it have to keep the
+// balance they were tuned to. What changed is what those days are called - a
+// crop is a month rather than a quarter of a hundred-tick year, and a wood
+// six years rather than twenty - not how many of them there are.
 var (
 	Crop = &Process{Name: "crop", Of: Field, Yields: Grain,
-		Stages: []Stage{{"sown", 12.5}, {"ear", 12.5}}}
+		Stages: []Stage{{"sown", clock.Month / 2}, {"ear", clock.Month / 2}}}
 	Brush = &Process{Name: "brush", Of: Wood, Yields: Berries, Rate: 0.0012,
-		Stages: []Stage{{"scrub", 6 * Year}}}
+		Stages: []Stage{{"scrub", 2 * Year}}}
 	Timbering = &Process{Name: "timber", Of: Wood, Yields: Timber, Rate: 0.0004,
-		Stages: []Stage{{"thicket", 20 * Year}}}
+		Stages: []Stage{{"thicket", 6 * Year}}}
 )
 
 // Processes is everything that grows. A class no process names carries
