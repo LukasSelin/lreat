@@ -398,7 +398,7 @@ func Act(w *world.World) {
 		// no longer possible simply fails, and nothing comes of it.
 		if d != nil && d.Available(a, w) {
 			d.Apply(a, w)
-			w.Emit(event.Acted, a.ID, 0, "%s finished %s", a.Name, d.Name)
+			w.EmitAt(event.Acted, a.ID, 0, d.Key, a.Pos, "%s finished %s", a.Name, d.Name)
 		}
 		action.Practise(a, p.Index)
 	}

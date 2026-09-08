@@ -6,38 +6,34 @@ import (
 )
 
 const (
-	// regrowth is how much standing timber a forest tile recovers per tick.
-	regrowth = 0.0004
-	// wildRegrowth is how much wild food a forest tile recovers per tick,
-	// fishRegrowth how much a water tile does, and fallow how much worn
+	// How much a water tile's fish come back per tick, and how much worn
 	// fertility a field recovers per tick toward what the land can hold.
-	wildRegrowth = 0.0012
+	// Neither of these is a process: a shoal is a stock that replenishes,
+	// not a crop that has to come on, and worn soil is resting rather than
+	// growing. What a wood and a field have standing on them is in
+	// ontology.Processes; see ripen.
 	fishRegrowth = 0.0012
 	fallow       = 0.0006
 	// reseedSamples is how many random tiles per tick are checked for
 	// spontaneous reforestation from a wooded neighbor.
 	reseedSamples = 3
 	reseedChance  = 0.3
-	// ErodeEvery is how many ticks an age of weather covers. The land is
-	// worked over as a whole rather than a little each tick, because the
-	// drainage has to be recomputed for the whole map at once for the rivers
-	// to be anywhere sensible, and because a hillside does not lose its soil
-	// evenly - it loses it in the winters.
-	ErodeEvery = 120
+	// ErodeEvery is how many ticks an age of weather covers. An age is a
+	// decade, not a season: the land is not weather, and a hillside that
+	// moved every year would be a different thing altogether - a settlement
+	// would watch its own river wander in the time it took to raise a barn.
+	// What the ground does, it does over decades and centuries, so a run of
+	// a few generations sees the slopes it cleared begin to go and a run of
+	// several sees the valley they went into.
+	//
+	// It is also why the land is worked over as a whole rather than a little
+	// each tick: the drainage has to be recomputed for the whole map at once
+	// for the rivers to be anywhere sensible, and doing that every tick would
+	// buy nothing but a slower run.
+	ErodeEvery = 10 * world.Year
 )
 
 func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
-
-// grown puts back what a tick of growing weather puts back, up to what the
-// stand's age accounts for. Age bounds what a stand grows into, and nothing
-// else: it never takes away what is already standing, so a wood is only ever
-// held back from filling out, never thinned by the calendar.
-func grown(have, ceiling, by float64) float64 {
-	if have >= ceiling {
-		return have
-	}
-	return min(ceiling, have+by)
-}
 
 // Land lets forests regrow and slowly reclaim unclaimed grass beside them,
 // weathers the ground every so often so that the hills wear into the valleys
@@ -62,20 +58,8 @@ func Land(w *world.World) {
 	k := w.Mods.Regrowth * w.Climate.Growth()
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		// A stand ages by the weather it gets, not by the calendar: what a
-		// winter gives it is nothing, and that is the same clock everything
-		// else growing keeps.
-		if t.Alive() {
-			t.Age += k
-		}
+		ripen(t, k)
 		switch t.Terrain {
-		case world.Forest:
-			// What a wood holds is bounded by how long it has stood. The
-			// timber comes on over a lifetime and the brush under it within
-			// a few years, so a young stand feeds a forager long before it
-			// is worth felling.
-			t.Wood = grown(t.Wood, t.Grown(world.TimberAge), regrowth*k)
-			t.Wild = grown(t.Wild, t.Grown(world.BrushAge), wildRegrowth*k)
 		case world.Water:
 			t.Fish = min(1, t.Fish+fishRegrowth*k)
 		case world.Field:

@@ -327,7 +327,7 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 		m, t := parts[0], terms[parts[0]]
 		// What the ground holds of this material, looked up once here rather
 		// than on every tile the search below walks over.
-		held := stock(m)
+		held := world.StockOf(m)
 		return far{
 			Find: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 				return w.Grid.Nearest(a.Pos, searchRadius, func(p entity.Pos, tile *world.Tile) bool {
@@ -377,7 +377,7 @@ func moving(in ontology.Instance) *Def {
 	var parts []*ontology.Class
 	for _, c := range ontology.Material.Family() {
 		if _, ok := mv.Each[c]; ok && c.IsA(object) {
-			if _, carried := good(c); carried {
+			if _, carried := world.GoodOf(c); carried {
 				parts = append(parts, c)
 			}
 		}
@@ -448,7 +448,8 @@ func moving(in ontology.Instance) *Def {
 			}
 			if other.Priced {
 				t := mv.Each[c]
-				theirs := other.Store(a, w, w.MarketPos, c, reachRadius)
+				square, _ := w.NearestMarket(a.Pos)
+				theirs := other.Store(a, w, square, c, reachRadius)
 				purse, _ := pack(a, ontology.Coin)
 				if theirs.Held() >= t.Least && purse.Held() >= price(w, c)*t.Quantity(a, w, theirs, nil, 1) {
 					return true

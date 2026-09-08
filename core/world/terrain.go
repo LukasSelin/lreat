@@ -127,4 +127,5 @@ func (w *World) GenerateTerrain(width, height int) {
 	g.At(mp).Structure = Market
 	w.Grid = g
 	w.MarketPos = mp
+	w.FoundMarket(mp)
 }

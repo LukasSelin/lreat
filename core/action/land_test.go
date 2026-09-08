@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"lreat/core/entity"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -86,14 +87,14 @@ func TestFarmingWearsAFieldAndFallowRestoresIt(t *testing.T) {
 	if Farm.Available(a, w) {
 		t.Fatal("a strip sown this morning should have no crop on it yet")
 	}
-	season(w, world.CropAge)
+	season(w, ontology.Crop.Full())
 	if !run(w, a, Farm) {
 		t.Fatal("farm should be possible on a field in ear")
 	}
 	f := w.Grid.At(a.Field)
 	rich := f.Rich
 	for i := 0; i < 10; i++ {
-		season(w, world.CropAge)
+		season(w, ontology.Crop.Full())
 		Farm.Apply(a, w)
 	}
 	if !(f.Fertility < rich) {
@@ -191,11 +192,11 @@ func TestPlantingMakesAForest(t *testing.T) {
 		t.Fatalf("a planting gives %v wild and %v timber the day it is put in", tile.Wild, tile.Wood)
 	}
 	tile := w.Grid.At(a.Pos)
-	season(w, world.BrushAge)
-	if tile.Grown(world.BrushAge) < 1 {
+	season(w, ontology.Brush.Full())
+	if tile.Grown(ontology.Brush.Full()) < 1 {
 		t.Fatal("a stand that has stood a brush's lifetime should be grown")
 	}
-	if tile.Grown(world.TimberAge) >= 1 {
+	if tile.Grown(ontology.Timbering.Full()) >= 1 {
 		t.Fatal("timber should take longer than brush to come on")
 	}
 }

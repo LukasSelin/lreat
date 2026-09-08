@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -36,6 +37,17 @@ const ColdDrain = 0.003
 // so a winter outdoors shows up as a body that is still slower come spring.
 const ColdCondition = 0.2
 
+// roofWear is what a roof loses per tick, read from the ontology once at
+// start: the settlement's building knowledge scales it, and the ontology
+// says what it scales.
+var roofWear = func() float64 {
+	t, ok := ontology.Spoiling(ontology.Dwelling, ontology.Person)
+	if !ok {
+		panic("system: nothing wears a roof")
+	}
+	return t.Rate
+}()
+
 // Decay drains needs, lets shelter rot, and relaxes safety toward what the
 // agent's circumstances actually provide.
 func Decay(w *world.World) {
@@ -45,7 +57,7 @@ func Decay(w *world.World) {
 			a.Needs.Add(need.Tier(t), -decay[t])
 		}
 
-		a.Shelter = math.Max(0, a.Shelter-w.Mods.ShelterDecay)
+		a.Shelter = math.Max(0, a.Shelter-roofWear*w.Mods.ShelterDecay)
 
 		// What is carried rots as what is stored does. An agent's larder is
 		// its own: no granary stands behind it, and it keeps by the weather

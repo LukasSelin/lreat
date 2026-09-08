@@ -3,6 +3,8 @@ package world
 import (
 	"math"
 	"math/rand/v2"
+
+	"lreat/core/ontology"
 )
 
 // The climate. A settlement that is founded in one weather and lives in it
@@ -19,9 +21,13 @@ import (
 // Year is the length of a year in ticks, and Season a quarter of it. A life
 // of Lifespan ticks is some fifty of these, so a run long enough to develop
 // sees dozens of winters.
+//
+// The calendar is the ontology's, because what grows is measured in it and
+// the ontology is where what grows is stated. These are that same calendar
+// under the names the rest of the world already calls it by.
 const (
-	Year   = 100
-	Season = Year / 4
+	Year   = ontology.Year
+	Season = ontology.Season
 )
 
 // The shape of the year. MeanTemp is the annual mean in degrees, Swing half

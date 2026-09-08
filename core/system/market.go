@@ -3,8 +3,10 @@ package system
 import (
 	"math"
 
+	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -17,18 +19,35 @@ var basePrice = [entity.GoodCount]float64{
 	entity.Meals: 2,
 }
 
-// spoilage is the fraction of stock lost per tick. Food and meals spoil
-// less in a settlement with granaries; see Modifiers.Keeping.
-var spoilage = [entity.GoodCount]float64{
-	entity.Food:  0.01,
-	entity.Wood:  0.001,
-	entity.Tools: 0.0005,
-	entity.Stone: 0,
-	entity.Meals: 0.003,
-}
+// What is kept where, and what it loses for being kept there. The rates
+// are ontology.Transforms' - a shelf and a pack are two keepings of the
+// same food, and the ontology says what each costs - read into tables
+// keyed by good once at start, because the loops below run every tick over
+// every shelf and every pack and must not walk the class tree to do it.
+//
+// sheltered is what a granary and the cold can reach: the goods whose
+// transform names a site that arrests it.
+var (
+	shelfLoss [entity.GoodCount]float64
+	packLoss  [entity.GoodCount]float64
+	sheltered [entity.GoodCount]bool
+)
 
-// perishable is what a granary keeps, and what the cold keeps.
-var perishable = [entity.GoodCount]bool{entity.Food: true, entity.Meals: true}
+func init() {
+	for _, c := range ontology.Material.Family() {
+		g, ok := world.GoodOf(c)
+		if !ok {
+			continue
+		}
+		if t, ok := ontology.Spoiling(c, ontology.Market); ok {
+			shelfLoss[g] = t.Rate
+			sheltered[g] = t.Unless != nil
+		}
+		if t, ok := ontology.Spoiling(c, ontology.Person); ok {
+			packLoss[g] = t.Rate
+		}
+	}
+}
 
 // ColdKeeping is how much of a perishable's spoilage the bitterest cold
 // stops. A cold store is the oldest one there is: what the year takes from
@@ -42,35 +61,24 @@ const ColdKeeping = 0.6
 // here today: what the settlement's granaries stop, and what the weather
 // stops on top of that.
 func Keeping(w *world.World) float64 {
-	return w.Mods.Keeping * (1 - ColdKeeping*w.Climate.Chill())
+	return w.Mods.Keeping * action.GranaryKeeping(w) * (1 - ColdKeeping*w.Climate.Chill())
 }
 
-// LarderSpoil is the share of what an agent carries that goes off each
-// tick in mild weather. It is a fifth of what the same food loses sitting
-// in the market, and flat across food and meals, because what is carried
-// is eaten within days while the market's stock sits out whole seasons.
-//
-// It was the market's own rates first, and that was far too much: a third
-// again on top of what an agent eats, on the loop the whole economy runs
-// on. Over 24 seeds to 6000 ticks it took the median settlement from 94 to
-// 30 and killed two. The point was never to punish a full larder in June,
-// only to make one in January worth more.
-const LarderSpoil = 0.002
-
-// Larder is what an agent's own food loses this tick. Nothing a granary
-// does reaches it - the settlement's stores keep the settlement's food -
-// so the cold is the whole of its mercy, and in the deep of winter it
+// Larder is Keeping for a pack rather than a shelf: the share of the usual
+// spoilage what an agent carries actually suffers. Nothing a granary does
+// reaches a pack - the settlement's stores keep the settlement's food - so
+// the cold is the whole of its mercy, and in the deep of winter a pack
 // keeps two and a half times as well as it does in the summer.
 func Larder(w *world.World) float64 {
-	return LarderSpoil * (1 - ColdKeeping*w.Climate.Chill())
+	return 1 - ColdKeeping*w.Climate.Chill()
 }
 
 // Spoil rots what an agent is carrying.
 func Spoil(w *world.World, a *entity.Agent) {
 	k := Larder(w)
 	for g := range a.Inventory {
-		if perishable[g] {
-			a.Inventory[g] *= 1 - k
+		if packLoss[g] != 0 {
+			a.Inventory[g] *= 1 - packLoss[g]*k
 		}
 	}
 }
@@ -81,8 +89,8 @@ func Spoil(w *world.World, a *entity.Agent) {
 func MarketStep(w *world.World) {
 	m := &w.Market
 	for g := range m.Stock {
-		loss := spoilage[g]
-		if perishable[g] {
+		loss := shelfLoss[g]
+		if sheltered[g] {
 			loss *= Keeping(w)
 		}
 		m.Stock[g] = math.Max(0, m.Stock[g]*(1-loss))
@@ -172,9 +180,11 @@ func MoveMarket(w *world.World) {
 	}
 	if old := w.Grid.At(w.MarketPos); old.Structure == world.Market {
 		old.Structure = world.None
+		w.CloseMarket(w.MarketPos)
 	}
 	t := w.Grid.At(site)
 	t.Terrain, t.Structure = world.Grass, world.Market
 	w.MarketPos = site
+	w.FoundMarket(site)
 	w.Emit(event.Built, 0, 0, "the market moved to where the town had gone")
 }

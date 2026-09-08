@@ -3,44 +3,51 @@ package world
 import "lreat/core/ontology"
 
 // What grows on a tile takes time to come on, and that time is not the same
-// for everything growing. Timber is the slow one: a stand a planter raised is
-// firewood for a lifetime before it is beams. The brush under it - the
-// berries and the game that live off them - comes back within a few years of
-// a clearing being made. A crop is the fast one: sown, in ear within the
-// quarter, and gone again the moment it is cut.
+// for everything growing. How long each thing takes, and what stages it
+// passes through on the way, is stated in the ontology - see
+// ontology.Processes. This is where those stages are read off an actual
+// tile, and system.Land is what advances them.
 //
 // These are growing ticks rather than ticks: what is measured is how much
 // growing weather a stand has had, so a wood raised in the autumn stands
-// still until the thaw. See system.Land, which advances them.
-const (
-	TimberAge = 20 * Year
-	BrushAge  = 6 * Year
-	CropAge   = Season
-)
+// still until the thaw.
 
-// living is where the ontology's Living sites are to be found on the map. It
-// is the whole of the binding between the two: the ontology says which ground
-// carries something alive, and this says which terrain that is. A terrain
-// missing from here has no stand on it, and its stocks - the water's fish,
-// an outcrop's stone - are not waited on.
-var living = map[Terrain]*ontology.Class{
-	Forest: ontology.Wood,
-	Field:  ontology.Field,
-}
-
-// alive is the same binding read as a table over the terrains, built once
-// from it. Every tile on the map is asked whether it is alive on every tick,
-// and hashing the terrain to answer was a twentieth of a whole run.
-var alive = func() (a [Rock + 1]bool) {
-	for t := range living {
-		a[t] = true
+// alive is the same question read as a table over the ground, worked out
+// once from the same bindings rather than asked of the ontology again. Every
+// tile on the map is asked whether it is alive on every tick, and gathering
+// the processes that run on it to answer allocates the gathering.
+var alive = func() (a [Tavern + 1][Rock + 1]bool) {
+	for s := range a {
+		for t := range a[s] {
+			tile := Tile{Structure: Structure(s), Terrain: Terrain(t)}
+			a[s][t] = len(ontology.Growing(ClassOf(&tile))) > 0
+		}
 	}
 	return a
 }()
 
 // Alive reports whether this tile carries a standing crop, which is to say
-// something that had to grow before it could be taken.
-func (t *Tile) Alive() bool { return alive[t.Terrain] }
+// something that had to grow before it could be taken. It is exactly the
+// tiles some process runs on: the ontology says which ground carries
+// something alive, and ClassOf says which terrain that is.
+func (t *Tile) Alive() bool { return alive[t.Structure][t.Terrain] }
+
+// Along is how far through process p what stands here has come, in [0,1].
+// It is the reading a stage is asked for against, and it is p's share of
+// the tile's one age: a wood is coming on as brush and as timber at once,
+// and is far further along the first than the second.
+func (t *Tile) Along(p *ontology.Process) float64 {
+	return t.Grown(p.Full())
+}
+
+// Reached reports whether what stands here has come as far as ph. It is
+// what lets an act ask for a stage - a harvest wants a field in ear - and
+// it is written as the share of the whole rather than as an age in ticks
+// because the two disagree in the last bit, and one field flipping on one
+// tick re-rolls every draw in the run after it.
+func (t *Tile) Reached(ph ontology.Phase) bool {
+	return t.Along(ph.Process) >= ph.Share()
+}
 
 // Grown is how far along what grows here is, in [0,1], against the time such
 // a thing takes to come on. It only rises: a wood that has made its timber
@@ -62,4 +69,4 @@ func (t *Tile) Sow() { t.Age = 0 }
 
 // Standing puts a tile's growth at full, for ground that is meant to have
 // been there all along: the woods a map is made with are old woods.
-func (t *Tile) Standing() { t.Age = TimberAge }
+func (t *Tile) Standing() { t.Age = ontology.Timbering.Full() }

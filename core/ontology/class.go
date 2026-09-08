@@ -231,7 +231,13 @@ var (
 	// those with something to win and a settlement they mean to stay in.
 	Dwelling = at(New("dwelling", Built, Roofed|Owned|Bench|Hearth|Forge|Desk,
 		habit.Signature{habit.Unsafe: 1, habit.Shelter: -1, habit.Exposure: 0.3}), habit.Signature{habit.Near: 0.4})
-	Market  = at(New("market", Built, Public|Bench|Desk|Trade, habit.Signature{}), habit.Signature{habit.Near: 0.4})
+	// Lacking a square is wanting somewhere to bring what one has made.
+	// It is not a want of the body: it belongs to a person with more on
+	// hand than they need, standing to win, and neighbours far enough off
+	// that the walk to the old square is a day's work.
+	Market = at(New("market", Built, Public|Bench|Desk|Trade,
+		habit.Signature{habit.Unproven: 0.6, habit.Stock: 0.6, habit.Company: 0.4, habit.Charity: 0.3, habit.Tradition: 0.3}),
+		habit.Signature{habit.Near: 0.4})
 	Granary = New("granary", Built, Roofed|Public|Store, habit.Signature{habit.Unproven: 0.7, habit.Charity: 0.4, habit.Tradition: 0.4})
 	Tavern  = at(New("tavern", Built, Roofed|Public|Hearth|Company,
 		habit.Signature{habit.Unproven: 0.6, habit.Lonely: 0.4, habit.Charity: 0.4, habit.Tradition: 0.3}), habit.Signature{habit.Company: 0.6})

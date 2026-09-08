@@ -109,6 +109,7 @@ var mechanics = map[string]*Def{
 	"raise/timber>dwelling@open":        BuildShelter,
 	"raise/timber+stone>granary@open":   BuildGranary,
 	"raise/timber>tavern@open":          BuildTavern,
+	"raise/timber+stone>market@open":    FoundMarket,
 	"raise/timber>road@ground":          Pave,
 	"consume/provision":                 Eat,
 	"dwell/rest":                        Rest,
@@ -191,7 +192,12 @@ func always(*entity.Agent, *world.World) bool { return true }
 
 func here(a *entity.Agent, _ *world.World) (entity.Pos, bool) { return a.Pos, true }
 
-func atMarket(_ *entity.Agent, w *world.World) (entity.Pos, bool) { return w.MarketPos, true }
+// atMarket is the square this person trades and stands guard at: the
+// nearest one. A settlement may hold several, and an errand is walked to
+// the one at hand rather than to the one the town was founded on.
+func atMarket(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+	return w.NearestMarket(a.Pos)
+}
 
 // foodValue is how much one more unit of food is worth to the physiological
 // tier. It falls off as the larder fills, so nobody hoards for its own sake.
@@ -376,20 +382,16 @@ func bearing(a *entity.Agent, w *world.World) float64 {
 // and is worked as one - see bearing - but the crop stands on the strip it
 // was sown in, and it is cut strip by strip.
 func ripe(w *world.World, p entity.Pos) float64 {
-	return w.Grid.At(p).Grown(world.CropAge)
+	return w.Grid.At(p).Along(ontology.Crop)
 }
 
-// readyCrop is how far a crop must have come before it is worth cutting. A
-// crop half grown is not what anybody does with a field, and where the line
-// sits does not change what a strip gives over a year: the yield is the
-// growth, so half a crop taken twice as often comes to the same bread.
-//
-// What it does decide is what a holding is for. A strip cut is bare ground
-// again and has to come on before it can be cut a second time, so a
-// household with one strip waits and a household with three works them in
-// turn. That is the whole of crop rotation, and nobody had to be told it:
-// the ground says when, and the size of the holding says how often.
-const readyCrop = 0.5
+// cuttable reports whether the crop on a strip has come far enough to be
+// worth cutting. What far enough is, is the ontology's to say: a crop is
+// worth cutting once it is in ear, and that is a stage of the growing and
+// not a number kept here. See ontology.Crop for what a holding is for.
+func cuttable(w *world.World, p entity.Pos) bool {
+	return w.Grid.At(p).Reached(ontology.InEar)
+}
 
 // plough reports whether open ground is worth breaking: soil the crop will
 // come up in, and not the yard of somebody's house. A settlement keeps its
@@ -513,7 +515,7 @@ var Farm = &Def{
 			return false
 		}
 		p, ok := worked(a, w)
-		return ok && ripe(w, p) >= readyCrop
+		return ok && cuttable(w, p)
 	},
 	Target: worked,
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
