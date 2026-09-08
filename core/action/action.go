@@ -713,7 +713,22 @@ func timberFor(t *world.Tile) float64 {
 // having passed once. It is the scale of a busy tile, and it is read straight
 // off the ground: see groundWorth, where a house astride a thoroughfare is
 // priced against it.
-const wornEnough = 60
+//
+// It was 60 while a crossing marked the ground by one whatever the walker was
+// carrying. A crossing now marks it by one plus an armful for each armful
+// carried - see world.Haul - so the number changed because its unit did, and
+// not because what a busy tile is has changed.
+const wornEnough = 60 * hauling
+
+// hauling is how much more the ground is marked now that what a walker
+// carries counts. It is measured, not chosen: over six settlements to six
+// thousand days the walkers of this world were carrying 4.92 armfuls at the
+// moment they crossed a tile, so a tile walked exactly as it was before reads
+// about six times as worn. Every bar read off the ground is written in terms
+// of it, so that raising or lowering Haul moves the bars with it instead of
+// silently retuning every one of them - which is the mistake this file has
+// now made twice and would rather not make a third time.
+const hauling = 6
 
 // worthPaving is how strong the case for a road has to be before anybody
 // lays one. It is not the same number as wornEnough and no longer can be,
@@ -739,6 +754,48 @@ const wornEnough = 60
 // are bridged on half the bridge tiles, 34 against 65, because a crossing now
 // wins where it is worth winning instead of being paved along.
 const worthPaving = 2 * wornEnough
+
+// fordEnough is the bar for a crossing, and it is lower than a street's
+// because a ford cannot show the kind of wear the bar is written in.
+//
+// A crossing that has not been bridged yet is crossed only by people carrying
+// nothing, because the water is shut to anybody carrying anything at all -
+// see world.SwimLoad, which is the whole reason a bridge is worth its timber.
+// So once wear counts what a walker carries, a ford is the one place that can
+// never accumulate any: the traffic a bridge would carry is precisely the
+// traffic that is at this moment going the long way round, and it leaves its
+// mark on the detour rather than on the water. Left to clear the street's bar
+// the settlements went from fourteen bridged in sixteen to nine.
+//
+// This exception is one the weighing in world.Saving had made unnecessary and
+// Haul took back out. Saving still says a bridge is worth six lanes to whoever
+// crosses it; six times a wear that cannot include hauling no longer reaches a
+// bar that assumes it.
+//
+// The number is fitted and not derived, and the derivation that failed is
+// worth keeping. Dividing by hauling looks right - the ford's wear cannot grow
+// by that factor, so drop its bar by it - and it is wrong, because a ford's
+// case is not only its own wear. It borrows from the unpavable ground beside
+// it, and that borrowed wear is hauling-weighted like everybody else's, so a
+// ford by a busy house did get dearer to ignore. Dividing by six on top of
+// Saving's six handed crossings a double advantage and paved 269 tiles of
+// river against the 34 the settlements had been building.
+//
+// So it was swept instead, at 21600 days over sixteen seeds, counting tiles
+// of bridge rather than settlements bridged - fifteen of sixteen can reach a
+// river and that number saturates at once, while the tiles per crossing go on
+// climbing and are what tells a bridge from a paved river:
+//
+//	bar          tiles  settlements  per crossing
+//	worthPaving     25            9           2.8
+//	2/3            (47)          15           3.1
+//	1/2             82           16           5.1
+//	1/3            119           15           7.9
+//	1/6            269           16          16.8
+//
+// Two thirds is the one that bridges what the settlements were bridging, 47
+// tiles against 34, at three to a crossing rather than seventeen.
+const fordEnough = 2 * worthPaving / 3
 
 // pavingRadius is how far somebody will go to lay a road. Roads are laid
 // where the layer already lives and walks, not wherever the settlement's
@@ -767,7 +824,7 @@ func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	// clear, which world.Saving already weighs six times an ordinary lane's.
 	// A ford asked for a lane's allowance and given a lane's reading was
 	// never built, and the two banks stayed two settlements.
-	if ford.Found && ford.Worn >= worthPaving {
+	if ford.Found && ford.Worn >= fordEnough {
 		return ford.Pos, true
 	}
 	street := dry

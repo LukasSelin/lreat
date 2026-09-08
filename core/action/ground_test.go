@@ -27,7 +27,7 @@ func TestWornGroundIsWorthLess(t *testing.T) {
 	p := entity.Pos{X: 3, Y: 4}
 	before := landWorth(w, p)
 	for i := 0; i < 200; i++ {
-		w.Grid.Tread(p)
+		w.Grid.Tread(p, 0)
 	}
 	if landWorth(w, p) >= before {
 		t.Fatalf("worn ground worth %.1f, was %.1f before anyone walked it", landWorth(w, p), before)

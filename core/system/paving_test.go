@@ -128,7 +128,7 @@ func TestAnUnwalkedRoadGrowsOver(t *testing.T) {
 	forgotten := entity.Pos{X: 11, Y: 11}
 	for _, p := range []entity.Pos{walked, forgotten} {
 		for i := 0; i < 200; i++ {
-			w.Grid.Tread(p)
+			w.Grid.Tread(p, 0)
 		}
 		if !w.Grid.Pave(p) {
 			t.Fatalf("could not lay a road at %v", p)
@@ -149,7 +149,7 @@ func TestAnUnwalkedRoadGrowsOver(t *testing.T) {
 	// Twenty thousand days is some fifty-five years, against a road's six.
 	for i := 0; i < 20000; i++ {
 		w.Grid.Weather()
-		w.Grid.Tread(walked)
+		w.Grid.Tread(walked, 0)
 		Upkeep(w)
 	}
 	if w.Grid.At(walked).Structure != world.Road {

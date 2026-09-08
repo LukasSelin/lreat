@@ -40,65 +40,65 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  614   592     36    167    288 |  0.65  0.46  0.46  0.45  0.01 |  1.00
-   2  280   305     30     87    137 |  0.60  0.49  0.61  0.67  0.10 |  1.00
-   3   87   175     28     50     36 |  0.57  0.53  0.65  0.81  0.05 |  0.99
-   4  119   278     56     64    100 |  0.62  0.60  0.50  0.61  0.16 |  0.99
-   5  155   195     34     58    133 |  0.58  0.50  0.56  0.49  0.03 |  1.00
-   6  173   279     30     38    151 |  0.57  0.50  0.66  0.68  0.12 |  1.00
-   7  187   323     37     92    144 |  0.60  0.52  0.44  0.63  0.10 |  0.99
-   8  168   216     25     77    117 |  0.67  0.55  0.55  0.53  0.03 |  1.00
-   9  243   367     55    121    100 |  0.58  0.56  0.57  0.39  0.02 |  1.00
-  10  308   142     21     51    149 |  0.68  0.48  0.56  0.72  0.13 |  1.00
-  11  582   350     29    186    584 |  0.54  0.49  0.48  0.55  0.03 |  1.00
-  12   58   233     53     36     28 |  0.55  0.61  0.44  0.39  0.13 |  0.98
-  13  197   480     65     87    121 |  0.53  0.52  0.53  0.55  0.05 |  0.97
-  14   28   101     40     21     10 |  0.55  0.52  0.60  0.65  0.01 |  0.63
-  15  430   518     37    110    320 |  0.56  0.46  0.51  0.57  0.01 |  1.00
-  16   40   103     63     19     18 |  0.45  0.62  0.49  0.53  0.16 |  0.99
-  17   89   252     37     39    120 |  0.54  0.53  0.57  0.62  0.09 |  0.99
-  18  155   359     40     79     81 |  0.56  0.56  0.30  0.56  0.06 |  1.00
-  19  300   236     44    151    115 |  0.58  0.48  0.51  0.57  0.03 |  1.00
-  20  375   223     46    111     19 |  0.55  0.49  0.52  0.44  0.12 |  1.00
-  21  463   832     29    106    280 |  0.63  0.48  0.58  0.59  0.07 |  1.00
-  22  156   301     41     35     61 |  0.52  0.53  0.58  0.71  0.17 |  1.00
-  23  112   192     29     52     98 |  0.53  0.53  0.61  0.65  0.06 |  1.00
-  24  179   278     36     67    173 |  0.60  0.52  0.49  0.64  0.04 |  1.00
+   1  522   552     32    130    129 |  0.63  0.45  0.41  0.43  0.01 |  1.00
+   2  212   252     38     71    104 |  0.56  0.50  0.61  0.75  0.08 |  1.00
+   3  177   297     39     81     89 |  0.53  0.49  0.53  0.52  0.04 |  1.00
+   4   82   221     48     61     57 |  0.54  0.67  0.51  0.60  0.12 |  1.00
+   5   56   175     22     37     37 |  0.51  0.56  0.59  0.65  0.04 |  0.86
+   6  193   329     22     48     99 |  0.61  0.48  0.70  0.77  0.17 |  1.00
+   7  212   314     37    102    191 |  0.62  0.49  0.57  0.61  0.06 |  0.99
+   8  198   153     23     67     37 |  0.67  0.49  0.48  0.48  0.02 |  1.00
+   9  217   602     51    118    104 |  0.56  0.58  0.54  0.55  0.06 |  1.00
+  10  179   174     32     55     76 |  0.65  0.49  0.43  0.59  0.09 |  1.00
+  11  376   388     23    129    412 |  0.51  0.47  0.50  0.64  0.03 |  1.00
+  12   56   125     50     24     24 |  0.60  0.53  0.50  0.40  0.17 |  0.99
+  13   95   287     55     54    106 |  0.57  0.60  0.54  0.66  0.07 |  0.96
+  14   47   157     49     49     32 |  0.51  0.53  0.54  0.56  0.02 |  0.44
+  15  476   576     43    135    300 |  0.59  0.46  0.56  0.53  0.03 |  1.00
+  16   87   155     51     47     50 |  0.60  0.54  0.58  0.71  0.04 |  1.00
+  17   53   158     22     26     57 |  0.69  0.53  0.66  0.76  0.12 |  0.99
+  18  272   375     21    111    178 |  0.56  0.51  0.31  0.55  0.07 |  1.00
+  19  448   329     31    197    213 |  0.59  0.45  0.41  0.48  0.03 |  1.00
+  20  224   209     35    118     56 |  0.56  0.52  0.62  0.64  0.10 |  0.97
+  21  963  1102     20    127    608 |  0.65  0.48  0.64  0.64  0.08 |  1.00
+  22  194   324     43     15     66 |  0.57  0.50  0.66  0.66  0.16 |  1.00
+  23  163   292     37     78    153 |  0.58  0.56  0.56  0.69  0.05 |  1.00
+  24  214   390     44     89    152 |  0.58  0.53  0.43  0.59  0.10 |  1.00
 
-dwell/rest                         4024070  29.1%
-take/berries@wood                  3463944  25.1%
-consume/provision                  2289042  16.6%
-pass/practice>pupil                1130275   8.2%
-dwell/guard@market                 1044271   7.6%
-take/fish@water                     585557   4.2%
-dwell/meet@tavern>neighbour         379067   2.7%
-take/timber@wood                    189163   1.4%
-pass/practice>self                  134839   1.0%
-take/grain@field                    125748   0.9%
-transfer/provision>needy            124006   0.9%
-raise/timber>dwelling@open           69268   0.5%
-tend/plant@open                      60148   0.4%
-exchange/coin>provision@market       59543   0.4%
-exchange/material>coin@market        47402   0.3%
-transfer/provision<holder            25275   0.2%
-transfer/material>requester          19100   0.1%
-make/timber>tool@bench                7787   0.1%
-tend/clear@open                       6983   0.1%
-strike/person>wrongdoer               5229   0.0%
-take/game@wood                        5101   0.0%
-tend/water@field                      3889   0.0%
-raise/timber>road@ground              3385   0.0%
-take/stone@outcrop                    3108   0.0%
-dwell/look                             443   0.0%
-make/provision+timber>meal@hearth      256   0.0%
-raise/timber>tavern@open               149   0.0%
-raise/timber+stone>granary@open        113   0.0%
-move@dwelling                           81   0.0%
-raise/timber+stone>market@open          54   0.0%
-make/stone+timber>tool@forge            53   0.0%
+dwell/rest                         4331381  29.1%
+take/berries@wood                  3648000  24.5%
+consume/provision                  2448079  16.5%
+pass/practice>pupil                1261100   8.5%
+dwell/guard@market                 1183577   8.0%
+take/fish@water                     610824   4.1%
+dwell/meet@tavern>neighbour         379132   2.5%
+take/timber@wood                    202252   1.4%
+take/grain@field                    169327   1.1%
+transfer/provision>needy            156801   1.1%
+pass/practice>self                  148935   1.0%
+exchange/coin>provision@market       69420   0.5%
+tend/plant@open                      62652   0.4%
+exchange/material>coin@market        62547   0.4%
+raise/timber>dwelling@open           60332   0.4%
+transfer/material>requester          23731   0.2%
+transfer/provision<holder            21236   0.1%
+make/timber>tool@bench                8749   0.1%
+tend/clear@open                       7087   0.0%
+strike/person>wrongdoer               6344   0.0%
+take/game@wood                        5077   0.0%
+tend/water@field                      4478   0.0%
+raise/timber>road@ground              3687   0.0%
+take/stone@outcrop                    3321   0.0%
+dwell/look                             490   0.0%
+make/provision+timber>meal@hearth      260   0.0%
+raise/timber>tavern@open               162   0.0%
+raise/timber+stone>granary@open        116   0.0%
+move@dwelling                          110   0.0%
+make/stone+timber>tool@forge            77   0.0%
+raise/timber+stone>market@open          50   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.57 safe 0.56 held 0.84 all 0.313 food 4.53 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 229.1 median 179 | phys 0.58 safe 0.52 belng 0.53 estm 0.58
+gates: fed 0.56 safe 0.53 held 0.83 all 0.291 food 4.42 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 238.2 median 198 | phys 0.58 safe 0.52 belng 0.54 estm 0.60
 ```
 
 ## How much of that is chance
@@ -112,25 +112,25 @@ go run ./cmd/tune -seeds 24 -ticks 21600 -offset 48 -quiet
 ```
 
 ```
-offset  0: gates: fed 0.57 safe 0.56 held 0.84 all 0.313 food 4.53 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 229.1 median 179 | phys 0.58 safe 0.52 belng 0.53 estm 0.58
-offset 24: gates: fed 0.59 safe 0.51 held 0.83 all 0.300 food 5.13 hungry-with-food 0.24 | lasted 23/24 extinct 0 mean 213.7 median 191 | phys 0.63 safe 0.48 belng 0.55 estm 0.63
-offset 48: gates: fed 0.55 safe 0.53 held 0.84 all 0.289 food 5.01 hungry-with-food 0.28 | lasted 24/24 extinct 0 mean 193.2 median 186 | phys 0.57 safe 0.52 belng 0.57 estm 0.69
+offset  0: gates: fed 0.56 safe 0.53 held 0.83 all 0.291 food 4.42 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 238.2 median 198 | phys 0.58 safe 0.52 belng 0.54 estm 0.60
+offset 24: gates: fed 0.57 safe 0.52 held 0.83 all 0.292 food 4.47 hungry-with-food 0.25 | lasted 24/24 extinct 0 mean 229.5 median 202 | phys 0.58 safe 0.51 belng 0.58 estm 0.64
+offset 48: gates: fed 0.56 safe 0.55 held 0.84 all 0.299 food 5.02 hungry-with-food 0.29 | lasted 24/24 extinct 0 mean 221.2 median 193 | phys 0.60 safe 0.52 belng 0.55 estm 0.66
 ```
 
 Nothing changed between those three but which seeds were drawn, and the mean
-population went 229, 214, 193, the median 179, 191, 186. `lasted` was 24, 23
-and 24 of 24, and none of the three lost a settlement outright. The mean is the
+population went 238, 230, 221, the median 198, 202, 193. `lasted` was 24 of 24
+in all three, and none of them lost a settlement outright. The mean is the
 loosest reading here and always has been: a settlement that runs away is worth
 as much as the twenty that did not, and the two seeds above sitting over five
 hundred are most of the distance between the draws.
 
-What holds still is the per-agent side. `fed` moved by 0.04 across the three,
-the mean needs by 0.03 to 0.11, and `all` sat between 0.289 and 0.313. So:
+What holds still is the per-agent side. `fed` moved by 0.01 across the three,
+the mean needs by 0.02 to 0.06, and `all` sat between 0.291 and 0.299. So:
 
 | reading | moved by chance | worth believing at |
 |---|---|---|
 | fed, and the four mean needs | 0.00-0.07 | 0.05 on two batches that agree |
-| gates all | 0.024 | 0.05 |
+| gates all | 0.008 | 0.05 |
 | lasted, extinct | 0 of 24, 0 of 24 | 5 of 24 |
 | mean population | 8% of itself, 27% before | a second batch that agrees |
 | median population | 11% of itself | a second batch that agrees |
