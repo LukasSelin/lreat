@@ -713,6 +713,23 @@ func timberFor(t *world.Tile) float64 {
 // it. Below this the wear is somebody having passed once, not a route.
 const wornEnough = 60
 
+// fordEnough is the same question asked of a crossing, and it is a quarter of
+// what a street has to show. A ford cannot be judged against a street on wear,
+// because wear is exactly what a ford does not get: the water is dear to cross
+// and shut altogether to anybody carrying anything, so everybody who can avoid
+// it does, and what shows on the ground is the few who could not. The traffic
+// a bridge would carry is not the traffic the ford carries - it is all the
+// errands the river is currently stopping, and none of those leave a mark.
+//
+// A quarter is where the crossings the settlement actually needs come out.
+// Left at the full bar, bridges went from thirteen settlements in sixteen to
+// two, and the far bank went back to being another country. That the old
+// reading cleared the full bar was an accident of Draw lending a riverside
+// house's whole wear to every tile around it, water included: it did not
+// measure the crossing, it measured the house, eight times over, and a
+// settlement that fell for it paved sixteen tiles of river.
+const fordEnough = wornEnough / 4
+
 // pavingRadius is how far somebody will go to lay a road. Roads are laid
 // where the layer already lives and walks, not wherever the settlement's
 // worst bottleneck happens to be: nobody has that view of the place.
@@ -730,7 +747,7 @@ func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	// can avoid it does. Left to compete on wear alone a bridge is never
 	// built, and the two banks stay two settlements.
 	ford := func(t *world.Tile) bool { return t.Terrain == world.Water && afford(t) }
-	if p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, ford); ok && worn >= wornEnough {
+	if p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, ford); ok && worn >= fordEnough {
 		return p, true
 	}
 	p, worn, ok := w.Grid.Busiest(a.Pos, pavingRadius, afford)

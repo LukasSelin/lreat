@@ -32,7 +32,7 @@ func wither(w *world.World) {
 		// What becomes of it is settled before any luck is spent, so that
 		// a certainty costs the world no draw, and so that ground with
 		// nothing standing on it costs none either.
-		tr := ontology.Befalling(world.ClassOf(t), t.Owner != 0 && !alive[t.Owner])
+		tr := ontology.Befalling(world.ClassOf(t), unkept(t, alive))
 		if tr == nil {
 			continue
 		}
@@ -46,4 +46,20 @@ func wither(w *world.World) {
 			w.EmitAt(event.Ruined, 0, 0, "", p, "%s", tr.Says)
 		}
 	}
+}
+
+// unkept says whether whatever was holding this tile against the weather is
+// gone, which is what lets the Kept transforms apply to it.
+//
+// For nearly everything a settlement builds that is a person: a house stands
+// because somebody lives in it, a field is a field because somebody works it,
+// and when they are dead there is nobody. A road is the exception. Nobody
+// owns one, so no death takes it and no life saves it, and asked the ordinary
+// question a road answered "still kept" for ever. What keeps a road is the
+// walking on it, which the ground itself records: see world.Walked.
+func unkept(t *world.Tile, alive map[entity.ID]bool) bool {
+	if t.Structure == world.Road {
+		return t.Traffic < world.Walked
+	}
+	return t.Owner != 0 && !alive[t.Owner]
 }
