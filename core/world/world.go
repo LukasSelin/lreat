@@ -140,6 +140,9 @@ type World struct {
 
 	// routers is the working memory deciding routes on, one per goroutine.
 	routers []*Router
+	// ways is this tick's reading of the worn ground, kept between ticks so
+	// that taking it again writes into the same buffers.
+	ways *Ways
 }
 
 // New creates a world with default-sized terrain, seeded for determinism.
@@ -289,6 +292,19 @@ func (w *World) Routers(n int) []*Router {
 		w.routers = append(w.routers, w.Grid.Router())
 	}
 	return w.routers[:n]
+}
+
+// Ways is this tick's reading of the ground people have walked, taken if it
+// has not been taken yet. Deciding only reads the world, so one reading
+// serves every agent deciding on the tick; whoever decides first takes it.
+// Agents deciding side by side must not, so it is taken for them before they
+// start - see action.Ready.
+func (w *World) Ways() *Ways {
+	if w.ways != nil && w.ways.stamp == w.Tick+1 && w.ways.g == w.Grid {
+		return w.ways
+	}
+	w.ways = w.Grid.readWays(w.ways, w.Tick)
+	return w.ways
 }
 
 // Neighbor returns the closest other agent within radius tiles of a, or nil.

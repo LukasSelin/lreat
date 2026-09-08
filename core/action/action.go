@@ -720,23 +720,48 @@ const pavingRadius = 12
 // the settlement's own errands: the way people already take is the way that
 // gets made, which is why nobody has to plan the network for it to appear.
 func paveSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-	afford := func(t *world.Tile) bool { return a.Inventory[entity.Wood] >= timberFor(t) }
+	// The ground itself is read once for the whole settlement; what is left
+	// to this agent is what it can pay for.
+	dry, ford := w.Ways().Busiest(a.Pos, pavingRadius)
+	if a.Inventory[entity.Wood] < pavingWood {
+		dry = world.Pick{}
+	}
+	if a.Inventory[entity.Wood] < bridgeWood {
+		ford = world.Pick{}
+	}
 	// A crossing comes before a street. A street can go round whatever is in
 	// its way, so the busiest ground will be paved sooner or later whoever
 	// gets to it; a river is the one thing a road cannot go round, and the
 	// ford is never the busiest ground in a settlement because everybody who
 	// can avoid it does. Left to compete on wear alone a bridge is never
 	// built, and the two banks stay two settlements.
-	water := func(t *world.Tile) bool { return t.Terrain == world.Water }
-	street, ford := w.Grid.BusiestPair(a.Pos, pavingRadius, afford, water)
 	if ford.Found && ford.Worn >= wornEnough {
 		return ford.Pos, true
+	}
+	street := dry
+	if ford.Worn > street.Worn || (ford.Found && ford.Worn == street.Worn && earlier(ford.Pos, street.Pos)) {
+		street = ford
 	}
 	if !street.Found || street.Worn < wornEnough {
 		return entity.Pos{}, false
 	}
 	return street.Pos, true
 }
+
+// earlier reports whether p is the tile somebody walking the neighbourhood
+// would have come to first. It is what settles a tie between the best dry
+// ground and the best water, which one walk over the ground settled by
+// meeting them in order.
+func earlier(p, q entity.Pos) bool {
+	return p.Y < q.Y || (p.Y == q.Y && p.X < q.X)
+}
+
+// Ready takes the readings of the world that the agents about to decide would
+// otherwise each take for themselves. Deciding only reads the world, so one
+// reading serves all of them; it is taken here because a decision runs on a
+// goroutine of its own, and two of them taking the same reading at once is a
+// race over what neither would have changed.
+func Ready(w *world.World) { w.Ways() }
 
 // Pave is the settlement's first work on the common ground: a stretch of road
 // that does the layer no direct good beyond the credit of having laid it, and

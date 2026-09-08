@@ -180,3 +180,51 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 		t.Fatal("a paved tile still reads as ground crying out for a road")
 	}
 }
+
+// The reading of the ground the whole settlement shares must answer exactly
+// what walking the neighbourhood by hand answered, ties and all: it is the
+// same question asked once instead of once per person, and if it resolved a
+// tie differently the settlement would pave somewhere else.
+func TestWaysSaysWhatWalkingTheGroundSaid(t *testing.T) {
+	const radius = 12
+	w := NewSized(9, 40, 24)
+	g := w.Grid
+	rng := w.RNG
+	for i := range g.Tiles {
+		tile := &g.Tiles[i]
+		*tile = Tile{Terrain: Grass}
+		switch n := rng.IntN(10); {
+		case n < 2:
+			tile.Terrain = Water
+		case n < 3:
+			tile.Terrain = Forest
+		case n < 4:
+			tile.Structure = House
+		case n < 5:
+			tile.Structure = Road
+		}
+		// Wear in whole crossings, so that ties are common rather than a
+		// thing floating point makes vanishingly rare.
+		tile.Traffic = float64(rng.IntN(4))
+	}
+	dry := func(t *Tile) bool { return t.Terrain != Water }
+	wet := func(t *Tile) bool { return t.Terrain == Water }
+	ways := w.Ways()
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			from := entity.Pos{X: x, Y: y}
+			gotDry, gotWet := ways.Busiest(from, radius)
+			for _, c := range []struct {
+				name string
+				got  Pick
+				ok   func(*Tile) bool
+			}{{"dry", gotDry, dry}, {"water", gotWet, wet}} {
+				p, worn, found := g.Busiest(from, radius, c.ok)
+				if c.got.Found != found || c.got.Worn != worn || (found && c.got.Pos != p) {
+					t.Fatalf("from %v the %s reading says %v/%.1f/%v, walking it says %v/%.1f/%v",
+						from, c.name, c.got.Pos, c.got.Worn, c.got.Found, p, worn, found)
+				}
+			}
+		}
+	}
+}

@@ -56,7 +56,10 @@ func (g *Grid) Weather() {
 // wants. Roads lend nothing either - traffic already on a street is already
 // served, and counting it would pave the settlement outward from its first
 // road until the ground ran out.
+var ProfDraw, ProfVisit int64
+
 func (g *Grid) Draw(p entity.Pos) float64 {
+	ProfDraw++
 	if !g.In(p) {
 		return 0
 	}
@@ -96,25 +99,9 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 // nearest the top left, so two agents reading the same ground reach for the
 // same spot.
 func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity.Pos, float64, bool) {
-	wide, _ := g.BusiestPair(from, radius, ok, nil)
-	return wide.Pos, wide.Worn, wide.Found
-}
-
-// Pick is where a scan of the ground would lay a road, and how strong the
-// case for laying it there is. Found is false when the scan was offered
-// nothing at all.
-type Pick struct {
-	Pos   entity.Pos
-	Worn  float64
-	Found bool
-}
-
-// BusiestPair answers two questions off one walk of the ground: the busiest
-// tile ok admits, and the busiest one narrow admits as well. Somebody with
-// timber in hand asks both every time they think about roads - which ford
-// wants a bridge, and which ground wants a street - and the two answers come
-// off the same neighbourhood, so they come off the same walk of it.
-func (g *Grid) BusiestPair(from entity.Pos, radius int, ok, narrow func(*Tile) bool) (wide, close Pick) {
+	var best entity.Pos
+	var worn float64
+	found := false
 	y0, y1 := max(0, from.Y-radius), min(g.H-1, from.Y+radius)
 	x0, x1 := max(0, from.X-radius), min(g.W-1, from.X+radius)
 	for y := y0; y <= y1; y++ {
@@ -124,16 +111,91 @@ func (g *Grid) BusiestPair(from entity.Pos, radius int, ok, narrow func(*Tile) b
 				continue
 			}
 			p := entity.Pos{X: x, Y: y}
-			d := g.Draw(p)
-			if d > wide.Worn {
-				wide = Pick{Pos: p, Worn: d, Found: true}
-			}
-			if narrow != nil && d > close.Worn && narrow(t) {
-				close = Pick{Pos: p, Worn: d, Found: true}
+			if d := g.Draw(p); d > worn {
+				best, worn, found = p, d, true
 			}
 		}
 	}
-	return wide, close
+	return best, worn, found
+}
+
+// Pick is where a walk over the ground would lay a road, and how strong the
+// case for laying it there is. Found is false when the walk was offered
+// nothing at all - either no ground it could be laid on, or none that anybody
+// has ever walked.
+type Pick struct {
+	Pos   entity.Pos
+	Worn  float64
+	Found bool
+}
+
+// Ways is the case for a road, read off the whole map at once.
+//
+// Everybody who thinks about roads on a tick asks the same question of the
+// same ground - what near me is most walked on, and could be paved - and the
+// ground does not change while they are asking, because deciding only reads
+// the world. So the case for each tile is worked out once for the whole
+// settlement, and what is left to each of them is a look over its own
+// neighbourhood. Nine people thinking about roads on a tick read the ground
+// between them twice over rather than nine times.
+type Ways struct {
+	g *Grid
+	// stamp is the tick this was read plus one, so that a reading nobody has
+	// taken is never mistaken for one taken at the first tick.
+	stamp int
+	// draw is the case for a road on each tile, and nothing on ground no road
+	// could be laid on. See Draw.
+	draw []float64
+}
+
+// readWays takes the reading, into the buffer of the last one where it fits.
+// tick is the tick it is a reading of.
+func (g *Grid) readWays(y *Ways, tick int) *Ways {
+	if y == nil {
+		y = &Ways{}
+	}
+	if len(y.draw) != len(g.Tiles) {
+		y.draw = make([]float64, len(g.Tiles))
+	}
+	y.g, y.stamp = g, tick+1
+	for i := range g.Tiles {
+		y.draw[i] = 0
+		if g.Tiles[i].Pavable() {
+			y.draw[i] = g.Draw(entity.Pos{X: i % g.W, Y: i / g.W})
+		}
+	}
+	return y
+}
+
+// Busiest is the busiest ground within radius of from that a road could be
+// laid on: the best of the dry ground and the best of the water, each with
+// the case for it. They are kept apart because a road over water is a bridge
+// and costs more timber, so somebody may be able to afford the one and not
+// the other.
+//
+// Ground nobody has walked is passed over: its case is nothing, and nothing
+// never wins. Ties go to the tile earliest in row-major order, which is the
+// one somebody walking the neighbourhood would have come to first.
+func (y *Ways) Busiest(from entity.Pos, radius int) (dry, wet Pick) {
+	g := y.g
+	x0, x1 := max(0, from.X-radius), min(g.W-1, from.X+radius)
+	for row := max(0, from.Y-radius); row <= min(g.H-1, from.Y+radius); row++ {
+		base := row * g.W
+		for x := x0; x <= x1; x++ {
+			d := y.draw[base+x]
+			if d <= 0 {
+				continue
+			}
+			if g.Tiles[base+x].Terrain == Water {
+				if d > wet.Worn {
+					wet = Pick{Pos: entity.Pos{X: x, Y: row}, Worn: d, Found: true}
+				}
+			} else if d > dry.Worn {
+				dry = Pick{Pos: entity.Pos{X: x, Y: row}, Worn: d, Found: true}
+			}
+		}
+	}
+	return dry, wet
 }
 
 // Pave lays a road on one tile and reports whether it took. Woods in the way
