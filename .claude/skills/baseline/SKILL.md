@@ -6,7 +6,7 @@ description: Judge whether a change to the simulation helped, using the checked-
 # Judging a change against the baseline
 
 `go run ./cmd/tune` is the only thing here that says whether a change to the
-simulation helped. It costs about two minutes for the default batch, and it is
+simulation helped. It costs about half a minute for the default batch, and it is
 deterministic: the same tree gives the same numbers, however the goroutines
 interleave.
 
@@ -22,7 +22,7 @@ of the before-measurement.
 
 **Run it once, at the end**, when the change is settled and `go test ./...`
 passes. A batch taken over unfinished work measures work that no longer exists,
-and every rerun after that is two minutes buying nothing.
+and every rerun after that is half a minute buying nothing.
 
 If the change is large enough that you want to know mid-way whether you are
 going the right direction, run a cheap probe — `-seeds 8 -ticks 3000 -quiet` —

@@ -13,7 +13,7 @@ were byte-identical. That is what makes a checked-in baseline worth anything:
 the file is the run, and re-running it only confirms it.
 
 Read it before a change rather than measuring master again. Two hours of work
-begins with two minutes of a batch that already has an answer here, and the
+begins with half a minute of a batch that already has an answer here, and the
 answer does not change while the work is going on. Take the comparison run once
 the change is settled instead, and when it lands, replace what is below with the
 new numbers in the same commit — the file describes the tree it is committed in,
