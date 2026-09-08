@@ -174,6 +174,7 @@ func (b *builder) traits() {
 	}
 	for _, g := range groups {
 		for _, t := range g.traits {
+			b.claim(traitIRI(t), "trait "+t.String())
 			b.class(traitIRI(t), t.String(), "Everything with the "+t.String()+" trait.")
 			b.sub(traitIRI(t), g.under)
 		}
@@ -250,6 +251,7 @@ var roles = []*ontology.Role{
 
 func (b *builder) roles() {
 	for _, r := range roles {
+		b.claim(roleIRI(r), "role "+r.Name)
 		b.class(roleIRI(r), r.Name, "")
 		b.sub(roleIRI(r), ":Role")
 		b.signature(roleIRI(r), ":prior-", r.Prior)
@@ -258,6 +260,7 @@ func (b *builder) roles() {
 
 func (b *builder) verbs() {
 	for v := ontology.Verb(0); v < ontology.VerbCount; v++ {
+		b.claim(verbIRI(v), "verb "+v.String())
 		b.class(verbIRI(v), v.String(), "")
 		b.sub(verbIRI(v), ":Verb")
 		b.signature(verbIRI(v), ":prior-", ontology.VerbPrior[v])
@@ -266,6 +269,7 @@ func (b *builder) verbs() {
 
 func (b *builder) skills() {
 	for s := entity.Skill(0); s < entity.SkillCount; s++ {
+		b.claim(skillIRI(s), "skill "+s.String())
 		b.class(skillIRI(s), s.String(), "")
 		b.sub(skillIRI(s), ":Skill")
 	}
@@ -320,6 +324,7 @@ func (b *builder) acts() {
 			}
 		}
 		if in.Tech != "" {
+			b.claim(techIRI(in.Tech), "technology "+in.Tech)
 			b.class(techIRI(in.Tech), in.Tech, "")
 			b.sub(techIRI(in.Tech), ":Technology")
 			b.some(name, ":requiresTech", techIRI(in.Tech))
@@ -501,8 +506,15 @@ func classIRI(c *ontology.Class) string { return ":" + title(c.Name) }
 func traitIRI(t ontology.Trait) string  { return ":" + title(t.String()) }
 func verbIRI(v ontology.Verb) string    { return ":" + title(v.String()) }
 func skillIRI(s entity.Skill) string    { return ":" + title(s.String()) }
-func techIRI(t string) string           { return ":" + title(t) }
-func roleIRI(r *ontology.Role) string   { return ":" + title(r.Name) }
+
+// techIRI carries a suffix because a settlement discovers fishing and a person
+// is good at fishing, and those are two things: without it the skill and the
+// technology are one class that is under both :Skill and :Technology, which is
+// what a run of gowl classify showed. Every other kind of name here is claimed
+// against the same map, so a second collision of this shape is a build failure
+// rather than something to be spotted in a taxonomy.
+func techIRI(t string) string         { return ":" + title(t) + "Tech" }
+func roleIRI(r *ontology.Role) string { return ":" + title(r.Name) }
 
 // actIRI turns a catalog key into a local name. The key itself stays on the
 // class as its label, because the key is the real name of an act - it is what

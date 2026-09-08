@@ -42,13 +42,28 @@ class adds every act the trees entail for it, here as there.
 The document is in OWL 2 EL, so `gowl`'s classifier will take it:
 
 ```bash
-gowl classify owl/lreat.ofn
+gowl classify owl/lreat.ofn   # 142 classes, 169 inferred, consistent, coherent
 gowl stats owl/lreat.ofn
 ```
+
+It classifies the taxonomy and passes over the numbers. `gowl/el` implements
+the EL fragment without data properties or property ranges, so the ~450
+`DataHasValue`, `DataPropertyRange` and `ObjectPropertyRange` axioms come back
+under `Unsupported` rather than being reasoned over — every `:prior-*`,
+`:ticks` and `:rate` among them. That costs completeness and not soundness:
+what it derives holds, and a subsumption it does not derive is not settled.
+Nothing skipped could move the taxonomy here anyway, since no class in this
+document is defined by a number.
 
 The tests classify it too, and fail on an incoherence — a class that ends up
 under two disjoint siblings, or with two traits that cannot both hold, is
 unsatisfiable there and invisible in a bitfield here.
+
+Running it is also how the collision behind `techIRI` turned up: a settlement
+discovers fishing and a person is good at fishing, and until the technology
+took a suffix those were one class, sitting under both `:Skill` and
+`:Technology`. Every generated name is now claimed against one map, so the
+next collision of that shape is a build failure instead.
 
 ## Why this is its own module
 
