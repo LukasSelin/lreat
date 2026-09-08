@@ -29,6 +29,16 @@ tuned. The flags are still there and still mean the same things; they are
 what the menu opens on now, and `-start` skips the menu for a run launched by
 a script rather than by hand.
 
+The `map` line is either `by hand`, which is the width and height under it,
+or `fit to terminal`, which measures the window the program is running in
+when the settlement is founded and takes the largest map that leaves room for
+the panel beside it and the graph under it. A map bigger than the window
+shows an apology instead of a settlement and one much smaller wastes ground,
+and neither number is knowable before the program has looked at the terminal
+it was started in. It is off by default, because a map sized by the window is
+a run that cannot be reproduced from a seed alone; `-fit` is the same thing
+from the command line.
+
 Space pauses, `+` and `-` change speed, `.` steps once while paused, `r` lays
 streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,

@@ -30,9 +30,26 @@ type setup struct {
 	agents int
 	width  int
 	height int
-	tps    float64
-	fit    bool
-	temp   float64
+	// snug takes the map's size off the terminal instead of the width and
+	// height above, which are then whatever the window last came to. A map
+	// the window cannot hold is drawn as an apology and nothing else, and
+	// one much smaller than the window wastes ground nobody asked to do
+	// without; either way the number to give is one nobody can know before
+	// the program is looking at the terminal it was run in.
+	snug bool
+	tps  float64
+	fit  bool
+	temp float64
+}
+
+// fitMap is the largest map a terminal of this size will hold: the panel
+// stands beside it and the legend, the activity graph and its span run
+// under it, and all of that has to fit as well. It is the same reckoning
+// the view makes before it refuses to draw — see draw in main.go — read
+// the other way round, from the window to the map rather than from the map
+// to a complaint.
+func fitMap(w, h int) (int, int) {
+	return clampInt(w-panelWidth, 20, 400), clampInt(h-graphHeight-3, 10, 200)
 }
 
 // defaults are what start founds a settlement on: the same run the command
@@ -59,7 +76,14 @@ type option struct {
 	show   func(*setup) string
 	step   func(*setup, int)
 	digits func(*setup, uint64)
+	// fixed says this line is being filled in from somewhere else at the
+	// moment — the terminal's own size — and is read rather than set. It is
+	// nil on the lines that are never anything but set by hand.
+	fixed func(*setup) bool
 }
+
+// settable is whether a line takes a hand on it as things stand.
+func (o option) settable(s *setup) bool { return o.fixed == nil || !o.fixed(s) }
 
 func options() []option {
 	return []option{{
@@ -80,17 +104,49 @@ func options() []option {
 		step:   func(s *setup, d int) { s.agents = clampInt(s.agents+d, 1, 500) },
 		digits: func(s *setup, n uint64) { s.agents = clampInt(int(n), 1, 500) },
 	}, {
-		name:   "map width",
-		help:   "how wide the ground is; a bigger map is more forest to walk to and more room to spread into",
-		show:   func(s *setup) string { return fmt.Sprintf("%d", s.width) },
-		step:   func(s *setup, d int) { s.width = clampInt(s.width+4*d, 20, 400) },
-		digits: func(s *setup, n uint64) { s.width = clampInt(int(n), 20, 400) },
+		name: "map",
+		help: "fit takes the ground off the window this is running in, as large as it will hold; by hand keeps the two lines under it whatever the window is",
+		show: func(s *setup) string {
+			if s.snug {
+				return "fit to terminal"
+			}
+			return "by hand"
+		},
+		step: func(s *setup, _ int) { s.snug = !s.snug },
 	}, {
-		name:   "map height",
-		help:   "how deep the ground is; the map and the panel beside it both have to fit the terminal",
-		show:   func(s *setup) string { return fmt.Sprintf("%d", s.height) },
-		step:   func(s *setup, d int) { s.height = clampInt(s.height+2*d, 10, 200) },
-		digits: func(s *setup, n uint64) { s.height = clampInt(int(n), 10, 200) },
+		name: "map width",
+		help: "how wide the ground is; a bigger map is more forest to walk to and more room to spread into",
+		show: func(s *setup) string { return fmt.Sprintf("%d", s.width) },
+		step: func(s *setup, d int) {
+			if s.snug {
+				return // the terminal is setting this; see the map line
+			}
+			s.width = clampInt(s.width+4*d, 20, 400)
+		},
+		digits: func(s *setup, n uint64) {
+			if !s.snug {
+				s.width = clampInt(int(n), 20, 400)
+			}
+		},
+		// A line the terminal is filling in is shown as read rather than as
+		// set: the number is true, and moving it would be a lie.
+		fixed: func(s *setup) bool { return s.snug },
+	}, {
+		name: "map height",
+		help: "how deep the ground is; the map, the panel beside it and the graph under it all have to fit the terminal",
+		show: func(s *setup) string { return fmt.Sprintf("%d", s.height) },
+		step: func(s *setup, d int) {
+			if s.snug {
+				return
+			}
+			s.height = clampInt(s.height+2*d, 10, 200)
+		},
+		digits: func(s *setup, n uint64) {
+			if !s.snug {
+				s.height = clampInt(int(n), 10, 200)
+			}
+		},
+		fixed: func(s *setup) bool { return s.snug },
 	}, {
 		name: "speed",
 		help: "days per second to begin at; + and - change it again while the settlement runs",
@@ -140,7 +196,8 @@ func menu(sc tcell.Screen, s *setup) bool {
 		m.draw()
 		ev, ok := sc.PollEvent().(*tcell.EventKey)
 		if !ok {
-			continue // a resize or a click: draw again and keep waiting
+			sc.Sync() // a resize or a click: take the screen again and redraw
+			continue
 		}
 		if done, start := m.key(ev); done {
 			return start
@@ -163,6 +220,12 @@ func (m *menuState) draw() {
 	sc := m.screen
 	sc.Clear()
 	w, h := sc.Size()
+	// A fitted map is measured every time the page is drawn rather than
+	// once when it is asked for, so that a window resized with the menu
+	// open shows the ground it would now be given.
+	if m.s.snug {
+		m.s.width, m.s.height = fitMap(w, h)
+	}
 	bold := tcell.StyleDefault.Bold(true)
 	dim := tcell.StyleDefault.Dim(true)
 	line := menuTop
@@ -219,8 +282,12 @@ func (m *menuState) drawFront(line *int) {
 	if !s.fit {
 		rule = "value"
 	}
-	puts(sc, menuLeft+2, *line, dim, fmt.Sprintf("seed %d   %d figures   %d by %d   %.2f t/s   %s",
-		s.seed, s.agents, s.width, s.height, s.tps, rule))
+	ground := fmt.Sprintf("%d by %d", s.width, s.height)
+	if s.snug {
+		ground += " (the window)"
+	}
+	puts(sc, menuLeft+2, *line, dim, fmt.Sprintf("seed %d   %d figures   %s   %.2f t/s   %s",
+		s.seed, s.agents, ground, s.tps, rule))
 	*line++
 }
 
@@ -240,6 +307,13 @@ func (m *menuState) drawOptions(line *int, w, h int) {
 			// What is being typed stands where the value does, marked as
 			// unfinished: it is not the setting until the cursor leaves.
 			value = m.typed + "_"
+		}
+		if !o.settable(m.s) {
+			// The terminal is filling this one in: the number is true and
+			// there is nothing to be done to it, so it is dim even under
+			// the cursor, and says where it came from.
+			style = dim
+			value += "   from the window"
 		}
 		puts(sc, menuLeft, *line, style, mark)
 		puts(sc, menuLeft+2, *line, dim, o.name)
@@ -414,7 +488,7 @@ func (m *menuState) digit(r rune) {
 		return
 	}
 	opts := options()
-	if m.at >= len(opts) || opts[m.at].digits == nil {
+	if m.at >= len(opts) || opts[m.at].digits == nil || !opts[m.at].settable(m.s) {
 		return
 	}
 	if len(m.typed) < 18 { // beyond that no uint64 will hold it

@@ -80,11 +80,12 @@ func main() {
 	height := flag.Int("height", d.height, "map height")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
+	snug := flag.Bool("fit", false, "size the map to the terminal instead of to -width and -height")
 	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
 	s := setup{
 		seed: *seed, agents: *agents, tps: *tps,
-		width: *width, height: *height,
+		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp,
 	}
 
@@ -104,6 +105,13 @@ func main() {
 
 // run founds the settlement and watches it until the user quits.
 func run(screen tcell.Screen, s setup) {
+	// A fitted map is measured here, against the terminal as it stands at
+	// the moment of founding, because that is the last moment it can be:
+	// the ground is generated once and a window resized afterwards finds
+	// the map it was given rather than the map it would now ask for.
+	if s.snug {
+		s.width, s.height = fitMap(screen.Size())
+	}
 	w := world.NewSized(s.seed, s.width, s.height)
 	w.Rules.Fit = s.fit
 	w.Rules.Temperature = s.temp
