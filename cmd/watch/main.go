@@ -613,8 +613,14 @@ func (v *view) drawGraph(x, y, w int) {
 	}
 }
 
+// puts writes a line of text from x, one cell to the rune. Ranging over the
+// string itself would count in bytes, which is the same thing only while the
+// text is ASCII: the moment a line carries a rule, an arrow or a degree sign
+// it tears open, every glyph after the first multi-byte one pushed two cells
+// further right than it belongs and the tail of the line run off the width
+// it was trimmed to. Every header on every page is drawn through here.
 func puts(sc tcell.Screen, x, y int, style tcell.Style, text string) {
-	for i, r := range text {
+	for i, r := range []rune(text) {
 		sc.SetContent(x+i, y, r, nil, style)
 	}
 }
