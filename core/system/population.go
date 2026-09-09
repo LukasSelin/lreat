@@ -96,6 +96,7 @@ func Population(w *world.World) {
 		alive = append(alive, a)
 	}
 	w.Agents = alive
+	w.Reindex()
 
 	n := len(w.Agents)
 	for i := 0; i < n; i++ {

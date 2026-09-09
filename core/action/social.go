@@ -22,16 +22,14 @@ const witnessCount = 3
 func witness(a *entity.Agent, w *world.World, name string) {
 	v := ValenceOf(name)
 	seen := 0
-	for _, o := range w.Agents {
-		if o == a || seen >= witnessCount {
-			continue
-		}
-		if w.Grid.Dist(a.Pos, o.Pos) > reachRadius {
-			continue
+	w.Nearby(a.Pos, reachRadius, func(o *entity.Agent) bool {
+		if o == a {
+			return true
 		}
 		o.Judge(a.ID, belief.Judgement(v, o.Norms), w.Tick)
 		seen++
-	}
+		return seen < witnessCount
+	})
 }
 
 // remorse charges the actor for doing something their own values condemn.
@@ -45,14 +43,14 @@ func remorse(a *entity.Agent, name string) {
 func nearestWith(a *entity.Agent, w *world.World, radius int, ok func(*entity.Agent) bool) *entity.Agent {
 	var best *entity.Agent
 	bestD := radius + 1
-	for _, o := range w.Agents {
-		if o == a || !ok(o) {
-			continue
+	w.Nearby(a.Pos, radius, func(o *entity.Agent) bool {
+		if o != a && ok(o) {
+			if d := w.Grid.Dist(a.Pos, o.Pos); d < bestD {
+				best, bestD = o, d
+			}
 		}
-		if d := w.Grid.Dist(a.Pos, o.Pos); d < bestD {
-			best, bestD = o, d
-		}
-	}
+		return true
+	})
 	return best
 }
 

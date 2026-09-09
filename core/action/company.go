@@ -82,11 +82,12 @@ func Anticipate(a, o *entity.Agent) float64 {
 // tradition dear. Nobody goes to see somebody on the far side of the map.
 func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
 	var near []*entity.Agent
-	for _, o := range w.Agents {
-		if o != a && w.Grid.Dist(a.Pos, o.Pos) <= meetRadius {
+	w.Nearby(a.Pos, meetRadius, func(o *entity.Agent) bool {
+		if o != a {
 			near = append(near, o)
 		}
-	}
+		return true
+	})
 	if len(near) == 0 {
 		return nil
 	}

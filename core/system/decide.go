@@ -122,9 +122,11 @@ func Decide(w *world.World) {
 	out := make([]decision, len(idle))
 	routers := w.Routers(workersFor(len(idle)))
 	action.Ready(w)
+	w.Freeze(true)
 	inParallel(len(idle), len(routers), func(i, worker int) {
 		out[i] = decide(idle[i], w, routers[worker])
 	})
+	w.Freeze(false)
 	for i, a := range idle {
 		if out[i].plan == nil {
 			continue
@@ -374,6 +376,7 @@ func Act(w *world.World) {
 				}
 				a.Travel -= cost
 				a.Pos = step
+				w.Moved(a)
 				a.Plan.Route = a.Plan.Route[1:]
 				w.Grid.Tread(step)
 				// Walking is how anybody learns what the country is like.

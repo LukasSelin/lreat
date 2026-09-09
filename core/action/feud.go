@@ -52,12 +52,12 @@ func Grudge(a *entity.Agent, w *world.World) (*entity.Agent, *entity.Bond) {
 
 // deter teaches everyone nearby that wrongs are answered in this place.
 func deter(a *entity.Agent, w *world.World) {
-	for _, o := range w.Agents {
-		if o == a || w.Grid.Dist(a.Pos, o.Pos) > reachRadius {
-			continue
+	w.Nearby(a.Pos, reachRadius, func(o *entity.Agent) bool {
+		if o != a {
+			o.Caution = belief.Clamp(o.Caution + belief.CautionLearned)
 		}
-		o.Caution = belief.Clamp(o.Caution + belief.CautionLearned)
-	}
+		return true
+	})
 }
 
 // Retaliate is getting even. It restores the avenger's standing and takes

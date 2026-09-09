@@ -799,6 +799,7 @@ func earlier(p, q entity.Pos) bool {
 // detector was the one write in the whole read-only phase.
 func Ready(w *world.World) {
 	w.Room()
+	w.Reindex()
 	w.Ways()
 }
 

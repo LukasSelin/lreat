@@ -155,6 +155,9 @@ type World struct {
 	nextID    entity.ID
 	nextReqID entity.RequestID
 
+	// index is where everybody is filed; see index.go.
+	index
+
 	// routers is the working memory deciding routes on, one per goroutine.
 	routers []*Router
 	// ways is this tick's reading of the worn ground, kept between ticks so
@@ -187,8 +190,13 @@ func NewSized(seed uint64, width, height int) *World {
 	return NewWith(seed, Config{Width: width, Height: height})
 }
 
-// NewWith creates a world on the given terms.
+// NewWith creates a world on the given terms. A globe is a whole number of
+// chunks round: the nine chunks around a place hold everything within a
+// chunk of it only if no chunk is narrower than the rest.
 func NewWith(seed uint64, cfg Config) *World {
+	if cfg.Wrap && cfg.Width%ChunkSide != 0 {
+		panic("world: a globe must be a whole number of chunks round")
+	}
 	w := &World{
 		RNG:     rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
 		Mods:    DefaultModifiers(),
@@ -304,6 +312,7 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 	a.Inventory[entity.Food] = 2
 	w.nextID++
 	w.Agents = append(w.Agents, a)
+	w.enroll(a)
 	a.Room()
 	return a
 }
@@ -381,32 +390,6 @@ func (w *World) Ways() *Ways {
 	}
 	w.ways = w.Grid.readWays(w.ways, w.Tick)
 	return w.ways
-}
-
-// Neighbor returns the closest other agent within radius tiles of a, or nil.
-// Ties go to the agent earliest in the slice, which keeps runs deterministic.
-func (w *World) Neighbor(a *entity.Agent, radius int) *entity.Agent {
-	var best *entity.Agent
-	bestD := radius + 1
-	for _, o := range w.Agents {
-		if o == a {
-			continue
-		}
-		if d := w.Grid.Dist(a.Pos, o.Pos); d < bestD {
-			best, bestD = o, d
-		}
-	}
-	return best
-}
-
-// Find returns the agent with the given id, or nil.
-func (w *World) Find(id entity.ID) *entity.Agent {
-	for _, a := range w.Agents {
-		if a.ID == id {
-			return a
-		}
-	}
-	return nil
 }
 
 // Emit appends an event at the current tick.
