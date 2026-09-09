@@ -98,10 +98,38 @@ func hold(t *Tile) float64 {
 // hold, how dear it is to walk - follows from it without being told to.
 func (w *World) Erode() {
 	g := w.Grid
-	n := len(g.Tiles)
 	// The whole ground moves at once, so the ground asleep is brought up to
 	// date first; what the age does to it is done to it as it now stands.
 	w.CatchUpAll()
+	g.wear(1)
+	g.fill()
+	g.drain()
+	g.carve(w.RNG)
+	g.height()
+	g.resoil()
+	// The ground has moved, so the tree line has moved with it: what was a
+	// dry shoulder may now be damp enough to hold a wood, and what the water
+	// has cut into may not.
+	g.readWoods()
+	g.Recount() // the water has moved, and the woods with it
+}
+
+// wear is the moving of the ground itself: what an age of weather takes off
+// each tile, what it carries downhill, and where it puts it down again. It is
+// the whole of erosion that is about soil rather than about a settlement, and
+// it is its own function because the making of a world runs it too - a history
+// is ages of weather in between the ages of everything else, and there is no
+// settlement there to catch up and no tree line yet to re-read.
+//
+// by is how many ages of weather this pass is worth. An age is a decade for a
+// settlement and Erode passes 1; a history passes more, because an epoch of
+// the earth is not a decade and mountains that are never worn down are a map
+// of knife edges nobody can walk over.
+//
+// It leaves the drainage stale on purpose: the caller says when the water is
+// worked out again, because doing it here would do it twice in Erode.
+func (g *Grid) wear(by float64) {
+	n := len(g.Tiles)
 
 	// Highest ground first, so that what a tile sheds is in the water before
 	// the tile below it is asked what the water is carrying.
@@ -172,7 +200,7 @@ func (w *World) Erode() {
 		// water carries off the mixture that was there, and the sorting
 		// happens where it puts it down again rather than where it picks it
 		// up.
-		stripped := Wash * math.Sqrt(t.Flow) * slope * hold(t)
+		stripped := by * Wash * math.Sqrt(t.Flow) * slope * hold(t)
 		change[i] -= stripped
 		was := parts(t)
 		for k := range load[i] {
@@ -202,16 +230,6 @@ func (w *World) Erode() {
 		}
 	}
 
-	g.fill()
-	g.drain()
-	g.carve(w.RNG)
-	g.height()
-	g.resoil()
-	// The ground has moved, so the tree line has moved with it: what was a
-	// dry shoulder may now be damp enough to hold a wood, and what the water
-	// has cut into may not.
-	g.readWoods()
-	g.Recount() // the water has moved, and the woods with it
 }
 
 // SoilDepth is how many metres of ground make the difference between land

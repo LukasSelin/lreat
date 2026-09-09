@@ -128,7 +128,7 @@ var Views = [...]Reading{
 	// looking at beside the soil and the texture, because the shape of those
 	// two is mostly the shape of this one.
 	Bedrock: {Ramp: Held, Name: "bedrock", Legend: Key,
-		Says: "granite, limestone, sandstone, shale; water dim",
+		Says: "granite, limestone, sandstone, shale, basalt, schist; water dim",
 		draw: func(s scene) Cell {
 			if s.t.Terrain == world.Water {
 				return Cell{Ch: '~', Color: Bare}
@@ -282,4 +282,4 @@ func LinesView(m *observe.MapView, view View) []string {
 // rocks are the four bedrocks written down, in the order world.Bedrock has
 // them. A key needs its glyphs to differ as much as its colours do, because
 // the map has to be readable with the colour taken away.
-var rocks = [world.BedrockCount]rune{'g', 'l', 's', 'h'}
+var rocks = [world.BedrockCount]rune{'g', 'l', 's', 'h', 'b', 'm'}

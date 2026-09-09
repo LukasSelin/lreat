@@ -40,7 +40,7 @@ func main() {
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "recognition temperature")
 	cap := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world")
 	quiet := flag.Bool("quiet", false, "summary only")
-	preset := flag.String("preset", "", "the terms to found each world on: valley (the default map) or globe; -width, -height and -wrap override it")
+	preset := flag.String("preset", "", "the terms to found each world on: valley (the default map), globe, or ancient (a valley made out of its own history); -width, -height and -wrap override it")
 	width := flag.Int("width", world.DefaultWidth, "map width")
 	height := flag.Int("height", world.DefaultHeight, "map height")
 	wrap := flag.Bool("wrap", false, "join the east edge to the west")

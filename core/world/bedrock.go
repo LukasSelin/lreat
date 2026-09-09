@@ -44,6 +44,15 @@ const (
 	// Shale is mud that was buried and is now mud again: the heaviest ground
 	// on the map, and the ground a plough dreads in a wet spring.
 	Shale
+	// Basalt is what comes up: the floor a world cools into, what fills a
+	// rift, and what a volcano leaves. It weathers to a dark soil that holds
+	// water and what is dissolved in it, which is why people farm the flanks
+	// of volcanoes knowing exactly what they are.
+	Basalt
+	// Schist is rock that was something else and was then buried, cooked and
+	// squeezed by a collision. It is the rock of an old mountain range, and
+	// finding it is finding where two plates met.
+	Schist
 	// BedrockCount is how many kinds there are, for the tables that have to
 	// carry a row for each.
 	BedrockCount
@@ -59,6 +68,8 @@ var weathers = [BedrockCount]struct{ sand, clay float64 }{
 	Limestone: {0.20, 0.35},
 	Sandstone: {0.70, 0.08},
 	Shale:     {0.10, 0.55},
+	Basalt:    {0.30, 0.30},
+	Schist:    {0.35, 0.28},
 }
 
 // String is what a rock is called.
@@ -72,6 +83,10 @@ func (b Bedrock) String() string {
 		return "sandstone"
 	case Shale:
 		return "shale"
+	case Basalt:
+		return "basalt"
+	case Schist:
+		return "schist"
 	}
 	return "rock"
 }

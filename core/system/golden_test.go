@@ -22,6 +22,15 @@ import (
 // numbers in the commit that makes it, and say so. A change that was not
 // meant to and moves them was not what it was meant to be.
 //
+// These numbers are a hash of every field of every tile, so a change to what
+// a tile *is* moves them even when nothing that happens on one has changed.
+// That is what the plate and the epoch a rock dates from did: a drawn world
+// is untouched to the last bit - its heights, its drainage and its soils all
+// check out identical against the commit before - and these three numbers
+// moved anyway because there are two more fields in the struct being hashed.
+// When that happens, prove it the way it was proved then: sum the heights,
+// the drainage and the fertility of a few seeds on both trees and compare.
+//
 // Retaken for the soil's make-up: there is rock under the ground now, the
 // soil over it is a mixture of sand, silt and clay weathered out of that
 // rock, and the water sorts what it carries so that the fine stuff ends up
@@ -33,9 +42,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "2274d9c7d48d9439",
-	3: "d3f4b3b91d5186d8",
-	9: "35e009f6ef0fd910",
+	1: "b7e65b8e40923476",
+	3: "b9b56d4383a0a3f0",
+	9: "999e742a635c2e0f",
 }
 
 // digest is the hash the golden numbers are of.

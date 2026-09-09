@@ -21,10 +21,16 @@ func (w *World) Generate(cfg Config) {
 	g := NewGrid(width, height)
 	g.Wrap = cfg.Wrap
 
-	w.raise(g)
-	// What is under the ground is laid down with the ground, and before the
-	// water has been anywhere: a river runs over the rock it finds.
-	w.layBedrock(g)
+	if cfg.Epochs > 0 {
+		// A world that made itself: the land and the rock under it are both
+		// what its history left. See history.go.
+		w.history(g, cfg.Epochs, cfg.SeaShare)
+	} else {
+		w.raise(g)
+		// What is under the ground is laid down with the ground, and before
+		// the water has been anywhere: a river runs over the rock it finds.
+		w.layBedrock(g)
+	}
 	g.flood(cfg.SeaShare, w.RNG)
 	g.fill()
 	g.drain()

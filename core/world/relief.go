@@ -221,6 +221,17 @@ func (g *Grid) Sunlight(p entity.Pos) float64 {
 // ground only the largest of the same lumps. There was nothing to walk round
 // and nothing to look up at.
 func (w *World) raise(g *Grid) {
+	h := w.relief(g)
+	for i := range g.Tiles {
+		g.Tiles[i].Height = h[i]
+	}
+}
+
+// relief is the drawn height field itself, without putting it on the map. It
+// is what raise writes down, and it is also what a history is measured
+// against: a made world says where its high ground is, and this says how high
+// a map's ground is spread. See Grid.normalise in history.go.
+func (w *World) relief(g *Grid) []float64 {
 	lie := w.fold(g, false)
 	crest := w.fold(g, true)
 
@@ -229,6 +240,7 @@ func (w *World) raise(g *Grid) {
 	// speckle through it.
 	where := w.lattice(g, float64(g.Span())/2)
 	rise := g.UplandRise()
+	h := make([]float64, len(g.Tiles))
 	foot, top := quantile(where, 1-uplandShare), quantile(where, 1)
 	reach := math.Max(1e-9, top-foot)
 
@@ -244,8 +256,9 @@ func (w *World) raise(g *Grid) {
 		// crests happened to fall away from its high ground came out with no
 		// mountains at all - two of the first five did, and were the same
 		// gentle bowl the whole thing was meant to stop being.
-		g.Tiles[i].Height = Relief*lie[i] + rise*m*(uplandMass+(1-uplandMass)*crest[i])
+		h[i] = Relief*lie[i] + rise*m*(uplandMass+(1-uplandMass)*crest[i])
 	}
+	return h
 }
 
 // fold sums the octaves, in [0,1] before it is scaled. Folded, each octave is

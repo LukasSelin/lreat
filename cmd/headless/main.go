@@ -29,10 +29,11 @@ var names = []string{
 
 func main() {
 	seed := flag.Uint64("seed", 1, "world seed")
-	preset := flag.String("preset", "", "the terms to found the world on: valley (the default map) or globe; -width, -height and -wrap override it")
+	preset := flag.String("preset", "", "the terms to found the world on: valley (the default map), globe, or ancient (a valley made out of its own history); -width, -height, -wrap and -epochs override it")
 	width := flag.Int("width", world.DefaultWidth, "map width")
 	height := flag.Int("height", world.DefaultHeight, "map height")
 	wrap := flag.Bool("wrap", false, "join the east edge to the west: a globe drawn as a cylinder rather than a valley")
+	epochs := flag.Int("epochs", 0, "ages of the earth to run before the world is handed over: 0 draws the land, anything else makes it out of its own history")
 	ticks := flag.Int("ticks", 50*clock.Year, "days to simulate")
 	agents := flag.Int("agents", 20, "starting population")
 	every := flag.Int("every", 5*clock.Year, "report interval in days")
@@ -78,6 +79,8 @@ func main() {
 			cfg.Height = *height
 		case "wrap":
 			cfg.Wrap = *wrap
+		case "epochs":
+			cfg.Epochs = *epochs
 		}
 	})
 	w := world.NewWith(*seed, cfg)

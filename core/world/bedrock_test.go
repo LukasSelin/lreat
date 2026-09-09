@@ -23,18 +23,30 @@ func TestEveryRockWeathersToAMixture(t *testing.T) {
 }
 
 // The lines are cut at each lattice's own middle, so a map gets some of all
-// four rocks however its noise happened to fall. A map with one rock on it is
-// a map with one soil on it, which is what all this is for undoing.
-func TestAMapCarriesAllFourRocks(t *testing.T) {
+// four of the rocks a lattice lays however its noise happened to fall. A map
+// with one rock on it is a map with one soil on it, which is what all this is
+// for undoing.
+//
+// Basalt and schist are not among them, and that is the point of them: they
+// are rocks that have to happen to a place. Nothing that comes up and nothing
+// that is buried and squeezed can be laid down by a lattice that knows only
+// where a tile is, so they belong to a world made by its history.
+func TestAMapCarriesAllTheRocksALatticeLays(t *testing.T) {
+	laid := []Bedrock{Granite, Limestone, Sandstone, Shale}
 	for _, seed := range []uint64{1, 2, 3, 7} {
 		w := New(seed)
 		var seen [BedrockCount]int
 		for i := range w.Grid.Tiles {
 			seen[w.Grid.Tiles[i].Bedrock]++
 		}
-		for _, b := range Bedrocks() {
+		for _, b := range laid {
 			if seen[b] == 0 {
 				t.Errorf("seed %d has no %s on it", seed, b)
+			}
+		}
+		for _, b := range []Bedrock{Basalt, Schist} {
+			if seen[b] != 0 {
+				t.Errorf("seed %d has %s on it, which nothing without a history can make", seed, b)
 			}
 		}
 	}

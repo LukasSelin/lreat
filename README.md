@@ -144,6 +144,22 @@ All three take `-seed` and `-agents`, and count in ticks, which are days: the
 defaults above are fifty and sixty years. A seed plus a command log reproduces a
 run exactly, however the goroutines happen to interleave.
 
+`headless` and `tune` also take `-preset ancient`, which makes the default
+valley out of its own history instead of drawing it. A world starts molten,
+with no rigid crust and nothing that forms outlasting the forming of it; the
+crust goes rigid and breaks into plates; and then sixteen ages of the earth
+run, each drifting the plates, raising ground where two of them close,
+dropping it where they part, waking the odd volcano, and weathering all of it
+before the next age. What comes out is a map where things have reasons — a
+range stands where two plates met, the rock in it is what that meeting made,
+the basin beside it is full of the range's own debris — and every tile keeps
+the plate it rides and the epoch its rock dates from, so later work can ask
+where the ore is rather than paint it on. `-epochs N` is the same term by
+hand on any preset. It is not what any settlement is measured on: see
+"A world made by what happened to it" in core/world/history.go for what the
+join to the tuned constants does and why it is the part most likely to be
+wrong.
+
 `headless` and `tune` also take `-preset globe`, which founds the world on a
 globe instead of the valley: a cylinder a thousand tiles round and five
 hundred down, joined at the east and west edges, a third of it sea, cold at

@@ -198,6 +198,10 @@ type Config struct {
 	Settlements int
 	// LogCapacity is how many events the log keeps; zero is the usual.
 	LogCapacity int
+	// Epochs is how many ages of the earth to run before the world is
+	// handed over: 0 draws the land, and anything else makes it out of its
+	// own history. See history.go.
+	Epochs int
 }
 
 // DefaultConfig is the valley every settlement was founded in before there
@@ -212,6 +216,18 @@ func DefaultConfig() Config {
 // this; it has a baseline of its own.
 func Globe() Config {
 	return Config{Width: 1024, Height: 512, Wrap: true, SeaShare: 0.3, Settlements: 4, LogCapacity: 200_000}
+}
+
+// Ancient is the default valley made out of its own history rather than
+// drawn: the same size, the same sea, sixteen ages of the earth before
+// anybody arrives. Nothing measured on the valley is measured on this - it is
+// a different map of the same kind - and it is a preset so that a made world
+// can be run and looked at without being the only kind there is. See
+// history.go, and normalise, which is the join that makes it the same kind.
+func Ancient() Config {
+	cfg := DefaultConfig()
+	cfg.Epochs = 16
+	return cfg
 }
 
 // New creates a world with default-sized terrain, seeded for determinism.
@@ -482,6 +498,8 @@ func Preset(name string) (cfg Config, ok bool) {
 		return DefaultConfig(), true
 	case "globe":
 		return Globe(), true
+	case "ancient":
+		return Ancient(), true
 	}
 	return Config{}, false
 }

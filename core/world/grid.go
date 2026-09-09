@@ -67,6 +67,15 @@ type Tile struct {
 	Sand    float64
 	Clay    float64
 
+	// Plate is which piece of the crust this tile rides, and Formed the
+	// epoch its rock dates from. Both are written by a world made from its
+	// own history and are nothing on a world that was drawn; see history.go.
+	// They are kept because what a later change wants to ask of a map -
+	// where the ore is, where the ground still shakes - is a question about
+	// which plate and how old, and neither can be worked out afterwards.
+	Plate  uint8
+	Formed uint8
+
 	// Age is how much growing weather what stands on this tile has had, in
 	// growing ticks. It is what makes a thicket different from a wood and a
 	// sown strip different from one in ear; see grow.go.
@@ -152,6 +161,17 @@ type Grid struct {
 	// holds is whether trees will take on each tile, read at the same time
 	// as the lines above and from the same ground. See readHolds.
 	holds []bool
+
+	// seam and seamQueue are the working memory a history's plate boundaries
+	// are spread with, kept here so that an epoch allocates nothing. See
+	// history.go.
+	seam      []seam
+	seamQueue []int32
+
+	// hot is where a world's hotspots are: the places fed from below rather
+	// than at a plate's edge. Drawn once when a history starts and fixed for
+	// the life of the world. See history.go.
+	hot []entity.Pos
 
 	// frost is, for each row, the height above which the year on that row
 	// never warms past Frost. It is the weather's, not the ground's, but it
