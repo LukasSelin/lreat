@@ -97,6 +97,16 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	// while the lane is hauled along. That is the whole difficulty a crossing
 	// is under: the errands a bridge would carry are going the long way round
 	// and marking the ground somewhere else. See fordEnough.
+	//
+	// Nothing else is worn anywhere, so the two tiles being compared are the
+	// only two in the running. The way townsfolk wears beside the agent is a
+	// third candidate otherwise, and since the ground grew mountains the map
+	// this seed makes puts a wood on it - where a road saves the walker more
+	// than either of these does, so it won on the trees rather than on being
+	// walked and the test read as a crossing losing to a street.
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i].Traffic = 0
+	}
 	ford := entity.Pos{X: a.Pos.X - 2, Y: a.Pos.Y}
 	w.Grid.At(ford).Terrain = world.Water
 	// The ford's count is written in terms of hauling and the lane's load is

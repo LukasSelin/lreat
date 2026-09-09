@@ -17,6 +17,12 @@ func (w *World) GenerateTerrain(width, height int) {
 	w.raise(g)
 	g.fill()
 	g.drain()
+	// The water cuts its valley before the valley is asked where the water
+	// goes: incise moves the ground, so the drainage has to be taken again on
+	// the ground it left. See Incise.
+	g.incise()
+	g.fill()
+	g.drain()
 	g.carve(w.RNG)
 	g.height()
 
@@ -64,7 +70,7 @@ func (w *World) GenerateTerrain(width, height int) {
 	open := make([]float64, 0, len(g.Tiles))
 	for i := range g.Tiles {
 		bare[i] = clamp01(slopes[i]/math.Max(1e-12, g.steepAt)) +
-			clamp01((heights[i]-highAt)/math.Max(1e-12, Relief-highAt))
+			clamp01((heights[i]-highAt)/math.Max(1e-12, g.Skyline()-highAt))
 		if g.Tiles[i].Terrain == Grass {
 			open = append(open, bare[i])
 		}
@@ -81,7 +87,7 @@ func (w *World) GenerateTerrain(width, height int) {
 	// is the same reading the weather takes every age.
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		if t.Terrain == Water {
+		if t.Wet() {
 			continue
 		}
 		t.Fertility = g.SoilAt(entity.Pos{X: i % width, Y: i / width})
@@ -96,10 +102,10 @@ func (w *World) GenerateTerrain(width, height int) {
 	best, bestScore := entity.Pos{}, math.Inf(-1)
 	for i := range g.Tiles {
 		p := entity.Pos{X: i % width, Y: i / width}
-		if g.Tiles[i].Terrain == Water {
+		if g.Tiles[i].Wet() {
 			continue
 		}
-		if !g.HasNeighbor(p, func(t *Tile) bool { return t.Terrain == Water }) {
+		if !g.HasNeighbor(p, func(t *Tile) bool { return t.Wet() }) {
 			continue
 		}
 		// What founds a market: good soil, the flat of the valley rather than

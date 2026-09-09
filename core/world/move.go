@@ -23,7 +23,7 @@ import (
 // water cut the wading barely at all and cost up to a quarter of the
 // population. What answers a river is a bridge, and the cheapest water is
 // what gets one built.
-var moveCost = [...]float64{
+var moveCost = [TerrainCount]float64{
 	Grass:  1,
 	Field:  1.3,
 	Forest: 2.2,
@@ -145,15 +145,24 @@ const (
 )
 
 // StepCost is the effort of moving from one tile to the next: the ground
-// being entered, plus the climb or the descent into it. It is what routing
-// costs a journey by, so agents round a hill rather than going over it, and
-// so the ways they wear - and the roads they lay on those ways - follow the
-// contours and the valley floors the way real ones do.
+// being entered, plus the climb or the descent into it, plus the fence
+// between them if there is one. It is what routing costs a journey by, so
+// agents round a hill rather than going over it, walk round a hedged holding
+// rather than through the corn, and so the ways they wear - and the roads
+// they lay on those ways - follow the contours and the valley floors the way
+// real ones do.
 func (g *Grid) StepCost(from, to entity.Pos) float64 {
+	return g.StepCostFor(from, to, 0)
+}
+
+// StepCostFor is StepCost for a named walker, whose own fields are theirs to
+// walk into. Everybody else's cost them the climb over the fence.
+func (g *Grid) StepCostFor(from, to entity.Pos, holder entity.ID) float64 {
 	c := g.MoveCost(to)
 	if math.IsInf(c, 1) || !g.In(from) {
 		return c
 	}
+	c += g.fenceCost(int32(from.Y*g.W+from.X), int32(to.Y*g.W+to.X), holder)
 	if d := g.Height(to) - g.Height(from); d > 0 {
 		return c + Climb*d
 	} else {
@@ -222,7 +231,7 @@ func (r *Router) TravelCost(from, to entity.Pos) float64 {
 		r.load = 0
 		return math.Inf(1)
 	}
-	if r.surveyed && from == r.spreadFrom && (r.load > SwimLoad) == r.spreadLaden {
+	if r.surveyed && from == r.spreadFrom && (r.load > SwimLoad) == r.spreadLaden && r.holder == r.spreadHolder {
 		r.load = 0
 		return r.fromSurvey(to)
 	}

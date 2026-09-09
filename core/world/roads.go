@@ -329,7 +329,7 @@ func (y *Ways) Busiest(from entity.Pos, radius int) (dry, wet Pick) {
 			if d <= 0 {
 				continue
 			}
-			if g.Tiles[base+x].Terrain == Water {
+			if g.Tiles[base+x].Wet() {
 				if d > wet.Worn {
 					wet = Pick{Pos: entity.Pos{X: x, Y: row}, Worn: d, Found: true}
 				}

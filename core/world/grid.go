@@ -11,6 +11,9 @@ const (
 	Water
 	Field
 	Rock // an outcrop: stone to cut, nothing to grow
+	// TerrainCount is how many kinds of ground there are. It sizes the
+	// tables that have to carry a row for each; see kind.go.
+	TerrainCount
 )
 
 // Structure is what has been built on a tile.
@@ -59,6 +62,13 @@ type Tile struct {
 	// sown strip different from one in ear; see grow.go.
 	Age float64
 
+	// Fenced is whether this tile lies inside a fence: a strip of a block of
+	// worked ground large enough that somebody hedged it. It is not a
+	// structure and not a terrain - the ground under it is still field, and
+	// the fence itself is the line round the block rather than anything
+	// standing on a tile. See fence.go.
+	Fenced bool
+
 	// Traffic is how worn the ground is: it rises with every crossing and
 	// fades when nobody comes that way. It is not a cost - walking a beaten
 	// path is no quicker - it is a record of where the settlement's errands
@@ -81,16 +91,23 @@ func (t *Tile) Pavable() bool {
 	return t.Structure == None && t.Owner == 0
 }
 
+// Wet reports whether this tile is water rather than ground, whatever has
+// been carried over it. It is the question the map-maker asks of water nine
+// times over - what will not grow trees, what silt runs off, what nobody
+// stands on - and it is not the question of whether a river runs here, which
+// is Flow.
+func (t *Tile) Wet() bool { return t.Terrain.Wet() }
+
 // Bridged reports whether this tile is a road carried over water.
 func (t *Tile) Bridged() bool {
-	return t.Structure == Road && t.Terrain == Water
+	return t.Structure == Road && t.Wet()
 }
 
 // Deep reports whether crossing this tile means swimming: water with nothing
 // built over it. A bridge is not deep, because the walker is on the road and
 // the water is underneath.
 func (t *Tile) Deep() bool {
-	return t.Terrain == Water && t.Structure == None
+	return t.Wet() && t.Structure == None
 }
 
 // Grid is the world map, row-major.
@@ -111,6 +128,13 @@ type Grid struct {
 	// as the lines above and from the same ground. See readHolds.
 	holds []bool
 
+	// fenceSeen, fenceBlock and fenceStack are the working memory the daily
+	// walk of the fields runs on, kept here so that reading the enclosures
+	// allocates nothing. See fence.go.
+	fenceSeen  []bool
+	fenceBlock []int32
+	fenceStack []int32
+
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
 	// something else needs a Router of its own.
@@ -120,10 +144,16 @@ type Grid struct {
 // ownRouter is the grid's router, made on first use. It is not safe to reach
 // for from two goroutines at once, which is the whole reason Router can be
 // held by somebody else.
+//
+// It comes back holding nothing. A Router keeps whose walker it is routing
+// for until it is told otherwise - see Holding - and this one is picked up by
+// anybody in turn, so a walker's own gates must not be left standing open for
+// whoever asks next.
 func (g *Grid) ownRouter() *Router {
 	if g.router == nil {
 		g.router = &Router{g: g}
 	}
+	g.router.holder = 0
 	return g.router
 }
 
@@ -264,7 +294,7 @@ func (g *Grid) Raze(p entity.Pos) bool {
 		return false
 	}
 	if t.Terrain == Field {
-		t.Terrain, t.Age = Grass, 0 // the crop goes with the claim
+		t.Terrain, t.Age, t.Fenced = Grass, 0, false // the crop and the hedge go with the claim
 	}
 	t.Structure, t.Owner = None, 0
 	return true
