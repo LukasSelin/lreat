@@ -14,7 +14,7 @@ import (
 // only way to ask a question about what a colour looks like rather than about
 // which number it is.
 func rgb(c tcell.Color) (r, g, b int) {
-	i := int(c) &^ int(tcell.ColorValid)
+	i := int(c &^ tcell.ColorValid)
 	if i >= 232 {
 		v := 8 + (i-232)*10
 		return v, v, v
@@ -29,6 +29,30 @@ func rgb(c tcell.Color) (r, g, b int) {
 func vegetation(c tcell.Color) bool {
 	r, g, b := rgb(c)
 	return g > r+30 && g > b+30
+}
+
+// A colour has to be one tcell will actually draw. tcell.Color is a bitfield,
+// not a palette index: the entry for a palette colour carries ColorValid, and
+// a bare tcell.Color(22) is not colour 22 at all but an invalid value that
+// draws in the terminal's default. That is white on a dark terminal, and it
+// is silent - nothing fails, the map simply comes out blank.
+//
+// Every open-ground colour on this map was written that way from the day the
+// palette was first set down, so the grass had always drawn white; the mistake
+// only became visible when the same form was used for the woods, which until
+// then had been tcell.ColorGreen and had therefore worked. Use
+// tcell.PaletteColor, or the named tcell.Color22.
+func TestEveryColourIsOneTcellWillDraw(t *testing.T) {
+	for c, style := range palette {
+		fg, _, _ := style.Decompose()
+		if fg == tcell.ColorDefault {
+			continue // deliberately the terminal's own colour
+		}
+		if fg&tcell.ColorValid == 0 {
+			t.Errorf("colour %d has foreground %d, which is not a valid tcell colour "+
+				"and will draw as the terminal default", c, uint64(fg))
+		}
+	}
 }
 
 // Every colour the renderer can emit needs a style. A colour with no entry

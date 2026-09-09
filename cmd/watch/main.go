@@ -436,7 +436,7 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.Market:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
 	ascii.Rock:        tcell.StyleDefault.Foreground(tcell.ColorGray),
-	ascii.RockHigh:    tcell.StyleDefault.Foreground(tcell.Color(250)),
+	ascii.RockHigh:    tcell.StyleDefault.Foreground(tcell.PaletteColor(250)),
 	ascii.Granary:     tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
 	ascii.Tavern:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.AgentFood:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
@@ -464,19 +464,19 @@ var palette = map[ascii.Color]tcell.Style{
 	// hillside of trees should read as a wooded hillside and not as another
 	// shade of rock. What rises with them is brightness, which is what thinner
 	// montane cover actually looks like.
-	ascii.Ground0: tcell.StyleDefault.Foreground(tcell.Color(22)),  // the water meadow
-	ascii.Ground1: tcell.StyleDefault.Foreground(tcell.Color(28)),  // the valley floor
-	ascii.Ground2: tcell.StyleDefault.Foreground(tcell.Color(64)),  // the dry shoulder of it
-	ascii.Ground3: tcell.StyleDefault.Foreground(tcell.Color(101)), // the foothills
-	ascii.Ground4: tcell.StyleDefault.Foreground(tcell.Color(145)), // the mountainside
-	ascii.Ground5: tcell.StyleDefault.Foreground(tcell.Color(252)), // the tops
+	ascii.Ground0: tcell.StyleDefault.Foreground(tcell.PaletteColor(22)),  // the water meadow
+	ascii.Ground1: tcell.StyleDefault.Foreground(tcell.PaletteColor(28)),  // the valley floor
+	ascii.Ground2: tcell.StyleDefault.Foreground(tcell.PaletteColor(64)),  // the dry shoulder of it
+	ascii.Ground3: tcell.StyleDefault.Foreground(tcell.PaletteColor(101)), // the foothills
+	ascii.Ground4: tcell.StyleDefault.Foreground(tcell.PaletteColor(145)), // the mountainside
+	ascii.Ground5: tcell.StyleDefault.Foreground(tcell.PaletteColor(252)), // the tops
 
-	ascii.Wood0: tcell.StyleDefault.Foreground(tcell.Color(22)),
-	ascii.Wood1: tcell.StyleDefault.Foreground(tcell.Color(28)),
-	ascii.Wood2: tcell.StyleDefault.Foreground(tcell.Color(34)),
-	ascii.Wood3: tcell.StyleDefault.Foreground(tcell.Color(40)),
-	ascii.Wood4: tcell.StyleDefault.Foreground(tcell.Color(71)),
-	ascii.Wood5: tcell.StyleDefault.Foreground(tcell.Color(108)),
+	ascii.Wood0: tcell.StyleDefault.Foreground(tcell.PaletteColor(22)),
+	ascii.Wood1: tcell.StyleDefault.Foreground(tcell.PaletteColor(28)),
+	ascii.Wood2: tcell.StyleDefault.Foreground(tcell.PaletteColor(34)),
+	ascii.Wood3: tcell.StyleDefault.Foreground(tcell.PaletteColor(40)),
+	ascii.Wood4: tcell.StyleDefault.Foreground(tcell.PaletteColor(71)),
+	ascii.Wood5: tcell.StyleDefault.Foreground(tcell.PaletteColor(108)),
 }
 
 func (v *view) draw() {
