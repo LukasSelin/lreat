@@ -60,17 +60,7 @@ func hold(t *Tile) float64 {
 	if t.Structure != None {
 		return 0
 	}
-	switch t.Terrain {
-	case Forest:
-		return 0.25
-	case Field:
-		return 1
-	case Rock:
-		return 0.15
-	case Water:
-		return 1 // the channel cuts down; that is how a valley deepens
-	}
-	return 0.6
+	return t.Terrain.Hold()
 }
 
 // Erode weathers the map by one age and works the drainage out again. It is

@@ -27,29 +27,20 @@ var classes = map[Structure]*ontology.Class{
 	Road:    ontology.Road,
 }
 
-// grounds is what bare ground is, in the ontology's terms.
-var grounds = map[Terrain]*ontology.Class{
-	Grass:  ontology.Open,
-	Forest: ontology.Wood,
-	Water:  ontology.Water,
-	Field:  ontology.Field,
-	Rock:   ontology.Outcrop,
-}
-
 // ClassOf is what this tile is: what stands on it if anything does, and
 // otherwise the ground itself.
 func ClassOf(t *Tile) *ontology.Class {
 	if c, ok := classes[t.Structure]; ok {
 		return c
 	}
-	return grounds[t.Terrain]
+	return t.Terrain.Class()
 }
 
 // GroundOf is what the bare ground of this tile is, whatever has been put on
 // top of it. It is not ClassOf and the difference is the bridge: a road over
 // water is a road to walk on and still a river to fish in, so what a tile
 // affords is the ground's to say and never the structure's.
-func GroundOf(t *Tile) *ontology.Class { return grounds[t.Terrain] }
+func GroundOf(t *Tile) *ontology.Class { return t.Terrain.Class() }
 
 // Is reports whether the ground here is c, or any kind of c. It is the
 // identity question asked of the ontology instead of of the terrain, so that

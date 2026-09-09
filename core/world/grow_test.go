@@ -17,10 +17,11 @@ func TestLivingGroundMatchesTheOntology(t *testing.T) {
 			named[c] = true
 		}
 	}
-	for terrain, c := range grounds {
+	for _, terrain := range Terrains() {
+		c := terrain.Class()
 		tile := &Tile{Terrain: terrain}
 		if tile.Alive() != c.Has(ontology.Living) {
-			t.Fatalf("terrain %d grows as %s, which the ontology does not call living", terrain, c.Path())
+			t.Fatalf("%s grows as %s, which the ontology does not call living", terrain, c.Path())
 		}
 		delete(named, c)
 	}

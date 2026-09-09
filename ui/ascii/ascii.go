@@ -93,30 +93,38 @@ func tileCell(t *world.Tile) Cell {
 	case world.Tavern:
 		return Cell{Ch: '&', Color: Tavern}
 	}
-	switch t.Terrain {
-	case world.Water:
-		return Cell{Ch: '~', Color: Water}
-	case world.Forest:
+	return ground[t.Terrain](t)
+}
+
+// ground draws each kind of ground, a row apiece. It is a table rather than a
+// switch so that a terrain the renderer has not been told about is a nil to
+// trip over in a test, rather than a tile silently drawn as grass.
+var ground = [world.TerrainCount]func(*world.Tile) Cell{
+	world.Water: func(*world.Tile) Cell { return Cell{Ch: '~', Color: Water} },
+	world.Field: func(*world.Tile) Cell { return Cell{Ch: '"', Color: Field} },
+	world.Rock:  func(*world.Tile) Cell { return Cell{Ch: '^', Color: Rock} },
+
+	// A wood is drawn by how much of it is left to cut.
+	world.Forest: func(t *world.Tile) Cell {
 		if t.Wood >= 0.5 {
 			return Cell{Ch: 'T', Color: ForestRich}
 		}
 		return Cell{Ch: 't', Color: ForestPoor}
-	case world.Field:
-		return Cell{Ch: '"', Color: Field}
-	case world.Rock:
-		return Cell{Ch: '^', Color: Rock}
-	}
+	},
+
 	// Open ground is drawn by how far it stands above the water it drains
 	// into, so the shape of the land shows through the things built on it: the
 	// water meadows of the valley floor, the ordinary ground of the terraces,
 	// and the dry slopes above.
-	switch {
-	case t.Drain < world.FloodDepth/3:
-		return Cell{Ch: ',', Color: GrassLow}
-	case t.Drain > world.FloodDepth*2:
-		return Cell{Ch: '`', Color: GrassHigh}
-	}
-	return Cell{Ch: '.', Color: Grass}
+	world.Grass: func(t *world.Tile) Cell {
+		switch {
+		case t.Drain < world.FloodDepth/3:
+			return Cell{Ch: ',', Color: GrassLow}
+		case t.Drain > world.FloodDepth*2:
+			return Cell{Ch: '`', Color: GrassHigh}
+		}
+		return Cell{Ch: '.', Color: Grass}
+	},
 }
 
 // AgentColor maps an action to the color of the agent doing it.

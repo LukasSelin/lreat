@@ -11,6 +11,9 @@ const (
 	Water
 	Field
 	Rock // an outcrop: stone to cut, nothing to grow
+	// TerrainCount is how many kinds of ground there are. It sizes the
+	// tables that have to carry a row for each; see kind.go.
+	TerrainCount
 )
 
 // Structure is what has been built on a tile.
