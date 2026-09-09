@@ -375,7 +375,7 @@ func Act(w *world.World) {
 				a.Travel -= cost
 				a.Pos = step
 				a.Plan.Route = a.Plan.Route[1:]
-				w.Grid.Tread(step)
+				w.Grid.Tread(step, a.Load())
 				// Walking is how anybody learns what the country is like.
 				// There is no survey and nobody is told: an agent knows the
 				// ground it has stood on and no other, and everything it
