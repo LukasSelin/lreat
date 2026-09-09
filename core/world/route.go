@@ -18,22 +18,71 @@ var dirs = [8]entity.Pos{
 // are small sums of tile costs, so anything under this is float noise.
 const tie = 1e-9
 
-// Routes is the cheapest walking cost from one tile out over the map, on the
-// ground as it currently stands. It is what lets an agent use a road: a route
-// is chosen by what it costs to walk, so a paved way three tiles off the
-// straight line wins whenever the paving saves more than the detour spends.
+// Window is how far a route may run from where it starts, in tiles either
+// way. It is the width of the default map, which is the farthest anybody
+// there has ever had to walk - to the market from the far edge, or to
+// whoever posted a request - so the window holds the whole of that map
+// from anywhere on it, and on a bigger map holds a settlement and its
+// land. A search kept to a window works on a few hundred kilobytes that
+// stay in cache, where one kept over the whole of a big map worked on
+// megabytes per worker and missed the cache on every tile it opened.
+const Window = 80
+
+// Routes is the cheapest walking cost from one tile out over the ground
+// around it, on the ground as it currently stands. It is what lets an agent
+// use a road: a route is chosen by what it costs to walk, so a paved way
+// three tiles off the straight line wins whenever the paving saves more than
+// the detour spends.
 //
 // Only the tiles the search reached carry a cost; gen and seen say which
 // those are, so the same buffers can serve search after search without being
-// cleared each time.
+// cleared each time. The tiles are kept by their slot in the window, which
+// is their offset from its north-west corner; on a globe the offset goes
+// round. Slots run row by row like tile indices, so where two routes cost
+// the same and start the same way the one to the earlier slot wins, as the
+// one to the earlier tile did.
 type Routes struct {
 	g    *Grid
 	from entity.Pos
 	gen  int32
-	seen []int32
-	cost []float64
-	prev []int32
-	rank []int8 // rank of the first step of this tile's route, for tie-breaks
+	// x0, y0 is the north-west corner of the window, span its side.
+	x0, y0, span int
+	seen         []int32
+	cost         []float64
+	prev         []int32
+	rank         []int8 // rank of the first step of this tile's route, for tie-breaks
+}
+
+// slot is where the tile at map position x,y is kept, and whether it is in
+// the window at all.
+func (f *Routes) slot(x, y int) (int32, bool) {
+	if y < 0 || y >= f.g.H {
+		return 0, false
+	}
+	dy := y - f.y0
+	if dy < 0 || dy >= f.span {
+		return 0, false
+	}
+	dx := x - f.x0
+	if f.g.Wrap {
+		dx %= f.g.W
+		if dx < 0 {
+			dx += f.g.W
+		}
+	}
+	if dx < 0 || dx >= f.span {
+		return 0, false
+	}
+	return int32(dy*f.span + dx), true
+}
+
+// at is the map position kept at slot s.
+func (f *Routes) at(s int32) entity.Pos {
+	p := entity.Pos{X: f.x0 + int(s)%f.span, Y: f.y0 + int(s)/f.span}
+	if f.g.Wrap {
+		p.X = f.g.wrapX(p.X)
+	}
+	return p
 }
 
 // Router is the working memory one line of routing runs on: the frontier its
@@ -60,23 +109,36 @@ type Router struct {
 	// load is what the walker of the next route is carrying, set by Carrying
 	// and spent by the search that follows it.
 	load float64
+	// Work counts the tiles the router has opened since it was last reset:
+	// what a decision has cost in looking, for anybody keeping a budget.
+	Work int
 }
 
 // Router returns a router over this grid, for a caller that needs its own.
 func (g *Grid) Router() *Router { return &Router{g: g} }
 
+// Reset puts the router back as it was before its last search: no survey
+// standing, nothing carried, nothing owed. For after a search that did not
+// finish, and before a decision that is to be charged from nothing.
+func (r *Router) Reset() {
+	r.frontier = r.frontier[:0]
+	r.surveyed = false
+	r.load, r.limit = 0, 0
+	r.Work = 0
+}
+
 // offMap is a tile no search will meet, for when there is no step to prefer.
 var offMap = entity.Pos{X: -1, Y: -1}
 
-// Routes computes the cheapest way from one tile to every tile on the map,
-// in a result the caller may keep.
+// Routes computes the cheapest way from one tile to every tile within the
+// window, in a result the caller may keep.
 func (r *Router) Routes(from entity.Pos) *Routes {
-	return r.route(&Routes{}, from, -1, offMap)
+	return r.route(&Routes{}, from, offMap, false, offMap)
 }
 
-// Routes computes the cheapest way from one tile to every tile on the map,
-// in a result the caller may keep. It routes on the grid's own router, so it
-// is for callers working one at a time.
+// Routes computes the cheapest way from one tile to every tile within the
+// window, in a result the caller may keep. It routes on the grid's own
+// router, so it is for callers working one at a time.
 func (g *Grid) Routes(from entity.Pos) *Routes {
 	return g.ownRouter().Routes(from)
 }
@@ -89,7 +151,7 @@ func (g *Grid) Routes(from entity.Pos) *Routes {
 const minMoveCost = 0.5
 
 // routeNode is one entry of the frontier. Ordering is by cost, then by the
-// rank of the route's first step, then by tile, so that equal-cost routes
+// rank of the route's first step, then by slot, so that equal-cost routes
 // resolve the same way on every run.
 type routeNode struct {
 	cost float64
@@ -107,15 +169,15 @@ func before(a, b routeNode) bool {
 	return a.idx < b.idx
 }
 
-// route runs Dijkstra out from `from`. It stops early once tile index `stop`
-// is settled, if stop is not negative. `prefer`, when it is a neighbour of
-// from, is the first step that wins ties, which keeps a walker on the
-// straight line when going around costs exactly as much as going through.
+// route runs Dijkstra out from `from`. It stops early once `stop` is
+// settled, if guided. `prefer`, when it is a neighbour of from, is the first
+// step that wins ties, which keeps a walker on the straight line when going
+// around costs exactly as much as going through.
 //
 // The frontier is a hand-rolled binary heap of concrete nodes rather than a
 // container/heap: this runs for every agent on every tick, and boxing each
 // node into an interface would cost more than the search itself.
-func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos) *Routes {
+func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer entity.Pos) *Routes {
 	g := r.g
 	// A load is given to one journey and does not outlive it.
 	laden := r.load > SwimLoad
@@ -125,29 +187,37 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 	if limit <= 0 {
 		limit = math.Inf(1)
 	}
-	n := len(g.Tiles)
-	if len(f.seen) != n {
-		f.seen = make([]int32, n)
-		f.cost = make([]float64, n)
-		f.prev = make([]int32, n)
-		f.rank = make([]int8, n)
+	span := 2*Window + 1
+	if len(f.seen) != span*span {
+		f.seen = make([]int32, span*span)
+		f.cost = make([]float64, span*span)
+		f.prev = make([]int32, span*span)
+		f.rank = make([]int8, span*span)
 		f.gen = 0
 	}
 	from = g.Norm(from)
 	f.g, f.from, f.gen = g, from, f.gen+1
+	f.x0, f.y0, f.span = from.X-Window, from.Y-Window, span
 	if !g.In(from) {
 		return f
 	}
-	src := int32(g.Index(from))
+	src, _ := f.slot(from.X, from.Y)
 	f.seen[src], f.cost[src], f.prev[src], f.rank[src] = f.gen, 0, -1, -1
 
 	// A destination gives the search a direction: a tile is worth opening
 	// only by what the route through it has cost so far plus the least the
-	// rest could cost. Without one the search simply spreads outward.
+	// rest could cost. Without one the search simply spreads outward. A
+	// destination outside the window is out of reach, and the search does
+	// not start.
 	var sx, sy int
-	var guided bool
-	if stop >= 0 {
-		sx, sy, guided = int(stop)%g.W, int(stop)/g.W, true
+	stopSlot := int32(-1)
+	if guided {
+		stop = g.Norm(stop)
+		s, ok := f.slot(stop.X, stop.Y)
+		if !ok {
+			return f
+		}
+		sx, sy, stopSlot = stop.X, stop.Y, s
 	}
 	toGo := func(x, y int) float64 {
 		if !guided {
@@ -168,6 +238,7 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 		}
 		return minMoveCost * float64(dx)
 	}
+	prefer = g.Norm(prefer)
 
 	q := append(r.frontier[:0], routeNode{rank: -1, idx: src})
 	for len(q) > 0 {
@@ -177,17 +248,20 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 		q = q[:last]
 		siftDown(q, 0)
 
-		px, py := int(top.idx)%g.W, int(top.idx)/g.W
+		p := f.at(top.idx)
+		px, py := p.X, p.Y
 		here := f.cost[top.idx]
 		if top.cost > here+toGo(px, py)+tie {
 			continue // a cheaper route here turned up after this was queued
 		}
-		if top.idx == stop {
+		if top.idx == stopSlot {
 			break
 		}
 		if here >= limit {
 			break
 		}
+		r.Work++
+		ti := int32(py*g.W + px)
 		for d := range dirs {
 			cx, cy := px+dirs[d].X, py+dirs[d].Y
 			if cy < 0 || cy >= g.H {
@@ -198,8 +272,12 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 			} else if cx < 0 || cx >= g.W {
 				continue
 			}
-			j := int32(cy*g.W + cx)
-			t := &g.Tiles[j]
+			j, ok := f.slot(cx, cy)
+			if !ok {
+				continue
+			}
+			tj := int32(cy*g.W + cx)
+			t := &g.Tiles[tj]
 			// Open water is not dear to a laden walker, it is shut. Two
 			// things are still allowed through it. The end of the journey
 			// itself, because somebody may wade in from the bank to fish, or
@@ -208,13 +286,13 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 			// the river has risen under, or whose bridge has gone, has to be
 			// able to get out of it; what is forbidden is walking in, not
 			// being in.
-			if laden && t.Deep() && j != stop && !g.Tiles[top.idx].Deep() {
+			if laden && t.Deep() && j != stopSlot && !g.Tiles[ti].Deep() {
 				continue
 			}
 			// The step carries the climb into the tile, which is what makes
 			// a route follow a contour rather than go straight over the hill
 			// in the way.
-			cost := here + stepInto(g, top.idx, j)
+			cost := here + stepInto(g, ti, tj)
 			rank := top.rank
 			if top.idx == src {
 				rank = int8(d)
@@ -240,8 +318,8 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 // walking each of them in its head.
 func (r *Router) Survey(from entity.Pos, load, limit float64) {
 	r.load, r.limit = load, limit
-	r.route(&r.spread, from, -1, offMap)
-	r.spreadFrom, r.spreadLaden, r.spreadLimit, r.surveyed = from, load > SwimLoad, limit, true
+	r.route(&r.spread, from, offMap, false, offMap)
+	r.spreadFrom, r.spreadLaden, r.spreadLimit, r.surveyed = r.spread.from, load > SwimLoad, limit, true
 }
 
 // Forget drops the survey, so the next cost is walked afresh.
@@ -253,14 +331,18 @@ func (r *Router) Forget() { r.surveyed = false }
 func (r *Router) fromSurvey(to entity.Pos) float64 {
 	f := &r.spread
 	g := r.g
-	i := int32(g.Index(to))
+	i, ok := f.slot(to.X, to.Y)
+	if !ok {
+		return r.spreadLimit
+	}
 	if f.seen[i] == f.gen && f.cost[i] < r.spreadLimit {
 		return f.cost[i]
 	}
 	// The end of a journey may be open water even for a laden walker, so a
 	// water tile the spread would not step into is costed from its bank.
-	if r.spreadLaden && g.Tiles[i].Deep() {
+	if r.spreadLaden && g.Tiles[g.Index(to)].Deep() {
 		best := r.spreadLimit
+		ti := int32(g.Index(to))
 		for d := range dirs {
 			cx, cy := to.X+dirs[d].X, to.Y+dirs[d].Y
 			if cy < 0 || cy >= g.H {
@@ -271,11 +353,11 @@ func (r *Router) fromSurvey(to entity.Pos) float64 {
 			} else if cx < 0 || cx >= g.W {
 				continue
 			}
-			j := int32(cy*g.W + cx)
-			if f.seen[j] != f.gen || f.cost[j] >= r.spreadLimit {
+			j, ok := f.slot(cx, cy)
+			if !ok || f.seen[j] != f.gen || f.cost[j] >= r.spreadLimit {
 				continue
 			}
-			c := f.cost[j] + stepInto(g, j, i)
+			c := f.cost[j] + stepInto(g, int32(cy*g.W+cx), ti)
 			if c < best {
 				best = c
 			}
@@ -329,14 +411,24 @@ func siftDown(q []routeNode, i int) {
 	}
 }
 
-// Cost is the ticks of walking from the origin to p, or +Inf if there is no
-// way there.
-func (f *Routes) Cost(p entity.Pos) float64 {
-	if !f.g.In(p) {
-		return math.Inf(1)
+// reached is the slot of p if the search settled it, else false.
+func (f *Routes) reached(p entity.Pos) (int32, bool) {
+	if f.g == nil || !f.g.In(p) {
+		return 0, false
 	}
-	i := f.g.Index(p)
-	if f.seen[i] != f.gen {
+	p = f.g.Norm(p)
+	i, ok := f.slot(p.X, p.Y)
+	if !ok || f.seen[i] != f.gen {
+		return 0, false
+	}
+	return i, true
+}
+
+// Cost is the ticks of walking from the origin to p, or +Inf if there is no
+// way there within the window.
+func (f *Routes) Cost(p entity.Pos) float64 {
+	i, ok := f.reached(p)
+	if !ok {
 		return math.Inf(1)
 	}
 	return f.cost[i]
@@ -345,34 +437,28 @@ func (f *Routes) Cost(p entity.Pos) float64 {
 // Step is the first tile of the cheapest route to p. It returns the origin
 // itself when p is the origin or cannot be reached.
 func (f *Routes) Step(p entity.Pos) entity.Pos {
-	if !f.g.In(p) || p == f.from {
+	i, ok := f.reached(p)
+	if !ok || f.prev[i] < 0 {
 		return f.from
 	}
-	i := int32(f.g.Index(p))
-	if f.seen[i] != f.gen || f.prev[i] < 0 {
-		return f.from
-	}
-	src := int32(f.g.Index(f.from))
+	src, _ := f.slot(f.from.X, f.from.Y)
 	for f.prev[i] != src {
 		i = f.prev[i]
 	}
-	return entity.Pos{X: int(i) % f.g.W, Y: int(i) / f.g.W}
+	return f.at(i)
 }
 
 // Path is the cheapest route to p, origin excluded and p included. It is
 // empty when p cannot be reached.
 func (f *Routes) Path(p entity.Pos) []entity.Pos {
-	if !f.g.In(p) || p == f.from {
+	i, ok := f.reached(p)
+	if !ok || f.prev[i] < 0 {
 		return nil
 	}
-	i := int32(f.g.Index(p))
-	if f.seen[i] != f.gen || f.prev[i] < 0 {
-		return nil
-	}
-	src := int32(f.g.Index(f.from))
+	src, _ := f.slot(f.from.X, f.from.Y)
 	var out []entity.Pos
 	for i != src {
-		out = append(out, entity.Pos{X: int(i) % f.g.W, Y: int(i) / f.g.W})
+		out = append(out, f.at(i))
 		i = f.prev[i]
 	}
 	for l, r := 0, len(out)-1; l < r; l, r = l+1, r-1 {

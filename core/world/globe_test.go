@@ -1,6 +1,7 @@
 package world
 
 import (
+	"math"
 	"testing"
 
 	"lreat/core/entity"
@@ -64,5 +65,40 @@ func TestAWrappedMapRoutesAcrossTheSeam(t *testing.T) {
 	g.Wrap = false
 	if len(g.Path(from, to)) != 57 {
 		t.Fatalf("the same way across a valley is %d steps", len(g.Path(from, to)))
+	}
+}
+
+func TestAWindowHoldsTheWholeDefaultMap(t *testing.T) {
+	w := New(1)
+	g := w.Grid
+	corners := []entity.Pos{{X: 0, Y: 0}, {X: g.W - 1, Y: 0}, {X: 0, Y: g.H - 1}, {X: g.W - 1, Y: g.H - 1}}
+	for _, from := range corners {
+		f := g.Routes(from)
+		for i := range g.Tiles {
+			p := g.PosOf(i)
+			if _, ok := f.slot(p.X, p.Y); !ok {
+				t.Fatalf("from %v the window does not hold %v", from, p)
+			}
+		}
+	}
+}
+
+func TestNothingRoutesPastTheWindow(t *testing.T) {
+	g := NewGrid(300, 10)
+	from := entity.Pos{X: 10, Y: 5}
+	if c := g.TravelCost(from, entity.Pos{X: 10 + Window, Y: 5}); c != float64(Window) {
+		t.Fatalf("the far edge of the window costs %v, want %d tiles of grass", c, Window)
+	}
+	if c := g.TravelCost(from, entity.Pos{X: 11 + Window, Y: 5}); c != math.Inf(1) {
+		t.Fatalf("a tile past the window costs %v, want no way there", c)
+	}
+	if p := g.Path(from, entity.Pos{X: 11 + Window, Y: 5}); p != nil {
+		t.Fatalf("a way past the window was found: %v", p)
+	}
+	// On a globe the window goes round the seam with the routes.
+	g = NewGrid(128, 10)
+	g.Wrap = true
+	if c := g.TravelCost(entity.Pos{X: 2, Y: 5}, entity.Pos{X: 125, Y: 5}); c != 5 {
+		t.Fatalf("round the seam costs %v, want 5", c)
 	}
 }

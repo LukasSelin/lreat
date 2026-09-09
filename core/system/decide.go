@@ -327,11 +327,13 @@ func Commit(a *entity.Agent, w *world.World, d *action.Def, target entity.Pos) *
 // newPlan builds a plan without installing it, so that plans worked out side
 // by side can be installed afterwards in a fixed order.
 func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, target entity.Pos, index int) *entity.Plan {
+	route := r.Carrying(a.Load()).Path(a.Pos, target)
 	return &entity.Plan{
 		Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks,
 		Index:   index,
 		Started: w.Tick,
-		Route:   r.Carrying(a.Load()).Path(a.Pos, target),
+		Route:   route,
+		NoWay:   len(route) == 0 && a.Pos != target,
 	}
 }
 
@@ -351,8 +353,13 @@ func Act(w *world.World) {
 			continue
 		}
 		if a.Pos != a.Plan.Target {
-			// A plan made by deciding already knows its way. One set by hand -
-			// a player's order, a test - works it out on arrival here.
+			// A plan made by deciding already knows its way, or knows there
+			// is none and is dropped here without looking twice. One set by
+			// hand - a player's order, a test - works it out on arrival here.
+			if a.Plan.NoWay {
+				a.Plan = nil
+				continue
+			}
 			if len(a.Plan.Route) == 0 {
 				a.Plan.Route = w.Grid.Carrying(a.Load()).Path(a.Pos, a.Plan.Target)
 				if len(a.Plan.Route) == 0 {

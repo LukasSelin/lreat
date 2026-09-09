@@ -181,8 +181,7 @@ func (r *Router) StepToward(from, to entity.Pos) entity.Pos {
 	if from == to || !g.In(to) {
 		return from
 	}
-	stop := int32(g.Index(to))
-	return r.route(&r.scratch, from, stop, g.Toward(from, to)).Step(to)
+	return r.route(&r.scratch, from, to, true, g.Toward(from, to)).Step(to)
 }
 
 // StepToward routes on the grid's own router, for callers working one at a
@@ -199,8 +198,7 @@ func (r *Router) Path(from, to entity.Pos) []entity.Pos {
 	if from == to || !g.In(to) {
 		return nil
 	}
-	stop := int32(g.Index(to))
-	return r.route(&r.scratch, from, stop, g.Toward(from, to)).Path(to)
+	return r.route(&r.scratch, from, to, true, g.Toward(from, to)).Path(to)
 }
 
 // Path routes on the grid's own router, for callers working one at a time.
@@ -226,8 +224,7 @@ func (r *Router) TravelCost(from, to entity.Pos) float64 {
 		r.load = 0
 		return r.fromSurvey(to)
 	}
-	stop := int32(g.Index(to))
-	return r.route(&r.scratch, from, stop, g.Toward(from, to)).Cost(to)
+	return r.route(&r.scratch, from, to, true, g.Toward(from, to)).Cost(to)
 }
 
 // TravelCost routes on the grid's own router, for callers working one at a

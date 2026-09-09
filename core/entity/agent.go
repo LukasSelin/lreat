@@ -120,6 +120,11 @@ type Plan struct {
 	// not notice until its next errand takes it that way.
 	Route []Pos
 
+	// NoWay is set on a plan made by deciding whose way was looked for and
+	// not found. Acting on it drops it rather than looking again: the way
+	// was looked for over the whole window once, and it is not there.
+	NoWay bool
+
 	// Index is the catalog position of Action, so a finished plan can be
 	// tied back to the action it ran without a name lookup.
 	Index int
