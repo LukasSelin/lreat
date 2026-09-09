@@ -99,12 +99,47 @@ const (
 // by the end while the ones raised late still stand.
 // historySea is how much of a young world is under water while its history
 // runs. A world has oceans whatever the map cut out of it at the end does -
-// the default valley asks for no sea at all - and what lay under one for age
+// the default valley asks for no sea at all - and what lay under one age
 // after age is where limestone comes from. So a history floods itself to this
 // share, records who was drowned, and hands the finished ground to the map's
 // own sea share, which is why a valley with no sea in it can still have
-// limestone country in it: that ground was a seabed once.
+// limestone country: that ground was a seabed once.
+//
+// A share of the map and not a level read off where the two kinds of crust
+// are riding, which was tried and is the better-sounding rule: the water
+// fills what is low because what is low is ocean floor. It is worse in the
+// one way that matters. The plates are moved about by everything else that
+// happens to them, so on two seeds of five the level came out under
+// everything and nothing was ever drowned - no seabed, and so no limestone
+// anywhere on the map. A share always drowns something.
 const historySea = 0.35
+
+// marineMud is how much a sea bed off a shore takes in an epoch, against the
+// one an epoch of burial on land is worth. fillEnough is how much has to have
+// fallen on a tile before what it is made of is the fill rather than whatever
+// was underneath - a couple of epochs' worth, so that ground which dipped
+// below its river once or twice is still the basement it always was. And
+// Which of the two a fill makes is settled by the sand in it against the
+// clay, which is the sorting asked the only question it can answer: what
+// stopped here, and what went on past.
+const (
+	marineMud  = 0.5
+	fillEnough = 3.0
+	// coarseShare is how much of a world's filled ground comes out sandstone
+	// rather than shale: the sandiest third of it. It is a share and not a
+	// cutoff for the reason every other share on this map is - see
+	// waterShare - and here the reason is sharper than usual. What a deposit
+	// is made of hardly varies while a history is running, because until the
+	// rock is settled at the end every tile is weathering the same basalt,
+	// so the sand in one basin and the next differ by a few hundredths and
+	// any fixed line puts nearly all of them on one side of it: at sand
+	// against clay the map came out a third sandstone, and one step stricter
+	// it came out with none at all. Ranking the fills against each other asks
+	// the only thing the sorting can actually answer - which of these
+	// stopped soonest - and a third is about the share of the world's
+	// sedimentary rock that is sandstone.
+	coarseShare = 0.35
+)
 
 // deepWeather is how many ages of weather an epoch of the earth is worth.
 // Erode's age is a decade, and an epoch here is not: mountains raised and
@@ -236,9 +271,18 @@ const (
 // what decides the rock it ends up being. It is the generator's working and
 // is not kept: the tile keeps the answer.
 type record struct {
-	fire      float64 // metres of it that came up as melt
-	crush     float64 // metres of it raised by two plates meeting
-	laid      [Grains]float64
+	// melt is what came up and cooled at the surface, and pluton what melted
+	// under an arc and cooled at depth. They are the same fire and they make
+	// different rock, which is the whole reason for keeping them apart: what
+	// reaches the air is basalt, and what stops on the way is the granite
+	// that a few million years of weather then lays bare.
+	melt   float64
+	pluton float64
+	crush  float64 // metres raised by two plates meeting, and cooked doing it
+	laid   [Grains]float64
+	// submerged is how many epochs this tile spent under the sea a history
+	// floods itself to. Ground that lay there quietly, with no river mud
+	// reaching it, is where limestone comes from.
 	submerged int
 }
 
@@ -326,6 +370,25 @@ func (w *World) firstPlates(g *Grid, sea float64) []Plate {
 			DY:    driftFast * math.Sin(a),
 			Ocean: w.RNG.Float64() < ocean,
 		}
+	}
+	// A world has both kinds in it. Left to the draw, a valley - which asks
+	// for no sea and so for few ocean plates - came out on two seeds of five
+	// with nothing but continent, and a world with no floor anywhere has no
+	// arcs in it, nothing going under anything, and so no granite and no
+	// islands: three of the six rocks lose the only place they come from.
+	ocean, land := 0, 0
+	for i := range plates {
+		if plates[i].Ocean {
+			ocean++
+		} else {
+			land++
+		}
+	}
+	switch {
+	case ocean == 0:
+		plates[0].Ocean = true
+	case land == 0:
+		plates[0].Ocean = false
 	}
 	return plates
 }
@@ -505,10 +568,16 @@ func (w *World) tectonics(g *Grid, plates []Plate, book []record, epoch int) {
 				case crushed:
 					book[i].crush += math.Abs(by)
 				case arc:
-					book[i].crush += math.Abs(by) / 2
-					book[i].fire += math.Abs(by) / 2
+					// An arc cooks what it pushes up and melts what goes
+					// under it, and it is mostly the melting: two parts fire
+					// to one of crushing, where a collision is all crushing
+					// and no fire at all. Split evenly, an arc could never
+					// come out as anything but the crushed rock, and the
+					// granite it should leave had nowhere to come from.
+					book[i].crush += math.Abs(by) / 3
+					book[i].pluton += 2 * math.Abs(by) / 3
 				case melt:
-					book[i].fire += math.Abs(by)
+					book[i].melt += math.Abs(by)
 				}
 				if s.makes != nothing {
 					t.Formed = uint8(epoch)
@@ -577,7 +646,7 @@ func (w *World) hotspot(g *Grid, book []record) {
 				}
 				lift := hotspotLift * smooth(1-d/hotspotReach)
 				g.At(q).Height += lift
-				book[g.Index(q)].fire += lift
+				book[g.Index(q)].melt += lift
 			}
 		}
 	}
@@ -597,6 +666,18 @@ func (g *Grid) keepBook(book []record, epoch int) {
 		t := &g.Tiles[i]
 		if t.Wet() || t.Height <= sea {
 			book[i].submerged++
+			// What a sea bed gets depends on whether anything is being
+			// washed into it. Off a shore there is mud, and mud makes shale;
+			// out where no land is near enough to send any, the water is
+			// quiet and what settles is what lived there, which makes
+			// limestone. Nothing here knows how far the shore is, only
+			// whether it is next door, which is enough to tell a bed that
+			// silts up from one that does not.
+			if g.offshore(entity.Pos{X: i % g.W, Y: i / g.W}, sea) {
+				book[i].laid[Clay] += marineMud * 0.7
+				book[i].laid[Silt] += marineMud * 0.3
+				t.Formed = uint8(epoch)
+			}
 			continue
 		}
 		// Ground below the water it drains into is ground being filled in,
@@ -618,31 +699,55 @@ func (g *Grid) keepBook(book []record, epoch int) {
 // plate it rides was made of - basalt if it is ocean floor, granite if it is
 // the old body of a continent.
 func (g *Grid) settleRock(book []record, plates []Plate, epochs int) {
+	// Where the line between a coarse fill and a fine one falls on this
+	// world, read off its own fills rather than fixed. See coarseShare.
+	sandy := make([]float64, 0, len(g.Tiles))
+	for i := range g.Tiles {
+		if fill := carrying(book[i].laid); fill > fillEnough {
+			sandy = append(sandy, book[i].laid[Sand]/fill)
+		}
+	}
+	coarse := math.Inf(1)
+	if len(sandy) > 0 {
+		coarse = quantile(sandy, 1-coarseShare)
+	}
+
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		b := book[i]
 		fill := carrying(b.laid)
 		switch {
-		case b.fire > b.crush && b.fire > fill:
+		case b.melt > b.crush && b.melt > b.pluton && b.melt > fill:
+			// It came up and cooled in the air.
 			t.Bedrock = Basalt
+		case b.pluton > b.crush && b.pluton > fill:
+			// It melted under an arc and cooled at depth, and the weather has
+			// since taken off what stood over it. This is where granite comes
+			// from, and saying so is what gave the rock a place on the map at
+			// all: as the leftover case - ground nothing ever happened to -
+			// it never came up once in sixteen epochs, because something
+			// happens to everything.
+			t.Bedrock = Granite
 		case b.crush > fill && b.crush > 0:
 			t.Bedrock = Schist
-		case b.submerged > epochs/2:
-			// Ground that lay under water for most of a history is where
-			// limestone comes from: what settles there is what lived there.
-			t.Bedrock = Limestone
-		case fill > 0 && b.laid[Sand] > b.laid[Clay]:
+		case fill > fillEnough && b.laid[Sand]/fill >= coarse:
 			// Coarse fill: the near end of a basin, where what came off the
 			// hill did not travel far before it was dropped.
 			t.Bedrock = Sandstone
-		case fill > 0:
+		case fill > fillEnough:
+			// Fine fill: what did travel, and the mud off a shore.
 			t.Bedrock = Shale
+		case b.submerged > epochs/2:
+			// Ground that lay under water for most of a history, with no
+			// river reaching it, is where limestone comes from: what settles
+			// there is what lived there.
+			t.Bedrock = Limestone
 		case plates[t.Plate].Ocean:
 			// Ocean floor nothing ever happened to is the basalt it cooled
 			// as, and the oldest rock on the map.
 			t.Bedrock = Basalt
 		default:
-			// The old floor of a continent, showing through.
+			// The old body of a continent, showing through.
 			t.Bedrock = Granite
 		}
 	}
@@ -702,4 +807,42 @@ func (g *Grid) soften() {
 	for i := range g.Tiles {
 		g.Tiles[i].Height = h[i]
 	}
+}
+
+// offshore reports whether any of the eight tiles around p stands above the
+// sea. It is how a sea bed is told from a shore: what is next to land gets
+// what the land sends it.
+func (g *Grid) offshore(p entity.Pos, sea float64) bool {
+	for _, off := range dirs {
+		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+		if g.Wrap {
+			q = g.Norm(q)
+		}
+		if g.In(q) && !g.At(q).Wet() && g.At(q).Height > sea {
+			return true
+		}
+	}
+	return false
+}
+
+// seaLevel is where the water stands this epoch: up from where the ocean
+// floor is riding toward where the continents are, by historySea of the way.
+// Both kinds of crust are always present - see firstPlates - so there is
+// always a level that drowns some floor and leaves some land dry.
+func (g *Grid) seaLevel(plates []Plate) float64 {
+	var deep, high, deepN, highN float64
+	for i := range g.Tiles {
+		if plates[g.Tiles[i].Plate].Ocean {
+			deep += g.Tiles[i].Height
+			deepN++
+		} else {
+			high += g.Tiles[i].Height
+			highN++
+		}
+	}
+	if deepN == 0 || highN == 0 {
+		return math.Inf(-1)
+	}
+	deep, high = deep/deepN, high/highN
+	return deep + historySea*(high-deep)
 }
