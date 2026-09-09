@@ -19,6 +19,7 @@ const (
 	Default Color = iota
 	Water
 	Field
+	FieldFenced
 	House
 	Market
 	Road
@@ -169,6 +170,13 @@ func tileCell(g *world.Grid, p entity.Pos) Cell {
 		}
 		return Cell{Ch: 't', Color: Wood[b]}
 	case world.Field:
+		// A hedged holding is drawn as hedged. It is the one thing on the map
+		// that changes how a journey goes without anything being built on a
+		// tile, so it has to be visible or the ways people take round it look
+		// like nothing at all.
+		if t.Fenced {
+			return Cell{Ch: '=', Color: FieldFenced}
+		}
 		return Cell{Ch: '"', Color: Field}
 	case world.Rock:
 		// An outcrop on the valley floor is a boulder field and one on the

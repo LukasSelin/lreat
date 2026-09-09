@@ -40,101 +40,87 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  113   120     32     37     13 |  0.54  0.49  0.50  0.61  0.06 |  1.00
-   2  784   716     30    111    283 |  0.61  0.49  0.55  0.49  0.08 |  1.00
-   3  317   205     14     61    333 |  0.61  0.45  0.59  0.71  0.10 |  1.00
-   4  134   269     58     66    107 |  0.64  0.57  0.50  0.58  0.09 |  0.99
-   5  235   337     33     51    179 |  0.58  0.49  0.53  0.58  0.12 |  1.00
-   6   81   290     67     41     90 |  0.60  0.58  0.60  0.57  0.04 |  0.99
-   7   27    89     27      9     25 |  0.73  0.50  0.72  0.78  0.09 |  0.86
-   8  136   311     16     64     87 |  0.63  0.56  0.43  0.72  0.03 |  1.00
-   9  244   266     30     83    233 |  0.60  0.49  0.60  0.75  0.06 |  0.99
-  10  209   225     26     56     75 |  0.65  0.45  0.51  0.62  0.13 |  1.00
-  11   43    73     11      8     28 |  0.69  0.45  0.45  0.92  0.10 |  1.00
-  12  130   250     32     53     46 |  0.60  0.49  0.60  0.77  0.05 |  1.00
-  13  213   266     26     96    149 |  0.61  0.53  0.47  0.72  0.08 |  1.00
-  14  472   424     50    114    398 |  0.54  0.50  0.56  0.67  0.04 |  1.00
-  15  106   421     41     55     98 |  0.66  0.54  0.47  0.48  0.03 |  1.00
-  16  282   275     24     51    255 |  0.65  0.49  0.60  0.77  0.14 |  1.00
-  17   50    98     17     23     13 |  0.57  0.47  0.60  0.79  0.05 |  1.00
-  18  132   349     39     29     87 |  0.55  0.53  0.68  0.66  0.20 |  1.00
-  19  106   226     42     54     97 |  0.59  0.49  0.50  0.57  0.04 |  0.99
-  20  762   261     34    108    488 |  0.69  0.49  0.54  0.57  0.04 |  1.00
-  21  228   430     42    110    131 |  0.56  0.53  0.58  0.54  0.04 |  1.00
-  22  236   243     29     87    134 |  0.57  0.49  0.58  0.84  0.08 |  1.00
-  23  143   213     43     77    120 |  0.58  0.52  0.58  0.64  0.04 |  1.00
-  24  344   243     41    148     98 |  0.54  0.51  0.46  0.58  0.02 |  1.00
+   1  547   490     25    144    184 |  0.68  0.46  0.50  0.47  0.01 |  1.00
+   2  348   457     43    112    216 |  0.55  0.50  0.65  0.71  0.10 |  1.00
+   3   88   213     39     44     51 |  0.51  0.55  0.58  0.64  0.13 |  1.00
+   4   89   220     43     63     33 |  0.56  0.62  0.47  0.59  0.11 |  1.00
+   5   52   108     20     13     28 |  0.69  0.45  0.64  0.71  0.06 |  1.00
+   6  129   224     45     80    111 |  0.52  0.59  0.60  0.71  0.04 |  1.00
+   7  107   163     19     39     66 |  0.54  0.43  0.55  0.70  0.09 |  1.00
+   8  128   113     11     27     24 |  0.67  0.50  0.58  0.62  0.02 |  1.00
+   9  244   616     71    123     87 |  0.57  0.56  0.52  0.53  0.06 |  1.00
+  10  174    99     16     36     54 |  0.64  0.44  0.72  0.72  0.09 |  1.00
+  11  328   413     36    116    310 |  0.58  0.49  0.58  0.69  0.06 |  1.00
+  12   63   324     56     55     33 |  0.56  0.60  0.51  0.57  0.08 |  0.98
+  13  206   279     47     47    116 |  0.62  0.51  0.66  0.73  0.13 |  1.00
+  14   53   133     44     42     12 |  0.57  0.61  0.61  0.69  0.08 |  0.91
+  15  541   447     27    125    414 |  0.62  0.46  0.54  0.55  0.04 |  1.00
+  16    1    34     15      1      1 |  0.84  0.63  0.00  0.43  0.37 |  0.00
+  17   33   181     69     23     28 |  0.52  0.57  0.51  0.67  0.04 |  0.64
+  18  234   377     33    112    171 |  0.58  0.56  0.41  0.61  0.08 |  1.00
+  19  393   328     43    146    104 |  0.58  0.46  0.42  0.43  0.02 |  0.96
+  20  313   229     42    140     21 |  0.58  0.52  0.56  0.62  0.14 |  1.00
+  21  360   540     44     93    236 |  0.58  0.53  0.58  0.58  0.07 |  1.00
+  22  102   270     34     19     58 |  0.54  0.50  0.55  0.64  0.07 |  1.00
+  23   62   178     53     40     44 |  0.56  0.57  0.64  0.71  0.07 |  1.00
+  24  131   238     55     81     93 |  0.54  0.59  0.44  0.52  0.08 |  1.00
 
-dwell/rest                         3608059  27.4%
-take/berries@wood                  3162251  24.0%
-consume/provision                  2314358  17.6%
-pass/practice>pupil                1247976   9.5%
-dwell/guard@market                 1002865   7.6%
-take/fish@water                     518258   3.9%
-dwell/meet@tavern>neighbour         319265   2.4%
-take/grain@field                    181510   1.4%
-take/timber@wood                    178699   1.4%
-transfer/provision>needy            172511   1.3%
-pass/practice>self                  137246   1.0%
-tend/plant@open                      69356   0.5%
-exchange/material>coin@market        64672   0.5%
-raise/timber>dwelling@open           59010   0.4%
-exchange/coin>provision@market       52387   0.4%
-transfer/material>requester          28316   0.2%
-transfer/provision<holder            11093   0.1%
-make/timber>tool@bench                8992   0.1%
-take/game@wood                        8306   0.1%
-tend/clear@open                       7226   0.1%
-strike/person>wrongdoer               4563   0.0%
-tend/water@field                      4405   0.0%
-raise/timber>road@ground              3675   0.0%
-take/stone@outcrop                    2178   0.0%
-make/provision+timber>meal@hearth      649   0.0%
-dwell/look                             443   0.0%
-raise/timber>tavern@open               134   0.0%
-make/stone+timber>tool@forge           131   0.0%
-move@dwelling                           93   0.0%
-raise/timber+stone>granary@open         59   0.0%
-raise/timber+stone>market@open          31   0.0%
+dwell/rest                         3581053  29.4%
+take/berries@wood                  3116172  25.5%
+consume/provision                  1961636  16.1%
+dwell/guard@market                  985613   8.1%
+pass/practice>pupil                 984972   8.1%
+take/fish@water                     457471   3.8%
+dwell/meet@tavern>neighbour         324247   2.7%
+take/timber@wood                    176015   1.4%
+pass/practice>self                  119366   1.0%
+take/grain@field                    118710   1.0%
+transfer/provision>needy            114190   0.9%
+raise/timber>dwelling@open           52340   0.4%
+tend/plant@open                      47956   0.4%
+exchange/coin>provision@market       47209   0.4%
+exchange/material>coin@market        43915   0.4%
+transfer/material>requester          17460   0.1%
+transfer/provision<holder            15615   0.1%
+make/timber>tool@bench                6193   0.1%
+tend/clear@open                       5566   0.0%
+strike/person>wrongdoer               5349   0.0%
+take/game@wood                        4683   0.0%
+raise/timber>road@ground              3647   0.0%
+tend/water@field                      3345   0.0%
+take/stone@outcrop                    2225   0.0%
+dwell/look                             793   0.0%
+make/provision+timber>meal@hearth      329   0.0%
+raise/timber>tavern@open               157   0.0%
+move@dwelling                           95   0.0%
+raise/timber+stone>granary@open         61   0.0%
+raise/timber+stone>market@open          32   0.0%
+make/stone+timber>tool@forge            27   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.57 safe 0.52 held 0.84 all 0.292 food 4.68 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 230.3 median 209 | phys 0.61 safe 0.50 belng 0.55 estm 0.66
+gates: fed 0.56 safe 0.54 held 0.83 all 0.298 food 4.24 hungry-with-food 0.27 | lasted 23/24 extinct 0 mean 196.9 median 131 | phys 0.59 safe 0.53 belng 0.53 estm 0.62
 ```
 
-## What the last change did
+### What fencing moved
 
-The land grew mountains. `raise` used to be one texture at one amplitude scaled
-to sixty metres, and every seed came out the same gentle bowl - nine tiles in
-ten under a tenth of a slope, with the highest ground only the largest of the
-same lumps. It now raises a lowland to exactly that same sixty metres and
-stands two hundred and sixty metres of ridged high country on a fifth of it,
-with the rivers cutting their own valleys into what is left. The high country
-is scaled to the width of the map and the lowland is not, so a wider map is a
-bigger country at the same ruggedness and its valley floor is unchanged. See
-relief.go.
+The run above is the tree with hedges round the large holdings; see "Fences" in
+docs/action-space.md. Against the batch it replaced - fed 0.56, safe 0.53, all
+0.291, lasted 24 of 24, mean 238.2, median 198 - the gates did not move at all:
+`fed` held, `safe` and `all` came up by 0.01 and 0.007, and one settlement of
+twenty-four fell below its founding size. What moved was the population on these
+seeds, mean by a sixth and median by a third, and an independent batch does not
+confirm it:
 
-What that costs is ground. The mountains are not farmland, and the gentle open
-ground a settlement can plough falls from 72% of the map to 55% over the first
-eight seeds.
+```
+offset 24, before: gates: fed 0.57 safe 0.52 held 0.83 all 0.292 | lasted 24/24 extinct 0 mean 229.5 median 202
+offset 24, fenced: gates: fed 0.58 safe 0.50 held 0.84 all 0.295 | lasted 24/24 extinct 0 mean 218.1 median 211
+```
 
-What that costs in people is about a sixteenth. Pooled over all seventy-two
-seeds the mean population goes 230 to 215 and the median 198 to 176. All three
-batches agree in direction for once - down a thirtieth, a fifteenth and an
-eleventh - which is the first time in three attempts at measuring this that
-they have, and the reason to believe the figure at all.
-
-Nothing else moved, and two things moved the wrong way for a change that costs
-ground: pooled, `fed` went 0.563 to 0.570 and `all` - the gate a birth has to
-pass - 0.294 to 0.298, both up, both far inside their thresholds. `lasted` went
-72 of 72 to 71 and nothing went extinct on any batch. The settlements are not
-doing worse on the land they have; there is less of it and slightly fewer of
-them on it.
-
-This was taken with the map at its default eighty by thirty-six, which is the
-width the high country is quoted at. A batch taken on a bigger map is a
-different measurement and not comparable to this one: the mountains grow with
-the map, the valley does not, and the ploughable share of the tiles rises from
-55% to about 63% by two hundred and forty wide.
+On seeds the baseline never draws from, the gates are the same to within a
+hundredth, nothing was lost, the mean is down 5% and the median is up. So the
+fall on the default seeds is a draw and not a cost: two batches agree that
+hedging the big holdings is behaviourally neutral, and what it buys is that
+people stop walking through the corn.
 
 ## How much of that is chance
 
@@ -147,46 +133,32 @@ go run ./cmd/tune -seeds 24 -ticks 21600 -offset 48 -quiet
 ```
 
 ```
-offset  0: gates: fed 0.57 safe 0.52 held 0.84 all 0.292 food 4.68 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 230.3 median 209 | phys 0.61 safe 0.50 belng 0.55 estm 0.66
-offset 24: gates: fed 0.58 safe 0.56 held 0.85 all 0.323 food 4.57 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 213.8 median 157 | phys 0.59 safe 0.52 belng 0.56 estm 0.62
-offset 48: gates: fed 0.56 safe 0.50 held 0.84 all 0.279 food 4.27 hungry-with-food 0.26 | lasted 23/24 extinct 0 mean 201.4 median 163 | phys 0.58 safe 0.50 belng 0.59 estm 0.67
+offset  0: gates: fed 0.56 safe 0.53 held 0.83 all 0.291 food 4.42 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 238.2 median 198 | phys 0.58 safe 0.52 belng 0.54 estm 0.60
+offset 24: gates: fed 0.57 safe 0.52 held 0.83 all 0.292 food 4.47 hungry-with-food 0.25 | lasted 24/24 extinct 0 mean 229.5 median 202 | phys 0.58 safe 0.51 belng 0.58 estm 0.64
+offset 48: gates: fed 0.56 safe 0.55 held 0.84 all 0.299 food 5.02 hungry-with-food 0.29 | lasted 24/24 extinct 0 mean 221.2 median 193 | phys 0.60 safe 0.52 belng 0.55 estm 0.66
 ```
 
 Nothing changed between those three but which seeds were drawn, and the mean
-population went 230, 214, 201, the median 209, 157, 163. `lasted` was 24, 24
-and 23 of 24, and none of the three lost a settlement outright. The mean is the
+population went 238, 230, 221, the median 198, 202, 193. `lasted` was 24 of 24
+in all three, and none of them lost a settlement outright. The mean is the
 loosest reading here and always has been: a settlement that runs away is worth
-as much as the twenty that did not, and the handful sitting over four hundred
-are most of the distance between the draws. The median is looser still on this
-tree than it used to be, and the mountains are why: how much of a map's lowland
-a range happens to cover is now one of the things a seed decides, so the seeds
-have more to differ about and the middle of them moves further.
+as much as the twenty that did not, and the two seeds above sitting over five
+hundred are most of the distance between the draws.
 
-What holds still is the per-agent side. `fed` moved by 0.02 across the three,
-the mean needs by 0.02 to 0.05, and `all` sat between 0.279 and 0.323. So:
+What holds still is the per-agent side. `fed` moved by 0.01 across the three,
+the mean needs by 0.02 to 0.06, and `all` sat between 0.291 and 0.299. So:
 
 | reading | moved by chance | worth believing at |
 |---|---|---|
-| fed, and the four mean needs | 0.02-0.05 | 0.05 on two batches that agree |
-| gates all | 0.044 | 0.05 |
-| lasted, extinct | 1 of 24, 0 of 24 | 5 of 24 |
-| mean population | 13% of itself | all three batches, pooled |
-| median population | 29% of itself | all three batches, pooled |
+| fed, and the four mean needs | 0.00-0.07 | 0.05 on two batches that agree |
+| gates all | 0.008 | 0.05 |
+| lasted, extinct | 0 of 24, 0 of 24 | 5 of 24 |
+| mean population | 8% of itself, 27% before | a second batch that agrees |
+| median population | 11% of itself | a second batch that agrees |
 
-So a change that only moves the population numbers has not been shown to do
-anything, and one batch cannot show it either way. Take all three and pool them
-before believing any of it, and say in the commit what the pooled figure was.
-
-The change that raised the mountains is the worked example, and it is worth
-keeping because of how far the answer wandered. Measured against the master of
-the day, its first batch alone said a third fewer people; the three batches
-together said a seventh, with one of them saying the population had gone up.
-Measured again after merging the master it first landed on, the same three said
-a fourteenth. Measured a third time on the master it actually went in on - by
-which point the wear on a road had changed underneath it - all three agreed in
-direction for the first time and said a sixteenth. None of those batches was
-wrong and none of them was mismeasured. The first one was simply not an answer,
-and neither is any single batch taken after it.
+A change that only moves the population numbers has not been shown to do
+anything. Run it again on `-offset 24` before believing it, and say in the
+commit that both batches agreed.
 
 ## What the ceiling is doing
 
