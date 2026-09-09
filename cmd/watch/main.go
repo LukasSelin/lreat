@@ -26,18 +26,24 @@
 // chart of its own when it is stepped onto. See focus.go.
 //
 // A map the terminal cannot hold whole — a globe is sixteen chunks round and
-// no terminal is — is looked at through a window that moves over it, and hjkl
-// move it. Everything else here is written as though the map were the screen
-// because for a valley it still is: the window is the whole map, and the
-// keys that move it have nowhere to go. See camera.go.
+// no terminal is — is looked at through a window that moves over it, and the
+// arrows move it. Everything else here is written as though the map were the
+// screen because for a valley it still is: the window is the whole map, and
+// the keys that move it have nowhere to go. See camera.go.
+//
+// The arrows are given to whichever of the two the page has. Over a map with
+// somewhere to look they look, and the graphs answer to pgup and pgdn; on a
+// valley drawn whole, and on both pages of graphs, they step the graphs as
+// they always did, and pgup and pgdn do the same. The line at the foot of
+// the panel says which case it is in.
 //
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // m turns the map to the next reading of the land and M to the last,
-// hjkl look around a map larger than the screen, c comes back to the
-// settlement and f keeps the view on whoever is being followed,
+// the arrows (or hjkl) look around a map larger than the screen, c comes
+// back to the settlement and f keeps the view on whoever is being followed,
 // r lays streets through the settlement, tab and shift-tab pick an agent
-// (or click one), up and down open a graph out, esc backs off the graph and
-// then the page, d shows the vitals, w the world, q quits.
+// (or click one), pgup and pgdn open a graph out, esc backs off the graph
+// and then the page, d shows the vitals, w the world, q quits.
 package main
 
 import (
@@ -386,8 +392,19 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Key() == tcell.KeyBacktab:
 		v.pick(-1)
 	case ev.Key() == tcell.KeyUp:
-		v.step(-1)
+		v.arrow(0, -1)
 	case ev.Key() == tcell.KeyDown:
+		v.arrow(0, 1)
+	case ev.Key() == tcell.KeyLeft:
+		v.arrow(-1, 0)
+	case ev.Key() == tcell.KeyRight:
+		v.arrow(1, 0)
+	case ev.Key() == tcell.KeyPgUp:
+		// The graphs answer to these wherever the arrows have gone, so that
+		// stepping through them is one pair of keys and not a pair that
+		// depends on how much of the map is on the screen.
+		v.step(-1)
+	case ev.Key() == tcell.KeyPgDn:
 		v.step(1)
 	case ev.Rune() == 'd':
 		// Every page has its own graphs to step through, so changing page
@@ -400,8 +417,10 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	case ev.Rune() == 'M':
 		v.view = (v.view + ascii.View(len(ascii.Views)) - 1) % ascii.View(len(ascii.Views))
 	case ev.Rune() == 'h' || ev.Rune() == 'j' || ev.Rune() == 'k' || ev.Rune() == 'l':
-		// Looking around. On a map the screen already holds whole these do
-		// nothing, which is right: there is nowhere else to look.
+		// Looking around, for a hand already on the letters. The arrows do
+		// the same and are what the keys at the foot of the panel name; on a
+		// map the screen already holds whole both do nothing, which is
+		// right: there is nowhere else to look.
 		dx, dy := 0, 0
 		switch ev.Rune() {
 		case 'h':
@@ -413,9 +432,7 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 		case 'j':
 			dy = 1
 		}
-		v.onMap(func(m *observe.MapView, w, h int) {
-			v.cam.pan(m, dx*step(w), dy*step(h), w, h)
-		})
+		v.pan(dx, dy)
 	case ev.Rune() == 'c':
 		// Back to the settlement. On a globe it is a fifth of a per cent of
 		// the map and the only part of it anybody is watching; without a way
@@ -438,6 +455,26 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	}
 	v.draw()
 	return true
+}
+
+// arrow is one press of an arrow key: looking around where there is more map
+// than screen, and stepping through the page's graphs where there is not.
+// Left and right had nothing to do on a page of graphs and still have not.
+func (v *view) arrow(dx, dy int) {
+	if v.looking() {
+		v.pan(dx, dy)
+		return
+	}
+	if dy != 0 {
+		v.step(dy)
+	}
+}
+
+// pan moves the window a third of a screen.
+func (v *view) pan(dx, dy int) {
+	v.onMap(func(m *observe.MapView, w, h int) {
+		v.cam.pan(m, dx*step(w), dy*step(h), w, h)
+	})
 }
 
 // onMap runs a piece of camera work against the map as it is being shown:
@@ -700,9 +737,9 @@ func (v *view) draw() {
 	// somewhere else to look, which on a map drawn whole there is not.
 	keys := []string{"space pause  +/- speed  . step", "m map  r pave  q quit"}
 	if mw < s.Map.W || mh < s.Map.H {
-		keys = append(keys, "hjkl look  c settlement  f follow")
+		keys = append(keys, "arrows look  c settlement  f follow")
 	}
-	keys = append(keys, v.keyed("tab pick  d vitals  w world"))
+	keys = append(keys, "tab pick  d vitals  w world", v.graphKeys())
 
 	px := mw + 2
 	line := 0

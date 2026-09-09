@@ -256,3 +256,83 @@ func TestAWrappedWorldIsWatchedThroughAWindow(t *testing.T) {
 		}
 	}
 }
+
+// arrows presses arrow and page keys.
+func arrows(v *view, keys ...tcell.Key) {
+	for _, k := range keys {
+		v.handleKey(nil, tcell.NewEventKey(k, 0, tcell.ModNone))
+	}
+}
+
+// The arrows look around a map larger than the screen. They are the keys a
+// reader reaches for without being told, and reaching for hjkl instead is
+// reaching for a key nobody knows about to work the one control a globe
+// cannot be seen without.
+func TestTheArrowsLookAroundABigMap(t *testing.T) {
+	m := ground(512, 200, true)
+	v, sc := watching(t, m, 120, 40)
+	at := v.cam.x
+	arrows(v, tcell.KeyRight)
+	if v.cam.x <= at {
+		t.Fatalf("right left the window at %d, want it further east than %d", v.cam.x, at)
+	}
+	arrows(v, tcell.KeyLeft)
+	if v.cam.x != at {
+		t.Fatalf("left landed at %d, want back at %d", v.cam.x, at)
+	}
+	down := v.cam.y
+	arrows(v, tcell.KeyDown)
+	if v.cam.y <= down {
+		t.Fatalf("down left the window at row %d, want it further south than %d", v.cam.y, down)
+	}
+	if v.focus != 0 {
+		t.Fatal("an arrow opened a graph out on a map that was being looked around")
+	}
+	// The graphs are still reachable, by the keys the panel names.
+	arrows(v, tcell.KeyPgDn)
+	if v.focus == 0 {
+		t.Fatal("pgdn did not step onto a graph")
+	}
+	if !strings.Contains(screenText(sc), "pgup/pgdn") {
+		t.Fatal("the panel does not say which keys the graphs answer to")
+	}
+}
+
+// On a map drawn whole the arrows are what they always were. This is every
+// valley run there has ever been and the behaviour that must not move.
+func TestTheArrowsStillStepTheGraphsOnAMapThatFits(t *testing.T) {
+	m := ground(40, 12, false)
+	v, sc := watching(t, m, 120, 40)
+	arrows(v, tcell.KeyDown)
+	if v.focus == 0 {
+		t.Fatal("down did not open a graph out on a map the screen holds whole")
+	}
+	if v.cam.x != 0 || v.cam.y != 0 {
+		t.Fatalf("an arrow moved the window to %d,%d on a map that fits", v.cam.x, v.cam.y)
+	}
+	arrows(v, tcell.KeyUp)
+	if v.focus != 0 {
+		t.Fatal("up did not step back off the graph")
+	}
+	if !strings.Contains(screenText(sc), "up/down") {
+		t.Fatal("the panel does not say the arrows step the graphs")
+	}
+}
+
+// The pages of graphs have no map to look at, so the arrows step graphs
+// there whatever the world is.
+func TestTheArrowsStepTheGraphsOnThePages(t *testing.T) {
+	for _, page := range []rune{'d', 'w'} {
+		m := ground(512, 200, true)
+		v, _ := watching(t, m, 120, 40)
+		look(v, page)
+		at := v.cam.x
+		arrows(v, tcell.KeyDown)
+		if v.focus == 0 {
+			t.Fatalf("down opened no graph on the %c page", page)
+		}
+		if v.cam.x != at {
+			t.Fatalf("down moved the map window while the %c page was up", page)
+		}
+	}
+}

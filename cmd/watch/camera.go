@@ -94,3 +94,26 @@ func (c *camera) pan(m *observe.MapView, dx, dy, w, h int) {
 // afterwards. Panning a tile at a time over a map a thousand round is not
 // travelling, and panning a whole screen at a time loses the place.
 func step(n int) int { return max(1, n/3) }
+
+// looking is whether the arrows are for looking around at the moment: there
+// is a map on the page, and more of it than the screen is holding.
+//
+// The arrows were the graph stepper everywhere and hjkl were the only way to
+// move over a globe, which is a reach for a key nobody knows about to work
+// the one control the world cannot be seen without. So the arrows are given
+// to whichever of the two the page actually has: over a map with somewhere
+// to look they look, and everywhere else — a valley drawn whole, the vitals,
+// the world — they step the graphs exactly as they always did. What holds
+// throughout is the pair of keys the graphs answer to in either case: see
+// keyed in focus.go.
+func (v *view) looking() bool {
+	if v.vitals || v.world || v.snap == nil || v.screen == nil {
+		return false
+	}
+	sw, sh := v.screen.Size()
+	w, h := mapArea(v.snap.Map, sw, sh)
+	if w < minMapW || h < minMapH {
+		return false
+	}
+	return w < v.snap.Map.W || h < v.snap.Map.H
+}

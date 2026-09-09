@@ -157,6 +157,22 @@ func (v *view) keyed(keys string) string {
 	return "up/down open a graph   " + keys
 }
 
+// graphKeys is the same line for the map page, which has the panel's width
+// to say it in rather than the screen's, and has to say which pair of keys:
+// where the arrows are looking around, the graphs answer to pgup and pgdn
+// instead. A line naming the keys of the other case is worse than no line —
+// it is a reader pressing what they were told to and watching the map move.
+func (v *view) graphKeys() string {
+	step := "up/down"
+	if v.looking() {
+		step = "pgup/pgdn"
+	}
+	if _, ok := v.focused(); ok {
+		return step + " another graph  esc back"
+	}
+	return step + " open a graph"
+}
+
 // mapGraphs are the band under the map: the whole weave, and then each kind
 // of work in it on its own. Opened out, a kind is scaled to its own high
 // rather than to the population, which is the only way the thin ones — the

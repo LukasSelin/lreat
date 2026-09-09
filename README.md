@@ -45,16 +45,21 @@ under it are read rather than set. Nothing that has to be reproduced is founded 
 `headless` and `tune`, which the baseline is taken on, both keep the fixed
 default size.
 
-A map larger than the terminal is looked at through a window that moves.
-`h`, `j`, `k` and `l` move it a third of a screen west, south, north and
-east; `c` comes back to the settlement, which on a globe is a fraction of a
-per cent of the map and the only part of it anybody is watching; and `f`
-keeps the window on whoever is being followed, so that picking a figure out
-of the crowd goes to them rather than merely naming them in the panel.
-Looking around by hand lets go of them again. The line under the graph says
-which part of the world is on the screen, because on a globe every view looks
-alike. A map the terminal holds whole — every valley run — has nowhere else
-to look, and none of this does anything.
+A map larger than the terminal is looked at through a window that moves. The
+arrows move it a third of a screen — `hjkl` do the same for a hand already on
+the letters — `c` comes back to the settlement, which on a globe is a fraction
+of a per cent of the map and the only part of it anybody is watching, and `f`
+keeps the window on whoever is being followed, so that picking a figure out of
+the crowd goes to them rather than merely naming them in the panel. Looking
+around by hand lets go of them again. The line under the graph says which part
+of the world is on the screen, because on a globe every view looks alike.
+
+The arrows go to whichever of the two the page has. Where there is more map
+than screen they look around it and the graphs answer to `pgup` and `pgdn`;
+on a map the terminal holds whole — every valley run — and on both pages of
+graphs, they open a graph out as they always did, and `pgup` and `pgdn` do
+the same there. The keys at the foot of the panel say which case it is in, so
+this is never something to remember.
 
 Space pauses, `+` and `-` change speed, `.` steps once while paused, `r` lays
 streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
@@ -112,7 +117,9 @@ where it stands now and what its full height means. A kind of work holding a
 twentieth of the population is not drawn at all in a weave shared with six
 others, and is a chart of its own when it is stepped onto. The rest of the
 page stays where it was, with the row being read marked. Stepping past the
-last one, or `esc`, gives the whole page back.
+last one, or `esc`, gives the whole page back. `pgup` and `pgdn` do the same
+stepping everywhere, and are what to use where the arrows are busy looking
+around a map larger than the screen.
 
 `d` swaps the map for the settlement's vital record, which is how a run that
 ended is read rather than guessed at: the population curve coloured by how well
