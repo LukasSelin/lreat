@@ -31,6 +31,7 @@ const (
 	Moisture
 	Soil
 	Woods
+	Green
 	Wear
 	Fish
 	Holdings
@@ -116,6 +117,25 @@ var Views = [...]Reading{
 				return Cell{Ch: '~', Color: Water}
 			}
 			return shade(s, Wood, clamp((s.t.Wood+s.t.Wild)/2))
+		}},
+
+	// What is standing on the ground this morning, as against what the
+	// ground could grow. Soil above is the land's potential and barely moves
+	// in a lifetime; this is what is actually on it, and it moves with every
+	// season, every felling and every harvest. The two are drawn in the same
+	// ramp on purpose, so that holding one against the other is a matter of
+	// pressing the key: bright soil that reads dark here is good ground with
+	// nothing on it, and that is either a settlement that has cut itself out
+	// of house and home or a spring that has not come on yet.
+	//
+	// Grass reads as bare, because open ground carries no crop anybody can
+	// take. See world.Tile.Green.
+	Green: {Ramp: Crop, Name: "green", Low: "bare", High: "in full leaf",
+		draw: func(s scene) Cell {
+			if s.t.Terrain == world.Water {
+				return Cell{Ch: '~', Color: Water}
+			}
+			return shade(s, Crop, clamp(s.t.Green()))
 		}},
 
 	// Where people actually walk. Nobody plans this and nothing draws it: it

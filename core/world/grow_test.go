@@ -73,3 +73,56 @@ func TestFoundingWoodsAreOldWoods(t *testing.T) {
 		}
 	}
 }
+
+// What the green reading says is what there is to be had, and it says it
+// about the two kinds of stand differently because the two are taken
+// differently. A wood is drawn down an armful at a time, so what is left is
+// the count on the tile; a crop is cut once and wholly, so what is there is
+// how far along it is. Both are the number an act already reads before it
+// takes anything.
+func TestGreenReadsWhatIsStandingAndNotWhatCouldBe(t *testing.T) {
+	bare := &Tile{Terrain: Grass, Rich: 1}
+	if bare.Green() != 0 {
+		t.Errorf("open grass reads %v; it carries no crop anybody can take", bare.Green())
+	}
+	water := &Tile{Terrain: Water}
+	if water.Green() != 0 {
+		t.Errorf("open water reads %v", water.Green())
+	}
+
+	// A wood with everything standing, and the same wood gathered out. It is
+	// a wood on both days, and only one of them has anything on it.
+	wood := &Tile{Terrain: Forest, Wood: 1, Wild: 1}
+	wood.Standing()
+	if wood.Green() != 1 {
+		t.Errorf("a full wood reads %v, want 1", wood.Green())
+	}
+	felled := &Tile{Terrain: Forest, Wood: 0, Wild: 0}
+	felled.Standing()
+	if felled.Green() != 0 {
+		t.Errorf("a wood gathered to nothing reads %v; the count is what a taking draws down", felled.Green())
+	}
+
+	// A strip keeps no count: what it has to give is how far it has come, so
+	// it is bare the day it is sown and full when it is in ear.
+	sown := &Tile{Terrain: Field, Rich: 1}
+	sown.Sow()
+	if sown.Green() != 0 {
+		t.Errorf("a strip sown this morning reads %v, want 0", sown.Green())
+	}
+	ripe := &Tile{Terrain: Field, Rich: 1}
+	ripe.Age = ontology.Crop.Full()
+	if ripe.Green() != 1 {
+		t.Errorf("a strip in ear reads %v, want 1", ripe.Green())
+	}
+	if !(ripe.Green() > sown.Green()) {
+		t.Error("a strip in ear should read greener than one just sown")
+	}
+
+	// A house on ground that used to grow something reads as nothing: what
+	// is under a roof is not a crop.
+	roofed := &Tile{Terrain: Grass, Structure: House}
+	if roofed.Green() != 0 {
+		t.Errorf("a house reads %v", roofed.Green())
+	}
+}

@@ -50,8 +50,8 @@ and everything it weighed before setting out. `esc` drops it, `q` quits.
 The settlement is the one to watch a run on — trees, water, roofs, people —
 and the rest each ask the ground one question and answer it over the whole map
 at once: how high it stands, how wet it is, what it will grow, what is standing
-on it, where people have actually worn it, what the water has in it, and who
-holds what. The row under the map names the reading and both ends of its
+on it, how much of what could be growing there is green this morning, where
+people have actually worn it, what the water has in it, and who holds what. The row under the map names the reading and both ends of its
 shading, so which end is the good ground is never a guess.
 
 Holdings is the one that is not a quantity. Its colours stand for different
@@ -61,12 +61,19 @@ than another. Six colours go round however many settlers there are, so it is
 for seeing the shape of a holding against the unclaimed ground rather than for
 telling one farmer from another by eye.
 
+Soil and green are drawn in the same shading on purpose, so that turning from
+one to the other is a comparison rather than a change of subject. Soil is what
+the ground could grow and hardly moves in a lifetime; green is what is on it
+today, and it moves with every season, every felling and every harvest. Ground
+that is bright on the first and dark on the second is good land with nothing
+standing on it.
+
 They are readings and not decorations. Every one is a number the settlement
 already keeps and already acts on — the soil view is the fertility a settler
-weighs when choosing where to break a field, and the wear view is what
-somebody reads before laying a road — so a run where the fields are not on the
-bright ground, or the roads are not on the worn ground, is a run worth asking
-about.
+weighs when choosing where to break a field, the green view is what a gatherer
+finds when it gets there, and the wear view is what somebody reads before
+laying a road — so a run where the fields are not on the bright ground, or the
+roads are not on the worn ground, is a run worth asking about.
 
 Every page here shows a dozen measurements at once and squeezes each into a
 row or a band. `↑` and `↓` step through whatever the page has — the kinds of

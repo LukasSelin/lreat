@@ -136,6 +136,40 @@ func (t *Tile) Ripen(k float64) {
 	}
 }
 
+// Green is how much of what could be growing here is standing, in [0,1]. It
+// is the reading a satellite takes rather than the one a surveyor takes: not
+// what the ground could grow, which is Rich and does not change from one year
+// to the next, but what is on it this morning.
+//
+// A stand that keeps a count of itself is read off the count, because that is
+// what a taking draws down: a wood gathered to nothing reads as nothing while
+// the trees are still called a wood. A stand that keeps no count - a crop is
+// cut once and wholly - is read off how far along it is, so a sown strip is
+// bare, a strip in ear is full, and the same strip is bare again the day
+// after the harvest. Where a tile has more than one thing growing on it, as a
+// wood has its brush and its timber, the reading is the mean of them.
+//
+// Ground with nothing growing on it at all is nothing: bare rock, open water,
+// what is under a roof, and open grass, which carries no crop anybody can
+// take. That last one is the reading disagreeing with the eye, and it is the
+// simulation's own answer rather than a picture of one: what this map shades
+// is what there is to be had.
+func (t *Tile) Green() float64 {
+	ps := growing[t.Structure][t.Terrain]
+	if len(ps) == 0 {
+		return 0
+	}
+	sum := 0.0
+	for _, f := range ps {
+		if f.stock != nil {
+			sum += clamp01(*f.stock(t))
+			continue
+		}
+		sum += t.Along(f.p)
+	}
+	return sum / float64(len(ps))
+}
+
 // How much a water tile's fish come back per growing day, and how much
 // worn fertility a field recovers per growing day toward what the land
 // can hold. Neither of these is a process: a shoal is a stock that
