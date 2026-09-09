@@ -132,6 +132,9 @@ func Decide(w *world.World) {
 			continue
 		}
 		a.Plan = out[i].plan
+		if a.Plan.NoWay {
+			w.Stuck++
+		}
 		if out[i].counted {
 			w.Choices++
 			w.Entropy += out[i].entropy

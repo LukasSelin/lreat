@@ -51,7 +51,6 @@ var roofWear = func() float64 {
 // Decay drains needs, lets shelter rot, and relaxes safety toward what the
 // agent's circumstances actually provide.
 func Decay(w *world.World) {
-	chill := w.Climate.Chill()
 	for _, a := range w.Agents {
 		for t := range decay {
 			a.Needs.Add(need.Tier(t), -decay[t])
@@ -68,7 +67,7 @@ func Decay(w *world.World) {
 		// In a mild season it is nothing whatever anyone has built; in the
 		// deep of a hard winter a body without a house burns half again
 		// what it otherwise would just staying warm.
-		exposure := chill * (1 - a.Shelter)
+		exposure := w.Climate.ChillAt(a.Pos.Y) * (1 - a.Shelter)
 		a.Needs.Add(need.Physiological, -ColdDrain*exposure)
 
 		// Health follows nourishment and housing, at a hundredth of the rate

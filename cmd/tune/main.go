@@ -40,7 +40,26 @@ func main() {
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "recognition temperature")
 	cap := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world")
 	quiet := flag.Bool("quiet", false, "summary only")
+	preset := flag.String("preset", "", "the terms to found each world on: valley (the default map) or globe; -width, -height and -wrap override it")
+	width := flag.Int("width", world.DefaultWidth, "map width")
+	height := flag.Int("height", world.DefaultHeight, "map height")
+	wrap := flag.Bool("wrap", false, "join the east edge to the west")
 	flag.Parse()
+	cfg, ok := world.Preset(*preset)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "no such preset: %q\n", *preset)
+		os.Exit(2)
+	}
+	flag.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "width":
+			cfg.Width = *width
+		case "height":
+			cfg.Height = *height
+		case "wrap":
+			cfg.Wrap = *wrap
+		}
+	})
 	action.BornNoise = *born
 	action.InheritNoise = *inherit
 	system.MaxPopulation = *cap

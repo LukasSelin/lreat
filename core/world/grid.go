@@ -126,6 +126,17 @@ type Grid struct {
 	// as the lines above and from the same ground. See readHolds.
 	holds []bool
 
+	// sea is the height of the sea, or below zero on a map with none. See
+	// flood in relief.go.
+	sea float64
+
+	// regions is which laden-walkable ground each tile is part of, and
+	// regionsStale whether the water has moved since it was worked out.
+	// See region.go.
+	regions      []int32
+	regionStack  []int32
+	regionsStale bool
+
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
 	// something else needs a Router of its own.
@@ -144,7 +155,7 @@ func (g *Grid) ownRouter() *Router {
 
 // NewGrid returns an all-grass grid.
 func NewGrid(w, h int) *Grid {
-	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h), lenders: make([]uint8, w*h)}
+	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h), lenders: make([]uint8, w*h), sea: -1}
 	g.layChunks()
 	return g
 }
@@ -165,7 +176,7 @@ func (g *Grid) At(p entity.Pos) *Tile {
 
 // Clone returns a deep copy, for snapshots.
 func (g *Grid) Clone() *Grid {
-	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles))}
+	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles)), sea: g.sea}
 	copy(c.Tiles, g.Tiles)
 	c.lenders = make([]uint8, len(g.Tiles))
 	c.layChunks()

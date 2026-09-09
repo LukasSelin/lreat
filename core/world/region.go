@@ -1,0 +1,77 @@
+package world
+
+import "lreat/core/entity"
+
+// Where a laden walker can get to. Open water is shut to anybody carrying
+// anything, so the ground is cut into regions by its rivers and its sea,
+// and a laden walker on one side of a river with no bridge cannot reach the
+// other however far it goes round. A search for a way between two such
+// places finds none, and finds none only after opening every tile it could
+// reach: on a coast that is most of the window, every time somebody
+// carrying a sack wants something on the far bank.
+//
+// So the regions are labelled once, and a laden search between two labels
+// is answered without being run. The labelling is exact - a walker who
+// cannot enter deep water cannot leave the region it stands in except into
+// the tile it is going to - so nothing a search would have found is lost,
+// and the answer is the one the search would have given. It is redone when
+// the water moves or a bridge goes up or comes down, and before anybody
+// decides, so that deciding side by side reads it and never writes it.
+
+// Region is the label of the laden-walkable ground p stands on, or 0 for
+// deep water, which is no region at all.
+func (g *Grid) Region(p entity.Pos) int32 {
+	return g.Regions()[g.Index(p)]
+}
+
+// Regions is the label of every tile, worked out afresh if the water has
+// moved since it was.
+func (g *Grid) Regions() []int32 {
+	if len(g.regions) != len(g.Tiles) || g.regionsStale {
+		g.label()
+	}
+	return g.regions
+}
+
+// label floods each region from the first of its tiles in row order, so the
+// labels are the same on every run.
+func (g *Grid) label() {
+	n := len(g.Tiles)
+	if len(g.regions) != n {
+		g.regions = make([]int32, n)
+	}
+	clear(g.regions)
+	var next int32
+	stack := g.regionStack[:0]
+	for i := 0; i < n; i++ {
+		if g.regions[i] != 0 || g.Tiles[i].Deep() {
+			continue
+		}
+		next++
+		g.regions[i] = next
+		stack = append(stack, int32(i))
+		for len(stack) > 0 {
+			j := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			p := g.PosOf(int(j))
+			for _, off := range dirs {
+				q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+				if !g.In(q) {
+					continue
+				}
+				k := g.Index(q)
+				if g.regions[k] != 0 || g.Tiles[k].Deep() {
+					continue
+				}
+				g.regions[k] = next
+				stack = append(stack, int32(k))
+			}
+		}
+	}
+	g.regionStack = stack[:0]
+	g.regionsStale = false
+}
+
+// wet notes that the water at i may have moved: a tile has become or ceased
+// to be deep water, so the regions are to be labelled again.
+func (g *Grid) wet() { g.regionsStale = true }

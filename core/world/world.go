@@ -161,8 +161,18 @@ type World struct {
 	// Growing is the growing weather the world has had since it was made,
 	// in growing days, and swept is where the sweep of sleeping chunks has
 	// got to; see active.go.
-	Growing float64
+	Growing []float64 // by chunk row, because the weather goes by latitude
 	swept   int
+	rates   []float64
+
+	// Config is the terms this world was made on.
+	Config Config
+
+	// Stuck counts the plans made whose way was looked for and not found,
+	// and Awake says why the ground is awake, both for a runner's timing
+	// line: what a tick is spent on is mostly what these say.
+	Stuck int
+	Awake AwakeCount
 
 	// routers is the working memory deciding routes on, one per goroutine.
 	routers []*Router
@@ -178,12 +188,36 @@ type Config struct {
 	// Wrap joins the east edge to the west: the map is a globe drawn as a
 	// cylinder rather than a valley with edges. See Grid.
 	Wrap bool
+	// Octaves is how many lattices of noise the ground is raised from, each
+	// half the span of the last. Zero raises them until a lattice is two
+	// tiles across, which a big map needs or it has no relief finer than
+	// its own size divided by thirty-two; the default map is raised from
+	// five, as it always was.
+	Octaves int
+	// SeaShare is how much of the ground lies under the sea. A valley has
+	// none: its water leaves at the edges. A globe has no edges but the
+	// poles, and without a sea every river on it runs to a pole and every
+	// laden walker is cut off by one.
+	SeaShare float64
+	// Settlements is how many parties are founded. One, until the world can
+	// hold more than one settlement.
+	Settlements int
+	// LogCapacity is how many events the log keeps; zero is the usual.
+	LogCapacity int
 }
 
 // DefaultConfig is the valley every settlement was founded in before there
 // was anywhere else: the default size, with edges.
 func DefaultConfig() Config {
-	return Config{Width: DefaultWidth, Height: DefaultHeight}
+	return Config{Width: DefaultWidth, Height: DefaultHeight, Octaves: 5, Settlements: 1}
+}
+
+// Globe is a world with room for several settlements: a cylinder sixteen
+// chunks round and eight down, a third of it sea, cold at the poles and
+// warm at the middle. Nothing measured on the default map is measured on
+// this; it has a baseline of its own.
+func Globe() Config {
+	return Config{Width: 1024, Height: 512, Wrap: true, SeaShare: 0.3, Settlements: 4, LogCapacity: 200_000}
 }
 
 // New creates a world with default-sized terrain, seeded for determinism.
@@ -193,7 +227,7 @@ func New(seed uint64) *World {
 
 // NewSized creates a world with terrain of the given size.
 func NewSized(seed uint64, width, height int) *World {
-	return NewWith(seed, Config{Width: width, Height: height})
+	return NewWith(seed, Config{Width: width, Height: height, Octaves: 5, Settlements: 1})
 }
 
 // NewWith creates a world on the given terms. A globe is a whole number of
@@ -207,15 +241,17 @@ func NewWith(seed uint64, cfg Config) *World {
 		RNG:     rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
 		Mods:    DefaultModifiers(),
 		Rules:   DefaultRules(),
-		Climate: NewClimate(),
+		Climate: NewClimateOn(cfg),
+		Config:  cfg,
 		Market: MarketState{
 			Price: [entity.GoodCount]float64{1, 0.5, 3, 1.5, 2},
 		},
-		Log:    event.NewLog(50_000),
+		Log:    event.NewLog(max(50_000, cfg.LogCapacity)),
 		techs:  map[Tech]bool{},
 		nextID: 1,
 	}
 	w.Generate(cfg)
+	w.Growing = make([]float64, w.Grid.CH)
 	w.Room()
 	return w
 }
@@ -441,4 +477,17 @@ func (w *World) Techs() []Tech {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
 	return out
+}
+
+// Preset is a configuration by name, for a runner asked for one: "valley"
+// is the default map and "globe" is Globe. ok is false for a name nobody
+// has given a world.
+func Preset(name string) (cfg Config, ok bool) {
+	switch name {
+	case "", "valley":
+		return DefaultConfig(), true
+	case "globe":
+		return Globe(), true
+	}
+	return Config{}, false
 }

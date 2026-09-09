@@ -60,15 +60,85 @@ var (
 // for everywhere: the settlement is small enough that the difference between
 // its ends is nothing beside the difference between its seasons.
 type Climate struct {
-	Temp  float64 // this tick's temperature, in degrees
+	Temp  float64 // this tick's temperature, in degrees, in the temperate latitudes
 	Drift float64 // the slow anomaly, a kind or unkind decade
 	Spell float64 // the fast anomaly, a warm week or a cold snap
+	// rows is how many rows the map has, and globe whether it is one. On a
+	// globe the weather is read by latitude - see TempAt - and Temp is the
+	// weather of the temperate latitudes, which is the weather a valley
+	// has everywhere.
+	rows  int
+	globe bool
 }
 
 // NewClimate is the weather a world is founded in: an ordinary early spring,
 // with neither wandering underway.
 func NewClimate() Climate {
 	return Climate{Temp: seasonal(0)}
+}
+
+// NewClimateOn is the weather a world of the given shape is founded in.
+func NewClimateOn(cfg Config) Climate {
+	c := NewClimate()
+	c.rows, c.globe = cfg.Height, cfg.Wrap
+	return c
+}
+
+// The globe's weather. Temperate is the latitude the default map's weather
+// is the weather of; a globe reads that weather there, warmer toward the
+// middle and colder toward the poles by LatSwing across the whole of the
+// curve, with the year's swing turning over in the south and fading out
+// at the equator.
+const (
+	Temperate = 45.0
+	LatSwing  = 30.0
+)
+
+// latitude is the latitude of row y in degrees, from ninety at the top
+// row to minus ninety at the bottom.
+func (c Climate) latitude(y int) float64 {
+	return 90 - 180*(float64(y)+0.5)/float64(c.rows)
+}
+
+// warmth is what a latitude adds to the temperate mean the year round.
+func warmth(lat float64) float64 {
+	return LatSwing * (math.Cos(lat*math.Pi/180) - math.Cos(Temperate*math.Pi/180))
+}
+
+// TempAt is this tick's temperature on row y. On a valley it is Temp
+// everywhere, to the bit.
+func (c Climate) TempAt(y int) float64 {
+	if !c.globe {
+		return c.Temp
+	}
+	lat := c.latitude(y)
+	hemi := math.Copysign(math.Min(1, math.Abs(lat)/Temperate), lat)
+	season := c.Temp - MeanTemp - c.Drift - c.Spell
+	return MeanTemp + hemi*season + c.Drift + c.Spell + warmth(lat)
+}
+
+// MeanAt is the mean temperature of row y over a year.
+func (c Climate) MeanAt(y int) float64 {
+	if !c.globe {
+		return MeanTemp
+	}
+	return MeanTemp + warmth(c.latitude(y))
+}
+
+// GrowthAt is Growth on row y, and ChillAt is Chill there.
+func (c Climate) GrowthAt(y int) float64 {
+	if !c.globe {
+		return c.Growth()
+	}
+	return growthOf(c.TempAt(y))
+}
+
+// ChillAt is Chill on row y.
+func (c Climate) ChillAt(y int) float64 {
+	if !c.globe {
+		return c.Chill()
+	}
+	return chillOf(c.TempAt(y))
 }
 
 // seasonal is the temperature the turning year alone would give at tick t.
@@ -117,15 +187,17 @@ const growthNorm = 1 / (WinterGrowth + (1-WinterGrowth)*0.527)
 // old year-round rate. It is two thirds of that in the depth of winter and a
 // third again as much at midsummer, and averages 1 over a year, so tuning
 // done before the seasons still holds.
-func (c Climate) Growth() float64 {
-	return growthNorm * (WinterGrowth + (1-WinterGrowth)*ramp(c.Temp, Frost, Thrive))
+func (c Climate) Growth() float64 { return growthOf(c.Temp) }
+
+func growthOf(temp float64) float64 {
+	return growthNorm * (WinterGrowth + (1-WinterGrowth)*ramp(temp, Frost, Thrive))
 }
 
 // Chill is how hard the cold presses on a body, 0 in mild weather and 1 in
 // the bitterest cold this place sees.
-func (c Climate) Chill() float64 {
-	return 1 - ramp(c.Temp, Bitter, Mild)
-}
+func (c Climate) Chill() float64 { return chillOf(c.Temp) }
+
+func chillOf(temp float64) float64 { return 1 - ramp(temp, Bitter, Mild) }
 
 // ramp is x placed on [0,1] between lo and hi, clamped at both ends.
 func ramp(x, lo, hi float64) float64 {

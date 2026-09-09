@@ -101,10 +101,13 @@ func (g *Grid) Build(p entity.Pos, s Structure) {
 	i := g.Index(p)
 	t, c := &g.Tiles[i], &g.Chunks[g.ChunkOf(i)]
 	c.count(t, -1)
-	lent := t.lends()
+	lent, deep := t.lends(), t.Deep()
 	t.Structure = s
 	c.count(t, 1)
 	g.relend(i, lent)
+	if t.Deep() != deep {
+		g.wet()
+	}
 }
 
 // Turn makes the ground at p into terrain tr. What stood or grew on it is
@@ -113,8 +116,12 @@ func (g *Grid) Turn(p entity.Pos, tr Terrain) {
 	i := g.Index(p)
 	t, c := &g.Tiles[i], &g.Chunks[g.ChunkOf(i)]
 	c.count(t, -1)
+	deep := t.Deep()
 	t.Terrain = tr
 	c.count(t, 1)
+	if t.Deep() != deep {
+		g.wet()
+	}
 }
 
 // Claim makes p somebody's, or nobody's when id is zero.
@@ -152,6 +159,7 @@ func (g *Grid) Recount() {
 		g.lenders = make([]uint8, len(g.Tiles))
 	}
 	clear(g.lenders)
+	g.wet()
 	for i := range g.Tiles {
 		g.Chunks[g.ChunkOf(i)].count(&g.Tiles[i], 1)
 		if g.Tiles[i].lends() {

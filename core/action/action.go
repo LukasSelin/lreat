@@ -739,7 +739,7 @@ const wornEnough = 60
 // buys is not less road but better placed road: the same fourteen settlements
 // are bridged on half the bridge tiles, 34 against 65, because a crossing now
 // wins where it is worth winning instead of being paved along.
-const worthPaving = 2 * wornEnough
+const worthPaving = world.WorthPaving
 
 // pavingRadius is how far somebody will go to lay a road. Roads are laid
 // where the layer already lives and walks, not wherever the settlement's
@@ -800,6 +800,7 @@ func earlier(p, q entity.Pos) bool {
 func Ready(w *world.World) {
 	w.Room()
 	w.Reindex()
+	w.Grid.Regions()
 	w.Ways()
 }
 

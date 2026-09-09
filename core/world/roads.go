@@ -51,7 +51,7 @@ func (g *Grid) Tread(p entity.Pos) {
 // Weather fades every tile's wear by one tick's worth, on the ground that
 // is awake; ground asleep has no wear, having never been crossed.
 func (g *Grid) Weather() {
-	g.EachActive(func(_ int, t *Tile) {
+	g.EachActive(nil, func(_, _ int, t *Tile) {
 		if t.Traffic > 0 {
 			t.Traffic *= Fade
 		}
@@ -230,7 +230,7 @@ func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity
 				continue
 			}
 			p := entity.Pos{X: x, Y: y}
-			if d := g.Draw(p); d > worn {
+			if d := g.Draw(p); d >= WorthPaving && d > worn {
 				best, worn, found = p, d, true
 			}
 		}
@@ -282,19 +282,22 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 	// within a step the case is nothing, which is what the entry says
 	// already. Ground that has fallen out of that is zeroed as it goes.
 	worn := g.worn(tick)
-	g.EachActive(func(i int, t *Tile) {
+	g.EachActive(nil, func(i, c int, t *Tile) {
 		y.draw[i] = 0
-		if !worn[g.ChunkOf(i)] || !t.Pavable() {
+		if !worn[c] || !t.Pavable() {
 			return
 		}
 		// A tile's case is its own wear and what its neighbours lend it,
 		// and a neighbour lends nothing unless something stands on it: see
-		// Draw. So a tile with no wear and no such neighbour has no case,
-		// and is passed over without being read.
-		if t.Traffic <= 0 && g.lenders[i] == 0 {
+		// Draw. So a tile with no such neighbour has only its own wear to
+		// make a case of, and where that is under a road's worth on the
+		// dearest ground there is, the case is nothing and is not read.
+		if g.lenders[i] == 0 && t.Traffic*maxSaving < WorthPaving {
 			return
 		}
-		y.draw[i] = g.Draw(g.PosOf(i))
+		if d := g.Draw(g.PosOf(i)); d >= WorthPaving {
+			y.draw[i] = d
+		}
 	})
 	return y
 }
@@ -440,3 +443,22 @@ func (w *World) PaveStreets() int {
 	}
 	return laid
 }
+
+// WorthPaving is the least case a road is laid on: twice what a tile worn
+// enough to be somebody's way carries. It is read by whoever lays roads,
+// and it is the floor of the reading itself: a case below it is nothing,
+// because nothing is ever done about it, and a reading that says so can
+// pass over most of the ground without working it out. See readWays.
+const WorthPaving = 2 * 60
+
+// maxSaving is the most a road saves per crossing on any ground, which is
+// the most a tile's own wear can be worth as a case.
+var maxSaving = func() float64 {
+	best := 0.0
+	for t := range moveCost {
+		if s := (moveCost[t] - structureCost[Road]) / (moveCost[Grass] - structureCost[Road]); s > best {
+			best = s
+		}
+	}
+	return best
+}()

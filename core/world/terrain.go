@@ -12,7 +12,7 @@ import (
 // valley floors and the sunny slopes. Nothing here is drawn on top of the
 // land; see relief.go for the shape of it.
 func (w *World) GenerateTerrain(width, height int) {
-	w.Generate(Config{Width: width, Height: height})
+	w.Generate(Config{Width: width, Height: height, Octaves: 5, Settlements: 1})
 }
 
 // Generate is GenerateTerrain on the given terms.
@@ -22,6 +22,7 @@ func (w *World) Generate(cfg Config) {
 	g.Wrap = cfg.Wrap
 
 	w.raise(g)
+	g.flood(cfg.SeaShare, w.RNG)
 	g.fill()
 	g.drain()
 	g.carve(w.RNG)
@@ -80,6 +81,18 @@ func (w *World) Generate(cfg Config) {
 	for i := range g.Tiles {
 		if t := &g.Tiles[i]; t.Terrain == Grass && bare[i] >= stoneLine {
 			t.Terrain = Rock
+		}
+	}
+	// The poles are bare. Ground whose year never warms past the frost
+	// grows nothing, and an outcrop is the ground that grows nothing.
+	for y := 0; y < height; y++ {
+		if w.Climate.MeanAt(y) >= Frost {
+			continue
+		}
+		for x := 0; x < width; x++ {
+			if t := g.At(entity.Pos{X: x, Y: y}); t.Terrain != Water {
+				t.Terrain, t.Wood, t.Wild = Rock, 0, 0
+			}
 		}
 	}
 

@@ -32,7 +32,7 @@ func TestTheDefaultMapNeverSleeps(t *testing.T) {
 // the day-by-day pass would have put it, to rounding, for the woods a map
 // is made with.
 func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
-	w := world.NewWith(8, world.Config{Width: 320, Height: 128, Wrap: true})
+	w := world.NewWith(8, world.Config{Width: 384, Height: 256, Wrap: true, Octaves: 5})
 	for i := 0; i < 20; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}
@@ -65,9 +65,10 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 	}
 	w.CatchUp(sleeping) // start level
 	byDay := copyOf()
-	for day := 0; day < 120; day++ {
+	cy := sleeping / g.CW
+	for day := 0; day < 90; day++ {
 		Step(w)
-		k := w.Mods.Regrowth * w.Climate.Growth()
+		k := w.Rates()[cy] // the rate the world applies to this row
 		for i := range byDay {
 			byDay[i].Ripen(k)
 			byDay[i].Replenish(k)

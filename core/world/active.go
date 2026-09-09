@@ -36,9 +36,10 @@ import (
 const sweepOver = clock.Season
 
 // wearMemory is how long a crossing keeps ground awake. Wear fades by a
-// half in a season, so after two a single crossing is under what counts as
-// a way, and what is left of it can be faded when the ground next wakes.
-const wearMemory = 2 * clock.Season
+// third in a season, so after one a single crossing is well under what
+// counts as a way, and what is left of it can be faded when the ground
+// next wakes.
+const wearMemory = clock.Season
 
 // Wake works out which chunks are awake this day, catches up any that were
 // asleep and are not now, and sweeps a few that still are.
@@ -48,23 +49,26 @@ func (w *World) Wake() {
 	if len(g.Active) != len(g.Chunks) {
 		g.Active = make([]bool, len(g.Chunks))
 	}
-	// Settled ground - people on it, or something built or held - is awake
-	// and wakes its neighbours, so that what is read across a chunk's edge
-	// is read off ground the day has passed over. Ground merely walked on
-	// lately is awake on its own account and wakes nothing: a scout's trail
-	// across the country is not a settlement.
+	// Settled ground - something built on it or held - is awake and wakes
+	// its neighbours, so that what a settlement reads across a chunk's edge
+	// is read off ground the day has passed over. Ground with people on it,
+	// or walked on lately, is awake on its own account and wakes nothing: a
+	// scout on the far side of the country is not a settlement, and neither
+	// is the trail behind it.
 	settled := make([]bool, len(g.Chunks))
 	for i := range g.Chunks {
 		c := &g.Chunks[i]
 		if c.Trodden {
 			c.Trodden, c.Trod = false, w.Tick
 		}
-		settled[i] = len(w.cells[i]) > 0 || c.Built > 0 || c.Owned > 0
+		settled[i] = c.Built > 0 || c.Owned > 0
 	}
+	w.Awake = AwakeCount{Chunks: len(g.Chunks)}
 	for i := range g.Chunks {
 		was := g.Active[i]
 		c := &g.Chunks[i]
-		g.Active[i] = c.Trod >= 0 && w.Tick-c.Trod <= wearMemory
+		peopled, worn := len(w.cells[i]) > 0, c.Trod >= 0 && w.Tick-c.Trod <= wearMemory
+		g.Active[i] = peopled || worn
 		cx, cy := i%g.CW, i/g.CW
 		for dy := -1; dy <= 1 && !g.Active[i]; dy++ {
 			y := cy + dy
@@ -83,6 +87,16 @@ func (w *World) Wake() {
 					break
 				}
 			}
+		}
+		switch {
+		case settled[i]:
+			w.Awake.Settled++
+		case peopled:
+			w.Awake.Peopled++
+		case worn:
+			w.Awake.Worn++
+		case g.Active[i]:
+			w.Awake.Beside++
 		}
 		switch {
 		case g.Active[i] && !was:
@@ -110,7 +124,7 @@ func (w *World) Wake() {
 func (w *World) CatchUp(i int) {
 	g := w.Grid
 	c := &g.Chunks[i]
-	growth := w.Growing - c.Grown
+	growth := w.Growing[i/g.CW] - c.Grown
 	days := w.Tick - 1 - c.Weathered
 	if growth > 0 || days > 0 {
 		fade := math.Pow(Fade, float64(max(0, days)))
@@ -124,7 +138,7 @@ func (w *World) CatchUp(i int) {
 			}
 		})
 	}
-	c.Grown, c.Weathered = w.Growing, w.Tick-1
+	c.Grown, c.Weathered = w.Growing[i/g.CW], w.Tick-1
 }
 
 // CatchUpAll catches up every sleeping chunk, for before the whole ground is
@@ -140,32 +154,51 @@ func (w *World) CatchUpAll() {
 
 // Stamp marks every awake chunk as passed over today with the growing
 // weather so far. The day's passes call it when they are done.
-func (g *Grid) Stamp(growing float64, tick int) {
+func (g *Grid) Stamp(growing []float64, tick int) {
 	for i := range g.Chunks {
 		if len(g.Active) != len(g.Chunks) || g.Active[i] {
-			g.Chunks[i].Grown, g.Chunks[i].Weathered = growing, tick
+			g.Chunks[i].Grown, g.Chunks[i].Weathered = growing[i/g.CW], tick
 		}
 	}
 }
 
-// EachActive visits every tile of every awake chunk, in the order a walk
-// over the whole map would visit them: row by row, and along each row.
+// Rates is what this day's weather lets green things grow on each chunk
+// row, as the growing weather of the row's middle: the weather goes by
+// latitude, and a chunk is the finest the sleeping ground is reckoned by.
+// On a valley every row reads the same.
+func (w *World) Rates() []float64 {
+	g := w.Grid
+	if len(w.rates) != g.CH {
+		w.rates = make([]float64, g.CH)
+	}
+	for cy := range w.rates {
+		mid := min(g.H-1, cy*ChunkSide+ChunkSide/2)
+		w.rates[cy] = w.Mods.Regrowth * w.Climate.GrowthAt(mid)
+	}
+	return w.rates
+}
+
+// EachActive visits every tile of every awake chunk that only admits, or of
+// every awake chunk when only is nil, in the order a walk over the whole
+// map would visit them: row by row, and along each row. The caller is told
+// which chunk each tile is in, which it would otherwise have to divide for.
 // That order is the order the world's chance is drawn in by what nobody
 // keeps, so it is kept exactly. A map that has never been woken is read as
 // all awake, so that the day's systems can be run on their own.
-func (g *Grid) EachActive(f func(i int, t *Tile)) {
+func (g *Grid) EachActive(only func(c int) bool, f func(i, c int, t *Tile)) {
 	all := len(g.Active) != len(g.Chunks)
 	for cy := 0; cy < g.CH; cy++ {
 		y0, y1 := cy*ChunkSide, min(g.H, (cy+1)*ChunkSide)
 		for y := y0; y < y1; y++ {
 			row := y * g.W
 			for cx := 0; cx < g.CW; cx++ {
-				if !all && !g.Active[cy*g.CW+cx] {
+				c := cy*g.CW + cx
+				if (!all && !g.Active[c]) || (only != nil && !only(c)) {
 					continue
 				}
 				x0, x1 := cx*ChunkSide, min(g.W, (cx+1)*ChunkSide)
 				for i := row + x0; i < row+x1; i++ {
-					f(i, &g.Tiles[i])
+					f(i, c, &g.Tiles[i])
 				}
 			}
 		}
@@ -225,4 +258,10 @@ func (g *Grid) spread(mark []bool) []bool {
 		}
 	}
 	return out
+}
+
+// AwakeCount is how many chunks are awake and on what account, for a runner
+// that says what a day was spent on.
+type AwakeCount struct {
+	Chunks, Settled, Beside, Peopled, Worn int
 }

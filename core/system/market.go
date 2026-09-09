@@ -61,7 +61,7 @@ const ColdKeeping = 0.6
 // here today: what the settlement's granaries stop, and what the weather
 // stops on top of that.
 func Keeping(w *world.World) float64 {
-	return w.Mods.Keeping * action.GranaryKeeping(w) * (1 - ColdKeeping*w.Climate.Chill())
+	return w.Mods.Keeping * action.GranaryKeeping(w) * (1 - ColdKeeping*w.Climate.ChillAt(w.MarketPos.Y))
 }
 
 // Larder is Keeping for a pack rather than a shelf: the share of the usual
@@ -69,13 +69,17 @@ func Keeping(w *world.World) float64 {
 // reaches a pack - the settlement's stores keep the settlement's food - so
 // the cold is the whole of its mercy, and in the deep of winter a pack
 // keeps two and a half times as well as it does in the summer.
-func Larder(w *world.World) float64 {
-	return 1 - ColdKeeping*w.Climate.Chill()
+func Larder(w *world.World) float64 { return LarderAt(w, w.MarketPos.Y) }
+
+// LarderAt is Larder for a pack carried on row y: what it keeps by is the
+// weather where it is carried.
+func LarderAt(w *world.World, y int) float64 {
+	return 1 - ColdKeeping*w.Climate.ChillAt(y)
 }
 
 // Spoil rots what an agent is carrying.
 func Spoil(w *world.World, a *entity.Agent) {
-	k := Larder(w)
+	k := LarderAt(w, a.Pos.Y)
 	for g := range a.Inventory {
 		if packLoss[g] != 0 {
 			a.Inventory[g] *= 1 - packLoss[g]*k

@@ -56,18 +56,21 @@ func Land(w *world.World) {
 	// to live on; over a whole year the growth is what it was before the
 	// seasons existed. Fish and fallow follow the same clock: the water
 	// under ice gives back nothing, and worn ground rests until it thaws.
-	k := w.Mods.Regrowth * w.Climate.Growth()
 	// Only the ground that is awake is passed over; what is asleep is owed
 	// the growing weather from here on, and gets it when it wakes. See
-	// world.Wake.
-	w.Growing += k
+	// world.Wake. The weather goes by latitude, so the rate does by row.
+	rates := w.Rates()
+	for cy, k := range rates {
+		w.Growing[cy] += k
+	}
 	// The wear fades in the same pass as the growing. They were two passes
 	// and the first came first, but neither reads what the other writes,
 	// so one walk over the awake ground does both and it is the same day.
-	g.EachActive(func(_ int, t *world.Tile) {
+	g.EachActive(nil, func(_, c int, t *world.Tile) {
 		if t.Traffic > 0 {
 			t.Traffic *= world.Fade
 		}
+		k := rates[c/g.CW]
 		t.Ripen(k)
 		t.Replenish(k)
 	})
@@ -87,7 +90,7 @@ func Land(w *world.World) {
 			continue
 		}
 		// Seed falls in the growing season, not on frozen ground.
-		if w.RNG.Float64() < reseedChance*w.Climate.Growth() {
+		if w.RNG.Float64() < reseedChance*w.Climate.GrowthAt(p.Y) {
 			g.Turn(p, world.Forest)
 			t.Wood, t.Wild = 0, 0
 			t.Sow() // a seedling wood, with nothing on it yet
@@ -96,7 +99,7 @@ func Land(w *world.World) {
 			// will be given all of it when it wakes. So the seedling is
 			// sown that much before its time, and comes out at nought.
 			if c := g.ChunkOf(g.Index(p)); !g.Awake(c) {
-				t.Age -= w.Growing - g.Chunks[c].Grown
+				t.Age -= w.Growing[c/g.CW] - g.Chunks[c].Grown
 			}
 		}
 	}

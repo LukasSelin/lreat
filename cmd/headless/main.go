@@ -29,6 +29,7 @@ var names = []string{
 
 func main() {
 	seed := flag.Uint64("seed", 1, "world seed")
+	preset := flag.String("preset", "", "the terms to found the world on: valley (the default map) or globe; -width, -height and -wrap override it")
 	width := flag.Int("width", world.DefaultWidth, "map width")
 	height := flag.Int("height", world.DefaultHeight, "map height")
 	wrap := flag.Bool("wrap", false, "join the east edge to the west: a globe drawn as a cylinder rather than a valley")
@@ -64,7 +65,22 @@ func main() {
 	out := rep.Out(os.Stdout)
 	defer func() { fmt.Print(rep.Close()) }()
 
-	w := world.NewWith(*seed, world.Config{Width: *width, Height: *height, Wrap: *wrap})
+	cfg, ok := world.Preset(*preset)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "no such preset: %q\n", *preset)
+		os.Exit(2)
+	}
+	flag.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "width":
+			cfg.Width = *width
+		case "height":
+			cfg.Height = *height
+		case "wrap":
+			cfg.Wrap = *wrap
+		}
+	})
+	w := world.NewWith(*seed, cfg)
 	w.Rules.Fit = !*value
 	w.Rules.Temperature = *temp
 	for i := 0; i < *agents; i++ {
@@ -97,13 +113,10 @@ func main() {
 			}
 			lastReported = w.Tick + 1
 			if *timing {
-				awake := 0
-				for i := range w.Grid.Chunks {
-					if w.Grid.Awake(i) {
-						awake++
-					}
-				}
-				spent.awake = fmt.Sprintf("%d/%d", awake, len(w.Grid.Chunks))
+				a := w.Awake
+				spent.awake = fmt.Sprintf("%d/%d awake (%d settled, %d beside, %d peopled, %d worn), %d plans with no way",
+					a.Settled+a.Beside+a.Peopled+a.Worn, a.Chunks, a.Settled, a.Beside, a.Peopled, a.Worn, w.Stuck-spent.stuck)
+				spent.stuck = w.Stuck
 				fmt.Fprintln(out, spent.line())
 			}
 			if *showMap {
@@ -163,6 +176,7 @@ type timer struct {
 	// awake is how much of the ground was awake at the last report, as
 	// chunks of chunks: what the passes over the ground are paying for.
 	awake string
+	stuck int
 }
 
 func newTimer() *timer {
@@ -195,7 +209,7 @@ func (t *timer) line() string {
 		parts = append(parts, fmt.Sprintf("%s %s", p.Name, per(t.spent[i], t.ticks)))
 		t.spent[i] = 0
 	}
-	s := fmt.Sprintf("       timing: %s per tick, %s awake | %s", per(total, t.ticks), t.awake, strings.Join(parts, " "))
+	s := fmt.Sprintf("       timing: %s per tick, %s | %s", per(total, t.ticks), t.awake, strings.Join(parts, " "))
 	t.ticks = 0
 	return s
 }

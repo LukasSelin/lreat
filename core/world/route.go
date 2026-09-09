@@ -218,6 +218,15 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 			return f
 		}
 		sx, sy, stopSlot = stop.X, stop.Y, s
+		// A laden walker cannot leave the ground it stands on except into
+		// the tile it is going to, so between two pieces of ground there
+		// is no way, and the search that would say so is not run. See
+		// region.go.
+		if laden && !g.Tiles[g.Index(from)].Deep() && !g.Tiles[g.Index(stop)].Deep() {
+			if regions := g.Regions(); regions[g.Index(from)] != regions[g.Index(stop)] {
+				return f
+			}
+		}
 	}
 	toGo := func(x, y int) float64 {
 		if !guided {

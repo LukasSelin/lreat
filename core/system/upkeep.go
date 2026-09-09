@@ -24,7 +24,14 @@ func wither(w *world.World) {
 	// Only the awake ground is walked, in the same order the whole would
 	// be. Nothing stands on sleeping ground and nobody holds it, so nothing
 	// there could befall and no luck would have been spent on it.
-	g.EachActive(func(i int, t *world.Tile) {
+	// A chunk with nothing built on it and nothing held is passed over
+	// whole: nothing befalls bare ground on its own, which the ontology
+	// says and world.BareBefalls checks.
+	var only func(c int) bool
+	if !world.BareBefalls {
+		only = func(c int) bool { return g.Chunks[c].Built > 0 || g.Chunks[c].Owned > 0 }
+	}
+	g.EachActive(only, func(i, _ int, t *world.Tile) {
 		// What becomes of it is settled before any luck is spent, so that
 		// a certainty costs the world no draw, and so that ground with
 		// nothing standing on it costs none either.

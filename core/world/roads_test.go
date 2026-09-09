@@ -127,9 +127,10 @@ func TestGroundRemembersBeingWalkedOn(t *testing.T) {
 func TestBusiestFindsTheWornWay(t *testing.T) {
 	g := NewGrid(30, 12)
 
-	// A quiet corner with one lightly walked open tile.
+	// A quiet corner with one well walked open tile: walked enough to be
+	// worth a road, or the reading passes it over as nothing.
 	lone := entity.Pos{X: 24, Y: 6}
-	for i := 0; i < 30; i++ {
+	for i := 0; i < WorthPaving+30; i++ {
 		g.Tread(lone)
 	}
 	if p, _, ok := g.Busiest(entity.Pos{X: 24, Y: 6}, 3, nil); !ok || p != lone {
@@ -140,7 +141,7 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	// makes is for the ground beside it.
 	door := entity.Pos{X: 5, Y: 6}
 	g.Build(door, House)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 8*WorthPaving+100; i++ { // shared among eight gaps, and still worth a road each
 		g.Tread(door)
 	}
 	p, worn, ok := g.Busiest(entity.Pos{X: 5, Y: 6}, 3, nil)
@@ -309,8 +310,9 @@ func TestWaysSaysWhatWalkingTheGroundSaid(t *testing.T) {
 			tile.Structure = Road
 		}
 		// Wear in whole crossings, so that ties are common rather than a
-		// thing floating point makes vanishingly rare.
-		for n := rng.IntN(4); n > 0; n-- {
+		// thing floating point makes vanishingly rare, and in fifties so
+		// that cases fall on both sides of what a road is worth.
+		for n := rng.IntN(4) * 50; n > 0; n-- {
 			g.Tread(g.PosOf(i))
 		}
 	}

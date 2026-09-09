@@ -145,7 +145,11 @@ func (g *Grid) Sunlight(p entity.Pos) float64 {
 func (w *World) raise(g *Grid) {
 	h := make([]float64, len(g.Tiles))
 	amp, span, total := 1.0, float64(max(g.W, g.H))/2, 0.0
-	for octave := 0; octave < 5 && span >= 2; octave++ {
+	octaves := w.Config.Octaves
+	if octaves <= 0 {
+		octaves = math.MaxInt // until a lattice is two tiles across
+	}
+	for octave := 0; octave < octaves && span >= 2; octave++ {
 		lattice := w.lattice(g, span)
 		for i := range h {
 			h[i] += amp * lattice[i]
@@ -218,10 +222,10 @@ func (g *Grid) fill() {
 			// On a globe only the poles are an edge: water leaves the map
 			// there and nowhere else.
 			edge := y == 0 || y == g.H-1 || (!g.Wrap && (x == 0 || x == g.W-1))
-			if !edge {
+			i := y*g.W + x
+			if !edge && !g.underSea(i) {
 				continue
 			}
-			i := y*g.W + x
 			filled[i], done[i] = g.Tiles[i].Height, true
 			q.push(heightNode{h: filled[i], idx: int32(i)})
 		}
@@ -309,6 +313,9 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 			wet[i] = g.Tiles[i].Flow >= cut/2
 		} else {
 			wet[i] = g.Tiles[i].Flow >= cut
+		}
+		if g.underSea(i) {
+			wet[i] = true
 		}
 	}
 	// The great rivers spread onto whatever beside them is no higher.
@@ -434,4 +441,37 @@ func lower(a, b heightNode) bool {
 		return a.h < b.h
 	}
 	return a.idx < b.idx
+}
+
+// The sea. A valley has none: its water leaves at the edges of the map. A
+// globe has no edges but the poles, and a globe with no sea is a globe
+// where every river runs to a pole and cuts the country in two from top to
+// bottom, which no laden walker can get round. So a share of the lowest
+// ground on a globe is put under the sea before the water finds its way
+// down, and the sea is where it finds its way to.
+
+// underSea reports whether the tile at i lies at or below sea level. A map
+// with no sea has a sea level below all its ground.
+func (g *Grid) underSea(i int) bool {
+	return g.sea >= 0 && g.Tiles[i].Height <= g.sea
+}
+
+// flood puts the lowest share of the ground under the sea, and reads the
+// sea level off the ground so that erosion can move the coast.
+func (g *Grid) flood(share float64, rng interface{ Float64() float64 }) {
+	g.sea = -1
+	if share <= 0 {
+		return
+	}
+	heights := make([]float64, len(g.Tiles))
+	for i := range g.Tiles {
+		heights[i] = g.Tiles[i].Height
+	}
+	g.sea = quantile(heights, share)
+	for i := range g.Tiles {
+		if t := &g.Tiles[i]; g.underSea(i) {
+			t.Terrain, t.Wood, t.Wild, t.Age = Water, 0, 0, 0
+			t.Fish = 0.7 + 0.3*rng.Float64()
+		}
+	}
 }

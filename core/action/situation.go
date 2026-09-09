@@ -58,7 +58,7 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	// act that named the cold was penalised the year round, and farming,
 	// alone in naming the warmth, outranked studying for the curious and
 	// getting even for the wronged.
-	s[habit.Chill] = need.Clamp(w.Climate.Chill())
+	s[habit.Chill] = need.Clamp(w.Climate.ChillAt(a.Pos.Y))
 	// Exposure is the cold this particular body is actually in: the weather
 	// times what it is not sheltered from. It is the same product the world
 	// charges a body for standing out in the winter, and it is here because
@@ -71,7 +71,7 @@ func Shared(a *entity.Agent, w *world.World) habit.Signature {
 	// their fields and the ones out in it go for timber. One is a season
 	// the settlement endures together, the other is the season sorting out
 	// who needs to do something about it.
-	s[habit.Exposure] = need.Clamp(w.Climate.Chill() * (1 - a.Shelter))
+	s[habit.Exposure] = need.Clamp(w.Climate.ChillAt(a.Pos.Y) * (1 - a.Shelter))
 	// Public order is read as a lack, the way shelter is: order of 0 is
 	// nobody keeping any, and that is the loudest the coordinate ever gets.
 	// Read one-sided it was silent exactly when it mattered - an act whose

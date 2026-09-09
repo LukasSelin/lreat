@@ -180,3 +180,17 @@ func (t *Tile) Befalling(unkept bool) *ontology.Transform {
 	}
 	return befalling[t.Structure][t.Terrain][0]
 }
+
+// BareBefalls is whether anything befalls bare ground on its own: ground
+// with nothing built on it and nobody holding it. The ontology says nothing
+// does, and this is read off the same table the ruin is, so that a pass
+// over what nobody keeps can leave such ground alone in the certainty
+// that it would have drawn no luck.
+var BareBefalls = func() bool {
+	for t := range befalling[None] {
+		if befalling[None][t][0] != nil {
+			return true
+		}
+	}
+	return false
+}()
