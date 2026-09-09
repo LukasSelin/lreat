@@ -60,6 +60,7 @@ func TestMenuOptionsTune(t *testing.T) {
 	if !m.opts {
 		t.Fatal("enter on options did not open the options page")
 	}
+	m.at = lineOf(t, "seed")
 	press(m, rune_('4'), rune_('2'), rune_('7'))
 	if s.seed == 427 {
 		t.Fatal("a half-typed number took effect before the cursor left the line")
@@ -81,7 +82,7 @@ func TestMenuOptionsTune(t *testing.T) {
 // opened them.
 func TestMenuOptionsKeptOnEscape(t *testing.T) {
 	s := defaults()
-	m := &menuState{s: &s, opts: true}
+	m := &menuState{s: &s, opts: true, at: lineOf(t, "seed")}
 	press(m, rune_('9'), key(tcell.KeyEscape))
 	if m.opts {
 		t.Fatal("esc did not leave the options page")
@@ -155,7 +156,7 @@ func TestMenuDrawsHelpForTheLine(t *testing.T) {
 	sc.SetSize(100, 30)
 
 	s := defaults()
-	m := &menuState{screen: sc, s: &s, opts: true}
+	m := &menuState{screen: sc, s: &s, opts: true, at: lineOf(t, "seed")}
 	m.draw()
 
 	text := screenText(sc)
@@ -329,5 +330,47 @@ func TestMenuDrawsHeadings(t *testing.T) {
 		if !strings.Contains(text, g) {
 			t.Fatalf("the page has no %q heading:\n%s", g, text)
 		}
+	}
+}
+
+// The world line chooses what is being founded. A globe is not sized to the
+// terminal like a valley is: it comes at the size that makes it a globe, and
+// the two lines under the map line say so rather than offering a number
+// nobody can move.
+func TestChoosingAGlobeTakesItsOwnSize(t *testing.T) {
+	s := defaults()
+	m := &menuState{s: &s, opts: true, at: lineOf(t, "world")}
+	press(m, key(tcell.KeyRight))
+	if s.world() != "globe" {
+		t.Fatalf("the world line is on %q, want globe", s.world())
+	}
+	cfg := s.config()
+	if !cfg.Wrap {
+		t.Fatal("a globe was founded with edges")
+	}
+	// A terminal's size has no say in it.
+	s.measure(80, 24)
+	if s.width != cfg.Width || s.height != cfg.Height {
+		t.Fatalf("a globe measured against an 80x24 terminal came to %dx%d, want %dx%d",
+			s.width, s.height, cfg.Width, cfg.Height)
+	}
+	if !s.sized() {
+		t.Fatal("the map size is offered as something to set by hand on a globe")
+	}
+	for _, name := range []string{"map width", "map height"} {
+		o := options()[lineOf(t, name)]
+		if o.settable(&s) {
+			t.Fatalf("the %s line takes a hand on it on a globe", name)
+		}
+	}
+	// And back again: the valley is sized to the terminal as it always was.
+	press(m, key(tcell.KeyLeft))
+	if s.world() != "valley" {
+		t.Fatalf("stepping back landed on %q, want valley", s.world())
+	}
+	s.measure(120, 40)
+	w, h := fitMap(120, 40)
+	if s.width != w || s.height != h {
+		t.Fatalf("the valley came to %dx%d, want the window's %dx%d", s.width, s.height, w, h)
 	}
 }

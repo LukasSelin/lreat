@@ -1,7 +1,6 @@
 package ascii
 
 import (
-	"lreat/core/entity"
 	"lreat/core/observe"
 	"lreat/core/world"
 )
@@ -250,28 +249,10 @@ func clamp(v float64) float64 {
 	return v
 }
 
-// RenderView draws the map under one reading. The settlement view is the
-// ordinary map with everybody on it; a reading is the land alone, with the
-// water left in because a river is how anybody finds their way around a map,
-// and the market left in because it is where the settlement is.
+// RenderView draws the whole map under one reading, which is RenderWindow
+// over the window that holds all of it.
 func RenderView(m *observe.MapView, view View) [][]Cell {
-	if int(view) >= len(Views) || Views[view].draw == nil {
-		return Render(m)
-	}
-	g := &world.Grid{W: m.W, H: m.H, Tiles: m.Tiles}
-	rows := make([][]Cell, m.H)
-	for y := 0; y < m.H; y++ {
-		rows[y] = make([]Cell, m.W)
-		for x := 0; x < m.W; x++ {
-			p := entity.Pos{X: x, Y: y}
-			t := g.At(p)
-			rows[y][x] = Views[view].draw(scene{g: g, p: p, t: t, b: band(g, t.Height)})
-		}
-	}
-	if m.Market.X != 0 || m.Market.Y != 0 {
-		rows[m.Market.Y][m.Market.X] = Cell{Ch: 'M', Color: Market}
-	}
-	return rows
+	return RenderWindow(m, view, Whole(m))
 }
 
 // LinesView renders one reading as plain strings, for logs and tests.

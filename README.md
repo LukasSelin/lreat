@@ -37,9 +37,24 @@ than the window shows an apology instead of a settlement and one much smaller
 wastes ground, and neither number is knowable before the program has looked
 at the terminal it was started in. Set the line to `by hand` for a map of a
 stated size; `-fit=false`, or simply giving `-width` or `-height`, is the same
-from the command line. Nothing that has to be reproduced is founded here —
+from the command line. The `world` line above it chooses what is being
+founded at all — the valley, which has edges and is sized to whoever is
+watching, or the globe, which has none and comes at its own size; `-preset
+globe` says the same from the command line, and on a globe the three lines
+under it are read rather than set. Nothing that has to be reproduced is founded here —
 `headless` and `tune`, which the baseline is taken on, both keep the fixed
 default size.
+
+A map larger than the terminal is looked at through a window that moves.
+`h`, `j`, `k` and `l` move it a third of a screen west, south, north and
+east; `c` comes back to the settlement, which on a globe is a fraction of a
+per cent of the map and the only part of it anybody is watching; and `f`
+keeps the window on whoever is being followed, so that picking a figure out
+of the crowd goes to them rather than merely naming them in the panel.
+Looking around by hand lets go of them again. The line under the graph says
+which part of the world is on the screen, because on a globe every view looks
+alike. A map the terminal holds whole — every valley run — has nowhere else
+to look, and none of this does anything.
 
 Space pauses, `+` and `-` change speed, `.` steps once while paused, `r` lays
 streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
@@ -160,16 +175,17 @@ hand on any preset. It is not what any settlement is measured on: see
 join to the tuned constants does and why it is the part most likely to be
 wrong.
 
-`headless` and `tune` also take `-preset globe`, which founds the world on a
+All three take `-preset globe`, which founds the world on a
 globe instead of the valley: a cylinder a thousand tiles round and five
 hundred down, joined at the east and west edges, a third of it sea, cold at
 the poles and warm at the middle, with the weather read by latitude and by
 height: the air cools six and a half degrees a kilometre, so the mountains
 carry a tree line and a snow cap of their own and the peaks are bare for the
 same reason the poles are. On the valley the highest ground is two degrees
-colder than the river and no more. `-width`,
-`-height` and `-wrap` are the same terms by hand, and override the preset
-where given; a globe must be a whole number of chunks round. The map is kept
+colder than the river and no more. On `headless` and `tune`, `-width`,
+`-height` and `-wrap` are the same terms by hand and override the preset
+where given; a globe must be a whole number of chunks round. `watch` takes a
+globe at its own size and moves a window over it instead — see above. The map is kept
 in chunks of sixty-four tiles, and ground with nobody on it, nothing built
 on it and nobody across it lately sleeps: the day's passes skip it and it is
 caught up in one go when it wakes, which on the default map never happens,

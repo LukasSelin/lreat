@@ -35,7 +35,13 @@ type Mark struct {
 
 // MapView is a copy of the grid plus where everyone is.
 type MapView struct {
-	W, H   int
+	W, H int
+	// Wrap is the shape of the ground this was taken off: a globe's east
+	// edge is joined to its west, and anything drawn from these tiles has
+	// to go round it the same way the world does. Without it a viewer
+	// reading a tile's neighbours gets the seam wrong, and one looking
+	// eastward past the last column falls off a map that has no edge.
+	Wrap   bool
 	Tiles  []world.Tile
 	Agents []Mark
 	Market entity.Pos
@@ -169,7 +175,7 @@ func Take(w *world.World) Snapshot {
 		}
 	}
 
-	m := &MapView{W: w.Grid.W, H: w.Grid.H, Tiles: make([]world.Tile, len(w.Grid.Tiles)), Market: w.MarketPos}
+	m := &MapView{W: w.Grid.W, H: w.Grid.H, Wrap: w.Grid.Wrap, Tiles: make([]world.Tile, len(w.Grid.Tiles)), Market: w.MarketPos}
 	copy(m.Tiles, w.Grid.Tiles)
 	s.Map = m
 

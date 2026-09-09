@@ -44,7 +44,59 @@ type setup struct {
 	tps  float64
 	fit  bool
 	temp float64
+	// preset is which world this is: the valley every settlement was
+	// founded in, which has edges and is sized to whoever is watching, or
+	// the globe, which has none and comes at a size of its own. See
+	// world.Preset.
+	preset string
 }
+
+// presets are the worlds that can be founded here, in the order the option
+// steps through them. It is a list rather than a flag because there will be
+// more than two of them.
+var presets = []string{"valley", "globe"}
+
+// world is the preset said as a name, for the report and the menu; an empty
+// preset is the valley, which is what it has always meant.
+func (s *setup) world() string {
+	if s.preset == "" {
+		return "valley"
+	}
+	return s.preset
+}
+
+// config is the terms the world is founded on. A preset that comes at its
+// own size keeps it; the rest take the two lines above, or the window.
+func (s *setup) config() world.Config {
+	cfg, ok := world.Preset(s.preset)
+	if !ok {
+		cfg = world.DefaultConfig()
+	}
+	if !cfg.Wrap {
+		cfg.Width, cfg.Height = s.width, s.height
+	}
+	return cfg
+}
+
+// measure settles what the map's size will be against a terminal this size.
+// A globe is not measured against the terminal at all: it is a whole number
+// of chunks round and a terminal is not, and a globe cut down to a window
+// would be neither the world the baseline is of nor one anything else can
+// be compared against. What the window decides on a globe is how much of it
+// is on the screen, which is the camera's business rather than the world's.
+func (s *setup) measure(w, h int) {
+	if cfg := s.config(); cfg.Wrap {
+		s.width, s.height = cfg.Width, cfg.Height
+		return
+	}
+	if s.snug {
+		s.width, s.height = fitMap(w, h)
+	}
+}
+
+// sized says the map's size is being filled in from somewhere else — the
+// terminal, or the preset — rather than set by hand on the two lines.
+func (s *setup) sized() bool { return s.snug || s.config().Wrap }
 
 // fitMap is the largest map a terminal of this size will hold: the panel
 // stands beside it and the legend, the activity graph and its span run
@@ -68,6 +120,7 @@ func defaults() setup {
 		width:  world.DefaultWidth,
 		height: world.DefaultHeight,
 		snug:   true,
+		preset: "valley",
 		tps:    20,
 		fit:    r.Fit,
 		temp:   r.Temperature,
@@ -104,6 +157,18 @@ var groups = []string{"the world", "the people", "the watching"}
 func options() []option {
 	all := []option{{
 		group: "the world",
+		name:  "world",
+		help:  "the valley is a map with edges, sized to this terminal; the globe has none — a cylinder a thousand tiles round, four settlements on it, cold at the poles, and mostly off the screen at any moment (hjkl looks around it)",
+		show:  func(s *setup) string { return s.world() },
+		step: func(s *setup, d int) {
+			at := slices.Index(presets, s.world())
+			if at < 0 {
+				at = 0
+			}
+			s.preset = presets[((at+d)%len(presets)+len(presets))%len(presets)]
+		},
+	}, {
+		group: "the world",
 		name:  "seed",
 		help:  "the world's one source of chance: the same seed is the same run, every time (r deals a fresh one)",
 		show:  func(s *setup) string { return fmt.Sprintf("%d", s.seed) },
@@ -126,48 +191,57 @@ func options() []option {
 		name:  "map",
 		help:  "fit takes the ground off the window this is running in, as large as it will hold, and is how a settlement is founded unless this says otherwise; by hand keeps the two lines under it whatever the window is",
 		show: func(s *setup) string {
+			if s.config().Wrap {
+				return "the world's own"
+			}
 			if s.snug {
 				return "fit to terminal"
 			}
 			return "by hand"
 		},
-		step: func(s *setup, _ int) { s.snug = !s.snug },
+		step: func(s *setup, _ int) {
+			if s.config().Wrap {
+				return // a globe's ground is not the window's to size
+			}
+			s.snug = !s.snug
+		},
+		fixed: func(s *setup) bool { return s.config().Wrap },
 	}, {
 		group: "the world",
 		name:  "map width",
 		help:  "how wide the ground is; a bigger map is more forest to walk to and more room to spread into",
 		show:  func(s *setup) string { return fmt.Sprintf("%d", s.width) },
 		step: func(s *setup, d int) {
-			if s.snug {
-				return // the terminal is setting this; see the map line
+			if s.sized() {
+				return // the terminal or the preset is setting this
 			}
 			s.width = clampInt(s.width+4*d, 20, 400)
 		},
 		digits: func(s *setup, n uint64) {
-			if !s.snug {
+			if !s.sized() {
 				s.width = clampInt(int(n), 20, 400)
 			}
 		},
 		// A line the terminal is filling in is shown as read rather than as
 		// set: the number is true, and moving it would be a lie.
-		fixed: func(s *setup) bool { return s.snug },
+		fixed: func(s *setup) bool { return s.sized() },
 	}, {
 		group: "the world",
 		name:  "map height",
 		help:  "how deep the ground is; the map, the panel beside it and the graph under it all have to fit the terminal",
 		show:  func(s *setup) string { return fmt.Sprintf("%d", s.height) },
 		step: func(s *setup, d int) {
-			if s.snug {
+			if s.sized() {
 				return
 			}
 			s.height = clampInt(s.height+2*d, 10, 200)
 		},
 		digits: func(s *setup, n uint64) {
-			if !s.snug {
+			if !s.sized() {
 				s.height = clampInt(int(n), 10, 200)
 			}
 		},
-		fixed: func(s *setup) bool { return s.snug },
+		fixed: func(s *setup) bool { return s.sized() },
 	}, {
 		group: "the watching",
 		name:  "speed",
@@ -271,9 +345,7 @@ func (m *menuState) draw() {
 	// A fitted map is measured every time the page is drawn rather than
 	// once when it is asked for, so that a window resized with the menu
 	// open shows the ground it would now be given.
-	if m.s.snug {
-		m.s.width, m.s.height = fitMap(w, h)
-	}
+	m.s.measure(w, h)
 	m.x = max(0, (w-menuWidth)/2)
 	line := max(1, (h-m.depth())/2)
 

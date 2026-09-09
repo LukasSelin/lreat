@@ -25,8 +25,16 @@
 // population is not drawn at all in a weave shared with six others, and is a
 // chart of its own when it is stepped onto. See focus.go.
 //
+// A map the terminal cannot hold whole — a globe is sixteen chunks round and
+// no terminal is — is looked at through a window that moves over it, and hjkl
+// move it. Everything else here is written as though the map were the screen
+// because for a valley it still is: the window is the whole map, and the
+// keys that move it have nowhere to go. See camera.go.
+//
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // m turns the map to the next reading of the land and M to the last,
+// hjkl look around a map larger than the screen, c comes back to the
+// settlement and f keeps the view on whoever is being followed,
 // r lays streets through the settlement, tab and shift-tab pick an agent
 // (or click one), up and down open a graph out, esc backs off the graph and
 // then the page, d shows the vitals, w the world, q quits.
@@ -92,12 +100,17 @@ func main() {
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
 	snug := flag.Bool("fit", d.snug, "size the map to the terminal; -fit=false takes -width and -height instead")
+	preset := flag.String("preset", d.preset, "which world: valley, a map with edges, or globe, a cylinder with none")
 	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
+	if _, ok := world.Preset(*preset); !ok {
+		fmt.Fprintf(os.Stderr, "no such preset: %q\n", *preset)
+		os.Exit(2)
+	}
 	s := setup{
 		seed: *seed, agents: *agents, tps: *tps,
 		width: *width, height: *height, snug: *snug,
-		fit: !*value, temp: *temp,
+		fit: !*value, temp: *temp, preset: *preset,
 	}
 	s.snug = snugFrom(*snug, given("width") || given("height"), given("fit"))
 
@@ -153,11 +166,20 @@ func run(screen tcell.Screen, s setup) {
 	// A fitted map is measured here, against the terminal as it stands at
 	// the moment of founding, because that is the last moment it can be:
 	// the ground is generated once and a window resized afterwards finds
-	// the map it was given rather than the map it would now ask for.
-	if s.snug {
-		s.width, s.height = fitMap(screen.Size())
-	}
-	w := world.NewSized(s.seed, s.width, s.height)
+	// the map it was given rather than the map it would now ask for. A
+	// globe is not measured against anything: it comes at the size that
+	// makes it a globe, and the terminal shows as much of it as it can.
+	sw, sh := screen.Size()
+	s.measure(sw, sh)
+	// Half a million tiles are raised, flooded, drained, incised and sorted
+	// before there is anything to look at, and on a globe that is a couple
+	// of seconds of a screen that has just been cleared. Saying what is
+	// happening costs one line and is the difference between a wait and a
+	// program that has hung.
+	screen.Clear()
+	puts(screen, 0, 0, tcell.StyleDefault, fmt.Sprintf("raising the %s: %d by %d...", s.world(), s.width, s.height))
+	screen.Show()
+	w := world.NewWith(s.seed, s.config())
 	w.Rules.Fit = s.fit
 	w.Rules.Temperature = s.temp
 	for i := 0; i < s.agents; i++ {
@@ -196,8 +218,8 @@ func run(screen tcell.Screen, s setup) {
 	rep := report.Open("watch")
 	defer func() {
 		out := rep.Out(os.Stdout)
-		fmt.Fprintf(out, "\nfounded on seed %d, %d figures, %dx%d, temp %.2f, %s\n",
-			s.seed, s.agents, s.width, s.height, s.temp, choosing(s.fit))
+		fmt.Fprintf(out, "\nfounded on seed %d in the %s, %d figures, %dx%d, temp %.2f, %s\n",
+			s.seed, s.world(), s.agents, s.width, s.height, s.temp, choosing(s.fit))
 		fmt.Fprint(out, v.Report())
 		v.score(rep)
 		fmt.Print(rep.Close())
@@ -259,6 +281,11 @@ type view struct {
 	// is the one to watch a run on; the rest answer one question about the
 	// ground over the whole map at once. See ui/ascii/view.go.
 	view ascii.View
+	// cam is which part of the map is on the screen. A map the terminal can
+	// hold whole has only one answer and the camera never moves; a globe is
+	// mostly off the screen at any moment and this is how the rest of it is
+	// reached. See camera.go.
+	cam camera
 
 	sel    entity.ID
 	pic    *observe.Portrait
@@ -372,6 +399,36 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 		v.view = (v.view + 1) % ascii.View(len(ascii.Views))
 	case ev.Rune() == 'M':
 		v.view = (v.view + ascii.View(len(ascii.Views)) - 1) % ascii.View(len(ascii.Views))
+	case ev.Rune() == 'h' || ev.Rune() == 'j' || ev.Rune() == 'k' || ev.Rune() == 'l':
+		// Looking around. On a map the screen already holds whole these do
+		// nothing, which is right: there is nowhere else to look.
+		dx, dy := 0, 0
+		switch ev.Rune() {
+		case 'h':
+			dx = -1
+		case 'l':
+			dx = 1
+		case 'k':
+			dy = -1
+		case 'j':
+			dy = 1
+		}
+		v.onMap(func(m *observe.MapView, w, h int) {
+			v.cam.pan(m, dx*step(w), dy*step(h), w, h)
+		})
+	case ev.Rune() == 'c':
+		// Back to the settlement. On a globe it is a fifth of a per cent of
+		// the map and the only part of it anybody is watching; without a way
+		// back, one pan too far east is a run abandoned.
+		v.onMap(func(m *observe.MapView, w, h int) {
+			v.cam.lock = false
+			v.cam.center(m, m.Market, w, h)
+		})
+	case ev.Rune() == 'f':
+		// Keep the window on whoever is being followed. It is the other half
+		// of tab: naming a figure in the panel is no use on a map larger
+		// than the screen if the figure itself is a hundred tiles away.
+		v.cam.lock = !v.cam.lock
 	case ev.Rune() == 'r':
 		// Lay the whole street network at once. Agents pave for themselves
 		// now, a length at a time where they have worn the ground; this is
@@ -383,20 +440,47 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 	return true
 }
 
+// onMap runs a piece of camera work against the map as it is being shown:
+// the ground in the latest snapshot, and how much of it the terminal is
+// holding. Both are wanted by every key that moves the view and neither is
+// kept anywhere, because the window is measured afresh each frame and the
+// terminal may have been resized since the last one.
+func (v *view) onMap(f func(m *observe.MapView, w, h int)) {
+	if v.snap == nil || v.screen == nil {
+		return
+	}
+	sw, sh := v.screen.Size()
+	w, h := mapArea(v.snap.Map, sw, sh)
+	if w < minMapW || h < minMapH {
+		return
+	}
+	f(v.snap.Map, w, h)
+}
+
 // handleMouse picks the figure under a click. It is the shortest way from
-// "what is that one doing over there" to an answer.
+// "what is that one doing over there" to an answer. The click is in screen
+// cells and the figures are on the ground, so it goes back through the
+// window the ground is being drawn in: on a globe the cell in the corner of
+// the screen is not tile 0,0 and need not even be east of it.
 func (v *view) handleMouse(ev *tcell.EventMouse) {
 	if ev.Buttons()&tcell.Button1 == 0 || v.snap == nil {
 		return
 	}
 	x, y := ev.Position()
-	for _, m := range v.snap.Map.Agents {
-		if m.Pos.X == x && m.Pos.Y == y {
-			v.choose(m.ID)
-			v.draw()
+	v.onMap(func(m *observe.MapView, w, h int) {
+		win := v.cam.window(m, w, h)
+		p, on := win.Tile(m, x, y)
+		if !on {
 			return
 		}
-	}
+		for _, mark := range m.Agents {
+			if mark.Pos == p {
+				v.choose(mark.ID)
+				v.draw()
+				return
+			}
+		}
+	})
 }
 
 // pick moves the selection step places along the population, in the order
@@ -565,14 +649,35 @@ func (v *view) draw() {
 	if v.sel != 0 && v.look != nil {
 		v.pic = v.look(v.sel)
 	}
-	needH := s.Map.H + graphHeight + 3 // map, the legend, the graph, its span, the keys
-	if sw < s.Map.W+panelWidth || sh < needH {
-		puts(sc, 0, 0, tcell.StyleDefault, fmt.Sprintf("terminal too small: need %dx%d, have %dx%d", s.Map.W+panelWidth, needH, sw, sh))
+	// How much of the map is on the screen. A map that fits is drawn whole,
+	// as it always was; one that does not — a globe is sixteen chunks round
+	// and no terminal is — is drawn through a window that moves. What the
+	// view refuses now is a screen with no room for a map at all, rather
+	// than every screen too small to hold the whole of one.
+	mw, mh := mapArea(s.Map, sw, sh)
+	if mw < minMapW || mh < minMapH {
+		need := minMapW + panelWidth
+		puts(sc, 0, 0, tcell.StyleDefault, fmt.Sprintf("terminal too small: need %dx%d, have %dx%d", need, minMapH+graphHeight+3, sw, sh))
 		sc.Show()
 		return
 	}
+	// Where to look, before anything is drawn: at the settlement on the
+	// first frame, and afterwards at whoever is being followed, unless the
+	// user has taken the view somewhere themselves.
+	if !v.cam.placed {
+		v.cam.center(s.Map, s.Map.Market, mw, mh)
+	}
+	if v.cam.lock && v.sel != 0 {
+		for _, m := range s.Map.Agents {
+			if m.ID == v.sel {
+				v.cam.center(s.Map, m.Pos, mw, mh)
+				break
+			}
+		}
+	}
+	win := v.cam.window(s.Map, mw, mh)
 
-	for y, row := range ascii.RenderView(s.Map, v.view) {
+	for y, row := range ascii.RenderWindow(s.Map, v.view, win) {
 		for x, c := range row {
 			sc.SetContent(x, y, c.Ch, nil, palette[c.Color])
 		}
@@ -582,12 +687,24 @@ func (v *view) draw() {
 	// can find them again in the crowd after they have walked.
 	for _, m := range s.Map.Agents {
 		if m.ID == v.sel {
-			sc.SetContent(m.Pos.X, m.Pos.Y, '@', nil, palette[ascii.AgentColor(m.Action)].Reverse(true))
+			if x, y, ok := win.Screen(s.Map, m.Pos); ok {
+				sc.SetContent(x, y, '@', nil, palette[ascii.AgentColor(m.Action)].Reverse(true))
+			}
 			break
 		}
 	}
 
-	px := s.Map.W + 2
+	// The keys stand at the foot of the panel, in the panel's own width:
+	// what is written past the edge of the screen is not a reminder of
+	// anything. The line about looking around is only there when there is
+	// somewhere else to look, which on a map drawn whole there is not.
+	keys := []string{"space pause  +/- speed  . step", "m map  r pave  q quit"}
+	if mw < s.Map.W || mh < s.Map.H {
+		keys = append(keys, "hjkl look  c settlement  f follow")
+	}
+	keys = append(keys, v.keyed("tab pick  d vitals  w world"))
+
+	px := mw + 2
 	line := 0
 	put := func(style tcell.Style, format string, args ...any) {
 		puts(sc, px, line, style, fmt.Sprintf(format, args...))
@@ -659,7 +776,7 @@ func (v *view) draw() {
 	put(tcell.StyleDefault, "techs: %s", trim(techs, panelWidth-9))
 	line++
 	if v.sel != 0 {
-		v.drawCard(px, &line, sh-3)
+		v.drawCard(px, &line, sh-len(keys)-1)
 	}
 	// What everyone is doing goes under the map rather than in the panel:
 	// given the map's whole width it is hundreds of ticks of history at
@@ -676,26 +793,42 @@ func (v *view) draw() {
 	// map above it is no longer showing anybody working: a legend about work
 	// over a picture of the soil is worse than no legend.
 	if v.view != ascii.Settlement {
-		v.drawReading(s.Map.W, s.Map.H)
+		v.drawReading(mw, mh)
 	} else {
-		v.drawWorkLegend(s, dim)
+		v.drawWorkLegend(s, mw, mh, dim)
 	}
-	span := fmt.Sprintf("%d days →", min(len(v.hist), s.Map.W)*graphTicks)
+	span := fmt.Sprintf("%d days →", min(len(v.hist), mw)*graphTicks)
 	if g, ok := v.focused(); ok {
-		v.drawOpen(0, s.Map.H+1, s.Map.W, graphHeight, g)
-		span = trim(v.headline(g)+"   "+span, s.Map.W)
+		v.drawOpen(0, mh+1, mw, graphHeight, g)
+		span = trim(v.headline(g)+"   "+span, mw)
 	} else {
-		v.drawGraph(0, s.Map.H+1, s.Map.W, graphHeight)
+		v.drawGraph(0, mh+1, mw, graphHeight)
 	}
-	puts(sc, 0, s.Map.H+1+graphHeight, dim, span)
-	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  m map  r pave")
-	puts(sc, px, sh-1, dim, trim(v.keyed("tab pick  d vitals  w world  q quit"), panelWidth))
+	// On a map larger than the screen the span shares its line with where
+	// the window is standing: on a globe every view looks alike, and a
+	// reader who cannot say which corner of the world is on the screen
+	// cannot come back to it either.
+	puts(sc, 0, mh+1+graphHeight, dim, span)
+	if mw < s.Map.W || mh < s.Map.H {
+		at := fmt.Sprintf("looking at %d,%d of %dx%d", win.X+mw/2, win.Y+mh/2, s.Map.W, s.Map.H)
+		if v.cam.lock && v.sel != 0 {
+			at += " (following)"
+		}
+		// It shares the row with the graph's span and gives way to it: two
+		// lines of dim text run together say less than either of them.
+		if room := mw - len([]rune(span)) - 2; room >= len([]rune(at)) {
+			puts(sc, mw-len([]rune(at)), mh+1+graphHeight, dim, at)
+		}
+	}
+	for i, line := range keys {
+		puts(sc, px, sh-len(keys)+i, dim, trim(line, sw-px))
+	}
 	// A settlement that has ended says so across the empty map it left, and
 	// says where to go and read why. Without this the map simply stops
 	// moving and a finished run looks like a hung one.
 	if s.Population == 0 && v.gone != 0 {
 		note := fmt.Sprintf("the settlement died out at tick %d — press d for why", v.gone)
-		puts(sc, max(0, (s.Map.W-len([]rune(note)))/2), s.Map.H/2,
+		puts(sc, max(0, (mw-len([]rune(note)))/2), mh/2,
 			tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true), note)
 	}
 	sc.Show()
@@ -903,16 +1036,16 @@ func recent(ds []world.Deliberation) string {
 
 // drawWorkLegend is the row under the map on the settlement view: every kind
 // of work, always in the same place in the same colour.
-func (v *view) drawWorkLegend(s *observe.Snapshot, dim tcell.Style) {
+func (v *view) drawWorkLegend(s *observe.Snapshot, w, h int, dim tcell.Style) {
 	sc := v.screen
 	var counts [len(ascii.Groups)]int
 	for _, a := range s.Activity {
 		counts[ascii.GroupOf(a.Action)] += a.Agents
 	}
-	cell := s.Map.W / len(ascii.Groups)
+	cell := w / len(ascii.Groups)
 	for i, g := range ascii.Groups {
 		lx := i * cell
-		puts(sc, lx, s.Map.H, palette[g.Color], "█")
+		puts(sc, lx, h, palette[g.Color], "█")
 		// A kind of work nobody is doing is dim, and so is one that is
 		// simply not the one being read: while a band is opened out the
 		// legend says which of them it is. See focus.go.
@@ -920,7 +1053,7 @@ func (v *view) drawWorkLegend(s *observe.Snapshot, dim tcell.Style) {
 		if counts[i] == 0 && v.focus == 0 {
 			style = dim
 		}
-		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
+		puts(sc, lx+2, h, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
 	}
 }
 

@@ -143,31 +143,11 @@ type Cell struct {
 	Color Color
 }
 
-// Render draws the map as rows of cells. Agents draw over tiles; where
-// several agents share a tile the first one's activity sets the color.
+// Render draws the whole map as rows of cells. Agents draw over tiles; where
+// several agents share a tile the first one's activity sets the color. It is
+// the window that holds everything: see RenderWindow.
 func Render(m *observe.MapView) [][]Cell {
-	// The snapshot's tiles read as a grid, so that the drawing can ask the
-	// land the same questions the world asks it - chiefly how steeply a tile
-	// falls away, which is a reading of the eight tiles round it and not of
-	// the tile itself.
-	g := &world.Grid{W: m.W, H: m.H, Tiles: m.Tiles}
-	rows := make([][]Cell, m.H)
-	for y := 0; y < m.H; y++ {
-		rows[y] = make([]Cell, m.W)
-		for x := 0; x < m.W; x++ {
-			rows[y][x] = tileCell(g, entity.Pos{X: x, Y: y})
-		}
-	}
-	seen := make(map[[2]int]bool, len(m.Agents))
-	for _, a := range m.Agents {
-		key := [2]int{a.Pos.X, a.Pos.Y}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		rows[a.Pos.Y][a.Pos.X] = Cell{Ch: '@', Color: AgentColor(a.Action)}
-	}
-	return rows
+	return RenderWindow(m, Settlement, Whole(m))
 }
 
 // Lines renders the map as plain strings, for logs and tests.
