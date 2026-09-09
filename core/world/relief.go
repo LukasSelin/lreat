@@ -27,11 +27,66 @@ import (
 // distances can be spoken of in the same breath.
 const TileSpan = 25.0
 
-// Relief is the height in metres between the lowest ground a map can have and
-// the highest. Sixty metres over eighty tiles is a river valley with sides to
-// it, not a mountain range: enough that walking uphill is felt and that water
-// knows where to go.
+// Relief is the fall of the lowland in metres, from the lowest ground a map
+// can have to the shoulders of the valley: sixty metres over eighty tiles is
+// a river valley with sides to it, enough that walking uphill is felt and
+// that water knows where to go. It is what the whole map used to be, and the
+// ground a settlement lives on is still made to exactly this figure.
 const Relief = 60.0
+
+// Upland is how far the high country stands above the valley it stands in,
+// on a map of the default width, and uplandShare is how much of a map it
+// covers. Two hundred and sixty metres is a wall rather than a slope: ground
+// a route goes round because going over it costs twenty tiles of climbing,
+// and that is the whole difference between a map with somewhere on it and a
+// map without.
+//
+// It is quoted at a width and scaled to the map being made - see
+// Grid.UplandRise - because a height spread over more ground is a gentler
+// thing. Held at a fixed two hundred and sixty metres, a map three times as
+// wide put the same mountains over three times the distance and the steep
+// tenth of the ground went from a slope of 0.45 to one of 0.22: the peaks
+// were still the same height and there was nothing steep anywhere, which is
+// the gentle bowl this was all meant to stop being. Scaled, that tenth holds
+// between 0.45 and 0.42 from eighty tiles wide to two hundred and forty, and
+// a bigger map is a bigger country at the same ruggedness rather than the
+// same country drawn larger.
+//
+// Relief is deliberately not scaled with it. The lowland is where a
+// settlement lives, and what makes it liveable is measured in metres and not
+// in tiles: FloodDepth says the valley floor is the ground within fourteen
+// metres of its river, and the soil reads off that. Stretching the lowland to
+// match a wider map would put most of it above the flood and take its soil
+// down to the floor of 0.15, which is the thing that went wrong when the
+// valley and the mountains were one field scaled together.
+//
+// The share is what keeps a map habitable, and it is a share rather than a
+// height for the reason everything else here is: how much of a map comes out
+// above a fixed line depends entirely on the shape of that map, and what is
+// wanted is that every map has both a lowland to live in and a skyline behind
+// it. See waterShare, cut the same way and for the same reason.
+const (
+	Upland      = 260.0
+	uplandShare = 0.22
+	// uplandMass is how much of the rise is the bulk of the high country and
+	// how much is the ridges standing on it.
+	uplandMass = 0.45
+	// uplandSpan is the map width Upland is quoted at, which is the width a
+	// settlement is founded on unless somebody says otherwise.
+	uplandSpan = DefaultWidth
+)
+
+// Span is how many tiles across the map is at its widest. It is what the
+// shape of the land is measured in: the octaves start at half of it, the high
+// country is masked at half of it, and the mountains rise in proportion to it.
+func (g *Grid) Span() int { return max(g.W, g.H) }
+
+// UplandRise is how far this map's high country stands above its valley.
+func (g *Grid) UplandRise() float64 { return Upland * float64(g.Span()) / uplandSpan }
+
+// Skyline is the top of the map: the valley's own relief plus the high
+// country standing on it.
+func (g *Grid) Skyline() float64 { return Relief + g.UplandRise() }
 
 // waterShare is how much of a map ends up as watercourse. The threshold that
 // achieves it is read off each map's own drainage rather than fixed, because
@@ -138,34 +193,93 @@ func (g *Grid) Sunlight(p entity.Pos) float64 {
 	return 0.5 + 0.5*lean*math.Min(1, g.Slope(p)/0.3)
 }
 
-// raise builds the height field: several lattices of random corners, each
-// half the width and half the height of the last, added together. The coarse
-// ones are the valley and the ridge; the fine ones are the unevenness that
-// keeps a hillside from being a ramp.
+// raise builds the height field. The land is made of two things, because a
+// country is: the lie of it - a broad smooth swell, the valley and its
+// shoulders - and the high country standing on part of that.
+//
+// They are made differently because they are different. The lowland is a sum
+// of octaves, each half the span and half the height of the last, which is
+// the shape gentle ground has: swells with no edge to them. The high ground
+// is the same octaves folded at their middle - the crest of each ridge is
+// where the noise crossed its own centre - which is the shape ground has
+// where it was pushed up and then cut into rather than laid down: ridges with
+// a line along the top, and sides that fall away from them.
+//
+// A single texture at a single amplitude was what this used to be, and it
+// gave every seed the same gentle bowl: nine tiles in ten under a tenth of a
+// slope on most maps and under a sixth on all of them, with the highest
+// ground only the largest of the same lumps. There was nothing to walk round
+// and nothing to look up at.
 func (w *World) raise(g *Grid) {
-	h := make([]float64, len(g.Tiles))
-	amp, span, total := 1.0, float64(max(g.W, g.H))/2, 0.0
-	octaves := w.Config.Octaves
-	if octaves <= 0 {
-		octaves = math.MaxInt // until a lattice is two tiles across
+	lie := w.fold(g, false)
+	crest := w.fold(g, true)
+
+	// Where the high country stands. One lattice far coarser than anything in
+	// the octaves above, so that upland is a region of the map rather than a
+	// speckle through it.
+	where := w.lattice(g, float64(g.Span())/2)
+	rise := g.UplandRise()
+	foot, top := quantile(where, 1-uplandShare), quantile(where, 1)
+	reach := math.Max(1e-9, top-foot)
+
+	for i := range g.Tiles {
+		// The mask is eased rather than cut, so that the mountains have feet:
+		// ground just past the line rises a little and is a hill, ground at
+		// the top of it rises the whole way. Cut straight, the high country
+		// began at a wall with no approach to it.
+		m := smooth(clamp01((where[i] - foot) / reach))
+		// Part of the rise is the mass of the upland and part of it is the
+		// ridges on that mass, because a mountain is both and the two do not
+		// peak in the same places. Given entirely to the ridges, a seed whose
+		// crests happened to fall away from its high ground came out with no
+		// mountains at all - two of the first five did, and were the same
+		// gentle bowl the whole thing was meant to stop being.
+		g.Tiles[i].Height = Relief*lie[i] + rise*m*(uplandMass+(1-uplandMass)*crest[i])
 	}
-	for octave := 0; octave < octaves && span >= 2; octave++ {
-		lattice := w.lattice(g, span)
-		for i := range h {
-			h[i] += amp * lattice[i]
+}
+
+// fold sums the octaves, in [0,1] before it is scaled. Folded, each octave is
+// turned inside out at its middle and weighted by how high the coarser ones
+// left it, which is what puts the fine detail on the flanks of the big ridges
+// instead of spreading it evenly over everything: a mountain gets gullies and
+// a plain stays a plain.
+func (w *World) fold(g *Grid, ridged bool) []float64 {
+	out := make([]float64, len(g.Tiles))
+	carry := make([]float64, len(g.Tiles))
+	for i := range carry {
+		carry[i] = 1
+	}
+	// The octaves run until they are finer than a tile rather than for a
+	// fixed count, so that a bigger map gets more detail rather than the same
+	// detail stretched over it. On the default eighty tiles that is five of
+	// them, which is what it always was.
+	amp, step := 1.0, float64(g.Span())/2
+	for step >= 2 {
+		lattice := w.lattice(g, step)
+		for i := range lattice {
+			v := lattice[i]
+			if ridged {
+				v = 1 - math.Abs(2*v-1)
+				v *= carry[i]
+				carry[i] = clamp01(0.4 + 0.6*v)
+			}
+			out[i] += amp * v
 		}
-		total += amp
-		amp, span = amp/2, span/2
+		amp, step = amp/2, step/2
 	}
+	// Stretched to fill [0,1], so that the top of a ridge means the top of
+	// the ridge on this map rather than whatever fraction of its octaves
+	// happened to agree there. Without it a crest reached a third of the
+	// height it was given and every mountain came out a hill.
 	lo, hi := math.Inf(1), math.Inf(-1)
-	for _, v := range h {
+	for _, v := range out {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
-	scale := Relief / math.Max(1e-9, hi-lo)
-	for i := range g.Tiles {
-		g.Tiles[i].Height = (h[i] - lo) * scale
+	span := math.Max(1e-9, hi-lo)
+	for i := range out {
+		out[i] = (out[i] - lo) / span
 	}
-	_ = total
+	return out
 }
 
 // lattice is one octave: random corners span tiles apart, smoothly blended.
@@ -208,6 +322,86 @@ func (w *World) lattice(g *Grid, span float64) []float64 {
 // smooth is the ease that turns a lattice of corners into hills rather than
 // facets: flat where it meets a corner, steepest halfway between.
 func smooth(t float64) float64 { return t * t * (3 - 2*t) }
+
+// Incise is how far the water has cut into the ground it has been running
+// over, in metres, along the largest river a map has. It is what makes a
+// valley a valley rather than a dip: raised and left alone, a river lies on
+// the surface of the country like a line drawn on it, and the ground falls
+// away from the water at a slope nobody can see. Cut down, the river sits at
+// the bottom of something and the ground beside it is a bank.
+//
+// Twelve metres, and not more, because of what is beside the channel rather
+// than what is in it. FloodDepth says the valley floor is the ground within
+// fourteen metres of its river, which is where the soil is and where a
+// settlement feeds itself. Cut deeper than that and the river's own banks
+// stand above its flood plain: at thirty-four metres the soil on the gentle
+// ground of all five seeds tried sat on its floor of 0.15, which is a gorge
+// with nothing growing in it and not a valley.
+const Incise = 12.0
+
+// incise deepens the ways the water has already found. It runs on the first
+// drainage, before the rivers are drawn, so the channels are drawn into
+// ground that has been cut rather than onto ground that has not - and the
+// heights are settled again afterwards, because ground that has moved drains
+// differently.
+//
+// The cut is charged as the root of how much water crosses a tile, which is
+// the usual reading and the one erode.go already takes: a gully cuts nearly
+// as deep as the river it feeds, and the difference between a great river and
+// a small one is far less than the difference in what they carry.
+//
+// It is then spread over the ground either side before it is taken off, which
+// is what makes this a valley and not a trench. Applied where it was
+// computed, the whole depth landed in a channel one tile wide with walls
+// standing straight up out of the flood plain, and the map got steeper
+// everywhere without looking like anything.
+func (g *Grid) incise() {
+	most := 0.0
+	for i := range g.Tiles {
+		most = math.Max(most, g.Tiles[i].Flow)
+	}
+	if most <= 0 {
+		return
+	}
+	cut := make([]float64, len(g.Tiles))
+	for i := range g.Tiles {
+		cut[i] = Incise * math.Sqrt(g.Tiles[i].Flow/most)
+	}
+	for pass := 0; pass < valleyWidth; pass++ {
+		cut = g.spread(cut)
+	}
+	for i := range g.Tiles {
+		g.Tiles[i].Height -= cut[i]
+	}
+}
+
+// valleyWidth is how far the cut is carried out from the channel, in passes
+// of the blur below and so roughly in tiles. Three is a valley a few hundred
+// metres across, with sides that can be walked up.
+const valleyWidth = 3
+
+// spread is one pass of a blur: every tile becomes the mean of itself and the
+// eight around it, with the edge of the map reflecting rather than pulling
+// toward nothing.
+func (g *Grid) spread(v []float64) []float64 {
+	out := make([]float64, len(v))
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			sum, n := 0.0, 0
+			for dy := -1; dy <= 1; dy++ {
+				for dx := -1; dx <= 1; dx++ {
+					q := entity.Pos{X: x + dx, Y: y + dy}
+					if !g.In(q) {
+						continue
+					}
+					sum, n = sum+v[g.Index(q)], n+1
+				}
+			}
+			out[y*g.W+x] = sum / float64(n)
+		}
+	}
+	return out
+}
 
 // fill raises every hollow to the level at which it would spill, so that all
 // ground drains somewhere and water is never asked to run uphill. It works
@@ -309,7 +503,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 	// the instant it falls under the threshold.
 	wet := make([]bool, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain == Water {
+		if g.Tiles[i].Wet() {
 			wet[i] = g.Tiles[i].Flow >= cut/2
 		} else {
 			wet[i] = g.Tiles[i].Flow >= cut
@@ -335,10 +529,10 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		t := &g.Tiles[i]
 		held := t.Structure != None || t.Owner != 0
 		switch {
-		case wet[i] && t.Terrain != Water && !held:
+		case wet[i] && !t.Wet() && !held:
 			t.Terrain, t.Wood, t.Wild, t.Age = Water, 0, 0, 0
 			t.Fish = 0.7 + 0.3*rng.Float64()
-		case !wet[i] && t.Terrain == Water:
+		case !wet[i] && t.Wet():
 			t.Terrain, t.Fish = Grass, 0
 		}
 	}
@@ -372,7 +566,7 @@ func (g *Grid) height() {
 	})
 	for _, i := range order {
 		t := &g.Tiles[i]
-		if t.Terrain == Water {
+		if t.Wet() {
 			t.Drain = 0
 			continue
 		}

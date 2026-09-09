@@ -95,8 +95,10 @@ func TestAHouseInTheWayStepsAside(t *testing.T) {
 	if _, ok := MoveHouse.Target(a, w); ok {
 		t.Fatal("the house moved before anyone had walked through it")
 	}
+	// A way worn through the house by people carrying things: what makes a
+	// house a thoroughfare is the hauling that goes past its door.
 	for i := 0; i < 200; i++ {
-		w.Grid.Tread(home)
+		w.Grid.Tread(home, hauling-1)
 	}
 	p, ok := MoveHouse.Target(a, w)
 	if !ok {

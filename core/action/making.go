@@ -3,6 +3,7 @@ package action
 import (
 	"lreat/core/entity"
 	"lreat/core/habit"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -65,7 +66,7 @@ func GranaryKeeping(w *world.World) float64 {
 	return k
 }
 
-func isRock(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Rock }
+func isRock(_ entity.Pos, t *world.Tile) bool { return t.Offers(ontology.Stone) > 0 }
 
 // rockNear reports whether there is stone to cut within reach of p.
 func rockNear(w *world.World, p entity.Pos, radius int) bool {

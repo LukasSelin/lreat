@@ -1,6 +1,9 @@
 package world
 
-import "lreat/core/entity"
+import (
+	"lreat/core/entity"
+	"lreat/core/ontology"
+)
 
 // The map in pieces. A chunk is a square of the ground with a few counts
 // kept beside it - what stands on it, what grows on it, whether anybody
@@ -85,10 +88,10 @@ func (c *Chunk) count(t *Tile, d int) {
 	if t.Structure != None {
 		c.Built += d
 	}
-	switch t.Terrain {
-	case Field:
+	switch {
+	case t.Is(ontology.Field):
 		c.Fields += d
-	case Forest:
+	case t.Is(ontology.Wood):
 		c.Forest += d
 	}
 	if t.Owner != 0 {
@@ -118,6 +121,9 @@ func (g *Grid) Turn(p entity.Pos, tr Terrain) {
 	c.count(t, -1)
 	deep := t.Deep()
 	t.Terrain = tr
+	if tr != Field {
+		t.Fenced = false // a hedge stands round a field and nothing else
+	}
 	c.count(t, 1)
 	if t.Deep() != deep {
 		g.wet()

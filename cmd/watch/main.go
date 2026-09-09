@@ -26,6 +26,7 @@
 // chart of its own when it is stepped onto. See focus.go.
 //
 // Keys: space pauses, + and - change speed, . steps once while paused,
+// m turns the map to the next reading of the land and M to the last,
 // r lays streets through the settlement, tab and shift-tab pick an agent
 // (or click one), up and down open a graph out, esc backs off the graph and
 // then the page, d shows the vitals, w the world, q quits.
@@ -254,6 +255,11 @@ type view struct {
 	// sel is the agent the panel is opened up on, zero for nobody, and pic
 	// is the last portrait drawn of it. look and follow reach into the
 	// simulation; both are nil in tests, which draw from a snapshot alone.
+	// view is which reading of the land the map is drawn as. The settlement
+	// is the one to watch a run on; the rest answer one question about the
+	// ground over the whole map at once. See ui/ascii/view.go.
+	view ascii.View
+
 	sel    entity.ID
 	pic    *observe.Portrait
 	look   func(entity.ID) *observe.Portrait
@@ -362,6 +368,10 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 		v.vitals, v.world, v.focus = !v.vitals, false, 0
 	case ev.Rune() == 'w':
 		v.world, v.vitals, v.focus = !v.world, false, 0
+	case ev.Rune() == 'm':
+		v.view = (v.view + 1) % ascii.View(len(ascii.Views))
+	case ev.Rune() == 'M':
+		v.view = (v.view + ascii.View(len(ascii.Views)) - 1) % ascii.View(len(ascii.Views))
 	case ev.Rune() == 'r':
 		// Lay the whole street network at once. Agents pave for themselves
 		// now, a length at a time where they have worn the ground; this is
@@ -430,16 +440,13 @@ func (v *view) choose(id entity.ID) {
 var palette = map[ascii.Color]tcell.Style{
 	ascii.Default:     tcell.StyleDefault,
 	ascii.Water:       tcell.StyleDefault.Foreground(tcell.ColorBlue),
-	ascii.Grass:       tcell.StyleDefault.Foreground(tcell.Color(22)),
-	ascii.GrassLow:    tcell.StyleDefault.Foreground(tcell.Color(28)),
-	ascii.GrassHigh:   tcell.StyleDefault.Foreground(tcell.Color(101)),
-	ascii.ForestRich:  tcell.StyleDefault.Foreground(tcell.ColorGreen),
-	ascii.ForestPoor:  tcell.StyleDefault.Foreground(tcell.ColorOlive),
 	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),
+	ascii.FieldFenced: tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
 	ascii.House:       tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
 	ascii.Market:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
 	ascii.Rock:        tcell.StyleDefault.Foreground(tcell.ColorGray),
+	ascii.RockHigh:    tcell.StyleDefault.Foreground(tcell.PaletteColor(250)),
 	ascii.Granary:     tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
 	ascii.Tavern:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.AgentFood:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
@@ -449,6 +456,92 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.AgentSocial: tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.AgentStudy:  tcell.StyleDefault.Foreground(tcell.ColorAqua).Bold(true),
 	ascii.AgentIdle:   tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
+
+	// The two ramps: open country and woodland, valley floor to skyline. The
+	// land is what most of the screen is, so these are most of what the map
+	// looks like, and they are the whole of how high ground reads as high.
+	//
+	// Both stay green through the lowland and leave it only above the lowland,
+	// which is the same split the ground itself is built on: bands 0 to 2 are
+	// the valley's own sixty metres and bands 3 to 5 are the high country
+	// standing over it. The first try desaturated from the second band on, and
+	// on the map that made two thirds of the ground a grey-green and a khaki -
+	// a settlement lives in the valley, so the valley is most of what is on
+	// screen, and washing it out washed out the whole picture to buy
+	// distinctions among mountains that are a twentieth of it.
+	//
+	// The woods stay green the whole way up, because a wood is green: a
+	// hillside of trees should read as a wooded hillside and not as another
+	// shade of rock. What rises with them is brightness, which is what thinner
+	// montane cover actually looks like.
+	ascii.Ground0: tcell.StyleDefault.Foreground(tcell.PaletteColor(22)),  // the water meadow
+	ascii.Ground1: tcell.StyleDefault.Foreground(tcell.PaletteColor(28)),  // the valley floor
+	ascii.Ground2: tcell.StyleDefault.Foreground(tcell.PaletteColor(64)),  // the dry shoulder of it
+	ascii.Ground3: tcell.StyleDefault.Foreground(tcell.PaletteColor(101)), // the foothills
+	ascii.Ground4: tcell.StyleDefault.Foreground(tcell.PaletteColor(145)), // the mountainside
+	ascii.Ground5: tcell.StyleDefault.Foreground(tcell.PaletteColor(252)), // the tops
+
+	ascii.Wood0: tcell.StyleDefault.Foreground(tcell.PaletteColor(22)),
+	ascii.Wood1: tcell.StyleDefault.Foreground(tcell.PaletteColor(28)),
+	ascii.Wood2: tcell.StyleDefault.Foreground(tcell.PaletteColor(34)),
+	ascii.Wood3: tcell.StyleDefault.Foreground(tcell.PaletteColor(40)),
+	ascii.Wood4: tcell.StyleDefault.Foreground(tcell.PaletteColor(71)),
+	ascii.Wood5: tcell.StyleDefault.Foreground(tcell.PaletteColor(108)),
+
+	// The three ramps the readings are drawn in. Each is one hue darkening
+	// or brightening the whole way, because a reading is a quantity and the
+	// eye reads a quantity out of one colour getting stronger far better than
+	// out of a rainbow: what is wanted here is "more than there", not "a
+	// different kind of thing from there".
+	//
+	// Moisture runs from the grey of dry ground into deep water-blue.
+	ascii.Wet0: tcell.StyleDefault.Foreground(tcell.PaletteColor(101)),
+	ascii.Wet1: tcell.StyleDefault.Foreground(tcell.PaletteColor(66)),
+	ascii.Wet2: tcell.StyleDefault.Foreground(tcell.PaletteColor(31)),
+	ascii.Wet3: tcell.StyleDefault.Foreground(tcell.PaletteColor(32)),
+	ascii.Wet4: tcell.StyleDefault.Foreground(tcell.PaletteColor(33)),
+	ascii.Wet5: tcell.StyleDefault.Foreground(tcell.PaletteColor(39)),
+
+	// Soil runs from bare tan into the green of ground worth ploughing.
+	ascii.Crop0: tcell.StyleDefault.Foreground(tcell.PaletteColor(137)),
+	ascii.Crop1: tcell.StyleDefault.Foreground(tcell.PaletteColor(143)),
+	ascii.Crop2: tcell.StyleDefault.Foreground(tcell.PaletteColor(107)),
+	ascii.Crop3: tcell.StyleDefault.Foreground(tcell.PaletteColor(71)),
+	ascii.Crop4: tcell.StyleDefault.Foreground(tcell.PaletteColor(40)),
+	ascii.Crop5: tcell.StyleDefault.Foreground(tcell.PaletteColor(46)),
+
+	// Wear runs from ground nobody crosses into the bright of a thoroughfare.
+	ascii.Worn0: tcell.StyleDefault.Foreground(tcell.PaletteColor(238)),
+	ascii.Worn1: tcell.StyleDefault.Foreground(tcell.PaletteColor(94)),
+	ascii.Worn2: tcell.StyleDefault.Foreground(tcell.PaletteColor(136)),
+	ascii.Worn3: tcell.StyleDefault.Foreground(tcell.PaletteColor(178)),
+	ascii.Worn4: tcell.StyleDefault.Foreground(tcell.PaletteColor(214)),
+	ascii.Worn5: tcell.StyleDefault.Foreground(tcell.PaletteColor(220)),
+
+	// Fish runs from the dark of water that has been emptied into the bright
+	// of water that is full. It is a teal rather than the moisture blue on
+	// purpose: the two readings are both about water and would otherwise be
+	// the same picture at a glance.
+	ascii.Shoal0: tcell.StyleDefault.Foreground(tcell.PaletteColor(23)),
+	ascii.Shoal1: tcell.StyleDefault.Foreground(tcell.PaletteColor(29)),
+	ascii.Shoal2: tcell.StyleDefault.Foreground(tcell.PaletteColor(36)),
+	ascii.Shoal3: tcell.StyleDefault.Foreground(tcell.PaletteColor(43)),
+	ascii.Shoal4: tcell.StyleDefault.Foreground(tcell.PaletteColor(50)),
+	ascii.Shoal5: tcell.StyleDefault.Foreground(tcell.PaletteColor(51)),
+
+	// Holdings are not a ramp. They stand for different owners rather than
+	// for more and less of one thing, so they are six hues chosen to be told
+	// apart rather than to be put in order - a scale here would say that one
+	// farmer is somehow more than another.
+	ascii.Held0: tcell.StyleDefault.Foreground(tcell.PaletteColor(203)),
+	ascii.Held1: tcell.StyleDefault.Foreground(tcell.PaletteColor(214)),
+	ascii.Held2: tcell.StyleDefault.Foreground(tcell.PaletteColor(227)),
+	ascii.Held3: tcell.StyleDefault.Foreground(tcell.PaletteColor(84)),
+	ascii.Held4: tcell.StyleDefault.Foreground(tcell.PaletteColor(87)),
+	ascii.Held5: tcell.StyleDefault.Foreground(tcell.PaletteColor(177)),
+
+	// Ground nobody has claimed, and the quietest thing on the map.
+	ascii.Bare: tcell.StyleDefault.Foreground(tcell.PaletteColor(238)),
 }
 
 func (v *view) draw() {
@@ -479,7 +572,7 @@ func (v *view) draw() {
 		return
 	}
 
-	for y, row := range ascii.Render(s.Map) {
+	for y, row := range ascii.RenderView(s.Map, v.view) {
 		for x, c := range row {
 			sc.SetContent(x, y, c.Ch, nil, palette[c.Color])
 		}
@@ -578,26 +671,15 @@ func (v *view) draw() {
 	// reshuffles itself is one more thing moving on a view meant to be read
 	// at a glance, and the colours have to mean the same thing from one
 	// frame to the next for the weave under them to be legible at all.
-	var counts [len(ascii.Groups)]int
-	for _, a := range s.Activity {
-		counts[ascii.GroupOf(a.Action)] += a.Agents
+	//
+	// Under a reading the row says what the reading is instead, because the
+	// map above it is no longer showing anybody working: a legend about work
+	// over a picture of the soil is worse than no legend.
+	if v.view != ascii.Settlement {
+		v.drawReading(s.Map.W, s.Map.H)
+	} else {
+		v.drawWorkLegend(s, dim)
 	}
-	cell := s.Map.W / len(ascii.Groups)
-	for i, g := range ascii.Groups {
-		lx := i * cell
-		puts(sc, lx, s.Map.H, palette[g.Color], "█")
-		// A kind of work nobody is doing is dim, and so is one that is
-		// simply not the one being read: while a band is opened out the
-		// legend says which of them it is. See focus.go.
-		style := v.markGroup(i)
-		if counts[i] == 0 && v.focus == 0 {
-			style = dim
-		}
-		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
-	}
-	// The band under the map is either the whole weave or the one kind of
-	// work stepped onto, drawn in the same rows and scaled to its own high
-	// so that a thin one can be read at all.
 	span := fmt.Sprintf("%d days →", min(len(v.hist), s.Map.W)*graphTicks)
 	if g, ok := v.focused(); ok {
 		v.drawOpen(0, s.Map.H+1, s.Map.W, graphHeight, g)
@@ -606,7 +688,7 @@ func (v *view) draw() {
 		v.drawGraph(0, s.Map.H+1, s.Map.W, graphHeight)
 	}
 	puts(sc, 0, s.Map.H+1+graphHeight, dim, span)
-	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  r pave")
+	puts(sc, px, sh-2, dim, "space pause  +/- speed  . step  m map  r pave")
 	puts(sc, px, sh-1, dim, trim(v.keyed("tab pick  d vitals  w world  q quit"), panelWidth))
 	// A settlement that has ended says so across the empty map it left, and
 	// says where to go and read why. Without this the map simply stops
@@ -817,4 +899,62 @@ func recent(ds []world.Deliberation) string {
 		return "nothing yet"
 	}
 	return strings.Join(parts, " ")
+}
+
+// drawWorkLegend is the row under the map on the settlement view: every kind
+// of work, always in the same place in the same colour.
+func (v *view) drawWorkLegend(s *observe.Snapshot, dim tcell.Style) {
+	sc := v.screen
+	var counts [len(ascii.Groups)]int
+	for _, a := range s.Activity {
+		counts[ascii.GroupOf(a.Action)] += a.Agents
+	}
+	cell := s.Map.W / len(ascii.Groups)
+	for i, g := range ascii.Groups {
+		lx := i * cell
+		puts(sc, lx, s.Map.H, palette[g.Color], "█")
+		// A kind of work nobody is doing is dim, and so is one that is
+		// simply not the one being read: while a band is opened out the
+		// legend says which of them it is. See focus.go.
+		style := v.markGroup(i)
+		if counts[i] == 0 && v.focus == 0 {
+			style = dim
+		}
+		puts(sc, lx+2, s.Map.H, style, trim(fmt.Sprintf("%s %d", g.Name, counts[i]), cell-3))
+	}
+}
+
+// drawReading is that same row under a reading: what is being read, and which
+// way the shading runs. A ramp whose ends are not named is a pattern and not
+// a map - the reader can see that one place differs from another and cannot
+// tell which of them is the good ground.
+func (v *view) drawReading(w, y int) {
+	sc := v.screen
+	r := ascii.Views[v.view]
+	x := 0
+	put := func(style tcell.Style, text string) {
+		puts(sc, x, y, style, text)
+		x += len(text)
+	}
+	put(tcell.StyleDefault.Bold(true), r.Name)
+	dim := tcell.StyleDefault.Dim(true)
+	swatches := func() {
+		for i := 0; i < ascii.Bands; i++ {
+			puts(sc, x, y, palette[ascii.RampOf(v.view)[i]], "█")
+			x++
+		}
+	}
+	// A key is not a scale, so it is not given ends to read between: the
+	// colours stand for different holders and putting "low" at one end of
+	// them would say that one holding is less than another.
+	if r.Legend == ascii.Key {
+		put(dim, "   ")
+		swatches()
+		put(dim, " "+r.Says)
+	} else {
+		put(dim, "   "+r.Low+" ")
+		swatches()
+		put(dim, " "+r.High)
+	}
+	put(dim, "   m for the next, M for the last")
 }

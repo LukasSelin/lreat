@@ -15,14 +15,34 @@ import (
 // on. Nothing here decides that a road ought to be laid: agents do that for
 // themselves, in action.Pave, by recognising worn ground as calling for one.
 
-// Wear is how much one crossing marks the ground, and Fade is the share of
-// that marking a tile keeps from one day to the next. Together they give the
-// map a memory about a hundred and forty days long - a season and a half:
-// long enough that a route walked daily stands out from one walked once,
-// short enough that a way people have stopped using stops asking to be
-// paved.
+// Wear is how much one crossing marks the ground and Haul how much each
+// armful carried over it marks the ground on top of that; Fade is the share
+// of the marking a tile keeps from one day to the next. Wear and Fade
+// together give the map a memory about a hundred and forty days long - a
+// season and a half: long enough that a route walked daily stands out from
+// one walked once, short enough that a way people have stopped using stops
+// asking to be paved.
+//
+// Haul is what makes the wear a record of the settlement's work rather than
+// of its wandering. A road is not laid for the pleasure of walking it. It is
+// laid because grain has to come off the field, timber out of the wood and
+// both to the market, and a person doing that is slower, more tired and more
+// stopped by rough ground than the same person strolling - which is exactly
+// what world.SwimLoad already says about the water, where a laden walker
+// cannot go at all. Counting a crossing as one whatever was in the walker's
+// arms made the errand that most wants a road indistinguishable from the
+// idler who happened to take the same line, and the ways that got paved were
+// the ways people went, not the ways the settlement's living ran along.
+//
+// An armful counting the same as a walker is a guess, not a measurement: a
+// person carrying four sacks marks the ground five times over. What it is
+// not is a claim that one sack weighs what one length of timber weighs.
+// entity.Load counts every good as an armful and says so, and ontology.Heavy
+// - which stone has and nothing else does - is still inert. Making that trait
+// count belongs with routing and travel cost, not here.
 const (
 	Wear = 1
+	Haul = 1
 	Fade = 0.995
 )
 
@@ -31,19 +51,24 @@ const (
 // becomes of an unkept road is stated with everything else that falls down on
 // its own - and the grass starts closing over it.
 //
-// It is low, at about one crossing every forty ticks. The live streets of a
-// settlement sit around forty of wear and the quietest lane in it around ten,
-// so this takes a way nobody comes down at all and leaves everything anybody
-// still uses. What it is not is a measure of how busy a road ought to be: a
-// back lane to one house is worth keeping, and does not have to earn its
-// keep against the market square.
+// It is low, at about one crossing every forty days, and it stayed where it
+// was when Haul made a laden crossing worth several. That is deliberate. The
+// question this asks is whether anybody comes this way at all, and somebody
+// walking home empty-handed is somebody coming this way: measured against a
+// laden crossing instead, a footpath to one house would have grown over under
+// the feet of the people using it. What is worth paving is a question about
+// hauling; what is worth keeping is a question about anybody.
+//
+// What it is not is a measure of how busy a road ought to be: a back lane to
+// one house is worth keeping, and does not have to earn its keep against the
+// market square.
 const Walked = 5
 
-// Tread records that somebody crossed this tile.
-func (g *Grid) Tread(p entity.Pos) {
+// Tread records that somebody crossed this tile carrying load armfuls.
+func (g *Grid) Tread(p entity.Pos, load float64) {
 	if g.In(p) {
 		i := g.Index(p)
-		g.Tiles[i].Traffic += Wear
+		g.Tiles[i].Traffic += Wear + Haul*load
 		g.Chunks[g.ChunkOf(i)].Trodden = true
 	}
 }
@@ -221,7 +246,7 @@ func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity
 	var worn float64
 	found := false
 	y0, y1 := max(0, from.Y-radius), min(g.H-1, from.Y+radius)
-	x0, x1 := g.Span(from.X, radius)
+	x0, x1 := g.Columns(from.X, radius)
 	for y := y0; y <= y1; y++ {
 		for dx := x0; dx <= x1; dx++ {
 			x := g.wrapX(from.X + dx)
@@ -230,7 +255,7 @@ func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity
 				continue
 			}
 			p := entity.Pos{X: x, Y: y}
-			if d := g.Draw(p); d >= WorthPaving && d > worn {
+			if d := g.Draw(p); d >= FordEnough && d > worn {
 				best, worn, found = p, d, true
 			}
 		}
@@ -292,10 +317,10 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 		// Draw. So a tile with no such neighbour has only its own wear to
 		// make a case of, and where that is under a road's worth on the
 		// dearest ground there is, the case is nothing and is not read.
-		if g.lenders[i] == 0 && t.Traffic*maxSaving < WorthPaving {
+		if g.lenders[i] == 0 && t.Traffic*maxSaving < FordEnough {
 			return
 		}
-		if d := g.Draw(g.PosOf(i)); d >= WorthPaving {
+		if d := g.Draw(g.PosOf(i)); d >= FordEnough {
 			y.draw[i] = d
 		}
 	})
@@ -313,7 +338,7 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 // one somebody walking the neighbourhood would have come to first.
 func (y *Ways) Busiest(from entity.Pos, radius int) (dry, wet Pick) {
 	g := y.g
-	x0, x1 := g.Span(from.X, radius)
+	x0, x1 := g.Columns(from.X, radius)
 	for row := max(0, from.Y-radius); row <= min(g.H-1, from.Y+radius); row++ {
 		base := row * g.W
 		for dx := x0; dx <= x1; dx++ {
@@ -322,7 +347,7 @@ func (y *Ways) Busiest(from entity.Pos, radius int) (dry, wet Pick) {
 			if d <= 0 {
 				continue
 			}
-			if g.Tiles[base+x].Terrain == Water {
+			if g.Tiles[base+x].Wet() {
 				if d > wet.Worn {
 					wet = Pick{Pos: entity.Pos{X: x, Y: row}, Worn: d, Found: true}
 				}
@@ -444,12 +469,25 @@ func (w *World) PaveStreets() int {
 	return laid
 }
 
-// WorthPaving is the least case a road is laid on: twice what a tile worn
-// enough to be somebody's way carries. It is read by whoever lays roads,
-// and it is the floor of the reading itself: a case below it is nothing,
-// because nothing is ever done about it, and a reading that says so can
-// pass over most of the ground without working it out. See readWays.
-const WorthPaving = 2 * 60
+// The bars read off the wear. Hauling is how much more the ground is marked
+// now that what a walker carries counts, measured rather than chosen: the
+// walkers of this world carry about seven and a half armfuls as they cross
+// a tile, so a tile walked exactly as it was before reads about nine times
+// as worn, and every bar below is written in terms of it. WornEnough is how
+// beaten a tile is when it is a route rather than somebody wandering,
+// WorthPaving how strong the case for a road has to be before anybody lays
+// one, and FordEnough the lesser case that gets a river bridged, since a
+// ford's wear cannot grow the way a lane's does. They are here rather than
+// with the paving because the reading of the wear is floored at the least
+// of them: a case nothing is ever done about is nothing, and a reading that
+// says so can pass over most of the ground without working it out. See
+// readWays, and the paving in core/action for why the numbers are these.
+const (
+	Hauling     = 9
+	WornEnough  = 60 * Hauling
+	WorthPaving = 2 * WornEnough
+	FordEnough  = 2 * WorthPaving / 3
+)
 
 // maxSaving is the most a road saves per crossing on any ground, which is
 // the most a tile's own wear can be worth as a case.

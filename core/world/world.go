@@ -188,12 +188,6 @@ type Config struct {
 	// Wrap joins the east edge to the west: the map is a globe drawn as a
 	// cylinder rather than a valley with edges. See Grid.
 	Wrap bool
-	// Octaves is how many lattices of noise the ground is raised from, each
-	// half the span of the last. Zero raises them until a lattice is two
-	// tiles across, which a big map needs or it has no relief finer than
-	// its own size divided by thirty-two; the default map is raised from
-	// five, as it always was.
-	Octaves int
 	// SeaShare is how much of the ground lies under the sea. A valley has
 	// none: its water leaves at the edges. A globe has no edges but the
 	// poles, and without a sea every river on it runs to a pole and every
@@ -209,7 +203,7 @@ type Config struct {
 // DefaultConfig is the valley every settlement was founded in before there
 // was anywhere else: the default size, with edges.
 func DefaultConfig() Config {
-	return Config{Width: DefaultWidth, Height: DefaultHeight, Octaves: 5, Settlements: 1}
+	return Config{Width: DefaultWidth, Height: DefaultHeight, Settlements: 1}
 }
 
 // Globe is a world with room for several settlements: a cylinder sixteen
@@ -227,7 +221,7 @@ func New(seed uint64) *World {
 
 // NewSized creates a world with terrain of the given size.
 func NewSized(seed uint64, width, height int) *World {
-	return NewWith(seed, Config{Width: width, Height: height, Octaves: 5, Settlements: 1})
+	return NewWith(seed, Config{Width: width, Height: height, Settlements: 1})
 }
 
 // NewWith creates a world on the given terms. A globe is a whole number of
@@ -318,7 +312,7 @@ func (w *World) Spawn(name string, p need.Weights) *entity.Agent {
 	pos := w.MarketPos
 	for try := 0; try < 20; try++ {
 		c := entity.Pos{X: w.MarketPos.X + w.RNG.IntN(9) - 4, Y: w.MarketPos.Y + w.RNG.IntN(9) - 4}
-		if w.Grid.In(c) && w.Grid.At(c).Terrain != Water {
+		if w.Grid.In(c) && !w.Grid.At(c).Wet() {
 			pos = w.Grid.Norm(c)
 			break
 		}

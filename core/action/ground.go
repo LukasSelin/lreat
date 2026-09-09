@@ -5,6 +5,7 @@ import (
 	"lreat/core/event"
 	"lreat/core/habit"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -152,7 +153,7 @@ func landWorth(w *world.World, p entity.Pos) float64 {
 		v += nearWaterWorth
 	}
 	if q, ok := w.Grid.Nearest(p, timberReach, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Terrain == world.Forest && t.Wood >= 0.3
+		return t.Offers(ontology.Timber) >= 0.3
 	}); ok {
 		// A wood at the door is worth all of it; one at the edge of reach,
 		// almost none. Wood is fetched an armful at a time, so the walk is
@@ -421,7 +422,7 @@ func scoutSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 		return entity.Pos{}, false
 	}
 	return w.Grid.Nearest(aim, scoutRange, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Terrain != world.Water
+		return !t.Is(ontology.Water)
 	})
 }
 

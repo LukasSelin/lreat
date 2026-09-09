@@ -202,7 +202,13 @@ var (
 	// cold half rather than the green one: a stand a planter raised is
 	// years off being beams, and the felling of it is winter work whoever
 	// does it.
-	Timber = season(lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6), -0.3)
+	// Timber is heavy for the same reason stone is: a length of it is nearer
+	// a creel of stone than a sack of grain. It is also what the settlement
+	// actually carries - the roofs, the roads and the bridges all come out
+	// of it - so where saying it of stone alone moved the mean load three
+	// parts in a hundred, saying it of timber moves it by nearly half, and
+	// the ways worn by hauling become mostly ways worn by hauling this.
+	Timber = season(lack(New("timber", Material, Burnable|Buildable|Heavy, habit.Signature{}), 0.6), -0.3)
 	Stone  = lack(New("stone", Material, Buildable|Heavy, habit.Signature{}), 0.5)
 	Tool   = lack(New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5}), 0.5)
 	// Coin is a thing so that money can be made, given, and stolen like
@@ -320,6 +326,26 @@ func (c *Class) Short() float64 {
 		}
 	}
 	return 0
+}
+
+// HeavyLoad is what an armful of a heavy material is to carry, in armfuls of
+// anything else. A creel of stone is not a sack of grain: the mason walks
+// slower under it, rests sooner, and minds the rough ground more, and twice
+// is a modest reading of a difference that is nearer threefold by weight.
+//
+// One number, because Heavy is one trait. The ontology says which materials
+// are heavy and how much that means; what carrying it comes to for a
+// particular walker is world.Hauled, which is where the names here are bound
+// to the goods in a pack.
+const HeavyLoad = 2
+
+// Heft is what one unit of c is to carry, in armfuls. It is the trait read
+// as a number, and it is the whole of what Heavy means anywhere.
+func Heft(c *Class) float64 {
+	if c.Has(Heavy) {
+		return HeavyLoad
+	}
+	return 1
 }
 
 // at sets what being at a site is like, as a delta on what being at the kind

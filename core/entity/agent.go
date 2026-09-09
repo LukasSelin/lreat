@@ -121,9 +121,12 @@ type Plan struct {
 	Route []Pos
 
 	// NoWay is set on a plan made by deciding whose way was looked for and
-	// not found. Acting on it drops it rather than looking again: the way
-	// was looked for over the whole window once, and it is not there.
-	NoWay bool
+	// not found, and Waters is the water as it was then. Acting on it drops
+	// it rather than looking again, unless the water has moved since - a
+	// bridge gone up between the deciding and the acting - in which case
+	// the way is looked for once more, as it always was.
+	NoWay  bool
+	Waters int
 
 	// Index is the catalog position of Action, so a finished plan can be
 	// tied back to the action it ran without a name lookup.
@@ -273,10 +276,17 @@ func (a *Agent) Vigor(tick int) float64 {
 	return a.Endurance(tick) * (0.6 + 0.4*need.Clamp(a.Health))
 }
 
-// Load is the weight an agent is carrying, in units of goods. Every good
-// weighs the same per unit: a sack of grain and a length of timber are both
-// an armful, and nothing in the world yet turns on one being heavier than
-// the other. What the number is for is the water — see world.SwimLoad.
+// Load is how much an agent has in its arms, counted in units of goods with
+// every good the same. It is a yes-or-no dressed as a number: everything that
+// reads it compares it against world.SwimLoad and asks whether this walker
+// may take to the water, and a person holding a crumb is as shut out of the
+// river as one holding a harvest.
+//
+// So the counting here is deliberately coarse, and what one thing is to carry
+// against another is not its question. That is world.Hauled, which reads the
+// ontology's Heavy off the trees and is what wears the ground; this package
+// cannot ask, because the ontology names skills from here and the two would
+// import in a circle.
 func (a *Agent) Load() float64 {
 	total := 0.0
 	for _, q := range a.Inventory {

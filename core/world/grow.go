@@ -194,3 +194,15 @@ var BareBefalls = func() bool {
 	}
 	return false
 }()
+
+// Recovers reports whether ground of this kind puts something back on its
+// own when it is left alone, besides what grows on it by its age: the fish
+// in the water, the rest a worn field gets. See Replenish, which is where
+// the pace is; an outcrop is stone and does not grow, and that is meant.
+func (k Terrain) Recovers() bool {
+	switch k {
+	case Water, Field:
+		return true
+	}
+	return false
+}

@@ -19,8 +19,12 @@ func townsfolk(t *testing.T, w *world.World) *entity.Agent {
 	a.Inventory[entity.Wood] = 3
 	a.Inventory[entity.Food] = 4
 	a.Needs = need.Levels{0.9, 0.9, 0.9, 0.5, 0.5}
-	for i := 0; i < 120; i++ {
-		w.Grid.Tread(entity.Pos{X: a.Pos.X + 1, Y: a.Pos.Y})
+	// Worn by people carrying things, because that is what wears a way worth
+	// paving: an armful counts as a crossing, so hauling-1 armfuls make each
+	// passage worth hauling and the count reads in the units the bars are
+	// written in. See world.Haul.
+	for i := 0; i < 200; i++ {
+		w.Grid.Tread(entity.Pos{X: a.Pos.X + 1, Y: a.Pos.Y}, hauling-1)
 	}
 	return a
 }
@@ -87,15 +91,35 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	a := townsfolk(t, w)
 	a.Inventory[entity.Wood] = 4
 
-	// A ford one way, a well-walked lane the other, the lane busier.
+	// A ford one way, a well-walked lane the other, the lane far busier - and
+	// busier in a way the ford cannot answer. Everybody fording carries
+	// nothing, because the water is shut to anybody who does not (SwimLoad),
+	// while the lane is hauled along. That is the whole difficulty a crossing
+	// is under: the errands a bridge would carry are going the long way round
+	// and marking the ground somewhere else. See fordEnough.
+	//
+	// Nothing else is worn anywhere, so the two tiles being compared are the
+	// only two in the running. The way townsfolk wears beside the agent is a
+	// third candidate otherwise, and since the ground grew mountains the map
+	// this seed makes puts a wood on it - where a road saves the walker more
+	// than either of these does, so it won on the trees rather than on being
+	// walked and the test read as a crossing losing to a street.
+	for i := range w.Grid.Tiles {
+		w.Grid.Tiles[i].Traffic = 0
+	}
 	ford := entity.Pos{X: a.Pos.X - 2, Y: a.Pos.Y}
 	w.Grid.At(ford).Terrain = world.Water
-	for i := 0; i < 90; i++ {
-		w.Grid.Tread(ford)
+	// The ford's count is written in terms of hauling and the lane's load is
+	// not, which is the asymmetry itself: the lane can be worn harder by
+	// carrying more, and the ford can only ever be worn by more journeys,
+	// so what it takes to make a crossing's case has to rise with what a
+	// laden crossing is worth elsewhere.
+	for i := 0; i < 25*hauling; i++ {
+		w.Grid.Tread(ford, 0)
 	}
 	lane := entity.Pos{X: a.Pos.X + 2, Y: a.Pos.Y}
 	for i := 0; i < 300; i++ {
-		w.Grid.Tread(lane)
+		w.Grid.Tread(lane, hauling-1)
 	}
 	got, ok := Pave.Target(a, w)
 	if !ok {

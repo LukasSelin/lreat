@@ -27,22 +27,48 @@ var classes = map[Structure]*ontology.Class{
 	Road:    ontology.Road,
 }
 
-// grounds is what bare ground is, in the ontology's terms.
-var grounds = map[Terrain]*ontology.Class{
-	Grass:  ontology.Open,
-	Forest: ontology.Wood,
-	Water:  ontology.Water,
-	Field:  ontology.Field,
-	Rock:   ontology.Outcrop,
-}
-
 // ClassOf is what this tile is: what stands on it if anything does, and
 // otherwise the ground itself.
 func ClassOf(t *Tile) *ontology.Class {
 	if c, ok := classes[t.Structure]; ok {
 		return c
 	}
-	return grounds[t.Terrain]
+	return t.Terrain.Class()
+}
+
+// GroundOf is what the bare ground of this tile is, whatever has been put on
+// top of it. It is not ClassOf and the difference is the bridge: a road over
+// water is a road to walk on and still a river to fish in, so what a tile
+// affords is the ground's to say and never the structure's.
+func GroundOf(t *Tile) *ontology.Class { return t.Terrain.Class() }
+
+// Is reports whether the ground here is c, or any kind of c. It is the
+// identity question asked of the ontology instead of of the terrain, so that
+// a wood goes on being a wood however many kinds of wood the trees come to
+// hold, and the caller does not have to be found again when they do.
+func (t *Tile) Is(c *ontology.Class) bool {
+	g := GroundOf(t)
+	return g != nil && g.IsA(c)
+}
+
+// Offers is how much of m this tile has to give: nothing where the ground is
+// not the kind that affords m at all, the standing stock where there is a
+// count of it, and one where the ground affords m without keeping a count,
+// stone in an outcrop being bottomless.
+//
+// This is the question most callers of the terrain actually meant. What a
+// timber search looks for is not a forest, it is somewhere with wood standing
+// on it; asking the first while meaning the second is what makes every new
+// kind of ground a hunt through the callers, since the compiler has nothing
+// to say about a comparison that stayed valid and stopped being right.
+func (t *Tile) Offers(m *ontology.Class) float64 {
+	if !ontology.Offers(GroundOf(t), m) {
+		return 0
+	}
+	if s, ok := Stock(t, m); ok {
+		return *s
+	}
+	return 1
 }
 
 // goods is what a material is in a pack. A material that is nothing in a
@@ -53,6 +79,41 @@ var goods = map[*ontology.Class]entity.Good{
 	ontology.Stone:     entity.Stone,
 	ontology.Tool:      entity.Tools,
 	ontology.Meal:      entity.Meals,
+}
+
+// hefts is what one unit of each good is to carry, in armfuls, read off the
+// ontology's Heavy trait once at start-up rather than looked up per step.
+// Anything the trees do not name is an ordinary armful.
+var hefts = func() [entity.GoodCount]float64 {
+	var h [entity.GoodCount]float64
+	for i := range h {
+		h[i] = 1
+	}
+	for c, g := range goods {
+		h[g] = ontology.Heft(c)
+	}
+	return h
+}()
+
+// Hauled is what an agent is carrying, in armfuls, counting a heavy material
+// for what it actually is to carry. It is what marks the ground - see
+// Grid.Tread - and it is the only place the weight of a pack is read as a
+// quantity rather than as the yes-or-no of entity.Agent.Load, which asks
+// whether a walker may take to the water and nothing else.
+//
+// A road is laid where the settlement's hauling runs, and hauling stone is
+// the heaviest of it. Stone is the only material the trees call Heavy, and it
+// is quarried rarely, so this moves the map less than it moves the meaning:
+// it is here so that Heavy is a fact with a consequence rather than a label,
+// and so that calling anything else heavy takes effect without another edit.
+func Hauled(a *entity.Agent) float64 {
+	total := 0.0
+	for g, q := range a.Inventory {
+		if q > 0 {
+			total += q * hefts[g]
+		}
+	}
+	return total
 }
 
 // GoodOf is what m is in a pack or on a shelf, walking up the tree: berries

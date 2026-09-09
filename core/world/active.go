@@ -238,11 +238,11 @@ func (g *Grid) worn(tick int) []bool {
 		c := &g.Chunks[i]
 		lately[i] = c.Trodden || (c.Trod >= 0 && tick-c.Trod <= wearMemory)
 	}
-	return g.spread(lately)
+	return g.beside(lately)
 }
 
-// spread is which chunks are marked or beside a marked one.
-func (g *Grid) spread(mark []bool) []bool {
+// beside is which chunks are marked or beside a marked one.
+func (g *Grid) beside(mark []bool) []bool {
 	out := make([]bool, len(g.Chunks))
 	for i := range g.Chunks {
 		cx, cy := i%g.CW, i/g.CW

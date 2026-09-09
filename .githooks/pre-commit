@@ -1,0 +1,92 @@
+#!/bin/sh
+# Check that a commit touching the ontology leaves owl/lreat.ofn saying what
+# the ontology now says.
+#
+# This exists because the normal loop cannot catch it. owl/ is its own module
+# so that the simulation keeps no dependency it does not need, and the price of
+# that is exactly this: `go test ./...` at the root walks straight past owl/,
+# so the test that compares the checked-in document against a fresh one never
+# runs. Nothing else would notice a stale document until somebody read it and
+# believed it.
+#
+# It is a check and not a fix. Regenerating on the way past would put a file
+# into a commit that the author never looked at, and a generated file nobody
+# reads is how a wrong one survives.
+#
+# Install:
+#     git config core.hooksPath .githooks
+#
+# Skip once, when there is a reason:
+#     git commit --no-verify
+
+set -e
+
+root=$(git rev-parse --show-toplevel)
+paths="$root/.githooks/ontology-paths"
+[ -f "$paths" ] || exit 0
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+
+# Which of the watched packages this commit touches, if any.
+touched=""
+while IFS= read -r pkg; do
+	case "$pkg" in
+	'' | \#*) continue ;;
+	esac
+	if printf '%s\n' "$staged" | grep -q "^$pkg/"; then
+		touched="$touched $pkg"
+	fi
+done <"$paths"
+[ -n "$touched" ] || exit 0
+
+# gowl is reached by a replace, so where it is depends on the replace and on
+# any workspace over it. Guessing at a path beside the repository gets that
+# wrong in a worktree, which is where most of the work happens, and a hook
+# that goes quiet exactly where it is needed is worse than no hook. So ask.
+gowl=$(cd "$root/owl" && go list -m -f '{{.Dir}}' gowl 2>/dev/null || true)
+if [ -z "$gowl" ] || [ ! -d "$gowl" ]; then
+	echo "pre-commit: this commit touches$touched, so owl/lreat.ofn may be stale." >&2
+	echo "pre-commit: gowl is not where owl/go.mod says (${gowl:-unresolved})," >&2
+	echo "pre-commit: so the document cannot be checked here. See owl/README.md." >&2
+	echo "pre-commit: committing anyway." >&2
+	exit 0
+fi
+
+echo "pre-commit: this commit touches$touched; checking owl/lreat.ofn"
+
+# The tests are the check: the document matches a fresh build, gowl's lint is
+# quiet, the trees classify without contradicting themselves, and every class,
+# act, process and transform came out again the other side.
+if ! (cd "$root/owl" && go test ./... >/dev/null 2>&1); then
+	echo >&2
+	echo "pre-commit: the ontology and owl/lreat.ofn disagree." >&2
+	echo >&2
+	(cd "$root/owl" && go test ./... 2>&1 | sed 's/^/    /') >&2 || true
+	echo >&2
+	echo "  If the document is simply out of date, regenerate and stage it:" >&2
+	echo >&2
+	echo "      go run ./owl && git add owl/lreat.ofn" >&2
+	echo >&2
+	exit 1
+fi
+
+# The document on disk is current, which is not the same as the document in
+# the commit. Regenerating and forgetting to stage it is the likeliest way to
+# get here honestly.
+if [ -n "$(git diff --name-only -- owl/lreat.ofn)" ]; then
+	echo >&2
+	echo "pre-commit: owl/lreat.ofn is current on disk but the change is not staged," >&2
+	echo "  so this commit would carry the old document." >&2
+	echo >&2
+	echo "      git add owl/lreat.ofn" >&2
+	echo >&2
+	exit 1
+fi
+
+# What the check reads is the working tree, because the alternative is stashing
+# and the stash is shared with every other worktree of this repository. So a
+# commit made from a partly staged tree is checked as the tree stands, not as
+# the commit will. Committing whole files, which is the habit here, makes the
+# two the same.
+echo "pre-commit: owl/lreat.ofn is current"

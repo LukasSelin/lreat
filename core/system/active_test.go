@@ -32,7 +32,7 @@ func TestTheDefaultMapNeverSleeps(t *testing.T) {
 // the day-by-day pass would have put it, to rounding, for the woods a map
 // is made with.
 func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
-	w := world.NewWith(8, world.Config{Width: 384, Height: 256, Wrap: true, Octaves: 5})
+	w := world.NewWith(8, world.Config{Width: 384, Height: 256, Wrap: true})
 	for i := 0; i < 20; i++ {
 		w.Spawn("a", w.RandomPersonality())
 	}

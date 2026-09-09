@@ -1,6 +1,7 @@
 package system
 
 import (
+	"sort"
 	"testing"
 
 	"lreat/core/clock"
@@ -30,10 +31,8 @@ func TestAnEmptyHouseFallsIn(t *testing.T) {
 	home := entity.Pos{X: 5, Y: 5}
 	tile := w.Grid.At(home)
 	tile.Terrain, tile.Structure, tile.Owner = world.Grass, world.House, entity.ID(999)
-	fell := 0
 	for i := 0; i < 20*clock.Year && w.Grid.At(home).Structure == world.House; i++ {
 		Upkeep(w)
-		fell = i
 	}
 	if w.Grid.At(home).Structure != world.None {
 		t.Fatal("an empty house was still standing after twenty years")
@@ -41,9 +40,35 @@ func TestAnEmptyHouseFallsIn(t *testing.T) {
 	if !w.Grid.At(home).Buildable() {
 		t.Fatalf("the ground under a fallen house is not open again: %+v", *w.Grid.At(home))
 	}
-	if fell < clock.Season {
-		t.Fatalf("an empty house fell in after %d days; ruin should take a while", fell)
+	if median := ruinTimes(t, 21); median < clock.Season {
+		t.Fatalf("half of twenty-one empty houses were down inside %d days; ruin should take a while", median)
 	}
+}
+
+// ruinTimes stands n empty houses up on n maps and reports how long the
+// middle one took to fall.
+//
+// One house is not enough to say anything with. Ruin is a draw against a
+// rate, and at one chance in three years a house has better than a one in ten
+// of being down inside the first season by luck alone - so the single house
+// this used to be tested nothing but which way the world's dice had landed,
+// and fell over the first time a change to the map moved them.
+func ruinTimes(t *testing.T, n int) int {
+	t.Helper()
+	fell := make([]int, 0, n)
+	for seed := 0; seed < n; seed++ {
+		w := world.New(uint64(seed))
+		home := entity.Pos{X: 5, Y: 5}
+		tile := w.Grid.At(home)
+		tile.Terrain, tile.Structure, tile.Owner = world.Grass, world.House, entity.ID(999)
+		days := 0
+		for ; days < 20*clock.Year && w.Grid.At(home).Structure == world.House; days++ {
+			Upkeep(w)
+		}
+		fell = append(fell, days)
+	}
+	sort.Ints(fell)
+	return fell[len(fell)/2]
 }
 
 // A field is a field because somebody works it. Left alone it goes to grass,

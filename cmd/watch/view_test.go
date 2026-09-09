@@ -215,3 +215,71 @@ func screenText(sc tcell.SimulationScreen) string {
 	}
 	return text.String()
 }
+
+// screenFor draws a settlement at one reading and gives back what is on the
+// terminal, which is the only place the map and its legend can be read
+// together.
+func screenFor(t *testing.T, reading ascii.View) string {
+	t.Helper()
+	// Wide enough that the work legend has room for its names: it is cut to
+	// the map's width divided among the kinds of work, and on a narrow map
+	// every name is trimmed to a couple of letters.
+	w := world.NewSized(1, 78, 16)
+	for i := 0; i < 6; i++ {
+		w.Spawn("a", need.Neutral())
+	}
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(120, 40)
+	s := observe.Take(w)
+	v := &view{screen: sc, snap: &s, view: reading}
+	v.draw()
+	return screenText(sc)
+}
+
+// Under a reading the row beneath the map says which reading it is and which
+// way the shading runs. Without that the map is a pattern: the reader can see
+// that one place differs from another and cannot tell which is the good
+// ground.
+func TestAReadingNamesItselfAndItsEnds(t *testing.T) {
+	text := screenFor(t, ascii.Soil)
+	for _, want := range []string{"soil", "barren", "good ground"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the soil reading does not show %q under the map:\n%s", want, text)
+		}
+	}
+}
+
+// The settlement view keeps the legend it always had, because under it the
+// map really is showing people at work.
+func TestTheSettlementKeepsItsWorkLegend(t *testing.T) {
+	text := screenFor(t, ascii.Settlement)
+	for _, want := range []string{"food", "build", "guard"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the settlement view has lost %q from its legend:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "barren") {
+		t.Error("the settlement view is showing a reading's legend")
+	}
+}
+
+// Pressing m walks the readings and comes back to the settlement, so nobody
+// who presses it too many times is stuck off the map they came for.
+func TestTheMapKeyCycles(t *testing.T) {
+	v := &view{}
+	seen := map[ascii.View]bool{}
+	for i := 0; i < len(ascii.Views); i++ {
+		seen[v.view] = true
+		v.view = (v.view + 1) % ascii.View(len(ascii.Views))
+	}
+	if len(seen) != len(ascii.Views) {
+		t.Errorf("cycling reached %d of %d readings", len(seen), len(ascii.Views))
+	}
+	if v.view != ascii.Settlement {
+		t.Errorf("a full cycle ended on %v, want the settlement", v.view)
+	}
+}

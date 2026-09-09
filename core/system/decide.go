@@ -57,7 +57,7 @@ func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*act
 		if !ok {
 			continue
 		}
-		travel := r.Carrying(a.Load()).TravelCost(a.Pos, target)
+		travel := r.Carrying(a.Load()).Holding(a.ID).TravelCost(a.Pos, target)
 		if math.IsInf(travel, 1) {
 			continue // no way there from here with what it is carrying
 		}
@@ -342,11 +342,12 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 	// and not found, is not looked for again: the answer is the same, and
 	// finding it out opened everything the walker could reach.
 	laden := a.Load() > world.SwimLoad
-	if m := a.NoWay; m.Known && m.From == a.Pos && m.To == target && m.Laden == laden && m.Waters == w.Grid.Waters() {
+	p.Waters = w.Grid.Waters()
+	if m := a.NoWay; m.Known && m.From == a.Pos && m.To == target && m.Laden == laden && m.Waters == p.Waters {
 		p.NoWay = true
 		return p
 	}
-	p.Route = r.Carrying(a.Load()).Path(a.Pos, target)
+	p.Route = r.Carrying(a.Load()).Holding(a.ID).Path(a.Pos, target)
 	if len(p.Route) == 0 {
 		p.NoWay = true
 		a.NoWay = entity.Impasse{From: a.Pos, To: target, Laden: laden, Waters: w.Grid.Waters(), Known: true}
@@ -371,14 +372,17 @@ func Act(w *world.World) {
 		}
 		if a.Pos != a.Plan.Target {
 			// A plan made by deciding already knows its way, or knows there
-			// is none and is dropped here without looking twice. One set by
-			// hand - a player's order, a test - works it out on arrival here.
-			if a.Plan.NoWay {
+			// was none and is dropped here without looking twice - unless the
+			// water has moved since, a bridge gone up under somebody acting
+			// earlier today, when the way is looked for again as it always
+			// was. One set by hand - a player's order, a test - works it out
+			// on arrival here.
+			if a.Plan.NoWay && a.Plan.Waters == w.Grid.Waters() {
 				a.Plan = nil
 				continue
 			}
 			if len(a.Plan.Route) == 0 {
-				a.Plan.Route = w.Grid.Carrying(a.Load()).Path(a.Pos, a.Plan.Target)
+				a.Plan.Route = w.Grid.Carrying(a.Load()).Holding(a.ID).Path(a.Pos, a.Plan.Target)
 				if len(a.Plan.Route) == 0 {
 					a.Plan = nil // nowhere to go from here
 					continue
@@ -394,7 +398,7 @@ func Act(w *world.World) {
 			// where the speed of a street comes from.
 			for len(a.Plan.Route) > 0 {
 				step := a.Plan.Route[0]
-				cost := w.Grid.StepCost(a.Pos, step)
+				cost := w.Grid.StepCostFor(a.Pos, step, a.ID)
 				if a.Travel < cost {
 					break
 				}
@@ -402,7 +406,7 @@ func Act(w *world.World) {
 				a.Pos = step
 				w.Moved(a)
 				a.Plan.Route = a.Plan.Route[1:]
-				w.Grid.Tread(step)
+				w.Grid.Tread(step, world.Hauled(a))
 				// Walking is how anybody learns what the country is like.
 				// There is no survey and nobody is told: an agent knows the
 				// ground it has stood on and no other, and everything it

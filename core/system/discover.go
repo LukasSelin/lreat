@@ -4,6 +4,7 @@ import (
 	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -145,7 +146,7 @@ func meanOf(w *world.World, ok func(*world.Tile) bool, f func(*world.Tile) float
 	// Only the window is walked, in the order a walk over the whole map
 	// would have come to its tiles, so the sum lands in the same order.
 	g, m := w.Grid, w.MarketPos
-	x0, x1 := g.Span(m.X, nearMarket)
+	x0, x1 := g.Columns(m.X, nearMarket)
 	for y := max(0, m.Y-nearMarket); y <= min(g.H-1, m.Y+nearMarket); y++ {
 		for dx := x0; dx <= x1; dx++ {
 			p := g.Norm(entity.Pos{X: m.X + dx, Y: y})
@@ -186,7 +187,7 @@ func forestThin(w *world.World) bool {
 				if !w.Grid.In(p) {
 					continue
 				}
-				if t := w.Grid.At(p); t.Terrain == world.Forest {
+				if t := w.Grid.At(p); t.Is(ontology.Wood) {
 					wild += t.Wild
 					n++
 				}
@@ -205,13 +206,13 @@ func abs(v int) int {
 
 // waterNear reports whether there is water to fish near the market.
 func waterNear(w *world.World) bool {
-	_, n := meanOf(w, func(t *world.Tile) bool { return t.Terrain == world.Water }, func(*world.Tile) float64 { return 0 })
+	_, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Water) }, func(*world.Tile) float64 { return 0 })
 	return n > 0
 }
 
 // fieldsWorn reports whether the fields near the market have gone poor.
 func fieldsWorn(w *world.World) bool {
-	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Terrain == world.Field }, func(t *world.Tile) float64 { return t.Fertility })
+	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) }, func(t *world.Tile) float64 { return t.Fertility })
 	return n >= 3 && fert < 0.45
 }
 
@@ -227,7 +228,7 @@ func forestGone(w *world.World) bool {
 
 // rockNear reports whether there is stone to cut near the market.
 func rockNear(w *world.World) bool {
-	_, ok := w.Grid.Nearest(w.MarketPos, nearMarket, func(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Rock })
+	_, ok := w.Grid.Nearest(w.MarketPos, nearMarket, func(_ entity.Pos, t *world.Tile) bool { return t.Offers(ontology.Stone) > 0 })
 	return ok
 }
 

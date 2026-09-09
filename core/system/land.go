@@ -3,6 +3,7 @@ package system
 import (
 	"lreat/core/clock"
 	"lreat/core/entity"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -35,7 +36,7 @@ const (
 	ErodeEvery = 10 * clock.Year
 )
 
-func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
+func isForest(t *world.Tile) bool { return t.Is(ontology.Wood) }
 
 // Land lets forests regrow and slowly reclaim unclaimed grass beside them,
 // weathers the ground every so often so that the hills wear into the valleys
@@ -75,6 +76,10 @@ func Land(w *world.World) {
 		t.Replenish(k)
 	})
 	g.Stamp(w.Growing, w.Tick)
+	// The hedges are read off the fields as they now stand, so a strip broken
+	// yesterday is inside its block's fence today and a holding given up is
+	// open ground again. See world.Fence.
+	g.Fence()
 	samples := max(reseedSamples, (reseedSamples*len(g.Tiles)+reseedPer/2)/reseedPer)
 	for k := 0; k < samples; k++ {
 		p := entity.Pos{X: w.RNG.IntN(g.W), Y: w.RNG.IntN(g.H)}

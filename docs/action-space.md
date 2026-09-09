@@ -198,6 +198,48 @@ Study starts nearer to reach (0.6, from 0.4). Recognition settlements otherwise 
 
 **What the runs show.** Over 6000 ticks: seed 3 learns fishing at tick 200, before it has learned to farm; seeds 2, 7, and 16 farm first and turn to the river between ticks 1500 and 2100, once the forest they live off is thin, with hundreds to fifteen hundred fishing acts following. Trapping arrives with fishing wherever tools are held. Irrigation and forestry did not fire on these seeds: with wear at 0.006 the fields near the market stay above the 0.45 that counts as poor, and forest reseeding more than replaces what is cleared, so the founding forest is never down by four tenths. Both remain reachable by pioneers through study and teaching, and are used that way (fifty to a hundred irrigations and several hundred plantings per run), but as discoveries they wait for a scarcer world or a larger settlement. On the 24-seed sweep the package left survival at 21 of 24 with no extinctions and a median population of 127 to 144, measured while the learning was still in.
 
+### Fences
+
+A field cost 1.3 to cross against grass at 1, which made a shortcut through the
+corn very nearly the shortest way, and every errand in the settlement took it.
+That is not what people do. `core/world/fence.go`.
+
+**What is enclosed is the block, not the holding.** `Grid.Fence` runs once a day
+from `Land` and walks the fields as eight-neighbour blocks; a block of
+`fenceSize` strips or more - six, which is two households' worth of ground lying
+together - is `Fenced`, and everything smaller is left open. Nobody decides to
+build one: a fence follows from how much worked ground is lying in one place,
+the way a wood follows from where the ground is damp. Two farmers whose strips
+touch are inside one hedge, which is the honest reading of it and is why the
+toll is charged where it is.
+
+**The toll is on the line, not on the tile.** `fenceToll` is 4 ticks and is paid
+by a step that crosses between fenced and unfenced ground - climbing in, and
+climbing out. Walking about inside the corn costs what the corn costs and no
+more. Priced this way a block is dear to cross and no dearer to work, which is
+what makes the way round it win without making the crop a wall.
+
+**A farmer has a gate.** `Router.Holding` says whose walker a line of routing is
+for, and the toll is not charged on ground that walker owns. Without it the
+fence stood between every farmer and the strip they live off, and the errand the
+whole settlement's food comes from got dearer for everyone at once. `Holding`
+sits beside `Carrying` and is set wherever that is - the survey a decision reads
+its distances off, the path a plan is given, the step `Act` spends its walking
+budget on.
+
+**It is a toll and never a wall.** Nothing on this map is made unreachable by
+anything anybody built. Where there is no way round - strips lying between the
+lane and the door, a river on the other side - the walker climbs over and pays
+for it, which is what people do.
+
+**What it cost.** The default batch, against the one it replaced: `fed` held at
+0.56, `safe` and `all` came up by 0.01 and 0.007, and `lasted` went from 24 of
+24 to 23. Mean population went 238 to 197 and the median 198 to 131, which is
+past what chance covers - but an independent batch does not confirm it: on
+`-offset 24` the gates are the same to within a hundredth, nothing is lost, the
+mean is down 5% and the median is up. Two batches agree the hedges are
+behaviourally neutral. See docs/baseline.md.
+
 ## Making and keeping
 
 The longer chain that turns what the land gives into things that last. `core/action/making.go`.

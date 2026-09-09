@@ -46,6 +46,28 @@ streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
 and everything it weighed before setting out. `esc` drops it, `q` quits.
 
+`m` turns the map to the next reading of the land and `M` back to the last.
+The settlement is the one to watch a run on — trees, water, roofs, people —
+and the rest each ask the ground one question and answer it over the whole map
+at once: how high it stands, how wet it is, what it will grow, what is standing
+on it, where people have actually worn it, what the water has in it, and who
+holds what. The row under the map names the reading and both ends of its
+shading, so which end is the good ground is never a guess.
+
+Holdings is the one that is not a quantity. Its colours stand for different
+owners rather than for more and less of one thing, so the row under it is a
+key and not a scale — a scale there would say that one farmer is somehow more
+than another. Six colours go round however many settlers there are, so it is
+for seeing the shape of a holding against the unclaimed ground rather than for
+telling one farmer from another by eye.
+
+They are readings and not decorations. Every one is a number the settlement
+already keeps and already acts on — the soil view is the fertility a settler
+weighs when choosing where to break a field, and the wear view is what
+somebody reads before laying a road — so a run where the fields are not on the
+bright ground, or the roads are not on the worn ground, is a run worth asking
+about.
+
 Every page here shows a dozen measurements at once and squeezes each into a
 row or a band. `↑` and `↓` step through whatever the page has — the kinds of
 work under the map, the measures down the world page, the curve and the two
@@ -121,6 +143,17 @@ it is a different settlement from the valley's in every number.
 ```bash
 go test ./...
 ```
+
+One check does not run from there. `owl/` is its own module, so the root suite
+walks past it and the test that keeps the OWL rendering of the ontology honest
+never fires. A hook covers it, once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+A commit touching anything that ontology document is built from then has to
+leave it current. See [owl/README.md](owl/README.md).
 
 ## What a run leaves behind
 
@@ -215,6 +248,7 @@ carry on their own now.
 | `ui/ascii` | the terminal rendering |
 | `report` | what each run left behind, kept under `runs/` a branch at a time |
 | `cmd/` | `watch`, `headless`, `tune` |
+| `owl/` | `core/ontology` rendered as an OWL 2 document — its own module, so the simulation gains no dependency from it |
 
 Exactly one goroutine drives a world. Deciding is spread over several — it only
 reads — while everything that changes the world runs one at a time.

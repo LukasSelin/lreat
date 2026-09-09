@@ -89,7 +89,7 @@ func (g *Grid) readWoods() {
 
 	suits := make([]float64, 0, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain == Water {
+		if g.Tiles[i].Wet() {
 			continue // the river is not ground trees might have had
 		}
 		suits = append(suits, g.WoodsAt(entity.Pos{X: i % g.W, Y: i / g.W}))

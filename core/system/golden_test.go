@@ -14,16 +14,17 @@ import (
 // what shape they are in, every tile of the ground, and how much has
 // happened. It was taken before the world was made big enough to hold more
 // than one settlement, and it is what every step of making it so is held
-// against. The full batch in docs/baseline.md is the proof; this is the
+// against. It was taken again when master was merged in, on master itself,
+// and the merged tree came to the same three numbers. The full batch in docs/baseline.md is the proof; this is the
 // check that runs in seconds.
 //
 // A change meant to alter what a settlement does must retake these three
 // numbers in the commit that makes it, and say so. A change that was not
 // meant to and moves them was not what it was meant to be.
 var golden = map[uint64]string{
-	1: "f75934fab14a4cfc",
-	3: "a99b6194f0d0a78b",
-	9: "f60ceb281789a017",
+	1: "72adf22ccc6f686d",
+	3: "656d2aec84d36efe",
+	9: "aa91d56f0f47efe5",
 }
 
 // digest is the hash the golden numbers are of.

@@ -112,6 +112,28 @@ type Router struct {
 	// Work counts the tiles the router has opened since it was last reset:
 	// what a decision has cost in looking, for anybody keeping a budget.
 	Work int
+	// holder is whose ground the walker of these routes may cross for
+	// nothing: their own fields are theirs to walk into. Unlike load it is
+	// not spent by a search, because a line of routing is run for one agent
+	// at a time and every route in it is that agent's; see Holding.
+	holder entity.ID
+	// spreadHolder is who the standing survey was spread for, so that a
+	// survey is not read back for somebody whose gates are different.
+	spreadHolder entity.ID
+}
+
+// Holding tells the router whose walker it is routing for, so that the fence
+// round a farmer's own field is a gate to them and a fence to everybody
+// else. It stays set until it is set again, which is what a Router is for: one line of
+// routing serves one agent at a time.
+func (r *Router) Holding(id entity.ID) *Router {
+	r.holder = id
+	return r
+}
+
+// Holding routes on the grid's own router, for callers working one at a time.
+func (g *Grid) Holding(id entity.ID) *Router {
+	return g.ownRouter().Holding(id)
 }
 
 // Router returns a router over this grid, for a caller that needs its own.
@@ -299,7 +321,7 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 			// The step carries the climb into the tile, which is what makes
 			// a route follow a contour rather than go straight over the hill
 			// in the way.
-			cost := here + stepInto(g, ti, tj)
+			cost := here + stepInto(g, ti, tj) + g.fenceCost(ti, tj, r.holder)
 			rank := top.rank
 			if top.idx == src {
 				rank = int8(d)
@@ -327,6 +349,7 @@ func (r *Router) Survey(from entity.Pos, load, limit float64) {
 	r.load, r.limit = load, limit
 	r.route(&r.spread, from, offMap, false, offMap)
 	r.spreadFrom, r.spreadLaden, r.spreadLimit, r.surveyed = r.spread.from, load > SwimLoad, limit, true
+	r.spreadHolder = r.holder
 }
 
 // Forget drops the survey, so the next cost is walked afresh.
@@ -364,7 +387,7 @@ func (r *Router) fromSurvey(to entity.Pos) float64 {
 			if !ok || f.seen[j] != f.gen || f.cost[j] >= r.spreadLimit {
 				continue
 			}
-			c := f.cost[j] + stepInto(g, int32(cy*g.W+cx), ti)
+			c := f.cost[j] + stepInto(g, int32(cy*g.W+cx), ti) + g.fenceCost(int32(cy*g.W+cx), ti, r.holder)
 			if c < best {
 				best = c
 			}
