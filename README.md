@@ -46,6 +46,21 @@ streets, `tab` and `shift-tab` (or a click) pick a figure out of the crowd and
 open it up beside the map — who it is, what it is good at, what errand it is on,
 and everything it weighed before setting out. `esc` drops it, `q` quits.
 
+`m` turns the map to the next reading of the land and `M` back to the last.
+The settlement is the one to watch a run on — trees, water, roofs, people —
+and the rest each ask the ground one question and answer it over the whole map
+at once: how high it stands, how wet it is, what it will grow, what is standing
+on it, and where people have actually worn it. The row under the map names the
+reading and both ends of its shading, so which end is the good ground is never
+a guess.
+
+They are readings and not decorations. Every one is a number the settlement
+already keeps and already acts on — the soil view is the fertility a settler
+weighs when choosing where to break a field, and the wear view is what
+somebody reads before laying a road — so a run where the fields are not on the
+bright ground, or the roads are not on the worn ground, is a run worth asking
+about.
+
 Every page here shows a dozen measurements at once and squeezes each into a
 row or a band. `↑` and `↓` step through whatever the page has — the kinds of
 work under the map, the measures down the world page, the curve and the two

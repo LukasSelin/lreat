@@ -49,6 +49,27 @@ const (
 	Wood3
 	Wood4
 	Wood5
+	// The ramps the readings are drawn in: how wet the ground is, what it
+	// will grow, and how hard it is walked. Contiguous and in order, like the
+	// two above; see the Ramp vars below.
+	Wet0
+	Wet1
+	Wet2
+	Wet3
+	Wet4
+	Wet5
+	Crop0
+	Crop1
+	Crop2
+	Crop3
+	Crop4
+	Crop5
+	Worn0
+	Worn1
+	Worn2
+	Worn3
+	Worn4
+	Worn5
 )
 
 // Grass and ForestRich name the middle of each ramp, for callers that want
@@ -64,10 +85,14 @@ const (
 // hue apart at a glance and cannot tell twelve.
 const Bands = 6
 
-// Ground and Wood are the two ramps, low to high.
+// The ramps, each low to high. Ground and Wood draw the settlement view as
+// well as their own readings; the rest are only ever a reading.
 var (
 	Ground = [Bands]Color{Ground0, Ground1, Ground2, Ground3, Ground4, Ground5}
 	Wood   = [Bands]Color{Wood0, Wood1, Wood2, Wood3, Wood4, Wood5}
+	Wet    = [Bands]Color{Wet0, Wet1, Wet2, Wet3, Wet4, Wet5}
+	Crop   = [Bands]Color{Crop0, Crop1, Crop2, Crop3, Crop4, Crop5}
+	Worn   = [Bands]Color{Worn0, Worn1, Worn2, Worn3, Worn4, Worn5}
 )
 
 // band is which step of the ramp a height falls on. The valley's own relief
@@ -125,8 +150,10 @@ func Render(m *observe.MapView) [][]Cell {
 }
 
 // Lines renders the map as plain strings, for logs and tests.
-func Lines(m *observe.MapView) []string {
-	cells := Render(m)
+func Lines(m *observe.MapView) []string { return linesOf(Render(m)) }
+
+// linesOf is the glyphs of a drawn map, a string to the row.
+func linesOf(cells [][]Cell) []string {
 	out := make([]string, len(cells))
 	for y, row := range cells {
 		var b strings.Builder
