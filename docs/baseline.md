@@ -184,26 +184,46 @@ offset 48: gates: fed 0.56 safe 0.50 held 0.84 all 0.279 food 4.27 hungry-with-f
 ```
 
 Nothing changed between those three but which seeds were drawn, and the mean
-population went 238, 230, 221, the median 198, 202, 193. `lasted` was 24 of 24
-in all three, and none of them lost a settlement outright. The mean is the
+population went 230, 214, 201, the median 209, 157, 163. `lasted` was 24, 24
+and 23 of 24, and none of them lost a settlement outright. The mean is the
 loosest reading here and always has been: a settlement that runs away is worth
-as much as the twenty that did not, and the two seeds above sitting over five
-hundred are most of the distance between the draws.
+as much as the twenty that did not, and the handful sitting over four hundred
+are most of the distance between the draws. The median is looser on this tree
+than it used to be, and the mountains are why: how much of a map's lowland a
+range happens to cover is now one of the things a seed decides, so the seeds
+have more to differ about and the middle of them moves further.
 
-What holds still is the per-agent side. `fed` moved by 0.01 across the three,
-the mean needs by 0.02 to 0.06, and `all` sat between 0.291 and 0.299. So:
+What holds still is the per-agent side. `fed` moved by 0.02 across the three,
+the mean needs by 0.02 to 0.05, and `all` sat between 0.279 and 0.323. So:
 
 | reading | moved by chance | worth believing at |
 |---|---|---|
-| fed, and the four mean needs | 0.00-0.07 | 0.05 on two batches that agree |
-| gates all | 0.008 | 0.05 |
-| lasted, extinct | 0 of 24, 0 of 24 | 5 of 24 |
-| mean population | 8% of itself, 27% before | a second batch that agrees |
-| median population | 11% of itself | a second batch that agrees |
+| fed, and the four mean needs | 0.02-0.05 | 0.05 on two batches that agree |
+| gates all | 0.044 | 0.05 |
+| lasted, extinct | 1 of 24, 0 of 24 | 5 of 24 |
+| mean population | 13% of itself | all three batches, pooled |
+| median population | 29% of itself | all three batches, pooled |
 
-A change that only moves the population numbers has not been shown to do
-anything. Run it again on `-offset 24` before believing it, and say in the
-commit that both batches agreed.
+So a change that only moves the population numbers has not been shown to do
+anything, and one batch cannot show it either way. Take all three and pool them
+before believing any of it, and say in the commit what the pooled figure was.
+
+The change that raised the mountains is the worked example, and it is worth
+keeping because of how far the answer wandered. Measured against the master of
+the day, its first batch alone said a third fewer people; the three batches
+together said a seventh, with one of them saying the population had gone up.
+Measured again after merging the master it first landed on, the same three said
+a fourteenth. Measured a third time, on a master where the wear on a road had
+changed underneath it, all three agreed in direction for the first time and
+said a sixteenth. None of those batches was wrong and none was mismeasured. The
+first was simply not an answer, and neither is any single batch taken after it.
+
+The other half of that lesson is about the tree rather than the seeds. Two of
+those three measurements were stale before they could be committed, because
+master took four behavioural changes in a day and each moved the numbers the
+comparison was against. When that is happening, refreshing this file is a race
+and not a task: take the batches, say which commit they were taken on, and let
+whoever needs them next take them again.
 
 ## What the ceiling is doing
 
