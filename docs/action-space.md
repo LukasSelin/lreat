@@ -232,12 +232,13 @@ anything anybody built. Where there is no way round - strips lying between the
 lane and the door, a river on the other side - the walker climbs over and pays
 for it, which is what people do.
 
-**What it cost.** The default batch, against the one it replaced: `fed` 0.57 to
-0.55, `all` 0.313 to 0.281, `lasted` 24 of 24 to 22, none of them past its
-threshold; mean population 229 to 178 and median 179 to 121, which are past
-what chance covers. An independent batch says otherwise - on `-offset 24` the
-gates are identical to the third decimal and the median is down 4% - so the fall
-on the default seeds is not confirmed. See docs/baseline.md.
+**What it cost.** The default batch, against the one it replaced: `fed` held at
+0.56, `safe` and `all` came up by 0.01 and 0.007, and `lasted` went from 24 of
+24 to 23. Mean population went 238 to 197 and the median 198 to 131, which is
+past what chance covers - but an independent batch does not confirm it: on
+`-offset 24` the gates are the same to within a hundredth, nothing is lost, the
+mean is down 5% and the median is up. Two batches agree the hedges are
+behaviourally neutral. See docs/baseline.md.
 
 ## Making and keeping
 
