@@ -102,9 +102,11 @@ func Situation(a *entity.Agent, w *world.World, d *Def, target entity.Pos, share
 // own.
 func SituationOn(a *entity.Agent, w *world.World, r *world.Router, d *Def, target entity.Pos, shared habit.Signature) habit.Signature {
 	s := shared
-	// Costed with what the agent is holding, so that a target it would have
-	// to swim to with an armful reads as far off as the walk round is.
-	cost := r.Carrying(a.Load()).TravelCost(a.Pos, target) / a.Vigor(w.Tick)
+	// Costed with what the agent is holding, and as the agent whose ground
+	// it is, so that a target it would have to swim to with an armful reads
+	// as far off as the walk round is, and a hedged holding reads as far off
+	// as the walk round that - except to the farmer who has a gate into it.
+	cost := r.Carrying(a.Load()).Holding(a.ID).TravelCost(a.Pos, target) / a.Vigor(w.Tick)
 	s[habit.Near] = 1 - 2*need.Clamp(cost/nearKnee)
 	if d.With != nil {
 		if o := d.With(a, w, target); o != nil {
@@ -193,7 +195,7 @@ func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate 
 	// One spread of the ground around the agent serves every errand it is
 	// about to weigh: they all start where it stands, and none of them is
 	// read past the near knee.
-	r.Survey(a.Pos, a.Load(), nearKnee*a.Vigor(w.Tick))
+	r.Holding(a.ID).Survey(a.Pos, a.Load(), nearKnee*a.Vigor(w.Tick))
 	defer r.Forget()
 	w.Room()
 	for i := range Catalog {

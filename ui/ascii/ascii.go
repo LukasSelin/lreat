@@ -23,6 +23,7 @@ const (
 	ForestRich
 	ForestPoor
 	Field
+	FieldFenced
 	House
 	Market
 	Road
@@ -102,6 +103,13 @@ func tileCell(t *world.Tile) Cell {
 		}
 		return Cell{Ch: 't', Color: ForestPoor}
 	case world.Field:
+		// A hedged holding is drawn as hedged. It is the one thing on the map
+		// that changes how a journey goes without anything being built on a
+		// tile, so it has to be visible or the ways people take round it look
+		// like nothing at all.
+		if t.Fenced {
+			return Cell{Ch: '=', Color: FieldFenced}
+		}
 		return Cell{Ch: '"', Color: Field}
 	case world.Rock:
 		return Cell{Ch: '^', Color: Rock}

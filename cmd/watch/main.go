@@ -436,6 +436,7 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.ForestRich:  tcell.StyleDefault.Foreground(tcell.ColorGreen),
 	ascii.ForestPoor:  tcell.StyleDefault.Foreground(tcell.ColorOlive),
 	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),
+	ascii.FieldFenced: tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
 	ascii.House:       tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
 	ascii.Market:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
