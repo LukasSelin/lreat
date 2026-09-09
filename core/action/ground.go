@@ -157,7 +157,7 @@ func landWorth(w *world.World, p entity.Pos) float64 {
 		// A wood at the door is worth all of it; one at the edge of reach,
 		// almost none. Wood is fetched an armful at a time, so the walk is
 		// paid on every single load.
-		v += standingTimber * (1 - float64(entity.Dist(p, q))/timberReach)
+		v += standingTimber * (1 - float64(w.Grid.Dist(p, q))/timberReach)
 	}
 	return v
 }
@@ -197,7 +197,7 @@ func companyWorth(w *world.World, p entity.Pos) float64 {
 		if o.HasHome {
 			at = o.Home
 		}
-		share += 1 / (1 + float64(entity.Dist(at, p))/neighbourReach)
+		share += 1 / (1 + float64(w.Grid.Dist(at, p))/neighbourReach)
 	}
 	return neighbourly * share / float64(len(w.Agents))
 }
@@ -276,7 +276,7 @@ func KnownPlot(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 		if !w.Grid.RoomToBuild(p) {
 			worth -= elbowRoom
 		}
-		if v := worth - float64(entity.Dist(a.Pos, p))/settlingWalk; !found || v > bestValue {
+		if v := worth - float64(w.Grid.Dist(a.Pos, p))/settlingWalk; !found || v > bestValue {
 			best, bestValue, found = p, v, true
 		}
 	}
@@ -355,11 +355,10 @@ var bearings = [8]entity.Pos{
 // It draws no randomness. Target is asked of every candidate every time an
 // agent decides, and an agent that spent luck on being asked would decide
 // differently for having been asked.
-func unknownWay(a *entity.Agent) entity.Pos {
+func unknownWay(a *entity.Agent, w *world.World) entity.Pos {
 	var known [8]int
 	for i := range a.Places {
-		d := a.Places[i].Pos
-		known[bearingOf(entity.Pos{X: d.X - a.Pos.X, Y: d.Y - a.Pos.Y})]++
+		known[bearingOf(w.Grid.Delta(a.Pos, a.Places[i].Pos))]++
 	}
 	own := int(a.ID) % len(bearings)
 	best := own
@@ -410,9 +409,13 @@ func worthLooking(a *entity.Agent, _ *world.World) bool {
 
 // scoutSite is dry land a good way off in the direction least known.
 func scoutSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-	d := unknownWay(a)
+	d := unknownWay(a, w)
 	aim := entity.Pos{X: a.Pos.X + d.X*scoutRange, Y: a.Pos.Y + d.Y*scoutRange}
-	aim.X = clampInt(aim.X, 0, w.Grid.W-1)
+	if w.Grid.Wrap {
+		aim = w.Grid.Norm(aim) // east of the east edge is the west
+	} else {
+		aim.X = clampInt(aim.X, 0, w.Grid.W-1)
+	}
 	aim.Y = clampInt(aim.Y, 0, w.Grid.H-1)
 	if aim == a.Pos {
 		return entity.Pos{}, false

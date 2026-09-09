@@ -12,7 +12,14 @@ import (
 // valley floors and the sunny slopes. Nothing here is drawn on top of the
 // land; see relief.go for the shape of it.
 func (w *World) GenerateTerrain(width, height int) {
+	w.Generate(Config{Width: width, Height: height})
+}
+
+// Generate is GenerateTerrain on the given terms.
+func (w *World) Generate(cfg Config) {
+	width, height := cfg.Width, cfg.Height
 	g := NewGrid(width, height)
+	g.Wrap = cfg.Wrap
 
 	w.raise(g)
 	g.fill()
@@ -112,7 +119,7 @@ func (w *World) GenerateTerrain(width, height int) {
 		score := 2*t.Fertility +
 			1.2*clamp01(1-t.Drain/FloodDepth) -
 			4*g.Slope(p) -
-			0.03*float64(entity.Dist(p, center))
+			0.03*float64(g.Dist(p, center))
 		if score > bestScore {
 			best, bestScore = p, score
 		}

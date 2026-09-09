@@ -162,13 +162,33 @@ type World struct {
 	ways *Ways
 }
 
+// Config is the terms a world is made on: how big the ground is and what
+// shape. Nothing in it changes once the world is made.
+type Config struct {
+	Width, Height int
+	// Wrap joins the east edge to the west: the map is a globe drawn as a
+	// cylinder rather than a valley with edges. See Grid.
+	Wrap bool
+}
+
+// DefaultConfig is the valley every settlement was founded in before there
+// was anywhere else: the default size, with edges.
+func DefaultConfig() Config {
+	return Config{Width: DefaultWidth, Height: DefaultHeight}
+}
+
 // New creates a world with default-sized terrain, seeded for determinism.
 func New(seed uint64) *World {
-	return NewSized(seed, DefaultWidth, DefaultHeight)
+	return NewWith(seed, DefaultConfig())
 }
 
 // NewSized creates a world with terrain of the given size.
 func NewSized(seed uint64, width, height int) *World {
+	return NewWith(seed, Config{Width: width, Height: height})
+}
+
+// NewWith creates a world on the given terms.
+func NewWith(seed uint64, cfg Config) *World {
 	w := &World{
 		RNG:     rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
 		Mods:    DefaultModifiers(),
@@ -181,7 +201,7 @@ func NewSized(seed uint64, width, height int) *World {
 		techs:  map[Tech]bool{},
 		nextID: 1,
 	}
-	w.GenerateTerrain(width, height)
+	w.Generate(cfg)
 	w.Room()
 	return w
 }
@@ -226,7 +246,7 @@ func (w *World) NearestMarket(p entity.Pos) (entity.Pos, bool) {
 		if !w.isMarket(q) {
 			continue
 		}
-		if d := entity.Dist(p, q); !found || d < bestD {
+		if d := w.Grid.Dist(p, q); !found || d < bestD {
 			best, bestD, found = q, d, true
 		}
 	}
@@ -249,7 +269,7 @@ func (w *World) Spawn(name string, p need.Weights) *entity.Agent {
 	for try := 0; try < 20; try++ {
 		c := entity.Pos{X: w.MarketPos.X + w.RNG.IntN(9) - 4, Y: w.MarketPos.Y + w.RNG.IntN(9) - 4}
 		if w.Grid.In(c) && w.Grid.At(c).Terrain != Water {
-			pos = c
+			pos = w.Grid.Norm(c)
 			break
 		}
 	}
@@ -372,7 +392,7 @@ func (w *World) Neighbor(a *entity.Agent, radius int) *entity.Agent {
 		if o == a {
 			continue
 		}
-		if d := entity.Dist(a.Pos, o.Pos); d < bestD {
+		if d := w.Grid.Dist(a.Pos, o.Pos); d < bestD {
 			best, bestD = o, d
 		}
 	}

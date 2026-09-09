@@ -42,7 +42,7 @@ func Grudge(a *entity.Agent, w *world.World) (*entity.Agent, *entity.Bond) {
 			continue
 		}
 		o := w.Find(b.To)
-		if o == nil || entity.Dist(a.Pos, o.Pos) > searchRadius {
+		if o == nil || w.Grid.Dist(a.Pos, o.Pos) > searchRadius {
 			continue
 		}
 		worst, target = b, o
@@ -53,7 +53,7 @@ func Grudge(a *entity.Agent, w *world.World) (*entity.Agent, *entity.Bond) {
 // deter teaches everyone nearby that wrongs are answered in this place.
 func deter(a *entity.Agent, w *world.World) {
 	for _, o := range w.Agents {
-		if o == a || entity.Dist(a.Pos, o.Pos) > reachRadius {
+		if o == a || w.Grid.Dist(a.Pos, o.Pos) > reachRadius {
 			continue
 		}
 		o.Caution = belief.Clamp(o.Caution + belief.CautionLearned)
@@ -89,7 +89,7 @@ var Retaliate = &Def{
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t, b := Grudge(a, w)
-		if t == nil || entity.Dist(a.Pos, t.Pos) > 2 {
+		if t == nil || w.Grid.Dist(a.Pos, t.Pos) > 2 {
 			return // they got away, for now
 		}
 		depth := -b.Regard

@@ -70,7 +70,7 @@ func (g *Grid) HoldsWood(p entity.Pos) bool {
 	if !g.woodsRead {
 		g.readWoods()
 	}
-	return g.holds[p.Y*g.W+p.X]
+	return g.holds[g.Index(p)]
 }
 
 // readWoods takes the map's measure of itself: how steep its steep ground is,

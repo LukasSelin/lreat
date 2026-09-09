@@ -11,7 +11,7 @@ func (w *World) AgentAt(p entity.Pos, radius int, except *entity.Agent) *entity.
 		if o == except {
 			continue
 		}
-		if d := entity.Dist(p, o.Pos); d < bestD {
+		if d := w.Grid.Dist(p, o.Pos); d < bestD {
 			best, bestD = o, d
 		}
 	}

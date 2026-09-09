@@ -136,23 +136,40 @@ const (
 // there are any - they are where people sleep rather than where they happen
 // to be standing this tick - but a founding party has none.
 func middle(w *world.World) (entity.Pos, bool) {
+	// On a globe the mean is taken of where each roof stands from the
+	// square, the short way round, or a town astride the seam would find
+	// its middle on the far side of the world. A valley keeps the plain
+	// mean, which rounds the way it always did.
+	g := w.Grid
+	at := func(p entity.Pos) entity.Pos {
+		if g.Wrap {
+			return g.Delta(w.MarketPos, p)
+		}
+		return p
+	}
 	sx, sy, n := 0, 0, 0
-	for y := 0; y < w.Grid.H; y++ {
-		for x := 0; x < w.Grid.W; x++ {
-			if w.Grid.At(entity.Pos{X: x, Y: y}).Structure == world.House {
-				sx, sy, n = sx+x, sy+y, n+1
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			if p := (entity.Pos{X: x, Y: y}); g.At(p).Structure == world.House {
+				d := at(p)
+				sx, sy, n = sx+d.X, sy+d.Y, n+1
 			}
 		}
 	}
 	if n == 0 {
 		for _, a := range w.Agents {
-			sx, sy, n = sx+a.Pos.X, sy+a.Pos.Y, n+1
+			d := at(a.Pos)
+			sx, sy, n = sx+d.X, sy+d.Y, n+1
 		}
 	}
 	if n == 0 {
 		return entity.Pos{}, false
 	}
-	return entity.Pos{X: sx / n, Y: sy / n}, true
+	mid := entity.Pos{X: sx / n, Y: sy / n}
+	if g.Wrap {
+		mid = g.Norm(entity.Pos{X: w.MarketPos.X + mid.X, Y: w.MarketPos.Y + mid.Y})
+	}
+	return mid, true
 }
 
 // MoveMarket carries the square to the middle of the settlement when the
@@ -162,7 +179,7 @@ func MoveMarket(w *world.World) {
 		return
 	}
 	mid, ok := middle(w)
-	if !ok || entity.Dist(mid, w.MarketPos) <= marketDrift {
+	if !ok || w.Grid.Dist(mid, w.MarketPos) <= marketDrift {
 		return
 	}
 	// Somewhere in the middle of things with room round it to stand a crowd,

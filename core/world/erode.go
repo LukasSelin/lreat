@@ -119,7 +119,7 @@ func (w *World) Erode() {
 						continue
 					}
 					if b := g.At(c); b.Terrain != Water && b.Drain < FloodDepth {
-						bank = append(bank, c.Y*g.W+c.X)
+						bank = append(bank, g.Index(c))
 					}
 				}
 				if len(bank) > 0 {
@@ -141,7 +141,7 @@ func (w *World) Erode() {
 		if a == (entity.Pos{}) {
 			continue // the water and everything in it leaves the map here
 		}
-		down := int32((p.Y+a.Y)*g.W + p.X + a.X)
+		down := int32(g.Index(entity.Pos{X: p.X + a.X, Y: p.Y + a.Y}))
 		load[down] += load[i]
 	}
 

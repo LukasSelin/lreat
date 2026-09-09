@@ -26,7 +26,7 @@ func witness(a *entity.Agent, w *world.World, name string) {
 		if o == a || seen >= witnessCount {
 			continue
 		}
-		if entity.Dist(a.Pos, o.Pos) > reachRadius {
+		if w.Grid.Dist(a.Pos, o.Pos) > reachRadius {
 			continue
 		}
 		o.Judge(a.ID, belief.Judgement(v, o.Norms), w.Tick)
@@ -49,7 +49,7 @@ func nearestWith(a *entity.Agent, w *world.World, radius int, ok func(*entity.Ag
 		if o == a || !ok(o) {
 			continue
 		}
-		if d := entity.Dist(a.Pos, o.Pos); d < bestD {
+		if d := w.Grid.Dist(a.Pos, o.Pos); d < bestD {
 			best, bestD = o, d
 		}
 	}
@@ -113,7 +113,7 @@ func BestRequest(a *entity.Agent, w *world.World) *entity.Request {
 			confidence = 0.2 + a.Believes(r.Skill)
 		}
 		req := w.Find(r.Requester)
-		score := r.Reward * confidence / float64(1+entity.Dist(a.Pos, req.Pos))
+		score := r.Reward * confidence / float64(1+w.Grid.Dist(a.Pos, req.Pos))
 		// People would rather work for someone they like and trust.
 		score *= 1 + 0.3*a.Regard(r.Requester)
 		if score > bestScore {
@@ -162,7 +162,7 @@ var Fulfil = &Def{
 			return
 		}
 		req := w.Find(r.Requester)
-		if req == nil || entity.Dist(a.Pos, req.Pos) > reachRadius {
+		if req == nil || w.Grid.Dist(a.Pos, req.Pos) > reachRadius {
 			return
 		}
 

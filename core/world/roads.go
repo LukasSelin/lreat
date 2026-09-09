@@ -92,7 +92,7 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 	if !g.In(p) || g.Served(p) {
 		return 0
 	}
-	i := p.Y*g.W + p.X
+	i := g.Index(p)
 	d := g.Tiles[i].Traffic
 	// Away from the edge the eight neighbours are eight fixed steps along
 	// the tile slice, in the same order dirs walks them, so the case for a
@@ -218,9 +218,10 @@ func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity
 	var worn float64
 	found := false
 	y0, y1 := max(0, from.Y-radius), min(g.H-1, from.Y+radius)
-	x0, x1 := max(0, from.X-radius), min(g.W-1, from.X+radius)
+	x0, x1 := g.span(from.X, radius)
 	for y := y0; y <= y1; y++ {
-		for x := x0; x <= x1; x++ {
+		for dx := x0; dx <= x1; dx++ {
+			x := g.wrapX(from.X + dx)
 			t := &g.Tiles[y*g.W+x]
 			if !t.Pavable() || (ok != nil && !ok(t)) {
 				continue
@@ -293,10 +294,11 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 // one somebody walking the neighbourhood would have come to first.
 func (y *Ways) Busiest(from entity.Pos, radius int) (dry, wet Pick) {
 	g := y.g
-	x0, x1 := max(0, from.X-radius), min(g.W-1, from.X+radius)
+	x0, x1 := g.span(from.X, radius)
 	for row := max(0, from.Y-radius); row <= min(g.H-1, from.Y+radius); row++ {
 		base := row * g.W
-		for x := x0; x <= x1; x++ {
+		for dx := x0; dx <= x1; dx++ {
+			x := g.wrapX(from.X + dx)
 			d := y.draw[base+x]
 			if d <= 0 {
 				continue

@@ -145,7 +145,7 @@ func meanOf(w *world.World, ok func(*world.Tile) bool, f func(*world.Tile) float
 	for y := 0; y < w.Grid.H; y++ {
 		for x := 0; x < w.Grid.W; x++ {
 			p := entity.Pos{X: x, Y: y}
-			if entity.Dist(p, w.MarketPos) > nearMarket {
+			if w.Grid.Dist(p, w.MarketPos) > nearMarket {
 				continue
 			}
 			t := w.Grid.At(p)

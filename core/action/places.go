@@ -77,7 +77,7 @@ func outgoing(a *entity.Agent) bool { return a.Temperament.Warmth >= 0.5 }
 func meetingPlace(a, o *entity.Agent, w *world.World) (entity.Pos, bool) {
 	tavern := func() (entity.Pos, bool) { return nearPlace(w, o.Pos, placeRadius, world.Tavern) }
 	market := func() (entity.Pos, bool) {
-		if entity.Dist(o.Pos, w.MarketPos) <= placeRadius {
+		if w.Grid.Dist(o.Pos, w.MarketPos) <= placeRadius {
 			return w.MarketPos, true
 		}
 		return entity.Pos{}, false
@@ -85,7 +85,7 @@ func meetingPlace(a, o *entity.Agent, w *world.World) (entity.Pos, bool) {
 	there := func() (entity.Pos, bool) { return placeAt(w, o.Pos) }
 	home := func(h *entity.Agent) func() (entity.Pos, bool) {
 		return func() (entity.Pos, bool) {
-			if h.HasHome && entity.Dist(o.Pos, h.Home) <= placeRadius {
+			if h.HasHome && w.Grid.Dist(o.Pos, h.Home) <= placeRadius {
 				return h.Home, true
 			}
 			return entity.Pos{}, false
@@ -133,7 +133,7 @@ func bench(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
 		return a.Home, true
 	}
-	if entity.Dist(a.Pos, w.MarketPos) <= settlementRadius {
+	if w.Grid.Dist(a.Pos, w.MarketPos) <= settlementRadius {
 		return w.MarketPos, true
 	}
 	return entity.Pos{}, false
@@ -171,7 +171,7 @@ func hasPlace(find func(*entity.Agent, *world.World) (entity.Pos, bool)) func(*e
 // reach with somebody at it to guard. A guard at an empty square in a
 // settlement that has moved on is a guard of nothing.
 func worthGuarding(a *entity.Agent, w *world.World) bool {
-	if entity.Dist(a.Pos, w.MarketPos) > settlementRadius {
+	if w.Grid.Dist(a.Pos, w.MarketPos) > settlementRadius {
 		return false
 	}
 	return w.AgentAt(w.MarketPos, placeRadius, a) != nil

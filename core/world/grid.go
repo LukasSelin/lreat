@@ -93,9 +93,12 @@ func (t *Tile) Deep() bool {
 	return t.Terrain == Water && t.Structure == None
 }
 
-// Grid is the world map, row-major.
+// Grid is the world map, row-major. With Wrap the east edge is joined to the
+// west and the map is a globe drawn as a cylinder; without it the map is a
+// valley with edges. See globe.go.
 type Grid struct {
 	W, H  int
+	Wrap  bool
 	Tiles []Tile
 
 	// steepAt, steepLine and woodsLine are the map's measure of its own
@@ -132,19 +135,23 @@ func NewGrid(w, h int) *Grid {
 	return &Grid{W: w, H: h, Tiles: make([]Tile, w*h)}
 }
 
-// In reports whether p is inside the grid.
+// In reports whether p is on the map. On a globe every column is; only a
+// row past a pole is off it.
 func (g *Grid) In(p entity.Pos) bool {
-	return p.X >= 0 && p.Y >= 0 && p.X < g.W && p.Y < g.H
+	if p.Y < 0 || p.Y >= g.H {
+		return false
+	}
+	return g.Wrap || (p.X >= 0 && p.X < g.W)
 }
 
 // At returns the tile at p. The caller must check In first.
 func (g *Grid) At(p entity.Pos) *Tile {
-	return &g.Tiles[p.Y*g.W+p.X]
+	return &g.Tiles[g.Index(p)]
 }
 
 // Clone returns a deep copy, for snapshots.
 func (g *Grid) Clone() *Grid {
-	c := &Grid{W: g.W, H: g.H, Tiles: make([]Tile, len(g.Tiles))}
+	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles))}
 	copy(c.Tiles, g.Tiles)
 	return c
 }
@@ -164,9 +171,13 @@ func (g *Grid) Count(ok func(*Tile) bool) int {
 // ok. It walks square rings outward in a fixed order, so results are
 // deterministic and ties resolve the same way every run.
 func (g *Grid) Nearest(from entity.Pos, maxR int, ok func(p entity.Pos, t *Tile) bool) (entity.Pos, bool) {
+	from = g.Norm(from)
 	check := func(p entity.Pos) bool { return ok(p, g.At(p)) }
 	if g.In(from) && check(from) {
 		return from, true
+	}
+	if g.Wrap {
+		return g.nearestRound(from, maxR, check)
 	}
 	for r := 1; r <= maxR; r++ {
 		if from.X-r < 0 && from.Y-r < 0 && from.X+r >= g.W && from.Y+r >= g.H {
@@ -268,4 +279,52 @@ func (g *Grid) Raze(p entity.Pos) bool {
 	}
 	t.Structure, t.Owner = None, 0
 	return true
+}
+
+// nearestRound is Nearest on a globe. A ring's top and bottom rows run the
+// whole way round once the ring is wider than the map, each column once;
+// its sides are still a column each while there is a column that far off,
+// and the same column when the map is exactly two rings wide. What is
+// walked is walked in a fixed order, so runs repeat.
+func (g *Grid) nearestRound(from entity.Pos, maxR int, check func(entity.Pos) bool) (entity.Pos, bool) {
+	half := g.W / 2
+	for r := 1; r <= maxR; r++ {
+		top, bottom := from.Y-r >= 0, from.Y+r < g.H
+		if !top && !bottom && r > half {
+			break
+		}
+		x0, x1 := -r, r
+		if 2*r+1 >= g.W {
+			x0, x1 = -half, g.W-1-half
+		}
+		for dx := x0; dx <= x1; dx++ {
+			x := g.wrapX(from.X + dx)
+			if top {
+				if p := (entity.Pos{X: x, Y: from.Y - r}); check(p) {
+					return p, true
+				}
+			}
+			if bottom {
+				if p := (entity.Pos{X: x, Y: from.Y + r}); check(p) {
+					return p, true
+				}
+			}
+		}
+		if r > half {
+			continue
+		}
+		y0, y1 := max(-r+1, -from.Y), min(r-1, g.H-1-from.Y)
+		left, right := g.wrapX(from.X-r), g.wrapX(from.X+r)
+		for dy := y0; dy <= y1; dy++ {
+			if p := (entity.Pos{X: left, Y: from.Y + dy}); check(p) {
+				return p, true
+			}
+			if right != left {
+				if p := (entity.Pos{X: right, Y: from.Y + dy}); check(p) {
+					return p, true
+				}
+			}
+		}
+	}
+	return entity.Pos{}, false
 }

@@ -52,7 +52,7 @@ const (
 func homeCost(a *entity.Agent, w *world.World, p entity.Pos) float64 {
 	c := -LandWorth(w, p)
 	if a.HasField {
-		c += float64(entity.Dist(p, a.Field))
+		c += float64(w.Grid.Dist(p, a.Field))
 	}
 	return c
 }
@@ -74,7 +74,7 @@ func betterPlot(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	best, found := entity.Pos{}, false
 	for i := range a.Places {
 		p := a.Places[i].Pos
-		if entity.Dist(a.Home, p) > movingRadius || !w.Grid.RoomToBuild(p) {
+		if w.Grid.Dist(a.Home, p) > movingRadius || !w.Grid.RoomToBuild(p) {
 			continue
 		}
 		if c := homeCost(a, w, p); c < bestCost {

@@ -419,7 +419,7 @@ func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 					continue
 				}
 				if t := w.Grid.At(q); t.Fertility >= fertility {
-					best, fertility, found = q, t.Fertility, true
+					best, fertility, found = w.Grid.Norm(q), t.Fertility, true
 				}
 			}
 		}

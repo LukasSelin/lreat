@@ -29,6 +29,9 @@ var names = []string{
 
 func main() {
 	seed := flag.Uint64("seed", 1, "world seed")
+	width := flag.Int("width", world.DefaultWidth, "map width")
+	height := flag.Int("height", world.DefaultHeight, "map height")
+	wrap := flag.Bool("wrap", false, "join the east edge to the west: a globe drawn as a cylinder rather than a valley")
 	ticks := flag.Int("ticks", 50*clock.Year, "days to simulate")
 	agents := flag.Int("agents", 20, "starting population")
 	every := flag.Int("every", 5*clock.Year, "report interval in days")
@@ -61,7 +64,7 @@ func main() {
 	out := rep.Out(os.Stdout)
 	defer func() { fmt.Print(rep.Close()) }()
 
-	w := world.New(*seed)
+	w := world.NewWith(*seed, world.Config{Width: *width, Height: *height, Wrap: *wrap})
 	w.Rules.Fit = !*value
 	w.Rules.Temperature = *temp
 	for i := 0; i < *agents; i++ {

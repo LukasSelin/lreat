@@ -167,6 +167,15 @@ func (w *World) raise(g *Grid) {
 // lattice is one octave: random corners span tiles apart, smoothly blended.
 func (w *World) lattice(g *Grid, span float64) []float64 {
 	cols, rows := int(float64(g.W)/span)+2, int(float64(g.H)/span)+2
+	// On a globe the corners go round: a whole number of them fit the
+	// width, and the last blends into the first, so that the ground on one
+	// side of the seam is the same ground as on the other. The spacing is
+	// nudged to make them fit, by less than a corner over the whole width.
+	across := span
+	if g.Wrap {
+		cols = max(1, int(math.Ceil(float64(g.W)/span)))
+		across = float64(g.W) / float64(cols)
+	}
 	corner := make([]float64, cols*rows)
 	for i := range corner {
 		corner[i] = w.RNG.Float64()
@@ -174,10 +183,16 @@ func (w *World) lattice(g *Grid, span float64) []float64 {
 	out := make([]float64, len(g.Tiles))
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
-			fx, fy := float64(x)/span, float64(y)/span
+			fx, fy := float64(x)/across, float64(y)/span
 			cx, cy := int(fx), int(fy)
 			tx, ty := smooth(fx-float64(cx)), smooth(fy-float64(cy))
-			at := func(dx, dy int) float64 { return corner[(cy+dy)*cols+(cx+dx)] }
+			at := func(dx, dy int) float64 {
+				c := cx + dx
+				if g.Wrap {
+					c %= cols
+				}
+				return corner[(cy+dy)*cols+c]
+			}
 			top := at(0, 0)*(1-tx) + at(1, 0)*tx
 			bot := at(0, 1)*(1-tx) + at(1, 1)*tx
 			out[y*g.W+x] = top*(1-ty) + bot*ty
@@ -200,7 +215,10 @@ func (g *Grid) fill() {
 	q := &heightQueue{}
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
-			if x != 0 && y != 0 && x != g.W-1 && y != g.H-1 {
+			// On a globe only the poles are an edge: water leaves the map
+			// there and nowhere else.
+			edge := y == 0 || y == g.H-1 || (!g.Wrap && (x == 0 || x == g.W-1))
+			if !edge {
 				continue
 			}
 			i := y*g.W + x
@@ -219,7 +237,7 @@ func (g *Grid) fill() {
 			if !g.In(c) {
 				continue
 			}
-			j := c.Y*g.W + c.X
+			j := g.Index(c)
 			if done[j] {
 				continue
 			}
@@ -302,7 +320,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		for _, off := range dirs {
 			c := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
 			if g.In(c) && g.Height(c) <= g.Height(p)+1 {
-				wet[c.Y*g.W+c.X] = true
+				wet[g.Index(c)] = true
 			}
 		}
 	}

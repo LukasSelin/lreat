@@ -83,7 +83,7 @@ func Anticipate(a, o *entity.Agent) float64 {
 func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
 	var near []*entity.Agent
 	for _, o := range w.Agents {
-		if o != a && entity.Dist(a.Pos, o.Pos) <= meetRadius {
+		if o != a && w.Grid.Dist(a.Pos, o.Pos) <= meetRadius {
 			near = append(near, o)
 		}
 	}
@@ -97,7 +97,7 @@ func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
 	var best *entity.Agent
 	bestScore := math.Inf(-1)
 	for _, o := range near {
-		s := Anticipate(a, o) - 0.01*float64(entity.Dist(a.Pos, o.Pos))
+		s := Anticipate(a, o) - 0.01*float64(w.Grid.Dist(a.Pos, o.Pos))
 		if s > bestScore {
 			best, bestScore = o, s
 		}

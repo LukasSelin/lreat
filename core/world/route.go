@@ -133,11 +133,12 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 		f.rank = make([]int8, n)
 		f.gen = 0
 	}
+	from = g.Norm(from)
 	f.g, f.from, f.gen = g, from, f.gen+1
 	if !g.In(from) {
 		return f
 	}
-	src := int32(from.Y*g.W + from.X)
+	src := int32(g.Index(from))
 	f.seen[src], f.cost[src], f.prev[src], f.rank[src] = f.gen, 0, -1, -1
 
 	// A destination gives the search a direction: a tile is worth opening
@@ -158,6 +159,9 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 		}
 		if dy < 0 {
 			dy = -dy
+		}
+		if g.Wrap && g.W-dx < dx {
+			dx = g.W - dx // the short way round
 		}
 		if dy > dx {
 			dx = dy
@@ -186,7 +190,12 @@ func (r *Router) route(f *Routes, from entity.Pos, stop int32, prefer entity.Pos
 		}
 		for d := range dirs {
 			cx, cy := px+dirs[d].X, py+dirs[d].Y
-			if cx < 0 || cy < 0 || cx >= g.W || cy >= g.H {
+			if cy < 0 || cy >= g.H {
+				continue
+			}
+			if g.Wrap {
+				cx = g.wrapX(cx)
+			} else if cx < 0 || cx >= g.W {
 				continue
 			}
 			j := int32(cy*g.W + cx)
@@ -244,7 +253,7 @@ func (r *Router) Forget() { r.surveyed = false }
 func (r *Router) fromSurvey(to entity.Pos) float64 {
 	f := &r.spread
 	g := r.g
-	i := int32(to.Y*g.W + to.X)
+	i := int32(g.Index(to))
 	if f.seen[i] == f.gen && f.cost[i] < r.spreadLimit {
 		return f.cost[i]
 	}
@@ -254,7 +263,12 @@ func (r *Router) fromSurvey(to entity.Pos) float64 {
 		best := r.spreadLimit
 		for d := range dirs {
 			cx, cy := to.X+dirs[d].X, to.Y+dirs[d].Y
-			if cx < 0 || cy < 0 || cx >= g.W || cy >= g.H {
+			if cy < 0 || cy >= g.H {
+				continue
+			}
+			if g.Wrap {
+				cx = g.wrapX(cx)
+			} else if cx < 0 || cx >= g.W {
 				continue
 			}
 			j := int32(cy*g.W + cx)
@@ -321,7 +335,7 @@ func (f *Routes) Cost(p entity.Pos) float64 {
 	if !f.g.In(p) {
 		return math.Inf(1)
 	}
-	i := p.Y*f.g.W + p.X
+	i := f.g.Index(p)
 	if f.seen[i] != f.gen {
 		return math.Inf(1)
 	}
@@ -334,11 +348,11 @@ func (f *Routes) Step(p entity.Pos) entity.Pos {
 	if !f.g.In(p) || p == f.from {
 		return f.from
 	}
-	i := int32(p.Y*f.g.W + p.X)
+	i := int32(f.g.Index(p))
 	if f.seen[i] != f.gen || f.prev[i] < 0 {
 		return f.from
 	}
-	src := int32(f.from.Y*f.g.W + f.from.X)
+	src := int32(f.g.Index(f.from))
 	for f.prev[i] != src {
 		i = f.prev[i]
 	}
@@ -351,11 +365,11 @@ func (f *Routes) Path(p entity.Pos) []entity.Pos {
 	if !f.g.In(p) || p == f.from {
 		return nil
 	}
-	i := int32(p.Y*f.g.W + p.X)
+	i := int32(f.g.Index(p))
 	if f.seen[i] != f.gen || f.prev[i] < 0 {
 		return nil
 	}
-	src := int32(f.from.Y*f.g.W + f.from.X)
+	src := int32(f.g.Index(f.from))
 	var out []entity.Pos
 	for i != src {
 		out = append(out, entity.Pos{X: int(i) % f.g.W, Y: int(i) / f.g.W})
