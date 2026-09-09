@@ -94,26 +94,55 @@ type Class struct {
 	Warmth float64
 
 	children []*Class
+
+	// id is where this class came in the order they were declared, and
+	// ancestry is the set of the ids of this class and everything it
+	// descends from. They are what makes IsA a bit test instead of a walk
+	// up the parents. The walk was correct and cheap in itself; what makes
+	// it worth replacing is how often it is asked. What a tile is gets
+	// asked of every tile of every ring of every search an agent makes
+	// over the ground, and that came to a fifth of a tick. The answer is
+	// settled the moment the trees are declared and cannot change after,
+	// so it is worked out there instead.
+	id       int
+	ancestry [ancWords]uint64
 }
+
+// ancWords is how many words of ancestry a class carries, and so how many
+// classes the trees may hold: sixty-four to the word. Raise it if the trees
+// outgrow it; New says so rather than quietly losing an ancestor.
+const ancWords = 2
+
+// declared counts the classes so far, which is where the next one's id
+// comes from. Classes are declared in package variables at start-up and
+// never after, so nothing here is reached from more than one goroutine.
+var declared int
 
 // New declares a class under parent. Declaration order is preserved and is
 // the order leaves are walked in, which keeps instantiation deterministic.
 func New(name string, parent *Class, traits Trait, prior habit.Signature) *Class {
 	c := &Class{Name: name, Parent: parent, Traits: traits, Prior: prior}
+	c.id = declared
+	declared++
+	if c.id >= ancWords*64 {
+		panic("ontology: more classes than a class can carry ancestry for; raise ancWords")
+	}
 	if parent != nil {
+		// A parent is always declared before its children, so its ancestry
+		// is whole by the time a child asks for it.
+		c.ancestry = parent.ancestry
 		parent.children = append(parent.children, c)
 	}
+	c.ancestry[c.id/64] |= 1 << (c.id % 64)
 	return c
 }
 
 // IsA reports whether c is anc or descends from it.
 func (c *Class) IsA(anc *Class) bool {
-	for x := c; x != nil; x = x.Parent {
-		if x == anc {
-			return true
-		}
+	if c == nil || anc == nil {
+		return false
 	}
-	return false
+	return c.ancestry[anc.id/64]&(1<<(anc.id%64)) != 0
 }
 
 // All is every trait c has, its own and inherited.
