@@ -46,7 +46,7 @@ func wither(w *world.World) {
 		// Nobody did this, so there is no act to name - only the ground it
 		// happened on.
 		if g.Raze(p) && tr.Says != "" {
-			w.EmitAt(event.Ruined, 0, 0, "", p, "%s", tr.Says)
+			w.EmitAt(event.Ruined, 0, 0, "", p, tr.Says)
 		}
 	})
 }

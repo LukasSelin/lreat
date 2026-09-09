@@ -203,6 +203,29 @@ func ClampNorm(s *Signature, lo, hi float64) {
 	}
 }
 
+// Room is how many candidates a draw or a reading of one can weigh without
+// asking for memory. It is comfortably more than the catalog holds, and a
+// longer list than this is weighed on borrowed room instead - correctly,
+// and no slower than it used to be.
+const Room = 64
+
+// weigh fills dst with the unnormalised softmax weights of eff at temp,
+// and returns their total and the best of eff. dst must be as long as eff.
+// Nothing here normalises: a draw does not need it, and the two readings
+// that do divide by the total themselves.
+func weigh(dst, eff []float64, temp float64) (total float64, best int) {
+	for i, e := range eff {
+		if e > eff[best] {
+			best = i
+		}
+	}
+	for i, e := range eff {
+		dst[i] = math.Exp((e - eff[best]) / temp)
+		total += dst[i]
+	}
+	return total, best
+}
+
 // Sample draws one index from a softmax over eff at the given temperature,
 // consuming exactly one number from rng. A temperature at or below zero is
 // an argmax. An empty eff returns -1.
@@ -210,21 +233,27 @@ func Sample(rng *rand.Rand, eff []float64, temp float64) int {
 	if len(eff) == 0 {
 		return -1
 	}
-	best := 0
-	for i, e := range eff {
-		if e > eff[best] {
-			best = i
-		}
-	}
 	if temp <= 0 {
+		best := 0
+		for i, e := range eff {
+			if e > eff[best] {
+				best = i
+			}
+		}
 		return best
 	}
-	var total float64
-	weights := make([]float64, len(eff))
-	for i, e := range eff {
-		weights[i] = math.Exp((e - eff[best]) / temp)
-		total += weights[i]
+	// Written where the choice is made: a helper that handed this slice
+	// back would be handing out the frame's own array, and the compiler
+	// would have to put the array on the heap to allow it. So the choice
+	// is made here, and the array stays where it was declared.
+	var buf [Room]float64
+	weights := buf[:]
+	if len(eff) <= Room {
+		weights = buf[:len(eff)]
+	} else {
+		weights = make([]float64, len(eff))
 	}
+	total, _ := weigh(weights, eff, temp)
 	r := rng.Float64() * total
 	for i, w := range weights {
 		r -= w
@@ -255,11 +284,7 @@ func Softmax(eff []float64, temp float64) []float64 {
 		p[best] = 1
 		return p
 	}
-	var total float64
-	for i, e := range eff {
-		p[i] = math.Exp((e - eff[best]) / temp)
-		total += p[i]
-	}
+	total, _ := weigh(p, eff, temp)
 	for i := range p {
 		p[i] /= total
 	}
@@ -269,13 +294,24 @@ func Softmax(eff []float64, temp float64) []float64 {
 // Entropy is the entropy in nats of the softmax over eff, a measure of how
 // open the choice was. Zero means one action was certain.
 func Entropy(eff []float64, temp float64) float64 {
-	if temp <= 0 {
+	if temp <= 0 || len(eff) == 0 {
 		return 0
 	}
+	// The same weights Softmax would have returned, divided by the same
+	// total, written in the caller's own frame rather than in a slice made
+	// to be read once and dropped. This is taken for every decision.
+	var buf [Room]float64
+	p := buf[:]
+	if len(eff) <= Room {
+		p = buf[:len(eff)]
+	} else {
+		p = make([]float64, len(eff))
+	}
+	total, _ := weigh(p, eff, temp)
 	var h float64
-	for _, p := range Softmax(eff, temp) {
-		if p > 0 {
-			h -= p * math.Log(p)
+	for _, w := range p {
+		if q := w / total; q > 0 {
+			h -= q * math.Log(q)
 		}
 	}
 	return h

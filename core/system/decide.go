@@ -293,7 +293,15 @@ func recognise(a *entity.Agent, w *world.World, r *world.Router) ([]action.Candi
 	if len(cs) == 0 {
 		return nil, -1, 0
 	}
-	eff := make([]float64, len(cs))
+	// The fits, in this frame rather than in a slice made for the two
+	// readings that follow and then dropped. Neither keeps it.
+	var buf [habit.Room]float64
+	eff := buf[:0]
+	if len(cs) <= len(buf) {
+		eff = buf[:len(cs)]
+	} else {
+		eff = make([]float64, len(cs))
+	}
 	for i := range cs {
 		eff[i] = cs[i].Fit
 	}
@@ -429,7 +437,7 @@ func Act(w *world.World) {
 		// no longer possible simply fails, and nothing comes of it.
 		if d != nil && d.Available(a, w) {
 			d.Apply(a, w)
-			w.EmitAt(event.Acted, a.ID, 0, d.Key, a.Pos, "%s finished %s", a.Name, d.Name)
+			w.EmitAt(event.Acted, a.ID, 0, d.Key, a.Pos, a.Name+" finished "+d.Name)
 		}
 		action.Practise(a, p.Index)
 	}

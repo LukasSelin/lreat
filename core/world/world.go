@@ -460,7 +460,14 @@ func (w *World) Emit(kind event.Kind, actor, target entity.ID, format string, ar
 // EmitAt records an event that came out of a particular act on a particular
 // tile, so that a reader can count what a settlement did and where without
 // reading the sentence it was told in. act is an ontology key.
-func (w *World) EmitAt(kind event.Kind, actor, target entity.ID, act string, where entity.Pos, format string, args ...any) {
+//
+// It takes the sentence made rather than a format and its parts. This is
+// the one event a settlement raises constantly - one per errand finished,
+// by everybody, all day - and formatting it cost a slice for the parts, a
+// box for each part, and a walk over the format, to make a sentence that
+// is dropped unread whenever nobody is watching. Both callers can say what
+// they mean by joining two strings.
+func (w *World) EmitAt(kind event.Kind, actor, target entity.ID, act string, where entity.Pos, text string) {
 	w.Log.Append(event.Event{
 		Tick:   w.Tick,
 		Kind:   kind,
@@ -469,7 +476,7 @@ func (w *World) EmitAt(kind event.Kind, actor, target entity.ID, act string, whe
 		Act:    act,
 		Where:  where,
 		Placed: true,
-		Text:   fmt.Sprintf(format, args...),
+		Text:   text,
 	})
 }
 
