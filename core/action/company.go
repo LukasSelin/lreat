@@ -81,13 +81,25 @@ func Anticipate(a, o *entity.Agent) float64 {
 // sometimes it is a stranger, more often for agents who do not hold
 // tradition dear. Nobody goes to see somebody on the far side of the map.
 func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
-	var near []*entity.Agent
+	// Into the agent's own room rather than a fresh list each time: this
+	// is asked whenever anybody weighs going to see somebody, and in a
+	// crowd the list is the crowd. See entity.Agent.Company. Nothing
+	// leaves here but one person, so what the room holds afterwards is
+	// nobody's business.
+	near := a.Company[:0]
 	w.Nearby(a.Pos, meetRadius, func(o *entity.Agent) bool {
 		if o != a {
 			near = append(near, o)
 		}
 		return true
 	})
+	// The far end of the room is wiped rather than left as it was. What
+	// would be left there is whoever stood near last time, and holding a
+	// person who has since died keeps everything they knew and everyone
+	// they knew of from being cleared away - a crowd of the dead, one per
+	// living neighbour, for as long as nobody wonders who to visit again.
+	clear(near[len(near):cap(near)])
+	a.Company = near
 	if len(near) == 0 {
 		return nil
 	}

@@ -191,7 +191,13 @@ func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate 
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
 	}
 	shared := Shared(a, w)
-	out := make([]Candidate, 0, Count)
+	// Into the agent's own room rather than a fresh list each time. A
+	// candidate carries the whole situation it was weighed in, twenty
+	// numbers of it, so a list of thirty of them is six kilobytes an
+	// errand-weighing and it was the second largest thing the simulation
+	// allocated. See entity.Agent.Sizing.
+	room := sizing(a)
+	out := (*room)[:0]
 	for i, d := range Catalog {
 		if !d.Available(a, w) {
 			continue
@@ -203,12 +209,29 @@ func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate 
 		s := SituationOn(a, w, r, d, target, shared)
 		out = append(out, Candidate{Def: d, Index: i, Target: target, Situation: s, Fit: Fit(a, i, s)})
 	}
+	*room = out
 	return out
 }
 
+// sizing is the agent's room for the errands it is weighing, made the
+// first time it weighs any. It is a pointer to the list and not the list,
+// so that a list that has grown is grown in place rather than boxed back
+// into the agent every time.
+func sizing(a *entity.Agent) *[]Candidate {
+	p, _ := a.Sizing.(*[]Candidate)
+	if p == nil {
+		p = new([]Candidate)
+		a.Sizing = p
+	}
+	return p
+}
+
 // Rank is Candidates sorted by fit, best first. Ties keep catalog order.
+// It is a list of its own and not the agent's room, because ranking is for
+// looking at and a list somebody is looking at should not be written over
+// by the next thing that agent weighs.
 func Rank(a *entity.Agent, w *world.World) []Candidate {
-	c := Candidates(a, w)
+	c := append([]Candidate(nil), Candidates(a, w)...)
 	sort.SliceStable(c, func(i, j int) bool { return c[i].Fit > c[j].Fit })
 	return c
 }

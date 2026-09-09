@@ -250,6 +250,26 @@ type Agent struct {
 	// catalog priors. Seeding is lazy because the world cannot see the
 	// catalog, and a newborn's first decision is the earliest it is needed.
 	Imprinted bool
+
+	// Company is the room this agent looks over a crowd in: whoever was
+	// within reach the last time it wondered who to go and see. It is kept
+	// rather than taken afresh because it is taken afresh every time
+	// anybody weighs going to see somebody, and in a crowd it is as long
+	// as the crowd - that one list was more than half of everything the
+	// simulation allocated. What is in it between decisions means nothing.
+	Company []*Agent
+	// Sizing is the same thing for the list of errands this agent is
+	// weighing up. It is an any because what is in it is a candidate
+	// action, which is the action package's to describe and this package
+	// must not know: an agent carries its own working memory, and the only
+	// thing it can say about this piece of it is whose it is. It holds a
+	// pointer to the list rather than the list, so that lengthening the
+	// list does not have to be stored back and boxed again.
+	//
+	// Both of these are an agent's own scratch, and that is what makes
+	// them safe while everybody decides at once: one agent is sized up by
+	// one goroutine, so nobody else is ever looking at this room.
+	Sizing any
 }
 
 // ordinaryBody is the vitality of an agent constructed without one, as
