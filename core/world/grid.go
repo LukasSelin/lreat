@@ -143,6 +143,13 @@ type Grid struct {
 	// as the lines above and from the same ground. See readHolds.
 	holds []bool
 
+	// frost is, for each row, the height above which the year on that row
+	// never warms past Frost. It is the weather's, not the ground's, but it
+	// is kept here because everything that asks it is a question about a
+	// tile: it is written once, when the land is made, by the world that
+	// knows what climate this map has. See Frozen and Climate.frostline.
+	frost []float64
+
 	// sea is the height of the sea, or below zero on a map with none. See
 	// flood in relief.go.
 	sea float64
@@ -305,6 +312,24 @@ func (t *Tile) Roofed() bool {
 		return true
 	}
 	return false
+}
+
+// Frozen reports whether the ground here never thaws: high enough, or far
+// enough toward the pole, that the year's mean stays under Frost. It is one
+// rule where there were two - the poles were bare because they were cold and
+// the peaks were green because nobody had told the weather they were high -
+// and it is what puts a tree line on a map with mountains on it.
+//
+// It is a fact about the ground and the latitude, both of which the weather
+// wanders around rather than changes, so it is read off a height written down
+// when the land was made. Water is not frozen ground: what a frozen sea is
+// belongs to the sea, and nothing here has an answer for it yet.
+func (g *Grid) Frozen(p entity.Pos) bool {
+	if len(g.frost) != g.H || !g.In(p) {
+		return false
+	}
+	t := g.At(p)
+	return !t.Wet() && t.Height >= g.frost[p.Y]
 }
 
 // RoomToBuild reports whether p is open ground with open ground all round

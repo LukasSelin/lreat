@@ -132,7 +132,7 @@ func (w *World) Wake() {
 func (w *World) CatchUp(i int) {
 	g := w.Grid
 	c := &g.Chunks[i]
-	growth := w.Growing[i/g.CW] - c.Grown
+	growth := w.Growing[i] - c.Grown
 	days := w.Tick - 1 - c.Weathered
 	if growth > 0 || days > 0 {
 		fade := math.Pow(Fade, float64(max(0, days)))
@@ -146,7 +146,7 @@ func (w *World) CatchUp(i int) {
 			}
 		})
 	}
-	c.Grown, c.Weathered = w.Growing[i/g.CW], w.Tick-1
+	c.Grown, c.Weathered = w.Growing[i], w.Tick-1
 }
 
 // CatchUpAll catches up every sleeping chunk, for before the whole ground is
@@ -165,23 +165,26 @@ func (w *World) CatchUpAll() {
 func (g *Grid) Stamp(growing []float64, tick int) {
 	for i := range g.Chunks {
 		if len(g.Active) != len(g.Chunks) || g.Active[i] {
-			g.Chunks[i].Grown, g.Chunks[i].Weathered = growing[i/g.CW], tick
+			g.Chunks[i].Grown, g.Chunks[i].Weathered = growing[i], tick
 		}
 	}
 }
 
-// Rates is what this day's weather lets green things grow on each chunk
-// row, as the growing weather of the row's middle: the weather goes by
-// latitude, and a chunk is the finest the sleeping ground is reckoned by.
-// On a valley every row reads the same.
+// Rates is what this day's weather lets green things grow on each chunk, at
+// the latitude of its middle row and the mean height of its ground: the
+// weather goes by both, and a chunk is the finest the sleeping ground is
+// reckoned by. It was by chunk row, which was the whole of the weather when
+// the whole of the weather was latitude. On a valley with level ground every
+// chunk reads the same.
 func (w *World) Rates() []float64 {
 	g := w.Grid
-	if len(w.rates) != g.CH {
-		w.rates = make([]float64, g.CH)
+	if len(w.rates) != len(g.Chunks) {
+		w.rates = make([]float64, len(g.Chunks))
 	}
-	for cy := range w.rates {
-		mid := min(g.H-1, cy*ChunkSide+ChunkSide/2)
-		w.rates[cy] = w.Mods.Regrowth * w.Climate.GrowthAt(mid)
+	for i := range w.rates {
+		c := &g.Chunks[i]
+		mid := min(g.H-1, c.Y0+c.H/2)
+		w.rates[i] = w.Mods.Regrowth * growthOf(w.Climate.TempAt(mid)-Lapse*c.Height)
 	}
 	return w.rates
 }

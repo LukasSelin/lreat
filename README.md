@@ -127,7 +127,11 @@ run exactly, however the goroutines happen to interleave.
 `headless` and `tune` also take `-preset globe`, which founds the world on a
 globe instead of the valley: a cylinder a thousand tiles round and five
 hundred down, joined at the east and west edges, a third of it sea, cold at
-the poles and warm at the middle, with the weather read by latitude. `-width`,
+the poles and warm at the middle, with the weather read by latitude and by
+height: the air cools six and a half degrees a kilometre, so the mountains
+carry a tree line and a snow cap of their own and the peaks are bare for the
+same reason the poles are. On the valley the highest ground is two degrees
+colder than the river and no more. `-width`,
 `-height` and `-wrap` are the same terms by hand, and override the preset
 where given; a globe must be a whole number of chunks round. The map is kept
 in chunks of sixty-four tiles, and ground with nobody on it, nothing built

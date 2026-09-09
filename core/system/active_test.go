@@ -65,10 +65,9 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 	}
 	w.CatchUp(sleeping) // start level
 	byDay := copyOf()
-	cy := sleeping / g.CW
 	for day := 0; day < 90; day++ {
 		Step(w)
-		k := w.Rates()[cy] // the rate the world applies to this row
+		k := w.Rates()[sleeping] // the rate the world applies to this chunk
 		for i := range byDay {
 			byDay[i].Ripen(k)
 			byDay[i].Replenish(k)

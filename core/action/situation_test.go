@@ -335,11 +335,16 @@ func TestExposureTellsTheRoofedFromTheUnroofed(t *testing.T) {
 	}
 	roofed, cold := blank(w, "roofed"), blank(w, "cold")
 	roofed.Shelter, cold.Shelter = 1, 0
+	// Standing on the same ground, so that the only difference between them
+	// is the roof. The weather is read where a body is - the same day is
+	// colder higher up; see world.Lapse - so two agents on two tiles need
+	// not read the same Chill, and that is not what this is about.
+	cold.Pos = roofed.Pos
 
 	warm := Shared(roofed, w)
 	bare := Shared(cold, w)
 	if warm[habit.Chill] != bare[habit.Chill] {
-		t.Fatal("the weather is the same news to everybody")
+		t.Fatal("the weather is the same news to everybody standing in the same place")
 	}
 	if !(bare[habit.Exposure] > warm[habit.Exposure]) {
 		t.Fatalf("the unroofed should feel the winter more: %v against %v",

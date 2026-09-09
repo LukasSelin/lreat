@@ -59,10 +59,11 @@ func Land(w *world.World) {
 	// under ice gives back nothing, and worn ground rests until it thaws.
 	// Only the ground that is awake is passed over; what is asleep is owed
 	// the growing weather from here on, and gets it when it wakes. See
-	// world.Wake. The weather goes by latitude, so the rate does by row.
+	// world.Wake. The weather goes by latitude and by height, so the rate
+	// does by chunk.
 	rates := w.Rates()
-	for cy, k := range rates {
-		w.Growing[cy] += k
+	for i, k := range rates {
+		w.Growing[i] += k
 	}
 	// The wear fades in the same pass as the growing. They were two passes
 	// and the first came first, but neither reads what the other writes,
@@ -71,7 +72,7 @@ func Land(w *world.World) {
 		if t.Traffic > 0 {
 			t.Traffic *= world.Fade
 		}
-		k := rates[c/g.CW]
+		k := rates[c]
 		t.Ripen(k)
 		t.Replenish(k)
 	})
@@ -95,7 +96,7 @@ func Land(w *world.World) {
 			continue
 		}
 		// Seed falls in the growing season, not on frozen ground.
-		if w.RNG.Float64() < reseedChance*w.Climate.GrowthAt(p.Y) {
+		if w.RNG.Float64() < reseedChance*w.GrowthAt(p) {
 			g.Turn(p, world.Forest)
 			t.Wood, t.Wild = 0, 0
 			t.Sow() // a seedling wood, with nothing on it yet
@@ -104,7 +105,7 @@ func Land(w *world.World) {
 			// will be given all of it when it wakes. So the seedling is
 			// sown that much before its time, and comes out at nought.
 			if c := g.ChunkOf(g.Index(p)); !g.Awake(c) {
-				t.Age -= w.Growing[c/g.CW] - g.Chunks[c].Grown
+				t.Age -= w.Growing[c] - g.Chunks[c].Grown
 			}
 		}
 	}

@@ -67,7 +67,7 @@ func Decay(w *world.World) {
 		// In a mild season it is nothing whatever anyone has built; in the
 		// deep of a hard winter a body without a house burns half again
 		// what it otherwise would just staying warm.
-		exposure := w.Climate.ChillAt(a.Pos.Y) * (1 - a.Shelter)
+		exposure := w.ChillAt(a.Pos) * (1 - a.Shelter)
 		a.Needs.Add(need.Physiological, -ColdDrain*exposure)
 
 		// Health follows nourishment and housing, at a hundredth of the rate

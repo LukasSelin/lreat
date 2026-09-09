@@ -161,7 +161,7 @@ type World struct {
 	// Growing is the growing weather the world has had since it was made,
 	// in growing days, and swept is where the sweep of sleeping chunks has
 	// got to; see active.go.
-	Growing []float64 // by chunk row, because the weather goes by latitude
+	Growing []float64 // by chunk, because the weather goes by latitude and height
 	swept   int
 	rates   []float64
 
@@ -245,7 +245,7 @@ func NewWith(seed uint64, cfg Config) *World {
 		nextID: 1,
 	}
 	w.Generate(cfg)
-	w.Growing = make([]float64, w.Grid.CH)
+	w.Growing = make([]float64, len(w.Grid.Chunks))
 	w.Room()
 	return w
 }

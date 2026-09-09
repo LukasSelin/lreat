@@ -51,7 +51,7 @@ func TestChunkCountsAgreeWithTheGround(t *testing.T) {
 		}
 		got := *c
 		got.X0, got.Y0, got.W, got.H, got.Trodden = 0, 0, 0, 0, false
-		got.Grown, got.Weathered, got.Trod = 0, 0, 0
+		got.Grown, got.Weathered, got.Trod, got.Height = 0, 0, 0, 0
 		if got != want {
 			t.Fatalf("chunk %d keeps %+v; the ground says %+v", ci, got, want)
 		}

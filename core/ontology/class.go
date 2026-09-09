@@ -251,8 +251,8 @@ var (
 	Built = New("built", Site, 0, habit.Signature{})
 	// Lacking a roof is the unsafe, unsheltered moment, and a little more
 	// so for whoever is out in the cold - exposure, not the weather: the
-	// weather is the same news to everybody, and an act that names it is
-	// one the whole settlement turns to at once. Lacking a granary or a
+	// weather is the same news to everybody living at the same height, and
+	// an act that names it is one the whole settlement turns to at once. Lacking a granary or a
 	// tavern is not a want of the body but of standing: they belong to
 	// those with something to win and a settlement they mean to stay in.
 	Dwelling = at(New("dwelling", Built, Roofed|Owned|Bench|Hearth|Forge|Desk,

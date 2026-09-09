@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 
 	"lreat/core/clock"
+	"lreat/core/entity"
 )
 
 // The climate. A settlement that is founded in one weather and lives in it
@@ -214,3 +215,45 @@ func ramp(x, lo, hi float64) float64 {
 // answer; this is here so that callers reading the weather need not reach
 // past it for the date.
 func SeasonOf(tick int) clock.Quarter { return clock.SeasonOf(tick) }
+
+// The lapse rate: how much colder the air is for standing higher up.
+//
+// The weather is one temperature for a latitude, and it was one temperature
+// for a latitude at every height, which made the top of a mountain exactly as
+// warm as the valley it stands over. Height was the one thing the ground
+// carried that the weather never read - see Tile.Height, off which the
+// rivers, the soil and the going underfoot are all already read - so the high
+// country was hard to live on for its slope alone, and a wood grew on a peak
+// as readily as on the valley floor.
+//
+// Lapse is the real figure, six and a half degrees a kilometre, and it is
+// deliberately not tuned. What it is worth depends on what a map has standing
+// on it, and that follows from the map's own size: on the default valley the
+// skyline is Relief plus Upland, some three hundred metres, so the highest
+// ground on it is two degrees colder than the river and no more - which is
+// why nothing measured on the valley moves much, and why the want of this was
+// never felt there. On a globe the same rule over mountains ten times as high
+// is the difference between a tree line and no tree line.
+const Lapse = 0.0065
+
+// TempAt is the temperature on the ground at p: the weather of its latitude,
+// less what the height of the ground takes off it. It is the reading anything
+// standing on a tile or living on it should ask; Climate.TempAt is the
+// weather of the row, which is that reading at the foot of the map.
+func (w *World) TempAt(p entity.Pos) float64 {
+	return w.Climate.TempAt(p.Y) - Lapse*w.Grid.At(p).Height
+}
+
+// GrowthAt is how much the weather at p lets green things grow, and ChillAt
+// how hard the cold presses on a body there.
+func (w *World) GrowthAt(p entity.Pos) float64 { return growthOf(w.TempAt(p)) }
+
+// ChillAt is Chill at p.
+func (w *World) ChillAt(p entity.Pos) float64 { return chillOf(w.TempAt(p)) }
+
+// frostline is the height at which the year's mean on row y falls to Frost:
+// the height above which the ground never thaws. It is a constant of the map
+// rather than of the day, because the year's mean is - the drift and the
+// spell wander around it and average out. Where the row is warm enough that
+// no ground on any map could be that high, it is simply a great height.
+func (c Climate) frostline(y int) float64 { return (c.MeanAt(y) - Frost) / Lapse }

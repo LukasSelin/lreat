@@ -21,10 +21,16 @@ import (
 // A change meant to alter what a settlement does must retake these three
 // numbers in the commit that makes it, and say so. A change that was not
 // meant to and moves them was not what it was meant to be.
+//
+// Retaken for the lapse rate: the weather now falls with the height of the
+// ground, so the cold a body feels and the growing weather the ground gets
+// are read where they are rather than off the row. On the valley that is two
+// degrees between the river and the highest ground, which moves the run
+// without changing what it is; the full batch is in docs/baseline.md.
 var golden = map[uint64]string{
-	1: "72adf22ccc6f686d",
-	3: "656d2aec84d36efe",
-	9: "aa91d56f0f47efe5",
+	1: "8655d764af56fdab",
+	3: "d98fdb39def62c60",
+	9: "e6dcfeae58cd3759",
 }
 
 // digest is the hash the golden numbers are of.

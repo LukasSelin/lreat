@@ -33,6 +33,14 @@ func (w *World) Generate(cfg Config) {
 	g.drain()
 	g.carve(w.RNG)
 	g.height()
+	// The heights are settled, so where the ground is too cold to grow
+	// anything can be written down. It is read by the woods below, by the
+	// tree line seed falls on for the rest of the run, and by anybody asking
+	// what a tile is; see Grid.Frozen.
+	g.frost = make([]float64, g.H)
+	for y := range g.frost {
+		g.frost[y] = w.Climate.frostline(y)
+	}
 
 	// Woods stand where the ground is damp enough to grow them and gentle
 	// enough to hold soil: the valley sides above the flood, not the crown of
@@ -89,14 +97,16 @@ func (w *World) Generate(cfg Config) {
 			t.Terrain = Rock
 		}
 	}
-	// The poles are bare. Ground whose year never warms past the frost
-	// grows nothing, and an outcrop is the ground that grows nothing.
+	// The poles are bare, and so are the peaks. Ground whose year never warms
+	// past the frost grows nothing, and an outcrop is the ground that grows
+	// nothing. This was written of the poles alone, because latitude was the
+	// only thing the weather knew; with the height in it too, the same
+	// sentence puts snow on a mountain and does not have to name one.
 	for y := 0; y < height; y++ {
-		if w.Climate.MeanAt(y) >= Frost {
-			continue
-		}
 		for x := 0; x < width; x++ {
-			if t := g.At(entity.Pos{X: x, Y: y}); t.Terrain != Water {
+			p := entity.Pos{X: x, Y: y}
+			if g.Frozen(p) {
+				t := g.At(p)
 				t.Terrain, t.Wood, t.Wild = Rock, 0, 0
 			}
 		}

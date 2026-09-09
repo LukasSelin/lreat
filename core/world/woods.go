@@ -10,7 +10,7 @@ import "lreat/core/entity"
 // broken on open ground and there was none left.
 //
 // A tree line is what the land actually has. Woods stand on the damp gentle
-// ground and stop where the ground turns dry, steep or high, and that line
+// ground and stop where the ground turns dry, steep or cold, and that line
 // is read off the map the same way the founding woods were placed: the
 // wettest, gentlest fifth of the land will hold a wood, and nothing else
 // will. The founding woods take a little over half of that, so a settlement
@@ -115,6 +115,6 @@ func (g *Grid) readHolds() {
 	}
 	for i := range g.Tiles {
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
-		g.holds[i] = !g.TooSteep(p) && g.WoodsAt(p) >= g.woodsLine
+		g.holds[i] = !g.TooSteep(p) && !g.Frozen(p) && g.WoodsAt(p) >= g.woodsLine
 	}
 }

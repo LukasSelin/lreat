@@ -44,6 +44,13 @@ type Chunk struct {
 	// last passed over, and Weathered the day; see active.go.
 	Grown     float64
 	Weathered int
+	// Height is the mean height of the ground here, in metres. It is what
+	// the growing weather of a sleeping chunk is read at - the weather goes
+	// by latitude and by height, and a chunk is the finest the sleeping
+	// ground is reckoned by, so a chunk that is mostly mountain grows like
+	// a mountain. Taken again whenever the ground is counted, because the
+	// weather moves the ground. See World.Rates.
+	Height float64
 }
 
 // layChunks divides the grid into chunks. Chunks along the east and south
@@ -160,6 +167,7 @@ func (g *Grid) Recount() {
 		c := &g.Chunks[i]
 		c.Built, c.Owned = 0, 0
 		c.Houses, c.Fields, c.Forest, c.Roads, c.Granaries, c.Markets, c.Taverns = 0, 0, 0, 0, 0, 0, 0
+		c.Height = 0
 	}
 	if len(g.lenders) != len(g.Tiles) {
 		g.lenders = make([]uint8, len(g.Tiles))
@@ -167,9 +175,15 @@ func (g *Grid) Recount() {
 	clear(g.lenders)
 	g.wet()
 	for i := range g.Tiles {
+		g.Chunks[g.ChunkOf(i)].Height += g.Tiles[i].Height
 		g.Chunks[g.ChunkOf(i)].count(&g.Tiles[i], 1)
 		if g.Tiles[i].lends() {
 			g.lend(i, 1)
+		}
+	}
+	for i := range g.Chunks {
+		if c := &g.Chunks[i]; c.W*c.H > 0 {
+			c.Height /= float64(c.W * c.H)
 		}
 	}
 }
