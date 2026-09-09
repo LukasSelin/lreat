@@ -735,6 +735,7 @@ Ontology(<https://github.com/LukasSelin/lreat/ontology>
     SubClassOf(:Tend :Verb)
     SubClassOf(:Timber :Buildable)
     SubClassOf(:Timber :Burnable)
+    SubClassOf(:Timber :Heavy)
     SubClassOf(:Timber :Material)
     SubClassOf(:Timber DataHasValue(:lack "0.6"^^xsd:decimal))
     SubClassOf(:Timber DataHasValue(:prior-chill "0.3"^^xsd:decimal))
