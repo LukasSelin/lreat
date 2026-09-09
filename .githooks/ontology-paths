@@ -1,0 +1,18 @@
+# The packages owl/lreat.ofn is built from, one repo-relative path per line.
+# A commit touching any of them has to leave the document current, so the
+# pre-commit hook checks it.
+#
+# This list is not written by hand and must not be edited to make a failure go
+# away: owl/affects_test.go derives the same set from `go list -deps lreat/owl`
+# and fails when the two disagree. If an import is added to the generator, the
+# test says so and this file is what to fix.
+#
+# core/need is here because the generator reaches it through core/entity, which
+# is the kind of thing a hand-written list gets wrong.
+core/belief
+core/clock
+core/entity
+core/habit
+core/need
+core/ontology
+owl
