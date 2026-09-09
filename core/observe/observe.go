@@ -267,42 +267,47 @@ func habits(w *world.World) (spread, mean, gated float64) {
 	if n == 0 {
 		return 0, 0, 0
 	}
-	units := make([][]habit.Signature, action.Count)
 	var gatedN float64
 	w.Room()
+	// Each act is measured in two passes over the population rather than
+	// from a table of every unit signature: the centre first, then how far
+	// each agent stands from it. The unit signature is worked out twice for
+	// that, which is cheaper than keeping thirty of them per agent per tick
+	// and adds the same numbers in the same order, so the measure is the
+	// one it always was.
 	for i, d := range action.Catalog {
-		units[i] = make([]habit.Signature, 0, len(w.Agents))
+		var centre habit.Signature
 		for _, a := range w.Agents {
 			h, r := d.Prior, max(d.Reach0, w.ReachFloor[i])
 			if a.Imprinted {
 				h, r = a.Habits[i], max(a.Reach[i], w.ReachFloor[i])
 			}
-			units[i] = append(units[i], habit.Unit(h))
+			u := habit.Unit(h)
+			for k := range centre {
+				centre[k] += u[k] / n
+			}
 			mean += r
 			if d.Reach0 < 1 {
 				gated += r
 				gatedN++
 			}
 		}
+		for _, a := range w.Agents {
+			h := d.Prior
+			if a.Imprinted {
+				h = a.Habits[i]
+			}
+			u := habit.Unit(h)
+			var diff habit.Signature
+			for k := range diff {
+				diff[k] = u[k] - centre[k]
+			}
+			spread += habit.Norm(diff)
+		}
 	}
 	mean /= n * float64(action.Count)
 	if gatedN > 0 {
 		gated /= gatedN
-	}
-	for i := range units {
-		var centre habit.Signature
-		for _, u := range units[i] {
-			for k := range centre {
-				centre[k] += u[k] / n
-			}
-		}
-		for _, u := range units[i] {
-			var d habit.Signature
-			for k := range d {
-				d[k] = u[k] - centre[k]
-			}
-			spread += habit.Norm(d)
-		}
 	}
 	spread /= n * float64(action.Count)
 	return spread, mean, gated

@@ -341,21 +341,6 @@ func clampWeight(v float64) float64 {
 	return v
 }
 
-// Other picks a random agent that is not a. Returns nil if a is alone. The
-// draw comes from a's own luck, because this is reached while deciding, which
-// several agents may be doing at once.
-func (w *World) Other(a *entity.Agent) *entity.Agent {
-	if len(w.Agents) < 2 {
-		return nil
-	}
-	for {
-		o := w.Agents[a.Luck.IntN(len(w.Agents))]
-		if o != a {
-			return o
-		}
-	}
-}
-
 // Routers returns n routers over the world's map, made once and kept between
 // ticks so that deciding allocates nothing. Each is for one goroutine.
 func (w *World) Routers(n int) []*Router {

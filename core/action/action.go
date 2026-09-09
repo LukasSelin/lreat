@@ -354,9 +354,9 @@ func worked(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	}
 	// The strip in ear, and the nearest of those where two are equally
 	// ready: a farmer goes to the crop, not to the doorstep.
-	best, near, grown := a.Parcel[0], entity.Dist(a.Pos, a.Parcel[0]), ripe(w, a.Parcel[0])
+	best, near, grown := a.Parcel[0], w.Grid.Dist(a.Pos, a.Parcel[0]), ripe(w, a.Parcel[0])
 	for _, p := range a.Parcel[1:] {
-		r, d := ripe(w, p), entity.Dist(a.Pos, p)
+		r, d := ripe(w, p), w.Grid.Dist(a.Pos, p)
 		if r > grown || (r == grown && d < near) {
 			best, near, grown = p, d, r
 		}
@@ -792,8 +792,14 @@ func earlier(p, q entity.Pos) bool {
 // otherwise each take for themselves. Deciding only reads the world, so one
 // reading serves all of them; it is taken here because a decision runs on a
 // goroutine of its own, and two of them taking the same reading at once is a
-// race over what neither would have changed.
-func Ready(w *world.World) { w.Ways() }
+// race over what neither would have changed. The reach floor is the same
+// kind of thing: making room in it for a new slot is a write, and every
+// agent deciding used to make that room for itself, which under the race
+// detector was the one write in the whole read-only phase.
+func Ready(w *world.World) {
+	w.Room()
+	w.Ways()
+}
 
 // Pave is the settlement's first work on the common ground: a stretch of road
 // that does the layer no direct good beyond the credit of having laid it, and

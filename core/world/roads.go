@@ -88,10 +88,7 @@ func (g *Grid) Weather() {
 // What comes out is not the wear but the wear weighed by what a road there
 // would save, which is Saving. Two tiles walked alike do not make an equal
 // case for paving if one is meadow and the other a ford.
-var ProfDraw, ProfVisit int64
-
 func (g *Grid) Draw(p entity.Pos) float64 {
-	ProfDraw++
 	if !g.In(p) || g.Served(p) {
 		return 0
 	}

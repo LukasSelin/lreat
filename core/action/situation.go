@@ -121,16 +121,6 @@ func SituationOn(a *entity.Agent, w *world.World, r *world.Router, d *Def, targe
 		p := plenty(a)
 		s[habit.Lack], s[habit.Stock] = -p, p
 	}
-	// What the act would bring and spend, or, for an act that moves
-	// nothing in particular, how the agent stands in general: every
-	// candidate's moment has the same shape, so none is nearer for saying
-	// less.
-	if d.Supply != nil {
-		s[habit.Lack], s[habit.Stock] = d.Supply(a)
-	} else {
-		p := plenty(a)
-		s[habit.Lack], s[habit.Stock] = -p, p
-	}
 	if d.Skilled != nil {
 		if sk, ok := d.Skilled(a, w); ok {
 			s[habit.Skill] = bipolar(a.Believes(sk))
@@ -195,7 +185,6 @@ func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate 
 	// read past the near knee.
 	r.Survey(a.Pos, a.Load(), nearKnee*a.Vigor(w.Tick))
 	defer r.Forget()
-	w.Room()
 	for i := range Catalog {
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
 	}

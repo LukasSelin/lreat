@@ -59,7 +59,17 @@ type Runner struct {
 	snaps chan observe.Snapshot
 	tps   float64
 	pause bool
+	// taken is the tick of the last snapshot. A snapshot is taken when the
+	// last one has been collected, or when it is SnapshotEvery ticks old and
+	// has not been; taking one costs a copy of the whole map, and a viewer
+	// that has not looked at the last one has no use for the next.
+	taken int
 }
+
+// SnapshotEvery is how old a snapshot nobody has collected may get before it
+// is replaced with a fresh one. It is the span of one column of the graph
+// in cmd/watch, so a viewer that falls behind still sees every column.
+var SnapshotEvery = 20
 
 // New wraps a world. ticksPerSecond sets the initial speed.
 func New(w *world.World, ticksPerSecond float64) *Runner {
@@ -113,7 +123,11 @@ func (r *Runner) tick() {
 		break
 	}
 	system.Step(r.w)
+	if len(r.snaps) > 0 && r.w.Tick-r.taken < SnapshotEvery {
+		return // the last one is still waiting to be looked at
+	}
 	s := observe.Take(r.w)
+	r.taken = r.w.Tick
 	select {
 	case r.snaps <- s:
 	default:

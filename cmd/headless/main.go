@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/pprof"
 	"strings"
+	"time"
 
 	"lreat/core/clock"
 	"lreat/core/event"
@@ -35,8 +37,22 @@ func main() {
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of recognition; 0 always takes the best fit")
 	pave := flag.Int("pave", 0, "lay streets through the settlement every N days (0 never)")
 	workers := flag.Int("workers", system.Workers, "goroutines to decide over (1 decides one agent at a time)")
+	timing := flag.Bool("timing", false, "print what each report interval spent on each phase of the day, per tick")
+	profile := flag.String("cpuprofile", "", "write a CPU profile of the run to this file")
 	flag.Parse()
 	system.Workers = *workers
+	if *profile != "" {
+		f, err := os.Create(*profile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	// The run is kept as well as printed. Everything below goes through out,
 	// so the file is what was on the terminal rather than a second account
@@ -55,8 +71,13 @@ func main() {
 	fmt.Fprintf(out, "%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %-18s %5s | %s\n",
 		"day", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "wood", "frnd", "feud", "reach", "sprd", "open", "date", "deg", "doing")
 	lastReported := 0
+	spent := newTimer()
 	for w.Tick < *ticks {
-		system.Step(w)
+		if *timing {
+			system.StepWith(w, spent.around)
+		} else {
+			system.Step(w)
+		}
 		// The settlement paves for itself; this lays the whole network at
 		// once, for comparing a built-out network against what agents get
 		// round to on their own.
@@ -72,6 +93,9 @@ func main() {
 				}
 			}
 			lastReported = w.Tick + 1
+			if *timing {
+				fmt.Fprintln(out, spent.line())
+			}
 			if *showMap {
 				fmt.Fprintln(out, strings.Join(ascii.Lines(s.Map), "\n"))
 			}
@@ -118,4 +142,51 @@ func row(out io.Writer, s observe.Snapshot) {
 		s.Tick, s.Population, s.Deaths, n[0], n[1], n[2], n[3], n[4], s.MeanHealth, s.MeanAge, s.Elders,
 		s.WealthGini, s.FoodPrice, s.Knowledge, s.Houses, s.Roads, s.Fields, s.Forest, s.Friendships, s.Feuds,
 		s.GatedReach, s.HabitSpread, s.ChoiceEntropy, s.Date, s.Temp, strings.Join(doing, " "))
+}
+
+// timer is what a run spent on each phase of the day since it last said.
+// The wall clock is read here and nowhere in the core.
+type timer struct {
+	spent []time.Duration
+	ticks int
+	index map[string]int
+}
+
+func newTimer() *timer {
+	t := &timer{spent: make([]time.Duration, len(system.Phases)), index: map[string]int{}}
+	for i, p := range system.Phases {
+		t.index[p.Name] = i
+	}
+	return t
+}
+
+func (t *timer) around(name string, run func()) {
+	start := time.Now()
+	run()
+	i := t.index[name]
+	t.spent[i] += time.Since(start)
+	if i == len(t.spent)-1 {
+		t.ticks++
+	}
+}
+
+// line says what a tick cost, by phase and in all, and starts counting again.
+func (t *timer) line() string {
+	if t.ticks == 0 {
+		return "       timing: nothing ticked"
+	}
+	var parts []string
+	var total time.Duration
+	for i, p := range system.Phases {
+		total += t.spent[i]
+		parts = append(parts, fmt.Sprintf("%s %s", p.Name, per(t.spent[i], t.ticks)))
+		t.spent[i] = 0
+	}
+	s := fmt.Sprintf("       timing: %s per tick | %s", per(total, t.ticks), strings.Join(parts, " "))
+	t.ticks = 0
+	return s
+}
+
+func per(d time.Duration, n int) string {
+	return (d / time.Duration(n)).Round(time.Microsecond).String()
 }

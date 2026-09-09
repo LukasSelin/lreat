@@ -75,7 +75,7 @@ For every action that is `Available` and has a target:
 eff_i = cos(S_i, H_i) - 0.6 * (1 - Reach_i)
 ```
 
-Sample from a softmax over `eff` at temperature `τ / intensity`, with `τ = 0.15` and `intensity = 0.5 + Σ_t urgency[t] * personality[t]` over raw urgencies. A moment with strong urgencies is decided sharply. A bland moment is decided loosely. The norm of the whole situation vector is not a usable intensity, because the stock and surroundings coordinates saturate at -1 for most agents most of the time. Exactly one `w.RNG.Float64()` is consumed per decision.
+Sample from a softmax over `eff` at temperature `τ / intensity`, with `τ = 0.15` and `intensity = 0.5 + Σ_t urgency[t] * personality[t]` over raw urgencies. A moment with strong urgencies is decided sharply. A bland moment is decided loosely. The norm of the whole situation vector is not a usable intensity, because the stock and surroundings coordinates saturate at -1 for most agents most of the time. Exactly one number is drawn per decision, from the agent's own luck rather than the world's stream, so that agents deciding side by side come out the same as agents deciding in turn.
 
 Nothing is divided by cost. Nearness is a dimension of the moment, and a prior says how much the act belongs to a near one. Hard physical gates in `Available` stay (eating needs food). The only soft judgement gate in the catalog today, teach's skill floor, becomes reach.
 
