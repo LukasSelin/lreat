@@ -436,7 +436,7 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.Market:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
 	ascii.Rock:        tcell.StyleDefault.Foreground(tcell.ColorGray),
-	ascii.RockHigh:    tcell.StyleDefault.Foreground(tcell.Color(250)),
+	ascii.RockHigh:    tcell.StyleDefault.Foreground(tcell.PaletteColor(250)),
 	ascii.Granary:     tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
 	ascii.Tavern:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.AgentFood:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
@@ -451,25 +451,32 @@ var palette = map[ascii.Color]tcell.Style{
 	// land is what most of the screen is, so these are most of what the map
 	// looks like, and they are the whole of how high ground reads as high.
 	//
-	// Both run from a damp green through a dry khaki to the bare grey of a
-	// mountainside, which is what ground does as it rises: the colour is
-	// carrying height, so it has to leave green behind or the top of the map
-	// looks like a meadow. The woods keep more green than the open ground
-	// for longer, because a wood is green - a hillside of trees should read
-	// as a wooded hillside and not as another shade of rock.
-	ascii.Ground0: tcell.StyleDefault.Foreground(tcell.Color(22)),  // the water meadow
-	ascii.Ground1: tcell.StyleDefault.Foreground(tcell.Color(65)),  // the valley floor
-	ascii.Ground2: tcell.StyleDefault.Foreground(tcell.Color(101)), // the shoulder of it
-	ascii.Ground3: tcell.StyleDefault.Foreground(tcell.Color(138)), // the foothills
-	ascii.Ground4: tcell.StyleDefault.Foreground(tcell.Color(145)), // the mountainside
-	ascii.Ground5: tcell.StyleDefault.Foreground(tcell.Color(252)), // the tops
+	// Both stay green through the lowland and leave it only above the lowland,
+	// which is the same split the ground itself is built on: bands 0 to 2 are
+	// the valley's own sixty metres and bands 3 to 5 are the high country
+	// standing over it. The first try desaturated from the second band on, and
+	// on the map that made two thirds of the ground a grey-green and a khaki -
+	// a settlement lives in the valley, so the valley is most of what is on
+	// screen, and washing it out washed out the whole picture to buy
+	// distinctions among mountains that are a twentieth of it.
+	//
+	// The woods stay green the whole way up, because a wood is green: a
+	// hillside of trees should read as a wooded hillside and not as another
+	// shade of rock. What rises with them is brightness, which is what thinner
+	// montane cover actually looks like.
+	ascii.Ground0: tcell.StyleDefault.Foreground(tcell.PaletteColor(22)),  // the water meadow
+	ascii.Ground1: tcell.StyleDefault.Foreground(tcell.PaletteColor(28)),  // the valley floor
+	ascii.Ground2: tcell.StyleDefault.Foreground(tcell.PaletteColor(64)),  // the dry shoulder of it
+	ascii.Ground3: tcell.StyleDefault.Foreground(tcell.PaletteColor(101)), // the foothills
+	ascii.Ground4: tcell.StyleDefault.Foreground(tcell.PaletteColor(145)), // the mountainside
+	ascii.Ground5: tcell.StyleDefault.Foreground(tcell.PaletteColor(252)), // the tops
 
-	ascii.Wood0: tcell.StyleDefault.Foreground(tcell.Color(22)),
-	ascii.Wood1: tcell.StyleDefault.Foreground(tcell.Color(28)),
-	ascii.Wood2: tcell.StyleDefault.Foreground(tcell.Color(34)),
-	ascii.Wood3: tcell.StyleDefault.Foreground(tcell.Color(71)),
-	ascii.Wood4: tcell.StyleDefault.Foreground(tcell.Color(108)),
-	ascii.Wood5: tcell.StyleDefault.Foreground(tcell.Color(144)),
+	ascii.Wood0: tcell.StyleDefault.Foreground(tcell.PaletteColor(22)),
+	ascii.Wood1: tcell.StyleDefault.Foreground(tcell.PaletteColor(28)),
+	ascii.Wood2: tcell.StyleDefault.Foreground(tcell.PaletteColor(34)),
+	ascii.Wood3: tcell.StyleDefault.Foreground(tcell.PaletteColor(40)),
+	ascii.Wood4: tcell.StyleDefault.Foreground(tcell.PaletteColor(71)),
+	ascii.Wood5: tcell.StyleDefault.Foreground(tcell.PaletteColor(108)),
 }
 
 func (v *view) draw() {
