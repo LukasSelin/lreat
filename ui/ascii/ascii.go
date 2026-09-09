@@ -160,49 +160,73 @@ func tileCell(g *world.Grid, p entity.Pos) Cell {
 	case world.Tavern:
 		return Cell{Ch: '&', Color: Tavern}
 	}
-	b := band(g, t.Height)
-	switch t.Terrain {
-	case world.Water:
-		return Cell{Ch: '~', Color: Water}
-	case world.Forest:
-		if t.Wood >= 0.5 {
-			return Cell{Ch: 'T', Color: Wood[b]}
+	return ground[t.Terrain](scene{g: g, p: p, t: t, b: band(g, t.Height)})
+}
+
+// scene is what drawing one tile needs: the tile, where it is, the grid it
+// sits in for the questions that are about its neighbours, and which height
+// band it falls in.
+type scene struct {
+	g *world.Grid
+	p entity.Pos
+	t *world.Tile
+	b int
+}
+
+// ground draws each kind of ground, a row apiece. It is a table rather than a
+// switch because a switch has a default and this should not: a terrain the
+// renderer has not been told about is a nil to trip over in a test, where a
+// default is a tile quietly drawn as open grass on every map from then on.
+var ground = [world.TerrainCount]func(scene) Cell{
+	world.Water: func(scene) Cell { return Cell{Ch: '~', Color: Water} },
+
+	// A wood is drawn by how much of it is left to cut, and coloured by how
+	// high it stands.
+	world.Forest: func(s scene) Cell {
+		if s.t.Wood >= 0.5 {
+			return Cell{Ch: 'T', Color: Wood[s.b]}
 		}
-		return Cell{Ch: 't', Color: Wood[b]}
-	case world.Field:
-		// A hedged holding is drawn as hedged. It is the one thing on the map
-		// that changes how a journey goes without anything being built on a
-		// tile, so it has to be visible or the ways people take round it look
-		// like nothing at all.
-		if t.Fenced {
+		return Cell{Ch: 't', Color: Wood[s.b]}
+	},
+
+	// A hedged holding is drawn as hedged. It is the one thing on the map
+	// that changes how a journey goes without anything being built on a
+	// tile, so it has to be visible or the ways people take round it look
+	// like nothing at all.
+	world.Field: func(s scene) Cell {
+		if s.t.Fenced {
 			return Cell{Ch: '=', Color: FieldFenced}
 		}
 		return Cell{Ch: '"', Color: Field}
-	case world.Rock:
-		// An outcrop on the valley floor is a boulder field and one on the
-		// skyline is a crag, and they should not be the same grey.
-		if b >= Bands/2 {
+	},
+
+	// An outcrop on the valley floor is a boulder field and one on the
+	// skyline is a crag, and they should not be the same grey.
+	world.Rock: func(s scene) Cell {
+		if s.b >= Bands/2 {
 			return Cell{Ch: '^', Color: RockHigh}
 		}
 		return Cell{Ch: '^', Color: Rock}
-	}
+	},
+
 	// Open ground. Ground that falls away fast enough to be felt is drawn as
 	// a hillside whatever else is true of it, so that the shape of the
 	// country survives being printed without colour - which is how the
-	// headless command and every test that reads a map see it.
-	if g.Slope(p) >= hillside {
-		return Cell{Ch: 'n', Color: Ground[b]}
-	}
-	// Otherwise the glyph is how wet the ground is: the water meadows of the
-	// valley floor, the ordinary ground of the terraces, and the dry slopes
-	// above.
-	switch {
-	case t.Drain < world.FloodDepth/3:
-		return Cell{Ch: ',', Color: Ground[b]}
-	case t.Drain > world.FloodDepth*2:
-		return Cell{Ch: '`', Color: Ground[b]}
-	}
-	return Cell{Ch: '.', Color: Ground[b]}
+	// headless command and every test that reads a map see it. Otherwise the
+	// glyph is how wet the ground is: the water meadows of the valley floor,
+	// the ordinary ground of the terraces, and the dry slopes above.
+	world.Grass: func(s scene) Cell {
+		if s.g.Slope(s.p) >= hillside {
+			return Cell{Ch: 'n', Color: Ground[s.b]}
+		}
+		switch {
+		case s.t.Drain < world.FloodDepth/3:
+			return Cell{Ch: ',', Color: Ground[s.b]}
+		case s.t.Drain > world.FloodDepth*2:
+			return Cell{Ch: '`', Color: Ground[s.b]}
+		}
+		return Cell{Ch: '.', Color: Ground[s.b]}
+	},
 }
 
 // hillside is the slope at which open ground stops being ground you walk over

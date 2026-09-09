@@ -23,7 +23,7 @@ import (
 // water cut the wading barely at all and cost up to a quarter of the
 // population. What answers a river is a bridge, and the cheapest water is
 // what gets one built.
-var moveCost = [...]float64{
+var moveCost = [TerrainCount]float64{
 	Grass:  1,
 	Field:  1.3,
 	Forest: 2.2,

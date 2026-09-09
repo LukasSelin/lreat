@@ -248,7 +248,7 @@ func (w *World) Spawn(name string, p need.Weights) *entity.Agent {
 	pos := w.MarketPos
 	for try := 0; try < 20; try++ {
 		c := entity.Pos{X: w.MarketPos.X + w.RNG.IntN(9) - 4, Y: w.MarketPos.Y + w.RNG.IntN(9) - 4}
-		if w.Grid.In(c) && w.Grid.At(c).Terrain != Water {
+		if w.Grid.In(c) && !w.Grid.At(c).Wet() {
 			pos = c
 			break
 		}

@@ -283,7 +283,7 @@ var Eat = &Def{
 	},
 }
 
-func isForest(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Forest }
+func isForest(_ entity.Pos, t *world.Tile) bool { return t.Is(ontology.Wood) }
 
 // forageTake is how much of a forest's wild food one forage consumes.
 const forageTake = 0.08
@@ -455,7 +455,7 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 	if !plough(w, a.Pos) || len(a.Parcel) >= fieldTiles {
 		return false
 	}
-	if !w.Grid.HasNeighbor(a.Pos, func(n *world.Tile) bool { return n.Terrain == world.Field && n.Owner == a.ID }) {
+	if !w.Grid.HasNeighbor(a.Pos, func(n *world.Tile) bool { return n.Is(ontology.Field) && n.Owner == a.ID }) {
 		return false
 	}
 	t.Terrain, t.Owner = world.Field, a.ID
@@ -703,7 +703,7 @@ const (
 
 // timberFor is what a length of road costs on this ground.
 func timberFor(t *world.Tile) float64 {
-	if t.Terrain == world.Water {
+	if t.Is(ontology.Water) {
 		return bridgeWood
 	}
 	return pavingWood

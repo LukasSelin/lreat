@@ -4,6 +4,7 @@ import (
 	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -185,7 +186,7 @@ func forestThin(w *world.World) bool {
 				if !w.Grid.In(p) {
 					continue
 				}
-				if t := w.Grid.At(p); t.Terrain == world.Forest {
+				if t := w.Grid.At(p); t.Is(ontology.Wood) {
 					wild += t.Wild
 					n++
 				}
@@ -204,13 +205,13 @@ func abs(v int) int {
 
 // waterNear reports whether there is water to fish near the market.
 func waterNear(w *world.World) bool {
-	_, n := meanOf(w, func(t *world.Tile) bool { return t.Terrain == world.Water }, func(*world.Tile) float64 { return 0 })
+	_, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Water) }, func(*world.Tile) float64 { return 0 })
 	return n > 0
 }
 
 // fieldsWorn reports whether the fields near the market have gone poor.
 func fieldsWorn(w *world.World) bool {
-	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Terrain == world.Field }, func(t *world.Tile) float64 { return t.Fertility })
+	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) }, func(t *world.Tile) float64 { return t.Fertility })
 	return n >= 3 && fert < 0.45
 }
 
@@ -220,13 +221,13 @@ func forestGone(w *world.World) bool {
 	if w.Forest0 == 0 {
 		return false
 	}
-	now := w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest })
+	now := w.Grid.Count(func(t *world.Tile) bool { return t.Is(ontology.Wood) })
 	return float64(now) < 0.6*float64(w.Forest0)
 }
 
 // rockNear reports whether there is stone to cut near the market.
 func rockNear(w *world.World) bool {
-	_, ok := w.Grid.Nearest(w.MarketPos, nearMarket, func(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Rock })
+	_, ok := w.Grid.Nearest(w.MarketPos, nearMarket, func(_ entity.Pos, t *world.Tile) bool { return t.Offers(ontology.Stone) > 0 })
 	return ok
 }
 

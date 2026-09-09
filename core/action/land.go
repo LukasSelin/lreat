@@ -34,7 +34,7 @@ const (
 	plantRadius = 10
 )
 
-func isWater(_ entity.Pos, t *world.Tile) bool { return t.Terrain == world.Water }
+func isWater(_ entity.Pos, t *world.Tile) bool { return t.Is(ontology.Water) }
 
 // known reports whether an agent can attempt one of the land's answers: the
 // settlement has discovered it, or the agent has come near enough on its
@@ -52,7 +52,7 @@ func known(a *entity.Agent, w *world.World, tech world.Tech, name string) bool {
 // bank is a walkable tile beside water with fish in it.
 func bank(w *world.World) func(p entity.Pos, t *world.Tile) bool {
 	return func(p entity.Pos, t *world.Tile) bool {
-		if t.Terrain == world.Water {
+		if t.Is(ontology.Water) {
 			return false
 		}
 		return bestWater(w, p) != nil
@@ -69,7 +69,7 @@ func bestWater(w *world.World, p entity.Pos) *world.Tile {
 				continue
 			}
 			t := w.Grid.At(q)
-			if t.Terrain == world.Water && t.Fish >= 0.2 && (best == nil || t.Fish > best.Fish) {
+			if t.Offers(ontology.Fish) >= 0.2 && (best == nil || t.Fish > best.Fish) {
 				best = t
 			}
 		}
@@ -125,7 +125,7 @@ var Irrigate = &Def{
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		t := w.Grid.At(a.Pos)
-		if t.Terrain != world.Field || t.Owner != a.ID {
+		if !t.Is(ontology.Field) || t.Owner != a.ID {
 			return
 		}
 		a.Inventory[entity.Wood] -= irrigationCost

@@ -3,6 +3,7 @@ package system
 import (
 	"lreat/core/clock"
 	"lreat/core/entity"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -34,7 +35,17 @@ const (
 	ErodeEvery = 10 * clock.Year
 )
 
-func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
+func isForest(t *world.Tile) bool { return t.Is(ontology.Wood) }
+
+// recovery is what each kind of ground puts back when it is left alone, a row
+// apiece and nil where nothing does. The pace is here rather than in
+// core/world because it is tuning and not a fact about the ground: what a
+// shoal or a fallow strip is worth to a settlement is a thing to be tried,
+// and the world has no opinion on it.
+var recovery = [world.TerrainCount]func(t *world.Tile, k float64){
+	world.Water: func(t *world.Tile, k float64) { t.Fish = min(1, t.Fish+fishRegrowth*k) },
+	world.Field: func(t *world.Tile, k float64) { t.Fertility = min(t.Rich, t.Fertility+fallow*k) },
+}
 
 // Land lets forests regrow and slowly reclaim unclaimed grass beside them,
 // weathers the ground every so often so that the hills wear into the valleys
@@ -60,11 +71,8 @@ func Land(w *world.World) {
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		ripen(t, k)
-		switch t.Terrain {
-		case world.Water:
-			t.Fish = min(1, t.Fish+fishRegrowth*k)
-		case world.Field:
-			t.Fertility = min(t.Rich, t.Fertility+fallow*k)
+		if back := recovery[t.Terrain]; back != nil {
+			back(t, k)
 		}
 	}
 	// The hedges are read off the fields as they now stand, so a strip broken
