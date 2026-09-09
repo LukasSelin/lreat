@@ -218,6 +218,13 @@ type Agent struct {
 	Places []Place
 	Plan   *Plan
 
+	// NoWay is the last way this agent looked for and did not find: from
+	// where, to where, carrying what, and with the water as it was. Looking
+	// for a way that is not there opens everything the walker could reach,
+	// and an agent that wants the same thing tomorrow from the same place
+	// would open it all again to learn what it already knows.
+	NoWay Impasse
+
 	// Habits is the kind of moment this agent recognises each action as
 	// belonging to, by habit slot, which is catalog position. Each starts
 	// as a copy of the action's shared prior with a little drift of its
@@ -334,4 +341,14 @@ func (a *Agent) Holds(p Pos) bool {
 		}
 	}
 	return false
+}
+
+// Impasse is a way that was looked for and was not there.
+type Impasse struct {
+	From, To Pos
+	Laden    bool
+	// Waters is the water as it was when the way was looked for; see
+	// world.Grid.Waters. A bridge since changes the answer.
+	Waters int
+	Known  bool
 }

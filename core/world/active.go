@@ -35,6 +35,14 @@ import (
 // sweepOver is how long the sweep takes to reach every sleeping chunk once.
 const sweepOver = clock.Season
 
+// settledAt is how much has to stand on a chunk, or be held, for it to be
+// a settlement whose neighbours are woken: a house and a holding of fields
+// is a farmstead, and what its people read across the edge of its chunk
+// is read stale; a market, or a dozen such tiles, is a town. The market
+// always counts, because the map a settlement is measured on is two chunks
+// with the market in one, and the other must never sleep.
+const settledAt = 12
+
 // wearMemory is how long a crossing keeps ground awake. Wear fades by a
 // third in a season, so after one a single crossing is well under what
 // counts as a way, and what is left of it can be faded when the ground
@@ -49,26 +57,26 @@ func (w *World) Wake() {
 	if len(g.Active) != len(g.Chunks) {
 		g.Active = make([]bool, len(g.Chunks))
 	}
-	// Settled ground - something built on it or held - is awake and wakes
-	// its neighbours, so that what a settlement reads across a chunk's edge
-	// is read off ground the day has passed over. Ground with people on it,
-	// or walked on lately, is awake on its own account and wakes nothing: a
-	// scout on the far side of the country is not a settlement, and neither
-	// is the trail behind it.
+	// Settled ground - a town, see settledAt - is awake and wakes its
+	// neighbours, so that what a settlement reads across a chunk's edge is
+	// read off ground the day has passed over. Ground with people on it, or
+	// walked on lately, or with a farmstead on it, is awake on its own
+	// account and wakes nothing: a scout on the far side of the country is
+	// not a settlement, and neither is the trail behind it.
 	settled := make([]bool, len(g.Chunks))
 	for i := range g.Chunks {
 		c := &g.Chunks[i]
 		if c.Trodden {
 			c.Trodden, c.Trod = false, w.Tick
 		}
-		settled[i] = c.Built > 0 || c.Owned > 0
+		settled[i] = c.Markets > 0 || c.Built+c.Owned >= settledAt
 	}
 	w.Awake = AwakeCount{Chunks: len(g.Chunks)}
 	for i := range g.Chunks {
 		was := g.Active[i]
 		c := &g.Chunks[i]
 		peopled, worn := len(w.cells[i]) > 0, c.Trod >= 0 && w.Tick-c.Trod <= wearMemory
-		g.Active[i] = peopled || worn
+		g.Active[i] = peopled || worn || c.Built > 0 || c.Owned > 0
 		cx, cy := i%g.CW, i/g.CW
 		for dy := -1; dy <= 1 && !g.Active[i]; dy++ {
 			y := cy + dy

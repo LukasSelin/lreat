@@ -330,14 +330,28 @@ func Commit(a *entity.Agent, w *world.World, d *action.Def, target entity.Pos) *
 // newPlan builds a plan without installing it, so that plans worked out side
 // by side can be installed afterwards in a fixed order.
 func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, target entity.Pos, index int) *entity.Plan {
-	route := r.Carrying(a.Load()).Path(a.Pos, target)
-	return &entity.Plan{
+	p := &entity.Plan{
 		Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks,
 		Index:   index,
 		Started: w.Tick,
-		Route:   route,
-		NoWay:   len(route) == 0 && a.Pos != target,
 	}
+	if a.Pos == target {
+		return p
+	}
+	// A way looked for from here to there, carrying this, over this water,
+	// and not found, is not looked for again: the answer is the same, and
+	// finding it out opened everything the walker could reach.
+	laden := a.Load() > world.SwimLoad
+	if m := a.NoWay; m.Known && m.From == a.Pos && m.To == target && m.Laden == laden && m.Waters == w.Grid.Waters() {
+		p.NoWay = true
+		return p
+	}
+	p.Route = r.Carrying(a.Load()).Path(a.Pos, target)
+	if len(p.Route) == 0 {
+		p.NoWay = true
+		a.NoWay = entity.Impasse{From: a.Pos, To: target, Laden: laden, Waters: w.Grid.Waters(), Known: true}
+	}
+	return p
 }
 
 // Exertion is the physiological cost of one tick's worth of walking, for an

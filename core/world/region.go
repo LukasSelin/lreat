@@ -74,4 +74,32 @@ func (g *Grid) label() {
 
 // wet notes that the water at i may have moved: a tile has become or ceased
 // to be deep water, so the regions are to be labelled again.
-func (g *Grid) wet() { g.regionsStale = true }
+func (g *Grid) wet() {
+	g.regionsStale = true
+	g.waters++
+}
+
+// Waters is how many times the water has moved since the map was made: a
+// bridge raised or fallen, a river cut or dried. Whether a laden walker can
+// get from one place to another changes only when it does.
+func (g *Grid) Waters() int { return g.waters }
+
+// reachesLaden reports whether a laden walker standing on dry ground at
+// from could ever reach stop: stop stands on the same ground, or stop is
+// deep water with that ground on one of the eight sides of it, the one
+// way a laden walker enters water. A search that this says no to would
+// open everything it could reach and find nothing.
+func (g *Grid) reachesLaden(from, stop entity.Pos) bool {
+	regions := g.Regions()
+	here := regions[g.Index(from)]
+	if !g.Tiles[g.Index(stop)].Deep() {
+		return regions[g.Index(stop)] == here
+	}
+	for _, off := range dirs {
+		q := entity.Pos{X: stop.X + off.X, Y: stop.Y + off.Y}
+		if g.In(q) && regions[g.Index(q)] == here {
+			return true
+		}
+	}
+	return false
+}

@@ -136,6 +136,9 @@ type Grid struct {
 	regions      []int32
 	regionStack  []int32
 	regionsStale bool
+	// waters counts the times the water has moved, so that an answer
+	// about whether there is a way somewhere can be dated. See NoWay.
+	waters int
 
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
