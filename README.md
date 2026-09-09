@@ -50,9 +50,16 @@ and everything it weighed before setting out. `esc` drops it, `q` quits.
 The settlement is the one to watch a run on — trees, water, roofs, people —
 and the rest each ask the ground one question and answer it over the whole map
 at once: how high it stands, how wet it is, what it will grow, what is standing
-on it, and where people have actually worn it. The row under the map names the
-reading and both ends of its shading, so which end is the good ground is never
-a guess.
+on it, where people have actually worn it, what the water has in it, and who
+holds what. The row under the map names the reading and both ends of its
+shading, so which end is the good ground is never a guess.
+
+Holdings is the one that is not a quantity. Its colours stand for different
+owners rather than for more and less of one thing, so the row under it is a
+key and not a scale — a scale there would say that one farmer is somehow more
+than another. Six colours go round however many settlers there are, so it is
+for seeing the shape of a holding against the unclaimed ground rather than for
+telling one farmer from another by eye.
 
 They are readings and not decorations. Every one is a number the settlement
 already keeps and already acts on — the soil view is the fertility a settler
