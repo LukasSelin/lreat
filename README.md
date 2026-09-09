@@ -106,6 +106,17 @@ run exactly, however the goroutines happen to interleave.
 go test ./...
 ```
 
+One check does not run from there. `owl/` is its own module, so the root suite
+walks past it and the test that keeps the OWL rendering of the ontology honest
+never fires. A hook covers it, once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+A commit touching anything that ontology document is built from then has to
+leave it current. See [owl/README.md](owl/README.md).
+
 ## What a run leaves behind
 
 Every run of all three commands is kept, and says on its last line where it

@@ -20,6 +20,36 @@ golden copy: a class added to the trees, an act the catalog gains, a row added
 to `Affords` — each has to come out of the document again, and the checked-in
 copy has to match what a fresh run produces.
 
+## Turn the check on
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Worth doing once per clone, because **`go test ./...` at the root does not run
+these tests**. A nested module is not part of its parent, which is what keeps
+the simulation free of a dependency it does not need — and the price is that
+the test comparing the checked-in document against a fresh one never fires in
+the normal loop. A change to the trees can land with `owl/lreat.ofn` still
+describing the trees as they were, and nothing says so until somebody reads it
+and believes it. That happened once already, on a merge, and was caught by
+hand.
+
+With the hook on, a commit touching anything the document is built from runs
+these tests and stops on a stale document, telling you what to run. It does
+not regenerate for you: a generated file put into a commit nobody looked at is
+how a wrong one survives.
+
+Which packages count is derived rather than listed. `go list -deps` knows, and
+[owl/affects_test.go](affects_test.go) fails when
+[.githooks/ontology-paths](../.githooks/ontology-paths) disagrees with it —
+which is how `core/need` came to be on the list, since it arrives through
+`core/entity` and a list written by hand did not have it.
+
+Without gowl beside lreat the hook says so and lets the commit through, rather
+than blocking work it cannot check. `git commit --no-verify` skips it when
+there is a reason.
+
 ## What crosses over, and how
 
 | in `core/ontology` | in the document |
