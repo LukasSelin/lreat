@@ -103,9 +103,9 @@ func TestGroundRemembersBeingWalkedOn(t *testing.T) {
 	g := NewGrid(10, 10)
 	busy, quiet := entity.Pos{X: 3, Y: 3}, entity.Pos{X: 7, Y: 7}
 	for i := 0; i < 20; i++ {
-		g.Tread(busy)
+		g.Tread(busy, 0)
 	}
-	g.Tread(quiet)
+	g.Tread(quiet, 0)
 	if g.At(busy).Traffic <= g.At(quiet).Traffic {
 		t.Fatal("the well-walked tile is no more worn than the once-walked one")
 	}
@@ -129,7 +129,7 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	// A quiet corner with one lightly walked open tile.
 	lone := entity.Pos{X: 24, Y: 6}
 	for i := 0; i < 30; i++ {
-		g.Tread(lone)
+		g.Tread(lone, 0)
 	}
 	if p, _, ok := g.Busiest(entity.Pos{X: 24, Y: 6}, 3, nil); !ok || p != lone {
 		t.Fatalf("in open country Busiest picked %v (ok=%v), want the worn tile at %v", p, ok, lone)
@@ -140,7 +140,7 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	door := entity.Pos{X: 5, Y: 6}
 	g.At(door).Structure = House
 	for i := 0; i < 100; i++ {
-		g.Tread(door)
+		g.Tread(door, 0)
 	}
 	p, worn, ok := g.Busiest(entity.Pos{X: 5, Y: 6}, 3, nil)
 	if !ok {
@@ -196,7 +196,7 @@ func TestADoorwayLendsItsWearOnce(t *testing.T) {
 	door := entity.Pos{X: 10, Y: 10}
 	g.At(door).Structure = House
 	for i := 0; i < 800; i++ {
-		g.Tread(door)
+		g.Tread(door, 0)
 	}
 
 	// Eight ways out, so each gap hears an eighth of the errands.
@@ -267,10 +267,10 @@ func TestPavingDoesNotWidenAStreetItAlreadyHas(t *testing.T) {
 	flank := entity.Pos{X: 7, Y: 11}
 	end := entity.Pos{X: 10, Y: 10}
 	for i := 0; i < 900; i++ {
-		g.Tread(flank)
+		g.Tread(flank, 0)
 	}
 	for i := 0; i < 300; i++ {
-		g.Tread(end)
+		g.Tread(end, 0)
 	}
 	p, _, ok := g.Busiest(entity.Pos{X: 8, Y: 10}, 4, nil)
 	if !ok {
@@ -342,7 +342,7 @@ func TestTheCaseForARoadIsWeighedByWhatItSaves(t *testing.T) {
 	// Grass is the unit: open ground reads exactly as worn as it is walked.
 	meadow := entity.Pos{X: 3, Y: 3}
 	for i := 0; i < 100; i++ {
-		g.Tread(meadow)
+		g.Tread(meadow, 0)
 	}
 	if d := g.Draw(meadow); d != g.At(meadow).Traffic {
 		t.Fatalf("grass drew %.1f against %.1f of wear; it is meant to be the unit",
@@ -376,5 +376,35 @@ func TestTheCaseForARoadIsWeighedByWhatItSaves(t *testing.T) {
 	g.At(lane).Traffic = 600
 	if w, l := g.Draw(ford), g.Draw(lane); w < l*0.99 || w > l*1.01 {
 		t.Fatalf("a ford worn 100 drew %.1f against a lane worn 600 at %.1f; want them level", w, l)
+	}
+}
+
+// Wear is a record of the settlement's work, not of its wandering. A road is
+// laid because grain has to come off the field and timber out of the wood, so
+// the crossing that most wants one is the laden crossing, and counting it the
+// same as an idler's made the two indistinguishable.
+func TestHaulingMarksTheGroundMoreThanStrolling(t *testing.T) {
+	g := NewGrid(10, 10)
+	lane := entity.Pos{X: 2, Y: 2}
+	cartway := entity.Pos{X: 6, Y: 6}
+
+	// Twice as many people stroll down the lane as haul along the cartway.
+	for i := 0; i < 20; i++ {
+		g.Tread(lane, 0)
+	}
+	for i := 0; i < 10; i++ {
+		g.Tread(cartway, 4) // four sacks on the back
+	}
+	if l, c := g.At(lane).Traffic, g.At(cartway).Traffic; c <= l {
+		t.Fatalf("the cartway is worn %.0f against the strolled lane's %.0f; "+
+			"carrying is meant to tell", c, l)
+	}
+
+	// An empty-handed crossing still marks the ground, because a road is a
+	// footpath too and being walked at all is what keeps it - see Walked.
+	quiet := entity.Pos{X: 8, Y: 8}
+	g.Tread(quiet, 0)
+	if g.At(quiet).Traffic != Wear {
+		t.Fatalf("an empty-handed crossing marked %.2f, want %v", g.At(quiet).Traffic, Wear)
 	}
 }
