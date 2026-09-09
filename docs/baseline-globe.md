@@ -17,25 +17,34 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. One of eight settlements died with its founders and none
-grew past four hundred; that is the globe's ecology as it stands, before the
-settlements to come have bounded land of their own, and it is what a change to
-the globe is held against. Everything that is measured on the valley is
+one side or another. None of the eight died out, one is down to a single
+soul, and two grew past three hundred; that is the globe's ecology as it
+stands, before the settlements to come have bounded land of their own, and it
+is what a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
 
-Taken on the commit that gave the weather a lapse rate, where a mountain is
-colder than the valley under it and the peaks carry snow and a tree line; see
-"What the last change did" in [baseline.md](baseline.md). **It is not a
-measurement of that change.** The run it replaces was taken on `a49cf5f`, the
-end of the first phase of the globe, and master has had the mountains, the
-hedges, the roads wearing in and much else since - so everything between these
-two batches is in the difference, not the lapse rate alone. What moved is
-worth knowing and not worth attributing: `held` 0.47 to 0.66, `lasted` 4 of 8
-to 6 of 8, one extinction instead of two, and the mean population 302 to 102
-on eight seeds, which is the loosest number in either file on the smallest
-batch either file takes. Whoever next changes the globe should take this
-batch again before and after, on one tree, and then the difference will mean
-something.
+Taken on the commit that gave the soil a make-up: there is rock under every
+tile, the soil over it is a mixture weathered out of that rock, and the water
+sorts what it carries. See "What the last change did" in
+[baseline.md](baseline.md).
+
+This one *is* a measurement of that change, and it is the first entry here
+that is: the batch before it was taken on the commit immediately previous, and
+nothing else moved in between.
+
+```
+before the soils: gates: fed 0.63 safe 0.44 held 0.66 all 0.204 food 19.58 | lasted 6/8 extinct 1 mean 102.5 median 87
+after the soils:  gates: fed 0.70 safe 0.52 held 0.62 all 0.257 food 22.36 | lasted 6/8 extinct 0 mean 133.2 median 90
+```
+
+Eight seeds is far too small a batch to believe any of it - the valley's
+thresholds are for twenty-four - but the direction is worth writing down
+because it is the opposite of the valley's. There, soils were a draw; here
+`fed` is up 0.07, `all` up 0.05, and the extinction is gone. The reading that
+suggests itself is that a globe is where a soil's make-up has room to matter:
+a founding party set down on one coast of a world may land on ground that its
+own rock made good, and there are eight coasts rather than one valley. Nobody
+should act on that until it is measured on a batch that could carry it.
 
 The cost of a day was measured on `a49cf5f` and has not been taken again: on
 an idle machine of twenty-four cores a day here with forty people cost four to
@@ -47,47 +56,44 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1    3    21      4      0      8 |  0.64  0.41  0.93  0.92  0.00 |  0.94
-   2   37    96    113     24     60 |  0.66  0.56  0.70  0.72  0.07 |  0.93
-   3   87    79     78     33     70 |  0.66  0.49  0.55  0.75  0.01 |  1.00
-   4  219    37     47     23    181 |  0.76  0.43  0.86  0.78  0.03 |  1.00
-   5   35    67     82     23     20 |  0.51  0.52  0.41  0.77  0.04 |  1.00
-   6   98   227    187     51    131 |  0.71  0.60  0.65  0.81  0.11 |  1.00
-   7  341    80    104     57    151 |  0.59  0.44  0.91  0.83  0.09 |  0.95
-   8    0    25      5      1      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   1    1    20      1      1      3 |  0.84  0.15  0.00  0.03  0.00 |  0.00
+   2   90   119    164     63     98 |  0.59  0.61  0.72  0.65  0.04 |  0.99
+   3   31    84     95     13     31 |  0.73  0.55  0.69  0.53  0.02 |  0.98
+   4  411    92     55    110    229 |  0.73  0.47  0.53  0.84  0.03 |  1.00
+   5   30    46     56     14     33 |  0.59  0.52  0.49  0.95  0.05 |  1.00
+   6  177   178    124     87    149 |  0.70  0.53  0.56  0.75  0.01 |  1.00
+   7   15    50     45      2     15 |  0.78  0.44  0.82  0.82  0.02 |  0.99
+   8  311   157    144    198    320 |  0.65  0.56  0.72  0.73  0.07 |  1.00
 
-dwell/rest                          509829  27.4%
-take/berries@wood                   375100  20.2%
-consume/provision                   334603  18.0%
-dwell/guard@market                  201680  10.8%
-pass/practice>pupil                 185089   9.9%
-dwell/meet@tavern>neighbour          74556   4.0%
-take/grain@field                     42894   2.3%
-transfer/provision>needy             33047   1.8%
-take/timber@wood                     23326   1.3%
-take/fish@water                      20449   1.1%
-pass/practice>self                   14976   0.8%
-dwell/look                           13042   0.7%
-raise/timber>dwelling@open            7993   0.4%
-exchange/material>coin@market         7623   0.4%
-exchange/coin>provision@market        4929   0.3%
-tend/plant@open                       3042   0.2%
-transfer/material>requester           1872   0.1%
-transfer/provision<holder             1806   0.1%
-make/timber>tool@bench                1281   0.1%
-tend/clear@open                       1237   0.1%
-take/game@wood                        1036   0.1%
-raise/timber>road@ground               575   0.0%
-tend/water@field                       424   0.0%
-take/stone@outcrop                     390   0.0%
-strike/person>wrongdoer                270   0.0%
-move@dwelling                           69   0.0%
-make/provision+timber>meal@hearth       54   0.0%
-raise/timber>tavern@open                33   0.0%
-make/stone+timber>tool@forge            32   0.0%
-raise/timber+stone>granary@open         19   0.0%
-raise/timber+stone>market@open           3   0.0%
+dwell/rest                         1013897  39.9%
+take/berries@wood                   469791  18.5%
+consume/provision                   363624  14.3%
+dwell/guard@market                  254553  10.0%
+pass/practice>pupil                 195683   7.7%
+dwell/meet@tavern>neighbour          55502   2.2%
+take/timber@wood                     35858   1.4%
+take/grain@field                     35757   1.4%
+take/fish@water                      28215   1.1%
+transfer/provision>needy             23665   0.9%
+dwell/look                           16546   0.7%
+pass/practice>self                   12800   0.5%
+raise/timber>dwelling@open            9974   0.4%
+exchange/coin>provision@market        5661   0.2%
+exchange/material>coin@market         4193   0.2%
+make/timber>tool@bench                2218   0.1%
+tend/plant@open                       2057   0.1%
+raise/timber>road@ground              1963   0.1%
+transfer/material>requester           1802   0.1%
+tend/clear@open                       1654   0.1%
+take/game@wood                        1399   0.1%
+transfer/provision<holder              921   0.0%
+tend/water@field                       485   0.0%
+make/provision+timber>meal@hearth      450   0.0%
+strike/person>wrongdoer                317   0.0%
+move@dwelling                          205   0.0%
+raise/timber>tavern@open                40   0.0%
+take/stone@outcrop                       1   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.63 safe 0.44 held 0.66 all 0.204 food 19.58 hungry-with-food 0.23 | lasted 6/8 extinct 1 mean 102.5 median 87 | phys 0.65 safe 0.50 belng 0.71 estm 0.80
+gates: fed 0.70 safe 0.52 held 0.62 all 0.257 food 22.36 hungry-with-food 0.21 | lasted 6/8 extinct 0 mean 133.2 median 90 | phys 0.70 safe 0.48 belng 0.57 estm 0.66
 ```
