@@ -139,6 +139,12 @@ type Grid struct {
 	// Chunks is the map in pieces, CW across and CH down. See chunk.go.
 	CW, CH int
 	Chunks []Chunk
+	// patches is the map in smaller pieces, PW across and PH down, each
+	// counting what kind of ground its tiles are. It is what a search for
+	// ground asks before walking, and it is the only tally of what kind of
+	// ground the map holds where. See patch.go.
+	PW, PH  int
+	patches []patch
 	// Active is which chunks are awake today, set by World.Wake. Empty
 	// until the first day, when every chunk is read as awake.
 	Active []bool
@@ -226,6 +232,8 @@ func (g *Grid) ownRouter() *Router {
 func NewGrid(w, h int) *Grid {
 	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h), lenders: make([]uint8, w*h), sea: -1}
 	g.layChunks()
+	g.layPatches()
+	g.repatch()
 	return g
 }
 
@@ -249,6 +257,7 @@ func (g *Grid) Clone() *Grid {
 	copy(c.Tiles, g.Tiles)
 	c.lenders = make([]uint8, len(g.Tiles))
 	c.layChunks()
+	c.layPatches()
 	c.Recount()
 	return c
 }

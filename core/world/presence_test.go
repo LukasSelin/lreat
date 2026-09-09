@@ -72,3 +72,59 @@ func TestAnyWithinOfNothingIsNo(t *testing.T) {
 		t.Fatal("the counts found ground of no kind at all")
 	}
 }
+
+// countKind walks the tiles, which is what the patches are there to save.
+func countKind(g *Grid, t Terrain) int {
+	n := 0
+	for i := range g.Tiles {
+		if g.Tiles[i].Terrain == t {
+			n++
+		}
+	}
+	return n
+}
+
+// The patches are the only tally of what kind of ground the map holds
+// where, so a tally that drifts from the ground does not show up as a
+// wrong number anywhere - it shows up as a search that is never walked
+// because the counts said there was nothing to find. This holds them
+// against the ground as it is made and as it is turned.
+func TestPatchesAgreeWithTheGround(t *testing.T) {
+	for _, wrap := range []bool{false, true} {
+		width := 200
+		if wrap {
+			width = 192
+		}
+		w := NewWith(17, Config{Width: width, Height: 128, Wrap: wrap})
+		g := w.Grid
+		check := func(when string) {
+			for k := Terrain(0); k < TerrainCount; k++ {
+				if got, want := g.Kind(k), countKind(g, k); got != want {
+					t.Fatalf("wrap %v, %s: the patches count %d of %v, the ground has %d",
+						wrap, when, got, k, want)
+				}
+			}
+		}
+		check("as made")
+		rng := rand.New(rand.NewPCG(9, 10))
+		for i := 0; i < 500; i++ {
+			p := entity.Pos{X: rng.IntN(g.W), Y: rng.IntN(g.H)}
+			g.Turn(p, Terrain(rng.IntN(int(TerrainCount))))
+		}
+		check("after turning five hundred tiles")
+		g.Recount()
+		check("after a recount")
+	}
+}
+
+// Clone is how a snapshot is taken, and a snapshot whose patches were
+// empty would report a map with no ground of any kind on it.
+func TestACloneCarriesItsPatches(t *testing.T) {
+	w := New(6)
+	c := w.Grid.Clone()
+	for k := Terrain(0); k < TerrainCount; k++ {
+		if got, want := c.Kind(k), w.Grid.Kind(k); got != want {
+			t.Fatalf("the copy counts %d of %v, the original %d", got, k, want)
+		}
+	}
+}

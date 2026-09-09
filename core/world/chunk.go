@@ -30,14 +30,6 @@ type Chunk struct {
 	// nobody keeps and nothing falls down on.
 	Built, Owned                               int
 	Houses, Roads, Granaries, Markets, Taverns int
-	// Kinds is how many tiles here are of each kind of ground. It is one
-	// row rather than a field per kind because the questions asked of it
-	// are asked of a kind held in a variable: whether there is any wood
-	// within reach, or any water, or any rock, is the same question about
-	// a different row. See Grid.AnyWithin, which is what makes a search
-	// for ground that is not there cost a look at a few counts instead of
-	// a walk over every tile in the radius.
-	Kinds [TerrainCount]int
 	// Trodden is whether anybody has crossed this chunk since it was last
 	// woken, and Trod the day it was last known to have been. Wear keeps
 	// ground awake for a while after the last crossing - see active.go -
@@ -100,9 +92,6 @@ func (c *Chunk) count(t *Tile, d int) {
 	if t.Structure != None {
 		c.Built += d
 	}
-	if t.Terrain < TerrainCount {
-		c.Kinds[t.Terrain] += d
-	}
 	if t.Owner != 0 {
 		c.Owned += d
 	}
@@ -128,12 +117,16 @@ func (g *Grid) Turn(p entity.Pos, tr Terrain) {
 	i := g.Index(p)
 	t, c := &g.Tiles[i], &g.Chunks[g.ChunkOf(i)]
 	c.count(t, -1)
+	// Turning ground is the one thing that changes what kind a tile is,
+	// so it is the one place the patches are kept. See patch.go.
+	g.mark(i, t, -1)
 	deep := t.Deep()
 	t.Terrain = tr
 	if tr != Field {
 		t.Fenced = false // a hedge stands round a field and nothing else
 	}
 	c.count(t, 1)
+	g.mark(i, t, 1)
 	if t.Deep() != deep {
 		g.wet()
 	}
@@ -169,13 +162,13 @@ func (g *Grid) Recount() {
 		c := &g.Chunks[i]
 		c.Built, c.Owned = 0, 0
 		c.Houses, c.Roads, c.Granaries, c.Markets, c.Taverns = 0, 0, 0, 0, 0
-		c.Kinds = [TerrainCount]int{}
 		c.Height = 0
 	}
 	if len(g.lenders) != len(g.Tiles) {
 		g.lenders = make([]uint8, len(g.Tiles))
 	}
 	clear(g.lenders)
+	g.repatch()
 	g.wet()
 	for i := range g.Tiles {
 		g.Chunks[g.ChunkOf(i)].Height += g.Tiles[i].Height
@@ -202,8 +195,14 @@ func (g *Grid) Fields() int { return g.Kind(Field) }
 func (g *Grid) Forest() int { return g.Kind(Forest) }
 
 // Kind is how many tiles of this ground the map has, summed over the
-// chunks rather than walked over the tiles.
-func (g *Grid) Kind(t Terrain) int { return g.sum(func(c *Chunk) int { return c.Kinds[t] }) }
+// patches rather than walked over the tiles.
+func (g *Grid) Kind(t Terrain) int {
+	n := 0
+	for i := range g.patches {
+		n += int(g.patches[i][t])
+	}
+	return n
+}
 
 // Roads is how many tiles are paved.
 func (g *Grid) Roads() int { return g.sum(func(c *Chunk) int { return c.Roads }) }
@@ -240,7 +239,7 @@ func (g *Grid) Lenders(i int) int { return int(g.lenders[i]) }
 
 // AnyWithin reports whether the map holds any tile of one of these kinds
 // of ground within radius of p. It is answered from the counts of the
-// chunks the radius reaches into, so it is a handful of comparisons
+// patches the radius reaches into, so it is a handful of comparisons
 // whatever the radius is.
 //
 // It is a question asked to be told no. A search for ground of some kind
@@ -251,10 +250,13 @@ func (g *Grid) Lenders(i int) int { return int(g.lenders[i]) }
 // instead, and the search is only walked when there is something to find.
 //
 // So a false here has to mean there is truly nothing, while a true need
-// only mean there might be: the answer is read off whole chunks, and a
-// chunk the radius clips the corner of counts as reached. That is why the
+// only mean there might be: the answer is read off whole patches, and a
+// patch the radius clips the corner of counts as reached. That is why the
 // search still runs when this says yes, and why nothing it decides can
-// change what a search returns.
+// change what a search returns, and it is why the patch is as small as it
+// is - the ground it consults is the ground the search would cover,
+// rounded up to the patch, and every tile of the difference is a search
+// walked for nothing.
 func (g *Grid) AnyWithin(p entity.Pos, radius int, kinds KindSet) bool {
 	if kinds == 0 {
 		return false
@@ -265,17 +267,17 @@ func (g *Grid) AnyWithin(p entity.Pos, radius int, kinds KindSet) bool {
 	if !g.Wrap {
 		x0, x1 = max(0, x0), min(g.W-1, x1)
 	}
-	for cy := y0 / ChunkSide; cy <= y1/ChunkSide; cy++ {
-		for cx := floorDiv(x0, ChunkSide); cx <= floorDiv(x1, ChunkSide); cx++ {
-			x := cx
+	for py := y0 / PatchSide; py <= y1/PatchSide; py++ {
+		for px := floorDiv(x0, PatchSide); px <= floorDiv(x1, PatchSide); px++ {
+			x := px
 			if g.Wrap {
-				x = ((x % g.CW) + g.CW) % g.CW
-			} else if x < 0 || x >= g.CW {
+				x = ((x % g.PW) + g.PW) % g.PW
+			} else if x < 0 || x >= g.PW {
 				continue
 			}
-			c := &g.Chunks[cy*g.CW+x]
+			held := &g.patches[py*g.PW+x]
 			for t := Terrain(0); t < TerrainCount; t++ {
-				if kinds.Has(t) && c.Kinds[t] > 0 {
+				if kinds.Has(t) && held[t] > 0 {
 					return true
 				}
 			}

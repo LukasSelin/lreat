@@ -13,6 +13,22 @@ import (
 // the default map may ever sleep. The market's chunk is always occupied and
 // the other is beside it; this says so for twenty years, house moves and
 // market moves included.
+// wooded is how many tiles of this chunk are under trees, walked rather
+// than read off a count: what kind of ground a tile is is the patches'
+// tally now, at a size finer than a chunk, and a test that wants one
+// chunk's worth can afford to look.
+func wooded(g *world.Grid, c *world.Chunk) int {
+	n := 0
+	for y := c.Y0; y < c.Y0+c.H; y++ {
+		for x := c.X0; x < c.X0+c.W; x++ {
+			if g.At(entity.Pos{X: x, Y: y}).Terrain == world.Forest {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 func TestTheDefaultMapNeverSleeps(t *testing.T) {
 	w := world.New(6)
 	for i := 0; i < 30; i++ {
@@ -44,7 +60,7 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 	for i := range g.Chunks {
 		c := &g.Chunks[i]
 		mid := entity.Pos{X: c.X0 + c.W/2, Y: c.Y0 + c.H/2}
-		if d := g.Dist(mid, w.MarketPos); !g.Active[i] && c.Kinds[world.Forest] > 20 && d > farthest {
+		if d := g.Dist(mid, w.MarketPos); !g.Active[i] && wooded(g, c) > 20 && d > farthest {
 			sleeping, farthest = i, d
 		}
 	}

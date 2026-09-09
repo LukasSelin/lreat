@@ -38,7 +38,6 @@ func TestChunkCountsAgreeWithTheGround(t *testing.T) {
 				if tile.Structure != world.None {
 					want.Built++
 				}
-				want.Kinds[tile.Terrain]++
 				if tile.Owner != 0 {
 					want.Owned++
 				}
