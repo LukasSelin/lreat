@@ -40,68 +40,125 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1   64    97     27     10     44 |  0.70  0.45  0.50  0.70  0.06 |  1.00
-   2  196   159     29     86     47 |  0.55  0.50  0.72  0.65  0.08 |  1.00
-   3  120   124     25     36     68 |  0.58  0.47  0.66  0.67  0.05 |  1.00
-   4   66   141     36     25     73 |  0.49  0.52  0.41  0.62  0.02 |  1.00
-   5  281   369     22     95    138 |  0.62  0.51  0.53  0.67  0.09 |  1.00
-   6  318   262     48    142    211 |  0.64  0.55  0.56  0.58  0.01 |  1.00
-   7   41    47     38     33     10 |  0.55  0.57  0.86  0.80  0.07 |  0.79
-   8  140   173     23     42     67 |  0.66  0.51  0.39  0.72  0.02 |  1.00
-   9   69   154     25      7     34 |  0.58  0.45  0.54  0.67  0.13 |  1.00
-  10  424   520     55    115    191 |  0.56  0.47  0.43  0.47  0.04 |  1.00
-  11   30   153     75     23     28 |  0.57  0.62  0.54  0.67  0.04 |  0.99
-  12  333   190     11     38    146 |  0.60  0.43  0.68  0.83  0.09 |  1.00
-  13    0    33     13      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-  14  257   265     27     97    164 |  0.60  0.50  0.52  0.69  0.04 |  1.00
-  15  145   283     25     73     75 |  0.58  0.55  0.51  0.71  0.08 |  1.00
-  16  202   222     26     88    116 |  0.60  0.50  0.48  0.59  0.09 |  1.00
-  17  147   420     49     67    109 |  0.57  0.52  0.56  0.60  0.10 |  1.00
-  18   92   340     41     38     56 |  0.58  0.56  0.53  0.67  0.09 |  1.00
-  19  221   218     27     71     66 |  0.61  0.45  0.75  0.77  0.02 |  1.00
-  20  166   115     39     52    107 |  0.63  0.50  0.68  0.59  0.10 |  1.00
-  21  543   389     33     57    258 |  0.64  0.53  0.61  0.63  0.18 |  1.00
-  22  111   179     22     29     86 |  0.71  0.51  0.47  0.57  0.07 |  1.00
-  23  338   357     33     94    237 |  0.65  0.49  0.47  0.54  0.04 |  1.00
-  24   82    79     23     17     91 |  0.53  0.49  0.77  0.78  0.07 |  1.00
+   1   75   108     30     26     34 |  0.70  0.50  0.29  0.58  0.03 |  1.00
+   2  199   454     41     56    123 |  0.58  0.52  0.59  0.64  0.09 |  1.00
+   3  217   405     25     76    261 |  0.53  0.53  0.57  0.70  0.10 |  1.00
+   4  195   171     24     95     32 |  0.60  0.54  0.51  0.53  0.11 |  1.00
+   5  146   169     30     79     82 |  0.58  0.56  0.52  0.54  0.05 |  0.99
+   6  154   199     22     70    170 |  0.53  0.54  0.58  0.56  0.02 |  0.99
+   7  627   455     35    179    435 |  0.62  0.49  0.44  0.48  0.08 |  1.00
+   8  224   328     39     79    102 |  0.54  0.49  0.56  0.48  0.02 |  1.00
+   9  370   493     30    123    192 |  0.56  0.49  0.51  0.69  0.02 |  1.00
+  10  221   299     31     19    112 |  0.58  0.48  0.59  0.63  0.08 |  1.00
+  11   30   115     43     27     31 |  0.60  0.58  0.41  0.69  0.05 |  0.89
+  12  165   305     39     48     97 |  0.62  0.50  0.60  0.45  0.13 |  1.00
+  13    1    41     21      0      1 |  0.48  0.15  0.00  0.94  0.00 |  0.00
+  14  227   243     39     82    190 |  0.58  0.48  0.42  0.61  0.02 |  1.00
+  15  134   166     35     35     64 |  0.59  0.49  0.74  0.77  0.22 |  1.00
+  16  240   200     23    124    132 |  0.65  0.55  0.44  0.61  0.04 |  1.00
+  17  145   308     60     81    141 |  0.59  0.58  0.35  0.33  0.02 |  1.00
+  18  280   293     40     38    138 |  0.59  0.55  0.56  0.66  0.12 |  1.00
+  19  301   252     34    111    133 |  0.62  0.49  0.64  0.69  0.11 |  1.00
+  20  176   256     45     78     27 |  0.53  0.49  0.54  0.63  0.07 |  0.99
+  21  109    95     37     34     20 |  0.63  0.48  0.60  0.78  0.07 |  1.00
+  22  124    85      7     22     56 |  0.62  0.43  0.79  0.85  0.13 |  1.00
+  23  459   255     34    151    192 |  0.65  0.50  0.59  0.67  0.03 |  1.00
+  24  266   322     26    101    134 |  0.64  0.48  0.56  0.51  0.08 |  1.00
 
-dwell/rest                         2847009  26.4%
-take/berries@wood                  2712612  25.1%
-consume/provision                  1815720  16.8%
-dwell/guard@market                 1056765   9.8%
-pass/practice>pupil                 973886   9.0%
-take/fish@water                     346450   3.2%
-dwell/meet@tavern>neighbour         297465   2.8%
-take/grain@field                    146852   1.4%
-take/timber@wood                    132517   1.2%
-transfer/provision>needy            117447   1.1%
-pass/practice>self                  111375   1.0%
-exchange/material>coin@market        49028   0.5%
-raise/timber>dwelling@open           42665   0.4%
-tend/plant@open                      39254   0.4%
-exchange/coin>provision@market       38026   0.4%
-transfer/material>requester          20963   0.2%
-transfer/provision<holder            11883   0.1%
-make/timber>tool@bench                5635   0.1%
-tend/clear@open                       5225   0.0%
-strike/person>wrongdoer               4740   0.0%
-take/game@wood                        3284   0.0%
-tend/water@field                      2886   0.0%
-take/stone@outcrop                    2364   0.0%
-raise/timber>road@ground              2328   0.0%
-make/provision+timber>meal@hearth      442   0.0%
-dwell/look                             267   0.0%
-raise/timber>tavern@open               110   0.0%
-move@dwelling                           84   0.0%
-raise/timber+stone>granary@open         74   0.0%
-make/stone+timber>tool@forge            39   0.0%
-raise/timber+stone>market@open          18   0.0%
+dwell/rest                         3342708  27.3%
+take/berries@wood                  3108894  25.4%
+consume/provision                  2003246  16.4%
+dwell/guard@market                 1190079   9.7%
+pass/practice>pupil                 997606   8.1%
+take/fish@water                     429009   3.5%
+dwell/meet@tavern>neighbour         335378   2.7%
+take/timber@wood                    154307   1.3%
+pass/practice>self                  142154   1.2%
+take/grain@field                    136771   1.1%
+transfer/provision>needy            112217   0.9%
+tend/plant@open                      61488   0.5%
+exchange/coin>provision@market       55881   0.5%
+raise/timber>dwelling@open           53106   0.4%
+exchange/material>coin@market        47203   0.4%
+transfer/material>requester          19950   0.2%
+transfer/provision<holder            18689   0.2%
+make/timber>tool@bench                7326   0.1%
+tend/clear@open                       6192   0.1%
+take/game@wood                        5947   0.0%
+strike/person>wrongdoer               5167   0.0%
+tend/water@field                      3404   0.0%
+raise/timber>road@ground              2770   0.0%
+take/stone@outcrop                    1879   0.0%
+make/provision+timber>meal@hearth      551   0.0%
+dwell/look                             318   0.0%
+raise/timber>tavern@open               139   0.0%
+make/stone+timber>tool@forge            90   0.0%
+move@dwelling                           87   0.0%
+raise/timber+stone>granary@open         49   0.0%
+raise/timber+stone>market@open          29   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.56 safe 0.48 held 0.83 all 0.269 food 4.64 hungry-with-food 0.26 | lasted 23/24 extinct 1 mean 182.8 median 147 | phys 0.60 safe 0.51 belng 0.57 estm 0.66
+gates: fed 0.56 safe 0.51 held 0.81 all 0.285 food 4.39 hungry-with-food 0.26 | lasted 23/24 extinct 0 mean 211.9 median 199 | phys 0.59 safe 0.49 belng 0.52 estm 0.63
 ```
 
 ## What the last change did
+
+The rivers got a shape. A channel used to be the steepest way down and nothing
+else, redrawn from scratch every time the ground moved, which on a smooth
+hillside is a straight line along one of eight bearings - and it cut the same
+way whether it was a gully or the drainage of half the map. Now it cuts the
+outside of every bend it makes and lays most of what it cuts on the inside, so
+the bend grows and the channel walks sideways across its own valley. See
+meander.go.
+
+The other half is that the rock underneath decides what the water can cut.
+`hardness` runs from granite at one and a half down to shale at not quite a
+half, and it divides both the incision that cuts the first valleys and the
+bank a meander takes - so a river takes a gorge out of shale and is turned
+aside by granite. The geology has been on the map since the soils landed and
+this is the first thing that reads it.
+
+Over three seeds and forty ages of weather the share of river tiles that turn
+goes from about a half to two thirds. `bankCut` at 2.5 metres an age for the
+greatest river on the map is the knee of that: twice as much buys a hundredth
+more and starts pulling the hillsides about, half as much buys half the bends.
+
+**It is a draw on the settlements, and the two batches disagree about
+everything that moved.**
+
+```
+offset  0, master: gates: fed 0.56 safe 0.48 held 0.83 all 0.269 | lasted 23/24 extinct 1 mean 182.8 median 147 | belng 0.57
+offset  0, rivers: gates: fed 0.56 safe 0.51 held 0.81 all 0.285 | lasted 23/24 extinct 0 mean 211.9 median 199 | belng 0.52
+offset 24, master: gates: fed 0.56 safe 0.52 held 0.84 all 0.290 | lasted 23/24 extinct 0 mean 171.2 median 140 | belng 0.58
+offset 24, rivers: gates: fed 0.55 safe 0.47 held 0.82 all 0.251 | lasted 23/24 extinct 0 mean 159.3 median 123 | belng 0.57
+```
+
+The default batch had `belng` down 0.05, which is exactly the figure this file
+says is worth believing on two batches that agree - and there was a good story
+ready for it, that a channel walking across a valley walks between neighbours
+and cuts a settlement in half. The independent batch has it down 0.01. `all`
+went up 0.016 and then down 0.039; `safe` up 0.03 and then down 0.05. Pooled
+over the forty-eight seeds `all` is down 0.011 and `belng` down 0.03, both
+inside what chance moves them by, and the population points opposite ways in
+the way it always does. The story was fitted to one batch and is not in the
+numbers.
+
+### What this cannot see
+
+The golden numbers in core/system did not move for the meandering at all, and
+that is worth knowing about them: a golden run is 1500 days and an age of
+weather is 3600, so no run in that test ever reaches one. They cover the map
+as it is made and the settlement's first four years on it. Anything about
+erosion - this change, the soils before it, the ages that wear a valley down
+over a lifetime - is measured here and nowhere else.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the soils did
 
 The ground got a make-up. There is rock under every tile now - granite,
 limestone, sandstone or shale, laid down in regions by two coarse lattices
@@ -124,8 +181,8 @@ of it - and what an age of weather strips off a tile is multiplied by how
 sandy it is, so a settlement that ploughs its sandy slopes loses them faster
 than one that ploughs its clay. See bedrock.go.
 
-**It is a draw on the settlements, on two batches.** That is the intended
-result: this is structure and not difficulty.
+**It was a draw on the settlements, on two batches.** That was the intended
+result: structure and not difficulty.
 
 ```
 offset  0, master: gates: fed 0.56 safe 0.52 held 0.83 all 0.291 food 4.76 | lasted 22/24 extinct 0 mean 186.4 median 159
@@ -148,12 +205,6 @@ each other about their ground. A settlement founded over sandstone has a
 poorer valley than one founded over shale, and that is a new thing for a seed
 to decide. Anybody reading a population figure off a small batch after this
 should expect it to be looser than it was.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What the lapse rate did
 

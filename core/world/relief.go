@@ -388,7 +388,9 @@ func (g *Grid) incise() {
 	}
 	cut := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
-		cut[i] = Incise * math.Sqrt(g.Tiles[i].Flow/most)
+		// Charged by the water, and paid by the rock: the same river cuts a
+		// gorge through shale and is turned aside by granite.
+		cut[i] = Incise * math.Sqrt(g.Tiles[i].Flow/most) / g.Tiles[i].Hard()
 	}
 	for pass := 0; pass < valleyWidth; pass++ {
 		cut = g.spread(cut)

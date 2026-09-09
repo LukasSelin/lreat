@@ -107,7 +107,13 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i].Traffic = 0
 	}
-	ford := entity.Pos{X: a.Pos.X - 2, Y: a.Pos.Y}
+	// The two tiles are found rather than counted off from the agent. Fixed
+	// offsets have now been wrong twice: the ground grew mountains and put a
+	// wood on one of them, and then the rock underneath began to decide how
+	// fast the water cuts, which moved the market onto one and a river onto
+	// the other. Neither time was this test about any of that.
+	ford, lane := clearGround(t, w, a.Pos, entity.Pos{}), entity.Pos{}
+	lane = clearGround(t, w, a.Pos, ford)
 	w.Grid.At(ford).Terrain = world.Water
 	// The ford's count is written in terms of hauling and the lane's load is
 	// not, which is the asymmetry itself: the lane can be worn harder by
@@ -117,7 +123,6 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	for i := 0; i < 25*hauling; i++ {
 		w.Grid.Tread(ford, 0)
 	}
-	lane := entity.Pos{X: a.Pos.X + 2, Y: a.Pos.Y}
 	for i := 0; i < 300; i++ {
 		w.Grid.Tread(lane, hauling-1)
 	}
@@ -134,4 +139,39 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	if got, _ := Pave.Target(a, w); got != lane {
 		t.Fatalf("with only a length of wood, aimed at %v, want the lane at %v", got, lane)
 	}
+}
+
+// clearGround is a tile near p that the test can do what it likes with: open
+// ground nobody has built on or claimed, not the tile itself and not next to
+// away, so that two of them can be told apart by anything reading the
+// neighbourhood. It walks out in rings, so what comes back is as near as such
+// ground gets.
+func clearGround(t *testing.T, w *world.World, p, away entity.Pos) entity.Pos {
+	t.Helper()
+	for r := 2; r < 12; r++ {
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if max(abs(dx), abs(dy)) != r {
+					continue
+				}
+				q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
+				if !w.Grid.In(q) || !w.Grid.At(q).Buildable() {
+					continue
+				}
+				if away != (entity.Pos{}) && w.Grid.Dist(q, away) < 3 {
+					continue
+				}
+				return q
+			}
+		}
+	}
+	t.Fatalf("no clear ground within twelve tiles of %v", p)
+	return entity.Pos{}
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }

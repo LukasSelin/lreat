@@ -31,7 +31,12 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for the soil's make-up: there is rock under the ground now, the
+// Retaken for the rivers: a channel now cuts the outside of its own bends and
+// walks sideways across its valley, and what an age of weather takes off a
+// tile is divided by the rock under it, so soft beds go and hard ones are
+// left standing. Both move every map from the first age onward.
+//
+// Retaken before that for the soil's make-up: there is rock under the ground now, the
 // soil over it is a mixture of sand, silt and clay weathered out of that
 // rock, and the water sorts what it carries so that the fine stuff ends up
 // where the water slows. Fertility reads the mixture and so does how fast a
@@ -42,9 +47,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "b7e65b8e40923476",
-	3: "b9b56d4383a0a3f0",
-	9: "999e742a635c2e0f",
+	1: "c984d655f4906307",
+	3: "4a34be73e4103abb",
+	9: "e45e762d53c4ed7b",
 }
 
 // digest is the hash the golden numbers are of.

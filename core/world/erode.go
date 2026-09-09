@@ -81,7 +81,17 @@ func parts(t *Tile) [Grains]float64 {
 }
 
 // hold is how much of the soil on a tile moves in an age, by what is growing
-// or standing on it and by what the soil itself is made of. Woods are what
+// or standing on it and by what the soil itself is made of.
+//
+// The rock underneath is deliberately not in it. Soil comes off a hillside at
+// a rate set by what is holding it down and what it is made of, and how hard
+// the rock beneath happens to be does not keep a ploughed slope's earth on
+// it. Dividing this by the rock was tried, and it took away the one cost the
+// whole model charges for clearing a hillside: over forty ages the ploughed
+// slopes on hard rock came out richer than they started, because the slow
+// weathering of the ground could no longer keep up with the soil going. What
+// the rock decides is what the water cuts - see incise and meander - which is
+// where a difference in strength shows as a difference in shape. Woods are what
 // hold a hillside together; a ploughed field is bare earth by another name; a
 // roof or a road takes the ground it covers out of the weather altogether;
 // and loose sand goes where clay stays, whatever is growing on either.
@@ -102,6 +112,9 @@ func (w *World) Erode() {
 	// date first; what the age does to it is done to it as it now stands.
 	w.CatchUpAll()
 	g.wear(1)
+	// And sideways: a river cuts the outside of its bends while the weather
+	// takes the hillsides down. See meander.go.
+	g.meander(1)
 	g.fill()
 	g.drain()
 	g.carve(w.RNG)

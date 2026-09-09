@@ -72,6 +72,32 @@ var weathers = [BedrockCount]struct{ sand, clay float64 }{
 	Schist:    {0.35, 0.28},
 }
 
+// hardness is how well each rock stands up to weather and water, against a
+// middling rock at one. It is what makes a landscape have a shape at all:
+// where the rocks differ, the soft ones go and the hard ones are left
+// standing, so a scarp is a hard bed with a soft one under it and a gorge is
+// a river that found something it could cut. Everything on the map used to
+// wear at the same rate, whatever it was made of, and a country where
+// everything wears evenly wears flat.
+//
+// The order is the order a quarryman would give: granite and basalt are what
+// people build with, schist splits, sandstone and limestone are soft enough
+// to cut and hard enough to stand, and shale is barely rock at all.
+var hardness = [BedrockCount]float64{
+	Granite:   1.5,
+	Basalt:    1.4,
+	Schist:    1.1,
+	Sandstone: 0.8,
+	Limestone: 0.65,
+	Shale:     0.45,
+}
+
+// Hard is how well the rock under this tile stands up to being worn away. It
+// divides what an age of weather takes off, so ground over shale comes down
+// three times as fast as ground over granite and the difference between them
+// is a hillside.
+func (t *Tile) Hard() float64 { return hardness[t.Bedrock] }
+
 // String is what a rock is called.
 func (b Bedrock) String() string {
 	switch b {

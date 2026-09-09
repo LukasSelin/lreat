@@ -158,14 +158,15 @@ const deepWeather = 1.5
 // against a drawn 0.38. Softening spreads the extremes over the ground around
 // them, and the matching afterwards puts the heights back exactly, so what it
 // costs is sharpness and not scale.
-const smoothing = 2
+// One pass and not two: softening the ground also softens the bends a river
+// has cut into it, and at two the made worlds ran a fifth straighter than at
+// one for no gain in how gentle they were.
+const smoothing = 1
 
 // marginRamp is how far the step at the edge of a plate is spread, in passes
 // of a nine-tile average - so a handful of tiles either side, which is a
 // continental margin at this scale.
 const marginRamp = 6
-
-var smoothingAt = smoothing
 
 // A map is a region and not a world - eighty tiles at TileSpan is two
 // kilometres of country - so these are what a boundary's *works* travel
@@ -315,6 +316,7 @@ func (w *World) history(g *Grid, epochs int, sea float64) {
 		// what fills the basins - which is where a finished map's sandstone
 		// and shale come from.
 		g.wear(deepWeather)
+		g.meander(deepWeather)
 		g.fill()
 		g.drain()
 		g.keepBook(book, e)

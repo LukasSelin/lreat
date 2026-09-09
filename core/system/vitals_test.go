@@ -17,7 +17,13 @@ func TestDeathsAreCountedByCause(t *testing.T) {
 	starved := w.Spawn("Ada", need.Neutral())
 	starved.Starving = Starvation + 1
 	old := w.Spawn("Bo", need.Neutral())
-	old.Born = w.Tick - 100_000 // far enough past its prime that frailty is certain
+	// Far enough past its prime that frailty really is certain. At a hundred
+	// thousand, which this was, it is not: the risk climbs as the square of
+	// how far through its decline a body is, and a hundred thousand ticks
+	// works out at about one chance in seven on the tick. The test passed on
+	// the draw, and stopped passing the moment anything upstream of it took a
+	// different number of draws out of the world's luck.
+	old.Born = w.Tick - 1_000_000
 	old.Health = 0
 
 	Population(w)

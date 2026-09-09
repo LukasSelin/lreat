@@ -177,21 +177,34 @@ func TestSoilGoesWithTheGround(t *testing.T) {
 			slopes = append(slopes, i)
 		}
 	}
-	var before float64
+	was := make(map[int]float64, len(slopes))
 	for _, i := range slopes {
-		before += g.Tiles[i].Rich
+		was[i] = g.Tiles[i].Rich
 	}
 	for age := 0; age < 40; age++ {
 		w.Erode()
 	}
-	var after float64
+	// Only the ground that is still a slope at the end. A river wanders
+	// across its own valley now - see meander.go - so some of what started
+	// above the flood plain is under one by the fortieth age, and ground the
+	// river has reached is ground the river has fed. That is the flood plain
+	// doing its work rather than this claim failing, and counting it here
+	// turned the reading the other way: the whole set came out richer than it
+	// started while the ground that stayed a hillside was poorer, which is
+	// both halves of what the weather does said at once.
+	var before, after, kept float64
 	for _, i := range slopes {
+		if g.Tiles[i].Terrain == Water || g.Tiles[i].Drain <= FloodDepth {
+			continue
+		}
+		before += was[i]
 		after += g.Tiles[i].Rich
+		kept++
 	}
-	if len(slopes) == 0 {
+	if len(slopes) == 0 || kept == 0 {
 		t.Fatal("the map has no slopes above the flood plain")
 	}
-	b, a := before/float64(len(slopes)), after/float64(len(slopes))
+	b, a := before/kept, after/kept
 	if a >= b {
 		t.Fatalf("ploughed slopes hold %.3f after forty ages of weather and held %.3f before; want them the poorer for it", a, b)
 	}
