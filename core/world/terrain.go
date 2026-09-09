@@ -22,6 +22,9 @@ func (w *World) Generate(cfg Config) {
 	g.Wrap = cfg.Wrap
 
 	w.raise(g)
+	// What is under the ground is laid down with the ground, and before the
+	// water has been anywhere: a river runs over the rock it finds.
+	w.layBedrock(g)
 	g.flood(cfg.SeaShare, w.RNG)
 	g.fill()
 	g.drain()
@@ -112,9 +115,14 @@ func (w *World) Generate(cfg Config) {
 		}
 	}
 
+	// What the soil is made of, before what it will grow is asked: the
+	// fertility below reads the mixture, so the mixture has to be there.
+	g.soilTexture()
+
 	// Good soil is where the water has been and stopped: the flat of a valley,
-	// damp from what drains through it, facing the sun. See Grid.SoilAt, which
-	// is the same reading the weather takes every age.
+	// damp from what drains through it, facing the sun, over a mixture that
+	// will hold what it is given. See Grid.SoilAt, which is the same reading
+	// the weather takes every age.
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		if t.Wet() {

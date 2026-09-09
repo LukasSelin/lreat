@@ -42,7 +42,16 @@ const Wash = 12
 
 // Settle is the share of what the water is carrying that it puts down on
 // gentle ground each tile it crosses. Steep ground keeps its load moving.
-const Settle = 0.35
+//
+// It is one figure no longer: water sorts what it carries, and that sorting
+// is most of why one field is sand and the next is clay. A grain of sand goes
+// down at the first slackening; silt travels to where the river spills; clay
+// stays up in the water almost as long as there is any water moving at all.
+// So the share is the grain's, and the three of them average within a
+// hundredth of the single figure this was, so that a map silts up at about
+// the rate the whole model was measured at and what is new is where each
+// grain of it lands rather than how much of it settles.
+var settleOf = [Grains]float64{Sand: 0.62, Silt: 0.33, Clay: 0.10}
 
 // SettleSlope is the slope above which water carries everything it has and
 // lays down nothing.
@@ -52,15 +61,35 @@ const SettleSlope = 0.12
 // its own channel, on the low ground either side.
 const Overbank = 0.7
 
-// hold is how much of the soil on a tile stays put, by what is growing or
-// standing on it. Woods are what hold a hillside together; a ploughed field
-// is bare earth by another name; and a roof or a road takes the ground it
-// covers out of the weather altogether.
+// Grain is which of the three a load of soil is, coarsest first. The order
+// is the order they come out of the water, which is the whole of what sorting
+// is.
+type Grain uint8
+
+const (
+	Sand Grain = iota
+	Silt
+	Clay
+	// Grains is how many there are, for the loads that carry one of each.
+	Grains
+)
+
+// parts is what a tile's soil is made of, as the three shares. It is the
+// composition a stripping takes away and a deposit arrives with.
+func parts(t *Tile) [Grains]float64 {
+	return [Grains]float64{Sand: t.Sand, Silt: t.Silt(), Clay: t.Clay}
+}
+
+// hold is how much of the soil on a tile moves in an age, by what is growing
+// or standing on it and by what the soil itself is made of. Woods are what
+// hold a hillside together; a ploughed field is bare earth by another name; a
+// roof or a road takes the ground it covers out of the weather altogether;
+// and loose sand goes where clay stays, whatever is growing on either.
 func hold(t *Tile) float64 {
 	if t.Structure != None {
 		return 0
 	}
-	return t.Terrain.Hold()
+	return t.Terrain.Hold() * t.Wash()
 }
 
 // Erode weathers the map by one age and works the drainage out again. It is
@@ -88,17 +117,25 @@ func (w *World) Erode() {
 		return order[a] < order[b] // ties by position, so an age repeats
 	})
 
-	load := make([]float64, n)   // soil in the water leaving each tile
-	change := make([]float64, n) // metres gained or lost
+	load := make([][Grains]float64, n)   // soil in the water leaving each tile
+	change := make([]float64, n)         // metres gained or lost
+	gained := make([][Grains]float64, n) // what was laid down here, by grain
 	for _, i := range order {
 		t := &g.Tiles[i]
 		p := entity.Pos{X: int(i) % g.W, Y: int(i) / g.W}
 		slope := g.Slope(p)
 
-		// What the water lays down here: more of it the gentler the ground.
-		if load[i] > 0 {
-			settled := load[i] * Settle * clamp01(1-slope/SettleSlope)
-			load[i] -= settled
+		// What the water lays down here: more of it the gentler the ground,
+		// and more of the coarse than of the fine, which is the sorting. A
+		// tile takes the mixture the water had left to give it, not the
+		// mixture that came off the hill.
+		if carrying(load[i]) > 0 {
+			var settled [Grains]float64
+			slack := clamp01(1 - slope/SettleSlope)
+			for k := range settled {
+				settled[k] = load[i][k] * settleOf[k] * slack
+				load[i][k] -= settled[k]
+			}
 			if t.Wet() {
 				// A river in flood puts most of its silt over the bank. That
 				// is what a flood plain is: not ground the river spared, but
@@ -116,26 +153,40 @@ func (w *World) Erode() {
 					}
 				}
 				if len(bank) > 0 {
-					over := settled * Overbank
-					for _, j := range bank {
-						change[j] += over / float64(len(bank))
+					for k := range settled {
+						over := settled[k] * Overbank
+						for _, j := range bank {
+							change[j] += over / float64(len(bank))
+							gained[j][k] += over / float64(len(bank))
+						}
+						settled[k] -= over
 					}
-					settled -= over
 				}
 			}
-			change[i] += settled
+			for k := range settled {
+				change[i] += settled[k]
+				gained[i][k] += settled[k]
+			}
 		}
-		// What it takes away.
+		// What it takes away. A stripping takes the soil as it finds it: the
+		// water carries off the mixture that was there, and the sorting
+		// happens where it puts it down again rather than where it picks it
+		// up.
 		stripped := Wash * math.Sqrt(t.Flow) * slope * hold(t)
 		change[i] -= stripped
-		load[i] += stripped
+		was := parts(t)
+		for k := range load[i] {
+			load[i][k] += stripped * was[k]
+		}
 
 		a := g.Aspect(p)
 		if a == (entity.Pos{}) {
 			continue // the water and everything in it leaves the map here
 		}
 		down := int32(g.Index(entity.Pos{X: p.X + a.X, Y: p.Y + a.Y}))
-		load[down] += load[i]
+		for k := range load[i] {
+			load[down][k] += load[i][k]
+		}
 	}
 
 	for i := range g.Tiles {
@@ -147,6 +198,7 @@ func (w *World) Erode() {
 		if !t.Wet() {
 			t.Rich = clamp01(t.Rich + change[i]/SoilDepth)
 			t.Fertility = math.Min(t.Fertility, t.Rich)
+			mix(t, gained[i])
 		}
 	}
 
@@ -185,9 +237,41 @@ func (g *Grid) resoil() {
 			continue
 		}
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
+		// The rock underneath goes on making soil out of itself, so ground
+		// the water has stripped comes back toward what its own rock
+		// weathers to rather than keeping whatever was last washed onto it.
+		// It is the same slow pull as the fertility above, on the same
+		// clock, because it is the same weathering doing both.
+		sand, clay := g.TextureAt(p)
+		t.Sand += toward * (sand - t.Sand)
+		t.Clay += toward * (clay - t.Clay)
 		if can := g.SoilAt(p); can > t.Rich {
 			t.Rich += toward * (can - t.Rich)
 		}
 		t.Fertility = math.Min(t.Fertility, t.Rich)
 	}
+}
+
+// carrying is how much soil of every grain a load has in it.
+func carrying(load [Grains]float64) float64 {
+	return load[Sand] + load[Silt] + load[Clay]
+}
+
+// mix works what has just been laid down on a tile into the soil already
+// there. What arrives does not replace what was there; it is ploughed and
+// burrowed and frozen into the top of it, so the tile ends up somewhere
+// between the two, nearer the newcomer the more of it there is.
+//
+// The soil already there is weighed as SoilDepth metres of it, which is the
+// same depth the fertility is reckoned in: a river that lays down a
+// centimetre in an age barely moves what the field is made of, and one that
+// buries a bank in three metres of silt has made new ground.
+func mix(t *Tile, laid [Grains]float64) {
+	d := carrying(laid)
+	if d <= 0 {
+		return
+	}
+	held := SoilDepth
+	t.Sand = (t.Sand*held + laid[Sand]) / (held + d)
+	t.Clay = (t.Clay*held + laid[Clay]) / (held + d)
 }

@@ -22,15 +22,20 @@ import (
 // numbers in the commit that makes it, and say so. A change that was not
 // meant to and moves them was not what it was meant to be.
 //
-// Retaken for the lapse rate: the weather now falls with the height of the
-// ground, so the cold a body feels and the growing weather the ground gets
-// are read where they are rather than off the row. On the valley that is two
-// degrees between the river and the highest ground, which moves the run
-// without changing what it is; the full batch is in docs/baseline.md.
+// Retaken for the soil's make-up: there is rock under the ground now, the
+// soil over it is a mixture of sand, silt and clay weathered out of that
+// rock, and the water sorts what it carries so that the fine stuff ends up
+// where the water slows. Fertility reads the mixture and so does how fast a
+// hillside washes, which moves every map from the moment it is made; the full
+// batch is in docs/baseline.md.
+//
+// Retaken before that for the lapse rate: the weather falls with the height
+// of the ground, so the cold a body feels and the growing weather the ground
+// gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "8655d764af56fdab",
-	3: "d98fdb39def62c60",
-	9: "e6dcfeae58cd3759",
+	1: "2274d9c7d48d9439",
+	3: "d3f4b3b91d5186d8",
+	9: "35e009f6ef0fd910",
 }
 
 // digest is the hash the golden numbers are of.

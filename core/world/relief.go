@@ -110,15 +110,25 @@ const (
 const FloodDepth = 14.0
 
 // SoilAt is what the land at p will hold: good on the damp flat of a valley
-// facing the sun, poor on a steep dry hillside. It is read off the drainage
-// rather than stored, so that when the ground moves the soil that the ground
-// can carry moves with it. The map is made with it and every age of weather
-// pulls the soil that is actually there toward it.
+// facing the sun, over a mixture that keeps what it is given; poor on a steep
+// dry hillside, and poor on sand however well it lies. It is read off the
+// drainage and the soil's own make-up rather than stored, so that when the
+// ground moves the soil that the ground can carry moves with it. The map is
+// made with it and every age of weather pulls the soil that is actually
+// there toward it.
+//
+// The mixture enters as a multiplier and not as a term of its own, because
+// that is what it is: a loam on a dry shoulder is still a dry shoulder, and
+// the best-lying ground in the valley grows little if it is sand that will
+// not hold water or clay that will not give it up. It is centred on a middling
+// loam, so that a map's soils average to what they averaged before there was
+// any such thing as a mixture.
 func (g *Grid) SoilAt(p entity.Pos) float64 {
 	t := g.At(p)
 	damp := clamp01(1 - t.Drain/FloodDepth)
 	steep := clamp01(g.Slope(p) / 0.25)
-	return clamp01(0.15 + 0.85*damp*(1-0.7*steep)*(0.75+0.5*g.Sunlight(p)))
+	lie := damp * (1 - 0.7*steep) * (0.75 + 0.5*g.Sunlight(p))
+	return clamp01(0.15 + 0.85*lie*(0.75+0.5*t.Loam()))
 }
 
 // clamp01 holds a share inside [0,1].

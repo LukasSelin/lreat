@@ -30,6 +30,8 @@ const (
 	Height
 	Moisture
 	Soil
+	Bedrock
+	Texture
 	Woods
 	Green
 	Wear
@@ -117,6 +119,42 @@ var Views = [...]Reading{
 				return Cell{Ch: '~', Color: Water}
 			}
 			return shade(s, Wood, clamp((s.t.Wood+s.t.Wild)/2))
+		}},
+
+	// What the rock under the ground is. It is the one reading that is a
+	// fact rather than a state: the soil over it moves, and it does not.
+	// Drawn as a key for the same reason the holdings are - four rocks are
+	// four different things and not more and less of one - and it is worth
+	// looking at beside the soil and the texture, because the shape of those
+	// two is mostly the shape of this one.
+	Bedrock: {Ramp: Held, Name: "bedrock", Legend: Key,
+		Says: "granite, limestone, sandstone, shale; water dim",
+		draw: func(s scene) Cell {
+			if s.t.Terrain == world.Water {
+				return Cell{Ch: '~', Color: Bare}
+			}
+			return Cell{Ch: rocks[s.t.Bedrock], Color: Held[int(s.t.Bedrock)%Bands]}
+		}},
+
+	// What the soil is made of, from the sand that will not hold water to
+	// the clay that will not give it up. It is not a reading of good and
+	// bad - the good ground is in the middle of this scale and both ends of
+	// it are poor - which is why the legend names the two ends rather than
+	// calling one of them better.
+	//
+	// Held against the bedrock view it says what the water has done: ground
+	// that reads nothing like the rock beneath it is ground that was carried
+	// there.
+	Texture: {Ramp: Ground, Name: "texture", Low: "sand", High: "clay",
+		draw: func(s scene) Cell {
+			if s.t.Terrain == world.Water {
+				return Cell{Ch: '~', Color: Water}
+			}
+			// The two shares against each other, so that a soil half sand
+			// and half clay reads in the middle and a silt does too. What
+			// this asks is which way a soil leans, not how much of it there
+			// is.
+			return shade(s, Ground, clamp(0.5+(s.t.Clay-s.t.Sand)/2))
 		}},
 
 	// What is standing on the ground this morning, as against what the
@@ -240,3 +278,8 @@ func RenderView(m *observe.MapView, view View) [][]Cell {
 func LinesView(m *observe.MapView, view View) []string {
 	return linesOf(RenderView(m, view))
 }
+
+// rocks are the four bedrocks written down, in the order world.Bedrock has
+// them. A key needs its glyphs to differ as much as its colours do, because
+// the map has to be readable with the colour taken away.
+var rocks = [world.BedrockCount]rune{'g', 'l', 's', 'h'}

@@ -57,6 +57,16 @@ type Tile struct {
 	// dry, and it is the ground truth the soil is read from.
 	Drain float64
 
+	// Bedrock is the rock under this tile, and Sand and Clay the shares of
+	// the soil over it that are one and the other, the rest being silt. The
+	// rock never changes; what is made of it moves with every age of
+	// weather, sorted by the water that carries it. Between them they are
+	// what the ground is made of, and the fertility, the drainage and how
+	// fast a hillside comes down are all read off them. See bedrock.go.
+	Bedrock Bedrock
+	Sand    float64
+	Clay    float64
+
 	// Age is how much growing weather what stands on this tile has had, in
 	// growing ticks. It is what makes a thicket different from a wood and a
 	// sown strip different from one in ear; see grow.go.

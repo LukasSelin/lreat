@@ -122,9 +122,40 @@ func TestSharedReflectsValuesAndStock(t *testing.T) {
 	}
 }
 
+// bareCountry empties the whole map of everything a taking could be about:
+// no timber to fetch, no berries to pick, no game, no fish. It is for the
+// tests that are about the agent rather than about the land - what is
+// standing within reach decides how well gathering and foraging fit, and a
+// ranking taken beside a full wood is a ranking of the wood.
+//
+// The whole map and not a radius, because the search that finds a wood goes
+// forty tiles and a wood at the edge of that still outranked what was being
+// tested. The woods are taken away rather than emptied, because an empty wood
+// is still somewhere to go and look: a taking asks the ground for at least
+// nothing of what it wants, so a picked-over wood goes on offering itself.
+//
+// It is here because the ground has now been remade twice under tests that
+// never meant to say anything about it, and both times what moved was which
+// errand happened to have a good tile within reach.
+func bareCountry(w *world.World) {
+	for i := range w.Grid.Tiles {
+		t := &w.Grid.Tiles[i]
+		t.Wood, t.Wild, t.Fish = 0, 0, 0
+		if t.Terrain == world.Forest {
+			w.Grid.Turn(entity.Pos{X: i % w.Grid.W, Y: i / w.Grid.W}, world.Grass)
+		}
+	}
+}
+
 func TestStarvingWithFoodEats(t *testing.T) {
 	w := world.New(3)
 	a := blank(w, "a")
+	// With a wood at the door, going to pick something is nearly as good a
+	// moment as eating what one has, and on two seeds in ten it is better.
+	// That is a fact about foraging and not about eating; what is asked here
+	// is that an agent with food in its pack and nothing else on offer eats
+	// it rather than setting out.
+	bareCountry(w)
 	a.Needs[need.Physiological] = 0.05
 	a.Inventory[entity.Food] = 2
 	r := Rank(a, w)
@@ -298,6 +329,10 @@ func TestTheWrongedRecogniseAMomentToGetEven(t *testing.T) {
 		}
 		victim.Norms[belief.Charity] = charity
 		victim.Judge(thief.ID, -0.6, w.Tick)
+		// Nothing to fetch anywhere, so that where getting even lands is
+		// decided by the grievance and not by whether the pair happen to
+		// have stopped beside a wood.
+		bareCountry(w)
 		return w, victim
 	}
 	w, victim := setup(0)

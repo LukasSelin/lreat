@@ -49,10 +49,22 @@ and everything it weighed before setting out. `esc` drops it, `q` quits.
 `m` turns the map to the next reading of the land and `M` back to the last.
 The settlement is the one to watch a run on — trees, water, roofs, people —
 and the rest each ask the ground one question and answer it over the whole map
-at once: how high it stands, how wet it is, what it will grow, what is standing
-on it, how much of what could be growing there is green this morning, where
-people have actually worn it, what the water has in it, and who holds what. The row under the map names the reading and both ends of its
+at once: how high it stands, how wet it is, what it will grow, what rock is
+under it, what its soil is made of, what is standing on it, how much of what
+could be growing there is green this morning, where people have actually worn
+it, what the water has in it, and who holds what. The row under the map names the reading and both ends of its
 shading, so which end is the good ground is never a guess.
+
+Bedrock and texture are the ground's own composition. The rock under a tile
+never changes and is laid down in regions, four kinds of it; the soil over it
+starts as what that rock weathers to and is then carried about by the water,
+which sorts it — sand drops first, silt travels to the flood plain, clay stays
+up in the water longest. So the texture view is mostly the shape of the
+bedrock view with the valleys rewritten by the river, and ground that reads
+nothing like the rock beneath it is ground that was carried there. Texture is
+the one scale where neither end is the good end: the best farmland is a loam
+in the middle of it, which is why its legend names sand and clay rather than
+better and worse.
 
 Holdings is the one that is not a quantity. Its colours stand for different
 owners rather than for more and less of one thing, so the row under it is a
@@ -70,9 +82,10 @@ standing on it.
 
 They are readings and not decorations. Every one is a number the settlement
 already keeps and already acts on — the soil view is the fertility a settler
-weighs when choosing where to break a field, the green view is what a gatherer
-finds when it gets there, and the wear view is what somebody reads before
-laying a road — so a run where the fields are not on the bright ground, or the
+weighs when choosing where to break a field, the texture under it is half of
+what decides that fertility and all of what decides how fast the hillside
+washes away, the green view is what a gatherer finds when it gets there, and
+the wear view is what somebody reads before laying a road — so a run where the fields are not on the bright ground, or the
 roads are not on the worn ground, is a run worth asking about.
 
 Every page here shows a dozen measurements at once and squeezes each into a
