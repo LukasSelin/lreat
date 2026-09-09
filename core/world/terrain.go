@@ -81,7 +81,7 @@ func (w *World) GenerateTerrain(width, height int) {
 	// is the same reading the weather takes every age.
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		if t.Terrain == Water {
+		if t.Wet() {
 			continue
 		}
 		t.Fertility = g.SoilAt(entity.Pos{X: i % width, Y: i / width})
@@ -96,10 +96,10 @@ func (w *World) GenerateTerrain(width, height int) {
 	best, bestScore := entity.Pos{}, math.Inf(-1)
 	for i := range g.Tiles {
 		p := entity.Pos{X: i % width, Y: i / width}
-		if g.Tiles[i].Terrain == Water {
+		if g.Tiles[i].Wet() {
 			continue
 		}
-		if !g.HasNeighbor(p, func(t *Tile) bool { return t.Terrain == Water }) {
+		if !g.HasNeighbor(p, func(t *Tile) bool { return t.Wet() }) {
 			continue
 		}
 		// What founds a market: good soil, the flat of the valley rather than

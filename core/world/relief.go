@@ -287,7 +287,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 	// the instant it falls under the threshold.
 	wet := make([]bool, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Terrain == Water {
+		if g.Tiles[i].Wet() {
 			wet[i] = g.Tiles[i].Flow >= cut/2
 		} else {
 			wet[i] = g.Tiles[i].Flow >= cut
@@ -310,10 +310,10 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		t := &g.Tiles[i]
 		held := t.Structure != None || t.Owner != 0
 		switch {
-		case wet[i] && t.Terrain != Water && !held:
+		case wet[i] && !t.Wet() && !held:
 			t.Terrain, t.Wood, t.Wild, t.Age = Water, 0, 0, 0
 			t.Fish = 0.7 + 0.3*rng.Float64()
-		case !wet[i] && t.Terrain == Water:
+		case !wet[i] && t.Wet():
 			t.Terrain, t.Fish = Grass, 0
 		}
 	}
@@ -347,7 +347,7 @@ func (g *Grid) height() {
 	})
 	for _, i := range order {
 		t := &g.Tiles[i]
-		if t.Terrain == Water {
+		if t.Wet() {
 			t.Drain = 0
 			continue
 		}

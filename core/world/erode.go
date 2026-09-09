@@ -96,7 +96,7 @@ func (w *World) Erode() {
 		if load[i] > 0 {
 			settled := load[i] * Settle * clamp01(1-slope/SettleSlope)
 			load[i] -= settled
-			if t.Terrain == Water {
+			if t.Wet() {
 				// A river in flood puts most of its silt over the bank. That
 				// is what a flood plain is: not ground the river spared, but
 				// ground the river made. Without it the silt stays in the
@@ -108,7 +108,7 @@ func (w *World) Erode() {
 					if !g.In(c) {
 						continue
 					}
-					if b := g.At(c); b.Terrain != Water && b.Drain < FloodDepth {
+					if b := g.At(c); !b.Wet() && b.Drain < FloodDepth {
 						bank = append(bank, c.Y*g.W+c.X)
 					}
 				}
@@ -141,7 +141,7 @@ func (w *World) Erode() {
 		// Soil goes with the ground it was in. What washes off a slope is
 		// what that slope could have grown; what lands on the flat is what
 		// makes a flood plain worth farming.
-		if t.Terrain != Water {
+		if !t.Wet() {
 			t.Rich = clamp01(t.Rich + change[i]/SoilDepth)
 			t.Fertility = math.Min(t.Fertility, t.Rich)
 		}
@@ -177,7 +177,7 @@ func (g *Grid) resoil() {
 	const toward = 0.08
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		if t.Terrain == Water {
+		if t.Wet() {
 			continue
 		}
 		p := entity.Pos{X: i % g.W, Y: i / g.W}

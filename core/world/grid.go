@@ -84,16 +84,23 @@ func (t *Tile) Pavable() bool {
 	return t.Structure == None && t.Owner == 0
 }
 
+// Wet reports whether this tile is water rather than ground, whatever has
+// been carried over it. It is the question the map-maker asks of water nine
+// times over - what will not grow trees, what silt runs off, what nobody
+// stands on - and it is not the question of whether a river runs here, which
+// is Flow.
+func (t *Tile) Wet() bool { return t.Terrain.Wet() }
+
 // Bridged reports whether this tile is a road carried over water.
 func (t *Tile) Bridged() bool {
-	return t.Structure == Road && t.Terrain == Water
+	return t.Structure == Road && t.Wet()
 }
 
 // Deep reports whether crossing this tile means swimming: water with nothing
 // built over it. A bridge is not deep, because the walker is on the road and
 // the water is underneath.
 func (t *Tile) Deep() bool {
-	return t.Terrain == Water && t.Structure == None
+	return t.Wet() && t.Structure == None
 }
 
 // Grid is the world map, row-major.

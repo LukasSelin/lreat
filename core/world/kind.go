@@ -27,6 +27,22 @@ type terrain struct {
 	name string
 	// class is what a tile of this ground is in the ontology's terms.
 	class *ontology.Class
+	// wet says this is water and not ground at all. It is the one thing about
+	// a terrain that half the map-maker asks and none of it used to be able
+	// to: trees do not grow on it, silt does not settle on it, it stands
+	// above nothing so it has no drain, and nobody stands on it either.
+	//
+	// It is not the same question as whether a river runs here. That is Flow,
+	// and it is a number on the tile, because a lake is water that does not
+	// flow and a river in spate is the same channel carrying more. The two
+	// coincide while there is one kind of water and stop the moment there are
+	// two, which is why they are apart before rather than after.
+	//
+	// It is here and not a trait of the ontology's on purpose. The ontology's
+	// traits are what verbs test, and no act asks whether the ground is wet -
+	// what an act wants of water is the fish, and Affords says that already.
+	// This is the map's own fact about its own ground.
+	wet bool
 	// hold is how well the ground holds its soil against the weather, from
 	// nothing to all of it. Bare rock keeps almost none, a wood most of what
 	// falls on it, and a channel and a worked field are counted whole - the
@@ -36,11 +52,11 @@ type terrain struct {
 }
 
 var terrains = [TerrainCount]terrain{
-	Grass:  {"open", ontology.Open, 0.6},
-	Forest: {"wood", ontology.Wood, 0.25},
-	Water:  {"water", ontology.Water, 1},
-	Field:  {"field", ontology.Field, 1},
-	Rock:   {"outcrop", ontology.Outcrop, 0.15},
+	Grass:  {name: "open", class: ontology.Open, hold: 0.6},
+	Forest: {name: "wood", class: ontology.Wood, hold: 0.25},
+	Water:  {name: "water", class: ontology.Water, wet: true, hold: 1},
+	Field:  {name: "field", class: ontology.Field, hold: 1},
+	Rock:   {name: "outcrop", class: ontology.Outcrop, hold: 0.15},
 }
 
 // String is what this ground is called.
@@ -58,6 +74,14 @@ func (t Terrain) Class() *ontology.Class {
 		return nil
 	}
 	return terrains[t].class
+}
+
+// Wet reports whether this is water rather than ground.
+func (t Terrain) Wet() bool {
+	if int(t) >= len(terrains) {
+		return false
+	}
+	return terrains[t].wet
 }
 
 // Hold is how much of its soil this ground keeps against the weather.
