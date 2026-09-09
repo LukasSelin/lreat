@@ -32,6 +32,20 @@ const (
 	Soil
 	Woods
 	Wear
+	Fish
+	Holdings
+)
+
+// Legend is how a reading's key should be read. A Scale runs from one end to
+// the other and the question is how much; a Key is a set of colours standing
+// for different things and the question is which. Drawing the second as
+// though it were the first is how a map comes to say that one farmer is more
+// than another.
+type Legend uint8
+
+const (
+	Scale Legend = iota
+	Key
 )
 
 // Reading is one view: what to call it, what the shading means at each end,
@@ -45,7 +59,11 @@ type Reading struct {
 	// Ramp is the colours the reading is drawn in, so that a legend can show
 	// the same scale the map is using rather than a guess at it.
 	Ramp [Bands]Color
-	draw func(scene) Cell
+	// Legend says whether the ramp is a scale or a key. Says is what a key
+	// means, standing where Low and High stand on a scale.
+	Legend Legend
+	Says   string
+	draw   func(scene) Cell
 }
 
 // RampOf is the scale a view is drawn in, for a legend to show.
@@ -105,6 +123,38 @@ var Views = [...]Reading{
 	// deciding to lay a road is reading. A settlement's roads should sit on
 	// its bright ground, and where they do not, either the road was laid too
 	// early or the errands have moved since.
+	// What the water has in it. Fish is the one thing a settlement lives on
+	// that is not on the land at all, so this reading is mostly a picture of
+	// the rivers: the ground is drawn at its quietest and only the water
+	// carries anything. A river that has been fished out shows here as a
+	// channel gone dark, which is the same channel on every other view.
+	Fish: {Ramp: Shoal, Name: "fish", Low: "fished out", High: "teeming",
+		draw: func(s scene) Cell {
+			if s.t.Terrain != world.Water {
+				return Cell{Ch: '.', Color: Bare}
+			}
+			return shade(s, Shoal, clamp(s.t.Fish))
+		}},
+
+	// Who holds what. This is the one reading that is not a quantity: a
+	// holding is somebody's, and the colours stand for different owners
+	// rather than for more and less of one thing. Six of them for however
+	// many settlers there are, so two holdings across the map from each
+	// other may share a colour - what this is for is seeing the shape of a
+	// holding and how the claimed ground sits against the unclaimed, not
+	// telling one farmer from another by eye.
+	Holdings: {Ramp: Held, Name: "holdings", Legend: Key,
+		Says: "a colour to a holder, unclaimed ground dim",
+		draw: func(s scene) Cell {
+			if s.t.Owner == 0 {
+				if s.t.Terrain == world.Water {
+					return Cell{Ch: '~', Color: Bare}
+				}
+				return Cell{Ch: '.', Color: Bare}
+			}
+			return Cell{Ch: '#', Color: Held[int(s.t.Owner)%Bands]}
+		}},
+
 	Wear: {Ramp: Worn, Name: "wear", Low: "untrodden", High: "a thoroughfare",
 		draw: func(s scene) Cell {
 			return shade(s, Worn, clamp(s.t.Traffic/wornEnough))

@@ -517,6 +517,31 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.Worn3: tcell.StyleDefault.Foreground(tcell.PaletteColor(178)),
 	ascii.Worn4: tcell.StyleDefault.Foreground(tcell.PaletteColor(214)),
 	ascii.Worn5: tcell.StyleDefault.Foreground(tcell.PaletteColor(220)),
+
+	// Fish runs from the dark of water that has been emptied into the bright
+	// of water that is full. It is a teal rather than the moisture blue on
+	// purpose: the two readings are both about water and would otherwise be
+	// the same picture at a glance.
+	ascii.Shoal0: tcell.StyleDefault.Foreground(tcell.PaletteColor(23)),
+	ascii.Shoal1: tcell.StyleDefault.Foreground(tcell.PaletteColor(29)),
+	ascii.Shoal2: tcell.StyleDefault.Foreground(tcell.PaletteColor(36)),
+	ascii.Shoal3: tcell.StyleDefault.Foreground(tcell.PaletteColor(43)),
+	ascii.Shoal4: tcell.StyleDefault.Foreground(tcell.PaletteColor(50)),
+	ascii.Shoal5: tcell.StyleDefault.Foreground(tcell.PaletteColor(51)),
+
+	// Holdings are not a ramp. They stand for different owners rather than
+	// for more and less of one thing, so they are six hues chosen to be told
+	// apart rather than to be put in order - a scale here would say that one
+	// farmer is somehow more than another.
+	ascii.Held0: tcell.StyleDefault.Foreground(tcell.PaletteColor(203)),
+	ascii.Held1: tcell.StyleDefault.Foreground(tcell.PaletteColor(214)),
+	ascii.Held2: tcell.StyleDefault.Foreground(tcell.PaletteColor(227)),
+	ascii.Held3: tcell.StyleDefault.Foreground(tcell.PaletteColor(84)),
+	ascii.Held4: tcell.StyleDefault.Foreground(tcell.PaletteColor(87)),
+	ascii.Held5: tcell.StyleDefault.Foreground(tcell.PaletteColor(177)),
+
+	// Ground nobody has claimed, and the quietest thing on the map.
+	ascii.Bare: tcell.StyleDefault.Foreground(tcell.PaletteColor(238)),
 }
 
 func (v *view) draw() {
@@ -912,10 +937,24 @@ func (v *view) drawReading(w, y int) {
 		x += len(text)
 	}
 	put(tcell.StyleDefault.Bold(true), r.Name)
-	put(tcell.StyleDefault.Dim(true), "   "+r.Low+" ")
-	for i := 0; i < ascii.Bands; i++ {
-		puts(sc, x, y, palette[ascii.RampOf(v.view)[i]], "█")
-		x++
+	dim := tcell.StyleDefault.Dim(true)
+	swatches := func() {
+		for i := 0; i < ascii.Bands; i++ {
+			puts(sc, x, y, palette[ascii.RampOf(v.view)[i]], "█")
+			x++
+		}
 	}
-	put(tcell.StyleDefault.Dim(true), " "+r.High+"   m for the next, M for the last")
+	// A key is not a scale, so it is not given ends to read between: the
+	// colours stand for different holders and putting "low" at one end of
+	// them would say that one holding is less than another.
+	if r.Legend == ascii.Key {
+		put(dim, "   ")
+		swatches()
+		put(dim, " "+r.Says)
+	} else {
+		put(dim, "   "+r.Low+" ")
+		swatches()
+		put(dim, " "+r.High)
+	}
+	put(dim, "   m for the next, M for the last")
 }

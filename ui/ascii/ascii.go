@@ -70,6 +70,25 @@ const (
 	Worn3
 	Worn4
 	Worn5
+	Shoal0
+	Shoal1
+	Shoal2
+	Shoal3
+	Shoal4
+	Shoal5
+	// Held are the colours a holding is drawn in. Unlike every ramp above
+	// them these are not one colour getting stronger: they stand for
+	// different owners and not for more and less of one thing, so they are
+	// six hues as unlike each other as the terminal affords.
+	Held0
+	Held1
+	Held2
+	Held3
+	Held4
+	Held5
+	// Bare is ground nobody has claimed, and the quietest thing on the map:
+	// on a reading about what is held, what is not held should recede.
+	Bare
 )
 
 // Grass and ForestRich name the middle of each ramp, for callers that want
@@ -93,6 +112,8 @@ var (
 	Wet    = [Bands]Color{Wet0, Wet1, Wet2, Wet3, Wet4, Wet5}
 	Crop   = [Bands]Color{Crop0, Crop1, Crop2, Crop3, Crop4, Crop5}
 	Worn   = [Bands]Color{Worn0, Worn1, Worn2, Worn3, Worn4, Worn5}
+	Shoal  = [Bands]Color{Shoal0, Shoal1, Shoal2, Shoal3, Shoal4, Shoal5}
+	Held   = [Bands]Color{Held0, Held1, Held2, Held3, Held4, Held5}
 )
 
 // band is which step of the ramp a height falls on. The valley's own relief
