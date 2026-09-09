@@ -28,14 +28,35 @@ import (
 type ground struct {
 	Here  func(w *world.World, p entity.Pos, t *world.Tile) bool
 	Drawn func(w *world.World, p entity.Pos) *world.Tile
+	// Kinds is the ground Here can be true of, or true near: no tile of
+	// any other kind can satisfy it. Margin is how far off that ground a
+	// tile may stand and still satisfy it - nought where Here asks about
+	// the tile itself, and one for a bank, which is dry ground beside
+	// water rather than water.
+	//
+	// Between them they let a search that is going to find nothing say so
+	// from the chunk counts instead of walking every ring to prove it.
+	// They are derived from the trees and not written out: what affords
+	// stone is the ontology's to say, and this asks it.
+	Kinds  world.KindSet
+	Margin int
 }
 
 func at(w *world.World, p entity.Pos) *world.Tile { return w.Grid.At(p) }
 
 var grounds = map[*ontology.Class]ground{
-	ontology.Wood:    {Here: func(_ *world.World, p entity.Pos, t *world.Tile) bool { return isForest(p, t) }, Drawn: at},
-	ontology.Outcrop: {Here: func(_ *world.World, p entity.Pos, t *world.Tile) bool { return isRock(p, t) }, Drawn: at},
-	ontology.Water:   {Here: func(w *world.World, p entity.Pos, t *world.Tile) bool { return bank(w)(p, t) }, Drawn: bestWater},
+	ontology.Wood: {
+		Here:  func(_ *world.World, p entity.Pos, t *world.Tile) bool { return isForest(p, t) },
+		Drawn: at, Kinds: world.KindsOf(ontology.Wood),
+	},
+	ontology.Outcrop: {
+		Here:  func(_ *world.World, p entity.Pos, t *world.Tile) bool { return isRock(p, t) },
+		Drawn: at, Kinds: world.KindsOffering(ontology.Stone),
+	},
+	ontology.Water: {
+		Here:  func(w *world.World, p entity.Pos, t *world.Tile) bool { return bank(w)(p, t) },
+		Drawn: bestWater, Kinds: world.KindsOffering(ontology.Fish), Margin: 1,
+	},
 }
 
 // whom is who stands in a role to the actor, given the material the act
@@ -331,6 +352,12 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 		held := world.StockOf(m)
 		return far{
 			Find: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
+				// Nothing of this ground anywhere the search could reach
+				// means the search fails, and the counts say so without
+				// it being walked. See world.Grid.AnyWithin.
+				if !w.Grid.AnyWithin(a.Pos, searchRadius+g.Margin, g.Kinds) {
+					return entity.Pos{}, false
+				}
 				return w.Grid.Nearest(a.Pos, searchRadius, func(p entity.Pos, tile *world.Tile) bool {
 					if !g.Here(w, p, tile) {
 						return false

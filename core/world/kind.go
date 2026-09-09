@@ -101,3 +101,49 @@ func Terrains() []Terrain {
 	}
 	return out
 }
+
+// KindSet is a set of kinds of ground, one bit each. It is what a search
+// over the ground says it is looking for, so that the search can be
+// answered from the chunk counts before it is walked.
+type KindSet uint32
+
+// Kinds is the set holding just these.
+func Kinds(ts ...Terrain) KindSet {
+	var s KindSet
+	for _, t := range ts {
+		s |= 1 << t
+	}
+	return s
+}
+
+// KindsOf is every kind of ground that is c, or a kind of c, in the
+// ontology's terms. It is derived from the same table that says what each
+// ground is rather than written out again: a kind of ground added to the
+// trees joins the sets it belongs to without anybody being found and told.
+func KindsOf(c *ontology.Class) KindSet {
+	var s KindSet
+	for t := Terrain(0); t < TerrainCount; t++ {
+		if cl := t.Class(); cl != nil && cl.IsA(c) {
+			s |= 1 << t
+		}
+	}
+	return s
+}
+
+// Has reports whether t is in the set.
+func (s KindSet) Has(t Terrain) bool { return s&(1<<t) != 0 }
+
+// KindsOffering is every kind of ground that affords m, in the ontology's
+// terms: the ground a search for m has any business looking at. It is the
+// set to hand AnyWithin when what is wanted is a material rather than a
+// kind of ground - stone rather than an outcrop, fish rather than water -
+// so that what affords what stays the trees' to say.
+func KindsOffering(m *ontology.Class) KindSet {
+	var s KindSet
+	for t := Terrain(0); t < TerrainCount; t++ {
+		if ontology.Offers(t.Class(), m) {
+			s |= 1 << t
+		}
+	}
+	return s
+}

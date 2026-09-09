@@ -1,9 +1,6 @@
 package world
 
-import (
-	"lreat/core/entity"
-	"lreat/core/ontology"
-)
+import "lreat/core/entity"
 
 // The map in pieces. A chunk is a square of the ground with a few counts
 // kept beside it - what stands on it, what grows on it, whether anybody
@@ -31,8 +28,16 @@ type Chunk struct {
 	// Built and Owned are how many tiles here have something standing on
 	// them, and how many are somebody's. Ground with neither is ground
 	// nobody keeps and nothing falls down on.
-	Built, Owned                                               int
-	Houses, Fields, Forest, Roads, Granaries, Markets, Taverns int
+	Built, Owned                               int
+	Houses, Roads, Granaries, Markets, Taverns int
+	// Kinds is how many tiles here are of each kind of ground. It is one
+	// row rather than a field per kind because the questions asked of it
+	// are asked of a kind held in a variable: whether there is any wood
+	// within reach, or any water, or any rock, is the same question about
+	// a different row. See Grid.AnyWithin, which is what makes a search
+	// for ground that is not there cost a look at a few counts instead of
+	// a walk over every tile in the radius.
+	Kinds [TerrainCount]int
 	// Trodden is whether anybody has crossed this chunk since it was last
 	// woken, and Trod the day it was last known to have been. Wear keeps
 	// ground awake for a while after the last crossing - see active.go -
@@ -95,11 +100,8 @@ func (c *Chunk) count(t *Tile, d int) {
 	if t.Structure != None {
 		c.Built += d
 	}
-	switch {
-	case t.Is(ontology.Field):
-		c.Fields += d
-	case t.Is(ontology.Wood):
-		c.Forest += d
+	if t.Terrain < TerrainCount {
+		c.Kinds[t.Terrain] += d
 	}
 	if t.Owner != 0 {
 		c.Owned += d
@@ -166,7 +168,8 @@ func (g *Grid) Recount() {
 	for i := range g.Chunks {
 		c := &g.Chunks[i]
 		c.Built, c.Owned = 0, 0
-		c.Houses, c.Fields, c.Forest, c.Roads, c.Granaries, c.Markets, c.Taverns = 0, 0, 0, 0, 0, 0, 0
+		c.Houses, c.Roads, c.Granaries, c.Markets, c.Taverns = 0, 0, 0, 0, 0
+		c.Kinds = [TerrainCount]int{}
 		c.Height = 0
 	}
 	if len(g.lenders) != len(g.Tiles) {
@@ -193,10 +196,14 @@ func (g *Grid) Recount() {
 func (g *Grid) Houses() int { return g.sum(func(c *Chunk) int { return c.Houses }) }
 
 // Fields is how many tiles are under the plough.
-func (g *Grid) Fields() int { return g.sum(func(c *Chunk) int { return c.Fields }) }
+func (g *Grid) Fields() int { return g.Kind(Field) }
 
 // Forest is how many tiles are wooded.
-func (g *Grid) Forest() int { return g.sum(func(c *Chunk) int { return c.Forest }) }
+func (g *Grid) Forest() int { return g.Kind(Forest) }
+
+// Kind is how many tiles of this ground the map has, summed over the
+// chunks rather than walked over the tiles.
+func (g *Grid) Kind(t Terrain) int { return g.sum(func(c *Chunk) int { return c.Kinds[t] }) }
 
 // Roads is how many tiles are paved.
 func (g *Grid) Roads() int { return g.sum(func(c *Chunk) int { return c.Roads }) }
@@ -230,3 +237,49 @@ func (g *Grid) lend(i int, d int8) {
 
 // Lenders is how many of p's neighbours lend it their wear.
 func (g *Grid) Lenders(i int) int { return int(g.lenders[i]) }
+
+// AnyWithin reports whether the map holds any tile of one of these kinds
+// of ground within radius of p. It is answered from the counts of the
+// chunks the radius reaches into, so it is a handful of comparisons
+// whatever the radius is.
+//
+// It is a question asked to be told no. A search for ground of some kind
+// that walks out to its full radius and finds nothing is the most
+// expensive thing an agent does and the commonest: over half the searches
+// made on the globe find nothing, and each of those proves it the long
+// way, tile by tile over every ring. This proves it from the counts
+// instead, and the search is only walked when there is something to find.
+//
+// So a false here has to mean there is truly nothing, while a true need
+// only mean there might be: the answer is read off whole chunks, and a
+// chunk the radius clips the corner of counts as reached. That is why the
+// search still runs when this says yes, and why nothing it decides can
+// change what a search returns.
+func (g *Grid) AnyWithin(p entity.Pos, radius int, kinds KindSet) bool {
+	if kinds == 0 {
+		return false
+	}
+	p = g.Norm(p)
+	y0, y1 := max(0, p.Y-radius), min(g.H-1, p.Y+radius)
+	x0, x1 := p.X-radius, p.X+radius
+	if !g.Wrap {
+		x0, x1 = max(0, x0), min(g.W-1, x1)
+	}
+	for cy := y0 / ChunkSide; cy <= y1/ChunkSide; cy++ {
+		for cx := floorDiv(x0, ChunkSide); cx <= floorDiv(x1, ChunkSide); cx++ {
+			x := cx
+			if g.Wrap {
+				x = ((x % g.CW) + g.CW) % g.CW
+			} else if x < 0 || x >= g.CW {
+				continue
+			}
+			c := &g.Chunks[cy*g.CW+x]
+			for t := Terrain(0); t < TerrainCount; t++ {
+				if kinds.Has(t) && c.Kinds[t] > 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

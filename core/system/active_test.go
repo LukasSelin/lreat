@@ -44,7 +44,7 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 	for i := range g.Chunks {
 		c := &g.Chunks[i]
 		mid := entity.Pos{X: c.X0 + c.W/2, Y: c.Y0 + c.H/2}
-		if d := g.Dist(mid, w.MarketPos); !g.Active[i] && c.Forest > 20 && d > farthest {
+		if d := g.Dist(mid, w.MarketPos); !g.Active[i] && c.Kinds[world.Forest] > 20 && d > farthest {
 			sleeping, farthest = i, d
 		}
 	}
