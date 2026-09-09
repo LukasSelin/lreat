@@ -114,8 +114,8 @@ var MoveHouse = &Def{
 		if old := w.Grid.At(a.Home); old.Structure == world.House && old.Owner == a.ID {
 			w.Grid.Raze(a.Home)
 		}
-		t := w.Grid.At(a.Pos)
-		t.Structure, t.Owner = world.House, a.ID
+		w.Grid.Build(a.Pos, world.House)
+		w.Grid.Claim(a.Pos, a.ID)
 		a.Home = a.Pos
 		a.Inventory[entity.Wood] -= movingWood
 		a.AddSkill(entity.Building, 0.02)

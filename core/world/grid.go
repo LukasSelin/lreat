@@ -100,6 +100,9 @@ type Grid struct {
 	W, H  int
 	Wrap  bool
 	Tiles []Tile
+	// Chunks is the map in pieces, CW across and CH down. See chunk.go.
+	CW, CH int
+	Chunks []Chunk
 
 	// steepAt, steepLine and woodsLine are the map's measure of its own
 	// ground: what counts as steep on it, the slope above which nothing
@@ -132,7 +135,9 @@ func (g *Grid) ownRouter() *Router {
 
 // NewGrid returns an all-grass grid.
 func NewGrid(w, h int) *Grid {
-	return &Grid{W: w, H: h, Tiles: make([]Tile, w*h)}
+	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h)}
+	g.layChunks()
+	return g
 }
 
 // In reports whether p is on the map. On a globe every column is; only a
@@ -153,6 +158,8 @@ func (g *Grid) At(p entity.Pos) *Tile {
 func (g *Grid) Clone() *Grid {
 	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles))}
 	copy(c.Tiles, g.Tiles)
+	c.layChunks()
+	c.Recount()
 	return c
 }
 
@@ -275,9 +282,11 @@ func (g *Grid) Raze(p entity.Pos) bool {
 		return false
 	}
 	if t.Terrain == Field {
-		t.Terrain, t.Age = Grass, 0 // the crop goes with the claim
+		g.Turn(p, Grass)
+		t.Age = 0 // the crop goes with the claim
 	}
-	t.Structure, t.Owner = None, 0
+	g.Build(p, None)
+	g.Claim(p, 0)
 	return true
 }
 

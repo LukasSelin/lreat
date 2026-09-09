@@ -174,7 +174,7 @@ func raising(in ontology.Instance) *Def {
 		if !t.Buildable() {
 			return // somebody got there first
 		}
-		t.Structure = structure
+		w.Grid.Build(a.Pos, structure)
 		for i, m := range takes {
 			mine, _ := pack(a, m)
 			mine.Move(-p.Amounts[i])

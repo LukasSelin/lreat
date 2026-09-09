@@ -53,7 +53,7 @@ type Modifiers struct {
 // as a count rather than folded into Keeping when one goes up, because a
 // one-way multiplier cannot be undone when one comes down.
 func (w *World) Granaries() int {
-	return w.Grid.Count(func(t *Tile) bool { return t.Structure == Granary })
+	return w.Grid.Granaries()
 }
 
 // DefaultModifiers is the pre-technology baseline.

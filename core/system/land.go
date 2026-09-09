@@ -82,7 +82,8 @@ func Land(w *world.World) {
 		}
 		// Seed falls in the growing season, not on frozen ground.
 		if w.RNG.Float64() < reseedChance*w.Climate.Growth() {
-			t.Terrain, t.Wood, t.Wild = world.Forest, 0, 0
+			g.Turn(p, world.Forest)
+			t.Wood, t.Wild = 0, 0
 			t.Sow() // a seedling wood, with nothing on it yet
 		}
 	}

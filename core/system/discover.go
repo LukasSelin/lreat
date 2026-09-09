@@ -220,7 +220,7 @@ func forestGone(w *world.World) bool {
 	if w.Forest0 == 0 {
 		return false
 	}
-	now := w.Grid.Count(func(t *world.Tile) bool { return t.Terrain == world.Forest })
+	now := w.Grid.Forest()
 	return float64(now) < 0.6*float64(w.Forest0)
 }
 

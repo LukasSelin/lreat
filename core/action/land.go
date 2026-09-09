@@ -164,7 +164,8 @@ var PlantTrees = &Def{
 		// What is planted is a planting: no timber and nothing to forage for
 		// years yet. The good of it goes to whoever is here when it is grown,
 		// which is the whole of what the act is for.
-		t.Terrain, t.Wood, t.Wild = world.Forest, 0, 0
+		w.Grid.Turn(a.Pos, world.Forest)
+		t.Wood, t.Wild = 0, 0
 		t.Sow()
 		a.Needs.Add(need.Esteem, 0.02)
 		a.Needs.Add(need.Actualization, 0.02)

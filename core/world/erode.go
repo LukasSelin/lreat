@@ -166,6 +166,7 @@ func (w *World) Erode() {
 	// dry shoulder may now be damp enough to hold a wood, and what the water
 	// has cut into may not.
 	g.readWoods()
+	g.Recount() // the water has moved, and the woods with it
 }
 
 // SoilDepth is how many metres of ground make the difference between land

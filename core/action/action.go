@@ -458,7 +458,8 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 	if !w.Grid.HasNeighbor(a.Pos, func(n *world.Tile) bool { return n.Terrain == world.Field && n.Owner == a.ID }) {
 		return false
 	}
-	t.Terrain, t.Owner = world.Field, a.ID
+	w.Grid.Turn(a.Pos, world.Field)
+	w.Grid.Claim(a.Pos, a.ID)
 	t.Sow() // broken ground, sown now, in ear within the quarter
 	a.Parcel = append(a.Parcel, a.Pos)
 	return true
@@ -491,8 +492,8 @@ var Clear = &Def{
 			if !t.Buildable() {
 				return // claimed by someone else first
 			}
-			t.Terrain = world.Field
-			t.Owner = a.ID
+			w.Grid.Turn(a.Pos, world.Field)
+			w.Grid.Claim(a.Pos, a.ID)
 			t.Sow()
 			a.Field, a.HasField = a.Pos, true
 			a.Parcel = []entity.Pos{a.Pos}
@@ -665,8 +666,8 @@ var BuildShelter = &Def{
 			if !w.Grid.RoomToBuild(a.Pos) && roomNearby(w, a.Pos) {
 				return
 			}
-			t.Structure = world.House
-			t.Owner = a.ID
+			w.Grid.Build(a.Pos, world.House)
+			w.Grid.Claim(a.Pos, a.ID)
 			a.Home, a.HasHome = a.Pos, true
 			w.Emit(event.Built, a.ID, 0, "%s built a house", a.Name)
 		}

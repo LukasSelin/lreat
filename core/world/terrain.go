@@ -94,7 +94,8 @@ func (w *World) Generate(cfg Config) {
 		t.Fertility = g.SoilAt(entity.Pos{X: i % width, Y: i / width})
 		t.Rich = t.Fertility
 	}
-	w.Forest0 = g.Count(func(t *Tile) bool { return t.Terrain == Forest })
+	g.Recount()
+	w.Forest0 = g.Forest()
 
 	// The market goes where a settlement would put it: dry, gentle ground
 	// beside the largest water near the middle of the map, which after the
@@ -128,10 +129,10 @@ func (w *World) Generate(cfg Config) {
 	if math.IsInf(bestScore, -1) {
 		mp, _ = g.Nearest(center, width+height, func(_ entity.Pos, t *Tile) bool { return t.Terrain == Grass })
 	}
-	if t := g.At(mp); t.Terrain != Grass {
-		t.Terrain = Grass
+	if g.At(mp).Terrain != Grass {
+		g.Turn(mp, Grass)
 	}
-	g.At(mp).Structure = Market
+	g.Build(mp, Market)
 	w.Grid = g
 	w.MarketPos = mp
 	w.FoundMarket(mp)

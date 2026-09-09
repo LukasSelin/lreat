@@ -42,7 +42,9 @@ const Walked = 5
 // Tread records that somebody crossed this tile.
 func (g *Grid) Tread(p entity.Pos) {
 	if g.In(p) {
-		g.At(p).Traffic += Wear
+		i := g.Index(p)
+		g.Tiles[i].Traffic += Wear
+		g.Chunks[g.ChunkOf(i)].Trodden = true
 	}
 }
 
@@ -326,12 +328,13 @@ func (g *Grid) Pave(p entity.Pos) bool {
 		return false
 	}
 	if t.Terrain == Forest {
-		t.Terrain, t.Wood = Grass, 0
+		g.Turn(p, Grass)
+		t.Wood = 0
 		t.Sow()
 	}
 	// Over water the road is a bridge, so the water stays: the fish go on
 	// swimming under it and the tile is still a river to look at.
-	t.Structure = Road
+	g.Build(p, Road)
 	// The wear stays. On open ground it was the ground asking for a road,
 	// and nothing reads it that way any more - a road is not Pavable, and
 	// lends nothing to its neighbours, so it can no longer ask for anything.

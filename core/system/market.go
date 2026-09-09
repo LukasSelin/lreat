@@ -196,11 +196,11 @@ func MoveMarket(w *world.World) {
 		return
 	}
 	if old := w.Grid.At(w.MarketPos); old.Structure == world.Market {
-		old.Structure = world.None
+		w.Grid.Build(w.MarketPos, world.None)
 		w.CloseMarket(w.MarketPos)
 	}
-	t := w.Grid.At(site)
-	t.Terrain, t.Structure = world.Grass, world.Market
+	w.Grid.Turn(site, world.Grass)
+	w.Grid.Build(site, world.Market)
 	w.MarketPos = site
 	w.FoundMarket(site)
 	w.Emit(event.Built, 0, 0, "the market moved to where the town had gone")

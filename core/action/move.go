@@ -117,7 +117,7 @@ type move struct {
 	Worth func(a *entity.Agent, w *world.World, quantity float64) need.Levels
 	Gives need.Levels
 	// Gone is what becomes of the tile once the move has drawn on it.
-	Gone func(t *world.Tile)
+	Gone func(w *world.World, p entity.Pos, t *world.Tile)
 	// Event is what the act is called in the record, and Report how it
 	// reads; nil for a move nobody records.
 	Event  event.Kind
@@ -181,9 +181,10 @@ var moves = map[string]move{
 			}
 			return need.Levels{need.Safety: want, need.Esteem: want * 0.3}
 		},
-		Gone: func(t *world.Tile) {
+		Gone: func(w *world.World, p entity.Pos, t *world.Tile) {
 			if t.Wood < 0.1 {
-				t.Terrain, t.Wood = world.Grass, 0
+				w.Grid.Turn(p, world.Grass)
+				t.Wood = 0
 				t.Sow() // the stand is gone; what comes back starts from nothing
 			}
 		},
@@ -553,7 +554,7 @@ func moving(in ontology.Instance) *Def {
 		}
 		if mv.Gone != nil {
 			if tile := grounds[in.Site]; tile.Drawn != nil {
-				mv.Gone(tile.Drawn(w, a.Pos))
+				mv.Gone(w, a.Pos, tile.Drawn(w, a.Pos))
 			}
 		}
 		if o != nil {
