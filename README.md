@@ -102,6 +102,22 @@ All three take `-seed` and `-agents`, and count in ticks, which are days: the
 defaults above are fifty and sixty years. A seed plus a command log reproduces a
 run exactly, however the goroutines happen to interleave.
 
+`headless` and `tune` also take `-preset globe`, which founds the world on a
+globe instead of the valley: a cylinder a thousand tiles round and five
+hundred down, joined at the east and west edges, a third of it sea, cold at
+the poles and warm at the middle, with the weather read by latitude. `-width`,
+`-height` and `-wrap` are the same terms by hand, and override the preset
+where given; a globe must be a whole number of chunks round. The map is kept
+in chunks of sixty-four tiles, and ground with nobody on it, nothing built
+on it and nobody across it lately sleeps: the day's passes skip it and it is
+caught up in one go when it wakes, which on the default map never happens,
+so nothing measured there moves. `headless -timing` says what each report
+interval spent on each phase of the day, how much of the ground was awake
+and why, and how many plans found no way; `-cpuprofile` writes a profile.
+What the globe batch prints is checked in at
+[docs/baseline-globe.md](docs/baseline-globe.md), taken on eight seeds, and
+it is a different settlement from the valley's in every number.
+
 ```bash
 go test ./...
 ```
