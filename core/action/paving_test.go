@@ -99,7 +99,12 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	// and marking the ground somewhere else. See fordEnough.
 	ford := entity.Pos{X: a.Pos.X - 2, Y: a.Pos.Y}
 	w.Grid.At(ford).Terrain = world.Water
-	for i := 0; i < 100; i++ {
+	// The ford's count is written in terms of hauling and the lane's load is
+	// not, which is the asymmetry itself: the lane can be worn harder by
+	// carrying more, and the ford can only ever be worn by more journeys,
+	// so what it takes to make a crossing's case has to rise with what a
+	// laden crossing is worth elsewhere.
+	for i := 0; i < 25*hauling; i++ {
 		w.Grid.Tread(ford, 0)
 	}
 	lane := entity.Pos{X: a.Pos.X + 2, Y: a.Pos.Y}

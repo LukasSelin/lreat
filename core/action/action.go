@@ -722,18 +722,20 @@ const wornEnough = 60 * hauling
 
 // hauling is how much more the ground is marked now that what a walker
 // carries counts. It is measured, not chosen: over six settlements to six
-// thousand days the walkers of this world were carrying 5.21 armfuls at the
-// moment they crossed a tile, counting stone for the two it is to carry, so a
-// tile walked exactly as it was before reads about six times as worn. Every
-// bar read off the ground is written in terms of it, so that raising or
-// lowering Haul moves the bars with it instead of silently retuning every one
-// of them - which is the mistake this file has now made twice and would
-// rather not make a third time.
+// thousand days the walkers of this world were carrying 7.54 armfuls at the
+// moment they crossed a tile, counting the heavy materials for the two they
+// are to carry, so a tile walked exactly as it was before reads about nine
+// times as worn.
 //
-// Weighing the heavy materials moved this by three parts in a hundred, from
-// 5.07 armfuls to 5.21, because stone is the only thing the trees call heavy
-// and the settlements quarry little of it. The six stands either way.
-const hauling = 6
+// Every bar read off the ground is written in terms of it, so that changing
+// what a load comes to moves the bars with it instead of leaving four stale
+// numbers behind - which is the mistake this file made twice before the
+// constant existed. Calling timber heavy is the first change to test that,
+// and it is the reason to have done it: the mean load went from 5.21 armfuls
+// to 7.54, near enough half again, and the whole of the correction was this
+// six becoming a nine. The settlements laid 984 lengths of road against 928
+// and bridged fourteen either way.
+const hauling = 9
 
 // worthPaving is how strong the case for a road has to be before anybody
 // lays one. It is not the same number as wornEnough and no longer can be,

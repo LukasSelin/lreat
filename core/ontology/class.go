@@ -202,7 +202,13 @@ var (
 	// cold half rather than the green one: a stand a planter raised is
 	// years off being beams, and the felling of it is winter work whoever
 	// does it.
-	Timber = season(lack(New("timber", Material, Burnable|Buildable, habit.Signature{}), 0.6), -0.3)
+	// Timber is heavy for the same reason stone is: a length of it is nearer
+	// a creel of stone than a sack of grain. It is also what the settlement
+	// actually carries - the roofs, the roads and the bridges all come out
+	// of it - so where saying it of stone alone moved the mean load three
+	// parts in a hundred, saying it of timber moves it by nearly half, and
+	// the ways worn by hauling become mostly ways worn by hauling this.
+	Timber = season(lack(New("timber", Material, Burnable|Buildable|Heavy, habit.Signature{}), 0.6), -0.3)
 	Stone  = lack(New("stone", Material, Buildable|Heavy, habit.Signature{}), 0.5)
 	Tool   = lack(New("tool", Material, Wears, habit.Signature{habit.Unproven: 0.8, habit.Skill: 0.5}), 0.5)
 	// Coin is a thing so that money can be made, given, and stolen like
