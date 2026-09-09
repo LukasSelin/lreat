@@ -39,19 +39,13 @@ func remorse(a *entity.Agent, name string) {
 	}
 }
 
-// nearestWith returns the closest other agent satisfying ok, or nil.
+// nearestWith returns the closest other agent satisfying ok, or nil. It
+// asks the world for the nearest rather than sizing up everyone in the
+// radius, because ok is asked of a stranger and the answer is the same
+// whoever asks: the nearest holder of a thing is the nearest holder of it,
+// and finding them should not cost the crowd standing behind them.
 func nearestWith(a *entity.Agent, w *world.World, radius int, ok func(*entity.Agent) bool) *entity.Agent {
-	var best *entity.Agent
-	bestD := radius + 1
-	w.Nearby(a.Pos, radius, func(o *entity.Agent) bool {
-		if o != a && ok(o) {
-			if d := w.Grid.Dist(a.Pos, o.Pos); d < bestD {
-				best, bestD = o, d
-			}
-		}
-		return true
-	})
-	return best
+	return w.Closest(a.Pos, radius, func(o *entity.Agent) bool { return o != a && ok(o) })
 }
 
 func hasSpareFood(o *entity.Agent) bool { return o.Inventory[entity.Food] >= 1 }
