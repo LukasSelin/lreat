@@ -88,7 +88,7 @@ func main() {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			w := world.New(uint64(*offset + i + 1))
+			w := world.NewWith(uint64(*offset+i+1), cfg)
 			w.Rules.Fit = !*value
 			w.Rules.Temperature = *temp
 			for j := 0; j < *agents; j++ {
