@@ -73,3 +73,8 @@ $RECYCLE.BIN/
 # What every run of the simulation left behind, one folder per branch.
 # Local by design: the numbers belong to the tree they were taken on.
 /runs/
+
+# A workspace is how owl/ is built from inside a worktree, where the relative
+# replace in owl/go.mod does not reach gowl. It is local to the checkout.
+go.work
+go.work.sum
