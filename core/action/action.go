@@ -722,12 +722,17 @@ const wornEnough = 60 * hauling
 
 // hauling is how much more the ground is marked now that what a walker
 // carries counts. It is measured, not chosen: over six settlements to six
-// thousand days the walkers of this world were carrying 4.92 armfuls at the
-// moment they crossed a tile, so a tile walked exactly as it was before reads
-// about six times as worn. Every bar read off the ground is written in terms
-// of it, so that raising or lowering Haul moves the bars with it instead of
-// silently retuning every one of them - which is the mistake this file has
-// now made twice and would rather not make a third time.
+// thousand days the walkers of this world were carrying 5.21 armfuls at the
+// moment they crossed a tile, counting stone for the two it is to carry, so a
+// tile walked exactly as it was before reads about six times as worn. Every
+// bar read off the ground is written in terms of it, so that raising or
+// lowering Haul moves the bars with it instead of silently retuning every one
+// of them - which is the mistake this file has now made twice and would
+// rather not make a third time.
+//
+// Weighing the heavy materials moved this by three parts in a hundred, from
+// 5.07 armfuls to 5.21, because stone is the only thing the trees call heavy
+// and the settlements quarry little of it. The six stands either way.
 const hauling = 6
 
 // worthPaving is how strong the case for a road has to be before anybody

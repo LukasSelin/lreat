@@ -55,6 +55,41 @@ var goods = map[*ontology.Class]entity.Good{
 	ontology.Meal:      entity.Meals,
 }
 
+// hefts is what one unit of each good is to carry, in armfuls, read off the
+// ontology's Heavy trait once at start-up rather than looked up per step.
+// Anything the trees do not name is an ordinary armful.
+var hefts = func() [entity.GoodCount]float64 {
+	var h [entity.GoodCount]float64
+	for i := range h {
+		h[i] = 1
+	}
+	for c, g := range goods {
+		h[g] = ontology.Heft(c)
+	}
+	return h
+}()
+
+// Hauled is what an agent is carrying, in armfuls, counting a heavy material
+// for what it actually is to carry. It is what marks the ground - see
+// Grid.Tread - and it is the only place the weight of a pack is read as a
+// quantity rather than as the yes-or-no of entity.Agent.Load, which asks
+// whether a walker may take to the water and nothing else.
+//
+// A road is laid where the settlement's hauling runs, and hauling stone is
+// the heaviest of it. Stone is the only material the trees call Heavy, and it
+// is quarried rarely, so this moves the map less than it moves the meaning:
+// it is here so that Heavy is a fact with a consequence rather than a label,
+// and so that calling anything else heavy takes effect without another edit.
+func Hauled(a *entity.Agent) float64 {
+	total := 0.0
+	for g, q := range a.Inventory {
+		if q > 0 {
+			total += q * hefts[g]
+		}
+	}
+	return total
+}
+
 // GoodOf is what m is in a pack or on a shelf, walking up the tree: berries
 // are food. It is the coarsest thing the binding does, and deliberately: a
 // pack has one number for everything edible, which is why what befalls a

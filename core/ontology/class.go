@@ -322,6 +322,26 @@ func (c *Class) Short() float64 {
 	return 0
 }
 
+// HeavyLoad is what an armful of a heavy material is to carry, in armfuls of
+// anything else. A creel of stone is not a sack of grain: the mason walks
+// slower under it, rests sooner, and minds the rough ground more, and twice
+// is a modest reading of a difference that is nearer threefold by weight.
+//
+// One number, because Heavy is one trait. The ontology says which materials
+// are heavy and how much that means; what carrying it comes to for a
+// particular walker is world.Hauled, which is where the names here are bound
+// to the goods in a pack.
+const HeavyLoad = 2
+
+// Heft is what one unit of c is to carry, in armfuls. It is the trait read
+// as a number, and it is the whole of what Heavy means anywhere.
+func Heft(c *Class) float64 {
+	if c.Has(Heavy) {
+		return HeavyLoad
+	}
+	return 1
+}
+
 // at sets what being at a site is like, as a delta on what being at the kind
 // of site it is is like. See DerivedAt.
 func at(c *Class, s habit.Signature) *Class {
