@@ -66,6 +66,13 @@ func TestHungryAgentSeeksFood(t *testing.T) {
 	a.Inventory[entity.Food] = 0
 	// Honest enough not to take the shortcut; theft is covered separately.
 	a.Norms[belief.Honesty] = 1
+	// And something to forage, underfoot. What is being asked here is
+	// whether hunger sends somebody after food, not whether the generator
+	// happened to put a wood where this agent spawned: on a map that put it
+	// on good open ground instead, the same starving agent broke a field -
+	// which is also food, and a slower answer to the same question.
+	here := w.Grid.At(a.Pos)
+	here.Terrain, here.Wood, here.Wild = world.Forest, 0.7, 0.7
 	d, _ := Choose(a, w)
 	if d != action.Forage && d != action.Farm {
 		t.Fatalf("starving agent without food chose %q, want forage or farm", d.Name)

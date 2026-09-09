@@ -57,7 +57,7 @@ func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*act
 		if !ok {
 			continue
 		}
-		travel := r.Carrying(a.Load()).TravelCost(a.Pos, target)
+		travel := r.Carrying(a.Load()).Holding(a.ID).TravelCost(a.Pos, target)
 		if math.IsInf(travel, 1) {
 			continue // no way there from here with what it is carrying
 		}
@@ -329,7 +329,7 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 		Action: d.Name, Target: target, Remaining: d.Ticks, Total: d.Ticks,
 		Index:   index,
 		Started: w.Tick,
-		Route:   r.Carrying(a.Load()).Path(a.Pos, target),
+		Route:   r.Carrying(a.Load()).Holding(a.ID).Path(a.Pos, target),
 	}
 }
 
@@ -352,7 +352,7 @@ func Act(w *world.World) {
 			// A plan made by deciding already knows its way. One set by hand -
 			// a player's order, a test - works it out on arrival here.
 			if len(a.Plan.Route) == 0 {
-				a.Plan.Route = w.Grid.Carrying(a.Load()).Path(a.Pos, a.Plan.Target)
+				a.Plan.Route = w.Grid.Carrying(a.Load()).Holding(a.ID).Path(a.Pos, a.Plan.Target)
 				if len(a.Plan.Route) == 0 {
 					a.Plan = nil // nowhere to go from here
 					continue
@@ -368,14 +368,14 @@ func Act(w *world.World) {
 			// where the speed of a street comes from.
 			for len(a.Plan.Route) > 0 {
 				step := a.Plan.Route[0]
-				cost := w.Grid.StepCost(a.Pos, step)
+				cost := w.Grid.StepCostFor(a.Pos, step, a.ID)
 				if a.Travel < cost {
 					break
 				}
 				a.Travel -= cost
 				a.Pos = step
 				a.Plan.Route = a.Plan.Route[1:]
-				w.Grid.Tread(step)
+				w.Grid.Tread(step, a.Load())
 				// Walking is how anybody learns what the country is like.
 				// There is no survey and nobody is told: an agent knows the
 				// ground it has stood on and no other, and everything it

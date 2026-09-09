@@ -17,6 +17,12 @@ func (w *World) GenerateTerrain(width, height int) {
 	w.raise(g)
 	g.fill()
 	g.drain()
+	// The water cuts its valley before the valley is asked where the water
+	// goes: incise moves the ground, so the drainage has to be taken again on
+	// the ground it left. See Incise.
+	g.incise()
+	g.fill()
+	g.drain()
 	g.carve(w.RNG)
 	g.height()
 
@@ -64,7 +70,7 @@ func (w *World) GenerateTerrain(width, height int) {
 	open := make([]float64, 0, len(g.Tiles))
 	for i := range g.Tiles {
 		bare[i] = clamp01(slopes[i]/math.Max(1e-12, g.steepAt)) +
-			clamp01((heights[i]-highAt)/math.Max(1e-12, Relief-highAt))
+			clamp01((heights[i]-highAt)/math.Max(1e-12, g.Skyline()-highAt))
 		if g.Tiles[i].Terrain == Grass {
 			open = append(open, bare[i])
 		}

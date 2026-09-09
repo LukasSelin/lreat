@@ -75,6 +75,10 @@ func Land(w *world.World) {
 			back(t, k)
 		}
 	}
+	// The hedges are read off the fields as they now stand, so a strip broken
+	// yesterday is inside its block's fence today and a holding given up is
+	// open ground again. See world.Fence.
+	g.Fence()
 	for k := 0; k < reseedSamples; k++ {
 		p := entity.Pos{X: w.RNG.IntN(g.W), Y: w.RNG.IntN(g.H)}
 		t := g.At(p)
