@@ -33,7 +33,7 @@ func TestDistanceIsShortestRoundTheCylinder(t *testing.T) {
 func TestNearestFindsGroundAcrossTheSeam(t *testing.T) {
 	g := NewGrid(40, 10)
 	g.Wrap = true
-	g.At(entity.Pos{X: 38, Y: 5}).Terrain = Rock
+	g.Turn(entity.Pos{X: 38, Y: 5}, Rock)
 	p, ok := g.Nearest(entity.Pos{X: 1, Y: 5}, 10, func(_ entity.Pos, t *Tile) bool { return t.Terrain == Rock })
 	if !ok || p != (entity.Pos{X: 38, Y: 5}) {
 		t.Fatalf("the outcrop three tiles west across the seam was found at %v, %v", p, ok)

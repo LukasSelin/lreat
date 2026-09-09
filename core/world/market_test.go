@@ -15,7 +15,7 @@ func TestTradeGoesToTheNearestSquare(t *testing.T) {
 	}
 	old, far := entity.Pos{X: 2, Y: 6}, entity.Pos{X: 20, Y: 6}
 	for _, p := range []entity.Pos{old, far} {
-		w.Grid.At(p).Structure = Market
+		w.Grid.Build(p, Market)
 	}
 	w.markets = nil
 	w.MarketPos = old
@@ -55,7 +55,7 @@ func TestAStaleSquareIsNotTradedOn(t *testing.T) {
 		w.Grid.Tiles[i] = Tile{Terrain: Grass}
 	}
 	gone, real := entity.Pos{X: 2, Y: 6}, entity.Pos{X: 20, Y: 6}
-	w.Grid.At(real).Structure = Market // gone has no market on it
+	w.Grid.Build(real, Market) // gone has no market on it
 	w.markets = nil
 	w.MarketPos = real
 	w.FoundMarket(gone)

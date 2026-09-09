@@ -142,13 +142,14 @@ const nearMarket = 20
 func meanOf(w *world.World, ok func(*world.Tile) bool, f func(*world.Tile) float64) (float64, int) {
 	var sum float64
 	n := 0
-	for y := 0; y < w.Grid.H; y++ {
-		for x := 0; x < w.Grid.W; x++ {
-			p := entity.Pos{X: x, Y: y}
-			if w.Grid.Dist(p, w.MarketPos) > nearMarket {
-				continue
-			}
-			t := w.Grid.At(p)
+	// Only the window is walked, in the order a walk over the whole map
+	// would have come to its tiles, so the sum lands in the same order.
+	g, m := w.Grid, w.MarketPos
+	x0, x1 := g.Span(m.X, nearMarket)
+	for y := max(0, m.Y-nearMarket); y <= min(g.H-1, m.Y+nearMarket); y++ {
+		for dx := x0; dx <= x1; dx++ {
+			p := g.Norm(entity.Pos{X: m.X + dx, Y: y})
+			t := g.At(p)
 			if ok(t) {
 				sum += f(t)
 				n++

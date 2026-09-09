@@ -13,11 +13,12 @@ const (
 	// not a crop that has to come on, and worn soil is resting rather than
 	// growing. What a wood and a field have standing on them is in
 	// ontology.Processes; see ripen.
-	fishRegrowth = 0.0012
-	fallow       = 0.0006
 	// reseedSamples is how many random tiles per tick are checked for
-	// spontaneous reforestation from a wooded neighbor.
+	// spontaneous reforestation from a wooded neighbor, on the default map;
+	// a bigger map is checked in proportion, so that a wood comes back at
+	// the same rate per acre wherever it is.
 	reseedSamples = 3
+	reseedPer     = world.DefaultWidth * world.DefaultHeight
 	reseedChance  = 0.3
 	// ErodeEvery is how long an age of weather covers. An age is a decade,
 	// not a season: the land is not weather, and a hillside that moved every
@@ -47,7 +48,6 @@ func isForest(t *world.Tile) bool { return t.Terrain == world.Forest }
 // other ways of living.
 func Land(w *world.World) {
 	g := w.Grid
-	g.Weather()
 	if w.Tick%ErodeEvery == 0 {
 		w.Erode()
 	}
@@ -57,17 +57,23 @@ func Land(w *world.World) {
 	// seasons existed. Fish and fallow follow the same clock: the water
 	// under ice gives back nothing, and worn ground rests until it thaws.
 	k := w.Mods.Regrowth * w.Climate.Growth()
-	for i := range g.Tiles {
-		t := &g.Tiles[i]
-		ripen(t, k)
-		switch t.Terrain {
-		case world.Water:
-			t.Fish = min(1, t.Fish+fishRegrowth*k)
-		case world.Field:
-			t.Fertility = min(t.Rich, t.Fertility+fallow*k)
+	// Only the ground that is awake is passed over; what is asleep is owed
+	// the growing weather from here on, and gets it when it wakes. See
+	// world.Wake.
+	w.Growing += k
+	// The wear fades in the same pass as the growing. They were two passes
+	// and the first came first, but neither reads what the other writes,
+	// so one walk over the awake ground does both and it is the same day.
+	g.EachActive(func(_ int, t *world.Tile) {
+		if t.Traffic > 0 {
+			t.Traffic *= world.Fade
 		}
-	}
-	for k := 0; k < reseedSamples; k++ {
+		t.Ripen(k)
+		t.Replenish(k)
+	})
+	g.Stamp(w.Growing, w.Tick)
+	samples := max(reseedSamples, (reseedSamples*len(g.Tiles)+reseedPer/2)/reseedPer)
+	for k := 0; k < samples; k++ {
 		p := entity.Pos{X: w.RNG.IntN(g.W), Y: w.RNG.IntN(g.H)}
 		t := g.At(p)
 		if !t.Buildable() || !g.HasNeighbor(p, isForest) {
@@ -85,6 +91,13 @@ func Land(w *world.World) {
 			g.Turn(p, world.Forest)
 			t.Wood, t.Wild = 0, 0
 			t.Sow() // a seedling wood, with nothing on it yet
+			// Seed that falls on sleeping ground is owed nothing of the
+			// growing weather the ground slept through, but that ground
+			// will be given all of it when it wakes. So the seedling is
+			// sown that much before its time, and comes out at nought.
+			if c := g.ChunkOf(g.Index(p)); !g.Awake(c) {
+				t.Age -= w.Growing - g.Chunks[c].Grown
+			}
 		}
 	}
 }

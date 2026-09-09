@@ -122,11 +122,12 @@ func TestWeatherDoesNotDrownWhatIsBuilt(t *testing.T) {
 			bank, most = p, f
 		}
 	}
-	g.At(bank).Structure = House
+	g.Build(bank, House)
 	field := entity.Pos{X: bank.X, Y: bank.Y}
 	if q := (entity.Pos{X: bank.X + 1, Y: bank.Y}); g.In(q) && g.At(q).Terrain != Water {
 		field = q
-		g.At(q).Terrain, g.At(q).Owner = Field, 7
+		g.Turn(q, Field)
+		g.Claim(q, 7)
 	}
 
 	for age := 0; age < 30; age++ {

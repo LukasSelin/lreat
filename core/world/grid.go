@@ -103,6 +103,15 @@ type Grid struct {
 	// Chunks is the map in pieces, CW across and CH down. See chunk.go.
 	CW, CH int
 	Chunks []Chunk
+	// Active is which chunks are awake today, set by World.Wake. Empty
+	// until the first day, when every chunk is read as awake.
+	Active []bool
+	// lenders is, for each tile, how many of its eight neighbours have
+	// something standing on them or are somebody's: the neighbours that
+	// lend a tile their wear when the case for a road on it is read. Kept
+	// by Build and Claim, so that the reading can pass over the tiles that
+	// have no wear of their own and nobody to lend them any. See Draw.
+	lenders []uint8
 
 	// steepAt, steepLine and woodsLine are the map's measure of its own
 	// ground: what counts as steep on it, the slope above which nothing
@@ -135,7 +144,7 @@ func (g *Grid) ownRouter() *Router {
 
 // NewGrid returns an all-grass grid.
 func NewGrid(w, h int) *Grid {
-	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h)}
+	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h), lenders: make([]uint8, w*h)}
 	g.layChunks()
 	return g
 }
@@ -158,6 +167,7 @@ func (g *Grid) At(p entity.Pos) *Tile {
 func (g *Grid) Clone() *Grid {
 	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles))}
 	copy(c.Tiles, g.Tiles)
+	c.lenders = make([]uint8, len(g.Tiles))
 	c.layChunks()
 	c.Recount()
 	return c

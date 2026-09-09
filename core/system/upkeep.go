@@ -1,9 +1,7 @@
 package system
 
 import (
-	"lreat/core/entity"
 	"lreat/core/event"
-	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -22,30 +20,28 @@ func Upkeep(w *world.World) { wither(w) }
 // is spent on it, and what is certain to go draws no luck at all. A number
 // drawn and not used is a different settlement three generations on.
 func wither(w *world.World) {
-	alive := make(map[entity.ID]bool, len(w.Agents))
-	for _, a := range w.Agents {
-		alive[a.ID] = true
-	}
 	g := w.Grid
-	for i := range g.Tiles {
-		t := &g.Tiles[i]
+	// Only the awake ground is walked, in the same order the whole would
+	// be. Nothing stands on sleeping ground and nobody holds it, so nothing
+	// there could befall and no luck would have been spent on it.
+	g.EachActive(func(i int, t *world.Tile) {
 		// What becomes of it is settled before any luck is spent, so that
 		// a certainty costs the world no draw, and so that ground with
 		// nothing standing on it costs none either.
-		tr := ontology.Befalling(world.ClassOf(t), unkept(t, alive))
+		tr := t.Befalling(unkept(t, w))
 		if tr == nil {
-			continue
+			return
 		}
 		if tr.Rate < 1 && w.RNG.Float64() >= tr.Rate {
-			continue
+			return
 		}
-		p := entity.Pos{X: i % g.W, Y: i / g.W}
+		p := g.PosOf(i)
 		// Nobody did this, so there is no act to name - only the ground it
 		// happened on.
 		if g.Raze(p) && tr.Says != "" {
 			w.EmitAt(event.Ruined, 0, 0, "", p, "%s", tr.Says)
 		}
-	}
+	})
 }
 
 // unkept says whether whatever was holding this tile against the weather is
@@ -57,9 +53,9 @@ func wither(w *world.World) {
 // owns one, so no death takes it and no life saves it, and asked the ordinary
 // question a road answered "still kept" for ever. What keeps a road is the
 // walking on it, which the ground itself records: see world.Walked.
-func unkept(t *world.Tile, alive map[entity.ID]bool) bool {
+func unkept(t *world.Tile, w *world.World) bool {
 	if t.Structure == world.Road {
 		return t.Traffic < world.Walked
 	}
-	return t.Owner != 0 && !alive[t.Owner]
+	return t.Owner != 0 && w.Find(t.Owner) == nil
 }

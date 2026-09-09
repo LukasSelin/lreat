@@ -85,7 +85,7 @@ func TestClearedWoodsTeachForestry(t *testing.T) {
 	cleared := 0
 	for i := range w.Grid.Tiles {
 		if w.Grid.Tiles[i].Terrain == world.Forest && float64(cleared) < 0.5*float64(w.Forest0) {
-			w.Grid.Tiles[i].Terrain = world.Grass
+			w.Grid.Turn(w.Grid.PosOf(i), world.Grass)
 			cleared++
 		}
 	}

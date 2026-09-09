@@ -9,12 +9,12 @@ import (
 func TestStepTowardPrefersEasierGround(t *testing.T) {
 	g := NewGrid(10, 10)
 	from, to := entity.Pos{X: 2, Y: 5}, entity.Pos{X: 8, Y: 5}
-	g.At(entity.Pos{X: 3, Y: 5}).Terrain = Forest // straight ahead, slow
+	g.Turn(entity.Pos{X: 3, Y: 5}, Forest) // straight ahead, slow
 	if p := g.StepToward(from, to); p != (entity.Pos{X: 3, Y: 4}) && p != (entity.Pos{X: 3, Y: 6}) {
 		t.Fatalf("step = %v, want a detour around the forest", p)
 	}
 	for y := 0; y < 10; y++ {
-		g.At(entity.Pos{X: 3, Y: y}).Terrain = Forest
+		g.Turn(entity.Pos{X: 3, Y: y}, Forest)
 	}
 	if p := g.StepToward(from, to); p != (entity.Pos{X: 3, Y: 5}) {
 		t.Fatalf("step = %v, want the straight line when there is no way round", p)
@@ -27,7 +27,7 @@ func TestStepTowardTakesTheRoad(t *testing.T) {
 	g := NewGrid(20, 9)
 	from, to := entity.Pos{X: 1, Y: 4}, entity.Pos{X: 18, Y: 4}
 	for x := 0; x < 20; x++ {
-		g.At(entity.Pos{X: x, Y: 2}).Structure = Road
+		g.Build(entity.Pos{X: x, Y: 2}, Road)
 	}
 	straight := entity.Pos{X: 2, Y: 4}
 	if p := g.StepToward(from, to); p == straight {
@@ -67,7 +67,7 @@ func TestHousesAreNotThoroughfares(t *testing.T) {
 	g := NewGrid(5, 5)
 	p := entity.Pos{X: 2, Y: 2}
 	open := g.MoveCost(p)
-	g.At(p).Structure = House
+	g.Build(p, House)
 	if built := g.MoveCost(p); built <= open {
 		t.Fatalf("crossing a house costs %v, open ground %v; want the house dearer", built, open)
 	}
@@ -81,7 +81,7 @@ func TestTravelCostRisesWithHardGround(t *testing.T) {
 		t.Fatalf("open travel cost = %v, want 5", open)
 	}
 	for y := 0; y < 3; y++ {
-		g.At(entity.Pos{X: 3, Y: y}).Terrain = Water
+		g.Turn(entity.Pos{X: 3, Y: y}, Water)
 	}
 	if crossed := g.TravelCost(from, to); crossed <= open {
 		t.Fatalf("travel cost across the river = %v, want more than %v", crossed, open)
@@ -97,7 +97,7 @@ func isInf(v float64) bool { return v > 1e308 }
 func riverMap() (*Grid, entity.Pos, entity.Pos) {
 	g := NewGrid(10, 3)
 	for y := 0; y < 3; y++ {
-		g.At(entity.Pos{X: 3, Y: y}).Terrain = Water
+		g.Turn(entity.Pos{X: 3, Y: y}, Water)
 	}
 	return g, entity.Pos{X: 0, Y: 1}, entity.Pos{X: 5, Y: 1}
 }
@@ -161,7 +161,7 @@ func TestALadenWalkerInTheWaterCanGetOut(t *testing.T) {
 	g := NewGrid(10, 3)
 	for y := 0; y < 3; y++ {
 		for _, x := range []int{3, 4} {
-			g.At(entity.Pos{X: x, Y: y}).Terrain = Water
+			g.Turn(entity.Pos{X: x, Y: y}, Water)
 		}
 	}
 	midstream, bank := entity.Pos{X: 3, Y: 1}, entity.Pos{X: 5, Y: 1}

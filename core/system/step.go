@@ -16,7 +16,24 @@ type Phase struct {
 // Phases is the day in order. The order is the order the world's chance is
 // drawn in, which every settlement's history depends on; see the remarks on
 // upkeep and population for what moving one would cost.
+//
+// The world's half of the ontology - what happens on its own, stated there
+// as processes and transforms - is carried out by three small runners
+// rather than one phase, on purpose. Growing has to happen before anybody
+// decides what to do about it, spoiling after the market has been traded
+// in, and ruin after the dead have been counted, so each runner stands
+// where the code it replaced stood rather than gathering into a phase of
+// its own.
+//
+// The world's half of the ontology - what happens on its own, stated there
+// as processes and transforms - is carried out by three small runners
+// rather than one phase, on purpose. Growing has to happen before anybody
+// decides what to do about it, spoiling after the market has been traded
+// in, and ruin after the dead have been counted, so each runner stands
+// where the code it replaced stood rather than gathering into a phase of
+// its own.
 var Phases = []Phase{
+	{"wake", Wake},
 	{"climate", Climate},
 	{"decay", Decay},
 	{"land", Land},
@@ -55,3 +72,8 @@ func Run(w *world.World, n int) {
 		Step(w)
 	}
 }
+
+// Wake works out which of the ground is awake today and catches up what is
+// not: see world.Wake. It goes first so that every pass of the day reads
+// the same ground.
+func Wake(w *world.World) { w.Wake() }

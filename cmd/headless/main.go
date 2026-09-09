@@ -97,6 +97,13 @@ func main() {
 			}
 			lastReported = w.Tick + 1
 			if *timing {
+				awake := 0
+				for i := range w.Grid.Chunks {
+					if w.Grid.Awake(i) {
+						awake++
+					}
+				}
+				spent.awake = fmt.Sprintf("%d/%d", awake, len(w.Grid.Chunks))
 				fmt.Fprintln(out, spent.line())
 			}
 			if *showMap {
@@ -153,6 +160,9 @@ type timer struct {
 	spent []time.Duration
 	ticks int
 	index map[string]int
+	// awake is how much of the ground was awake at the last report, as
+	// chunks of chunks: what the passes over the ground are paying for.
+	awake string
 }
 
 func newTimer() *timer {
@@ -185,7 +195,7 @@ func (t *timer) line() string {
 		parts = append(parts, fmt.Sprintf("%s %s", p.Name, per(t.spent[i], t.ticks)))
 		t.spent[i] = 0
 	}
-	s := fmt.Sprintf("       timing: %s per tick | %s", per(total, t.ticks), strings.Join(parts, " "))
+	s := fmt.Sprintf("       timing: %s per tick, %s awake | %s", per(total, t.ticks), t.awake, strings.Join(parts, " "))
 	t.ticks = 0
 	return s
 }

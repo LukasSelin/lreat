@@ -131,8 +131,8 @@ func raiseGranaries(w *world.World, n int) {
 		if n == 0 {
 			return
 		}
-		if t := &g.Tiles[i]; t.Buildable() {
-			t.Structure = world.Granary
+		if g.Tiles[i].Buildable() {
+			g.Build(g.PosOf(i), world.Granary)
 			n--
 		}
 	}

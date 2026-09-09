@@ -48,13 +48,14 @@ func (g *Grid) Tread(p entity.Pos) {
 	}
 }
 
-// Weather fades every tile's wear by one tick's worth.
+// Weather fades every tile's wear by one tick's worth, on the ground that
+// is awake; ground asleep has no wear, having never been crossed.
 func (g *Grid) Weather() {
-	for i := range g.Tiles {
-		if g.Tiles[i].Traffic > 0 {
-			g.Tiles[i].Traffic *= Fade
+	g.EachActive(func(_ int, t *Tile) {
+		if t.Traffic > 0 {
+			t.Traffic *= Fade
 		}
-	}
+	})
 }
 
 // Draw is the case for laying a road on p: what people walk here, plus a
@@ -220,7 +221,7 @@ func (g *Grid) Busiest(from entity.Pos, radius int, ok func(*Tile) bool) (entity
 	var worn float64
 	found := false
 	y0, y1 := max(0, from.Y-radius), min(g.H-1, from.Y+radius)
-	x0, x1 := g.span(from.X, radius)
+	x0, x1 := g.Span(from.X, radius)
 	for y := y0; y <= y1; y++ {
 		for dx := x0; dx <= x1; dx++ {
 			x := g.wrapX(from.X + dx)
@@ -276,12 +277,25 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 		y.draw = make([]float64, len(g.Tiles))
 	}
 	y.g, y.stamp = g, tick+1
-	for i := range g.Tiles {
+	// Only ground anybody has walked lately, or the ground beside it, is
+	// read: the case for a road is made of wear, and where there is none
+	// within a step the case is nothing, which is what the entry says
+	// already. Ground that has fallen out of that is zeroed as it goes.
+	worn := g.worn(tick)
+	g.EachActive(func(i int, t *Tile) {
 		y.draw[i] = 0
-		if g.Tiles[i].Pavable() {
-			y.draw[i] = g.Draw(entity.Pos{X: i % g.W, Y: i / g.W})
+		if !worn[g.ChunkOf(i)] || !t.Pavable() {
+			return
 		}
-	}
+		// A tile's case is its own wear and what its neighbours lend it,
+		// and a neighbour lends nothing unless something stands on it: see
+		// Draw. So a tile with no wear and no such neighbour has no case,
+		// and is passed over without being read.
+		if t.Traffic <= 0 && g.lenders[i] == 0 {
+			return
+		}
+		y.draw[i] = g.Draw(g.PosOf(i))
+	})
 	return y
 }
 
@@ -296,7 +310,7 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 // one somebody walking the neighbourhood would have come to first.
 func (y *Ways) Busiest(from entity.Pos, radius int) (dry, wet Pick) {
 	g := y.g
-	x0, x1 := g.span(from.X, radius)
+	x0, x1 := g.Span(from.X, radius)
 	for row := max(0, from.Y-radius); row <= min(g.H-1, from.Y+radius); row++ {
 		base := row * g.W
 		for dx := x0; dx <= x1; dx++ {

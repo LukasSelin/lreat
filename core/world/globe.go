@@ -100,10 +100,10 @@ func sign(v int) int {
 	return 0
 }
 
-// span is the columns within radius of x, as offsets from it: clipped to
+// Span is the columns within radius of x, as offsets from it: clipped to
 // the map on a valley, and on a globe the whole way round at most, so that
 // a window wider than the map reads each column once.
-func (g *Grid) span(x, radius int) (lo, hi int) {
+func (g *Grid) Span(x, radius int) (lo, hi int) {
 	if !g.Wrap {
 		return max(0, x-radius) - x, min(g.W-1, x+radius) - x
 	}

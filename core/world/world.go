@@ -158,6 +158,12 @@ type World struct {
 	// index is where everybody is filed; see index.go.
 	index
 
+	// Growing is the growing weather the world has had since it was made,
+	// in growing days, and swept is where the sweep of sleeping chunks has
+	// got to; see active.go.
+	Growing float64
+	swept   int
+
 	// routers is the working memory deciding routes on, one per goroutine.
 	routers []*Router
 	// ways is this tick's reading of the worn ground, kept between ticks so

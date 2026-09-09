@@ -80,6 +80,9 @@ func hold(t *Tile) float64 {
 func (w *World) Erode() {
 	g := w.Grid
 	n := len(g.Tiles)
+	// The whole ground moves at once, so the ground asleep is brought up to
+	// date first; what the age does to it is done to it as it now stands.
+	w.CatchUpAll()
 
 	// Highest ground first, so that what a tile sheds is in the water before
 	// the tile below it is asked what the water is carrying.

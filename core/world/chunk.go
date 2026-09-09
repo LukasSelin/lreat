@@ -30,9 +30,17 @@ type Chunk struct {
 	// nobody keeps and nothing falls down on.
 	Built, Owned                                               int
 	Houses, Fields, Forest, Roads, Granaries, Markets, Taverns int
-	// Trodden is whether anybody has ever crossed this chunk. Ground
-	// nobody has walked has no wear to fade and no case for a road.
+	// Trodden is whether anybody has crossed this chunk since it was last
+	// woken, and Trod the day it was last known to have been. Wear keeps
+	// ground awake for a while after the last crossing - see active.go -
+	// and ground nobody has walked has no wear to fade and no case for a
+	// road.
 	Trodden bool
+	Trod    int
+	// Grown is the growing weather the world had had when this chunk was
+	// last passed over, and Weathered the day; see active.go.
+	Grown     float64
+	Weathered int
 }
 
 // layChunks divides the grid into chunks. Chunks along the east and south
@@ -45,6 +53,7 @@ func (g *Grid) layChunks() {
 			c := &g.Chunks[cy*g.CW+cx]
 			c.X0, c.Y0 = cx*ChunkSide, cy*ChunkSide
 			c.W, c.H = min(ChunkSide, g.W-c.X0), min(ChunkSide, g.H-c.Y0)
+			c.Trod = -1
 		}
 	}
 }
@@ -92,8 +101,10 @@ func (g *Grid) Build(p entity.Pos, s Structure) {
 	i := g.Index(p)
 	t, c := &g.Tiles[i], &g.Chunks[g.ChunkOf(i)]
 	c.count(t, -1)
+	lent := t.lends()
 	t.Structure = s
 	c.count(t, 1)
+	g.relend(i, lent)
 }
 
 // Turn makes the ground at p into terrain tr. What stood or grew on it is
@@ -111,8 +122,22 @@ func (g *Grid) Claim(p entity.Pos, id entity.ID) {
 	i := g.Index(p)
 	t, c := &g.Tiles[i], &g.Chunks[g.ChunkOf(i)]
 	c.count(t, -1)
+	lent := t.lends()
 	t.Owner = id
 	c.count(t, 1)
+	g.relend(i, lent)
+}
+
+// relend settles the neighbours' lender counts after tile i has changed,
+// given whether it lent before.
+func (g *Grid) relend(i int, lent bool) {
+	if now := g.Tiles[i].lends(); now != lent {
+		if now {
+			g.lend(i, 1)
+		} else {
+			g.lend(i, -1)
+		}
+	}
 }
 
 // Recount takes every chunk's counts afresh from the ground, for after the
@@ -123,8 +148,15 @@ func (g *Grid) Recount() {
 		c.Built, c.Owned = 0, 0
 		c.Houses, c.Fields, c.Forest, c.Roads, c.Granaries, c.Markets, c.Taverns = 0, 0, 0, 0, 0, 0, 0
 	}
+	if len(g.lenders) != len(g.Tiles) {
+		g.lenders = make([]uint8, len(g.Tiles))
+	}
+	clear(g.lenders)
 	for i := range g.Tiles {
 		g.Chunks[g.ChunkOf(i)].count(&g.Tiles[i], 1)
+		if g.Tiles[i].lends() {
+			g.lend(i, 1)
+		}
 	}
 }
 
@@ -151,3 +183,22 @@ func (g *Grid) sum(of func(*Chunk) int) int {
 	}
 	return n
 }
+
+// lends reports whether a tile lends its wear to the tiles beside it: it
+// is neither open ground nor a road, so the errands in and out of it are
+// walked on the ground around it. See Draw.
+func (t *Tile) lends() bool { return !t.Pavable() && t.Structure != Road }
+
+// lend adds d to the lender count of each of i's eight neighbours.
+func (g *Grid) lend(i int, d int8) {
+	p := g.PosOf(i)
+	for _, off := range dirs {
+		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
+		if g.In(q) {
+			g.lenders[g.Index(q)] = uint8(int8(g.lenders[g.Index(q)]) + d)
+		}
+	}
+}
+
+// Lenders is how many of p's neighbours lend it their wear.
+func (g *Grid) Lenders(i int) int { return int(g.lenders[i]) }

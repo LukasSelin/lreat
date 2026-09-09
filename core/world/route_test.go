@@ -14,7 +14,7 @@ import (
 func TestRoutersShareAGridSafely(t *testing.T) {
 	w := NewSized(4, 40, 24)
 	for _, p := range []entity.Pos{{X: 10, Y: 10}, {X: 11, Y: 10}, {X: 12, Y: 11}} {
-		w.Grid.At(p).Structure = House
+		w.Grid.Build(p, House)
 	}
 	for x := 5; x < 35; x++ {
 		w.Grid.Pave(entity.Pos{X: x, Y: 12})
