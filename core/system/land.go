@@ -68,7 +68,14 @@ func Land(w *world.World) {
 	// The wear fades in the same pass as the growing. They were two passes
 	// and the first came first, but neither reads what the other writes,
 	// so one walk over the awake ground does both and it is the same day.
-	g.EachActive(nil, func(_, c int, t *world.Tile) {
+	//
+	// Nothing here reads a tile but the one it was handed, writes anything
+	// but that tile, or draws the world's chance, so the walk is spread over
+	// goroutines - see world.EachActiveOver. It is the largest thing a day
+	// spends itself on once the country is bigger than one settlement: it
+	// grows with the ground that is awake rather than with the people, so
+	// the more of the world is lived in the more this is the day.
+	g.EachActiveOver(nil, func(_, c int, t *world.Tile) {
 		if t.Traffic > 0 {
 			t.Traffic *= world.Fade
 		}

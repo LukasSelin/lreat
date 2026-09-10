@@ -41,11 +41,11 @@ func main() {
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "base temperature of recognition; 0 always takes the best fit")
 	pave := flag.Int("pave", 0, "lay streets through the settlement every N days (0 never)")
-	workers := flag.Int("workers", system.Workers, "goroutines to decide over (1 decides one agent at a time)")
+	workers := flag.Int("workers", world.Workers, "goroutines the read-only passes of a day may spread over: deciding, and the passes over the ground (1 does everything one at a time)")
 	timing := flag.Bool("timing", false, "print what each report interval spent on each phase of the day, per tick")
 	profile := flag.String("cpuprofile", "", "write a CPU profile of the run to this file")
 	flag.Parse()
-	system.Workers = *workers
+	world.Workers = *workers
 	if *profile != "" {
 		f, err := os.Create(*profile)
 		if err != nil {

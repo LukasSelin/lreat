@@ -2,9 +2,7 @@ package system
 
 import (
 	"math"
-	"runtime"
 	"sort"
-	"sync"
 
 	"lreat/core/action"
 	"lreat/core/belief"
@@ -82,12 +80,6 @@ func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*act
 	return best, bestPos, weighed
 }
 
-// Workers is how many goroutines deciding may spread over. Deciding is the
-// bulk of a tick - most of it is agents sizing up errands over the ground -
-// and it only reads the world, so it is the one phase that parallelises. Set
-// it to 1 to decide one agent at a time.
-var Workers = runtime.NumCPU()
-
 // decision is what one agent worked out for itself, held aside until every
 // agent has finished. Nothing here touches the world; it is all installed
 // afterwards, in agent order.
@@ -120,10 +112,13 @@ func Decide(w *world.World) {
 		return
 	}
 	out := make([]decision, len(idle))
-	routers := w.Routers(workersFor(len(idle)))
+	// One agent to a goroutine. A decision costs far more than handing one
+	// over, and batching them up only leaves cores idle: insisting on four
+	// agents per worker cost a third of the speedup when this was measured.
+	routers := w.Routers(world.WorkersFor(len(idle)))
 	action.Ready(w)
 	w.Freeze(true)
-	inParallel(len(idle), len(routers), func(i, worker int) {
+	world.InParallel(len(idle), len(routers), func(i, worker int) {
 		out[i] = decide(idle[i], w, routers[worker])
 	})
 	w.Freeze(false)
@@ -228,44 +223,6 @@ func sortWeighed(ws []world.Weighed) {
 		}
 		return ws[i].Index < ws[j].Index
 	})
-}
-
-// workersFor is how many goroutines to spread n agents over. One agent each
-// is worth it: a decision costs far more than handing one to a goroutine, and
-// batching them up only leaves cores idle - insisting on four agents per
-// worker cost a third of the speedup when this was measured.
-func workersFor(n int) int {
-	k := Workers
-	if n < k {
-		k = n
-	}
-	if k < 1 {
-		k = 1
-	}
-	return k
-}
-
-// inParallel runs f for every index below n, spread over workers goroutines.
-// f must not write anything another call to f can see; results belong in a
-// slice indexed by i.
-func inParallel(n, workers int, f func(i, worker int)) {
-	if workers <= 1 {
-		for i := 0; i < n; i++ {
-			f(i, 0)
-		}
-		return
-	}
-	var wg sync.WaitGroup
-	for k := 0; k < workers; k++ {
-		wg.Add(1)
-		go func(k int) {
-			defer wg.Done()
-			for i := k; i < n; i += workers {
-				f(i, k)
-			}
-		}(k)
-	}
-	wg.Wait()
 }
 
 // Recognise is fit-based choice: it samples one of the agent's available

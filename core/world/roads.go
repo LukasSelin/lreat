@@ -307,7 +307,11 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 	// within a step the case is nothing, which is what the entry says
 	// already. Ground that has fallen out of that is zeroed as it goes.
 	worn := g.worn(tick)
-	g.EachActive(nil, func(i, c int, t *Tile) {
+	// A tile's entry is made of the ground about it and of nothing that any
+	// other tile's entry is made of, so the reading is taken on goroutines;
+	// see EachActiveOver. Everything Draw reaches for - Served, Saving, the
+	// ways out of a building - only reads the map.
+	g.EachActiveOver(nil, func(i, c int, t *Tile) {
 		y.draw[i] = 0
 		if !worn[c] || !t.Pavable() {
 			return

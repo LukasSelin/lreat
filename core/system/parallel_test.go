@@ -35,9 +35,9 @@ func posKey(p entity.Pos) string {
 
 func runSettlement(t *testing.T, seed uint64, workers, ticks int) string {
 	t.Helper()
-	was := Workers
-	Workers = workers
-	defer func() { Workers = was }()
+	was := world.Workers
+	world.Workers = workers
+	defer func() { world.Workers = was }()
 
 	w := world.New(seed)
 	for i := 0; i < 30; i++ {
@@ -64,9 +64,9 @@ func TestDecidingInParallelChangesNothing(t *testing.T) {
 // Deciding reads the world from several goroutines at once. Under -race this
 // is what catches anything in the read path that quietly writes.
 func TestDecidingConcurrentlyIsRaceFree(t *testing.T) {
-	was := Workers
-	Workers = 8
-	defer func() { Workers = was }()
+	was := world.Workers
+	world.Workers = 8
+	defer func() { world.Workers = was }()
 
 	w := world.New(2)
 	for i := 0; i < 40; i++ {
@@ -75,5 +75,45 @@ func TestDecidingConcurrentlyIsRaceFree(t *testing.T) {
 	Run(w, 400)
 	if len(w.Agents) == 0 {
 		t.Fatal("everyone died; this exercised nothing")
+	}
+}
+
+// The passes over the ground are spread over goroutines too, and they are
+// the ones that grow with the map rather than with the people: see
+// world.EachActiveOver. Only a map of some size takes that path - the
+// default valley is two chunks and is always walked whole - so these run a
+// country instead, and hold every tile of it against the same seed walked
+// one chunk at a time.
+func runCountry(t *testing.T, seed uint64, workers, ticks int) (string, int) {
+	t.Helper()
+	was := world.Workers
+	world.Workers = workers
+	defer func() { world.Workers = was }()
+
+	cfg := world.DefaultConfig()
+	cfg.Width, cfg.Height = 320, 256
+	w := world.NewWith(seed, cfg)
+	for i := 0; i < 30; i++ {
+		w.Spawn("a", w.RandomPersonality())
+	}
+	Run(w, ticks)
+	a := w.Awake
+	return digest(w), a.Settled + a.Beside + a.Peopled + a.Worn
+}
+
+func TestWalkingTheGroundInParallelChangesNothing(t *testing.T) {
+	for _, seed := range []uint64{1, 3} {
+		serial, awake := runCountry(t, seed, 1, 400)
+		// Without this the test could pass by never having spread over
+		// anything. Four is world.spreadFrom, the least ground worth
+		// handing out.
+		if awake < 4 {
+			t.Fatalf("seed %d: only %d chunks awake; the parallel walk was never taken", seed, awake)
+		}
+		for _, workers := range []int{2, 3, 8, 16} {
+			if got, _ := runCountry(t, seed, workers, 400); got != serial {
+				t.Fatalf("seed %d: %d workers left a different country than 1 worker", seed, workers)
+			}
+		}
 	}
 }

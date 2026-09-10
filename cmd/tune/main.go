@@ -63,7 +63,7 @@ func main() {
 	action.BornNoise = *born
 	action.InheritNoise = *inherit
 	system.MaxPopulation = *cap
-	system.Workers = 1 // the seeds are the parallelism here
+	world.Workers = 1 // the seeds are the parallelism here
 
 	// The batch is kept as well as printed; see package report. -quiet is
 	// about the terminal and not about the record, so the table and the

@@ -276,3 +276,49 @@ func (g *Grid) beside(mark []bool) []bool {
 type AwakeCount struct {
 	Chunks, Settled, Beside, Peopled, Worn int
 }
+
+// spreadFrom is how many chunks have to be awake before a pass over the
+// ground is worth handing to goroutines. A chunk is four thousand tiles and
+// handing out work costs a few microseconds, so the bar is low - but it is
+// not nothing: the default valley is two chunks all told, and a pass over it
+// is done sooner than it could be delegated.
+const spreadFrom = 4
+
+// EachActiveOver is EachActive spread over goroutines, a chunk to each. It
+// visits exactly the tiles EachActive visits and hands each of them the same
+// three things; what it does not keep is the order they are visited in.
+//
+// So f must be a pass that does not care about that order, which is to say:
+// f may read anything on the map, and may write the tile it was given and a
+// slice at that tile's index, and nothing else. It must draw no chance - the
+// order the world's chance is drawn in is a fact about the settlement, and
+// this order is not a fact about anything. A pass that cannot keep to that
+// belongs in EachActive, which is most of them; two keep to it, and they are
+// the two the ground costs most in. See parallel.go.
+//
+// only, where it is given, is asked from several goroutines and must be safe
+// to ask that way.
+func (g *Grid) EachActiveOver(only func(c int) bool, f func(i, c int, t *Tile)) {
+	awake := 0
+	for c := range g.Chunks {
+		if g.Awake(c) && (only == nil || only(c)) {
+			awake++
+		}
+	}
+	if awake < spreadFrom {
+		g.EachActive(only, f)
+		return
+	}
+	InParallel(len(g.Chunks), WorkersFor(awake), func(c, _ int) {
+		if !g.Awake(c) || (only != nil && !only(c)) {
+			return
+		}
+		ch := &g.Chunks[c]
+		for y := ch.Y0; y < ch.Y0+ch.H; y++ {
+			row := y * g.W
+			for i := row + ch.X0; i < row+ch.X0+ch.W; i++ {
+				f(i, c, &g.Tiles[i])
+			}
+		}
+	})
+}
