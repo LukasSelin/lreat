@@ -48,7 +48,12 @@ gowl=$(cd "$root/owl" && go list -m -f '{{.Dir}}' gowl 2>/dev/null || true)
 if [ -z "$gowl" ] || [ ! -d "$gowl" ]; then
 	echo "pre-commit: this commit touches$touched, so owl/lreat.ofn may be stale." >&2
 	echo "pre-commit: gowl is not where owl/go.mod says (${gowl:-unresolved})," >&2
-	echo "pre-commit: so the document cannot be checked here. See owl/README.md." >&2
+	echo "pre-commit: so the document cannot be checked here." >&2
+	echo >&2
+	echo "  Point a workspace at it, once per checkout:" >&2
+	echo >&2
+	echo "      .githooks/go-work" >&2
+	echo >&2
 	echo "pre-commit: committing anyway." >&2
 	exit 0
 fi

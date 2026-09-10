@@ -1,0 +1,105 @@
+#!/bin/sh
+# Write the go.work that lets owl/ be built from this checkout.
+#
+# owl/go.mod reaches gowl by a relative replace, `../../gowl`, which is right
+# for a clone and wrong for a worktree: from .claude/worktrees/<name>/owl that
+# path is .claude/worktrees/gowl, where nothing is. So the pre-commit hook
+# cannot run the check that keeps owl/lreat.ofn honest, and goes quiet exactly
+# where most of the work happens. A workspace is the lever - go list -m reads
+# one, which is what the hook asks - and this writes it.
+#
+#     .githooks/go-work            # find gowl beside the clone
+#     .githooks/go-work ../../gowl # or say where it is
+#
+# The file is local to the checkout and gitignored. It has to be: a go.work at
+# the top of the clone is found by every worktree under .claude/worktrees, and
+# a worktree is not one of the modules it lists, so committing one would break
+# every build in every worktree with
+#
+#     directory prefix . does not contain modules listed in go.work
+#
+# It leaves the root module alone. The workspace names gowl in a replace and
+# does not require it, and `go list ./...` at the top still does not match
+# lreat/owl, so the simulation keeps the no-dependencies property owl/ was made
+# a separate module to protect.
+
+set -e
+
+root=$(git rev-parse --show-toplevel)
+
+# Nothing to fix where the relative replace already reaches. That is every
+# ordinary clone with gowl beside it, and writing one there would be worse
+# than useless - see below.
+if resolved=$(cd "$root/owl" && GOWORK=off go list -m -f '{{.Dir}}' gowl 2>/dev/null) && [ -d "$resolved" ]; then
+	echo "go-work: owl already resolves gowl to $resolved without a workspace"
+	echo "go-work: nothing to do here"
+	exit 0
+fi
+
+# And never at the top of a clone that has worktrees hanging off it. Go finds
+# a go.work by walking up from where it is run, worktrees here live inside the
+# clone at .claude/worktrees/<name>, and a worktree is not one of the modules
+# this file would list - so writing it here breaks every build in every one of
+# them. If a clone cannot reach gowl, move gowl or fix the replace; do not put
+# a workspace over the whole tree.
+if [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] &&
+	[ -n "$(git worktree list | sed 1d)" ]; then
+	echo "go-work: $root is the clone, and it has worktrees under it." >&2
+	echo "go-work: a go.work here is found by all of them and breaks their builds." >&2
+	echo "go-work: run this inside the worktree that needs it. See owl/README.md." >&2
+	exit 1
+fi
+
+if [ -n "$1" ]; then
+	gowl=$1
+else
+	# Beside the clone, which for a worktree is the clone the worktree hangs
+	# off rather than the worktree itself: the common git dir is the clone's.
+	clone=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+	gowl=$(dirname "$clone")/gowl
+fi
+
+if [ ! -d "$gowl" ]; then
+	echo "go-work: no gowl at $gowl" >&2
+	echo "go-work: pass the path, or see owl/README.md." >&2
+	exit 1
+fi
+# Absolute, and in the form the toolchain reads. Under Git Bash a plain pwd
+# gives /c/Source/..., which go does not understand on Windows; pwd -W gives
+# the C:/Source/... that git rev-parse hands back everywhere else.
+gowl=$(cd "$gowl" && { pwd -W 2>/dev/null || pwd; })
+
+if [ ! -f "$gowl/go.mod" ]; then
+	echo "go-work: $gowl is not a module" >&2
+	exit 1
+fi
+
+work="$root/go.work"
+if [ -e "$work" ]; then
+	echo "go-work: $work already exists; delete it to write a new one" >&2
+	exit 1
+fi
+
+cat >"$work" <<WORK
+// Local to this checkout, and gitignored. See .githooks/go-work, which wrote
+// it, for why owl/ needs one and why this file must not be committed.
+go $(cd "$root" && go mod edit -json | sed -n 's/.*"Go": "\([^"]*\)".*/\1/p' | head -1)
+
+use (
+	.
+	./owl
+)
+
+replace gowl => $gowl
+WORK
+
+echo "go-work: wrote $work, with gowl at $gowl"
+
+# And say whether it worked, by asking exactly what the hook asks, since that
+# is the whole point of writing the file.
+resolved=$(cd "$root/owl" && go list -m -f '{{.Dir}}' gowl 2>/dev/null || true)
+if [ -z "$resolved" ] || [ ! -d "$resolved" ]; then
+	echo "go-work: owl still cannot resolve gowl" >&2
+	exit 1
+fi
+echo "go-work: owl resolves gowl to $resolved; the pre-commit check will run"

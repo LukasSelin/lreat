@@ -23,11 +23,12 @@ copy has to match what a fresh run produces.
 ## Turn the check on
 
 ```bash
-git config core.hooksPath .githooks
+git config core.hooksPath .githooks   # once per clone
+.githooks/go-work                     # once per worktree
 ```
 
-Worth doing once per clone, because **`go test ./...` at the root does not run
-these tests**. A nested module is not part of its parent, which is what keeps
+Worth doing, because **`go test ./...` at the root does not run these
+tests**. A nested module is not part of its parent, which is what keeps
 the simulation free of a dependency it does not need — and the price is that
 the test comparing the checked-in document against a fresh one never fires in
 the normal loop. A change to the trees can land with `owl/lreat.ofn` still
@@ -49,6 +50,41 @@ which is how `core/need` came to be on the list, since it arrives through
 Without gowl beside lreat the hook says so and lets the commit through, rather
 than blocking work it cannot check. `git commit --no-verify` skips it when
 there is a reason.
+
+### The workspace, and why it is not committed
+
+The replace in [go.mod](go.mod) is relative, and from a worktree it does not
+reach. A worktree lives at `.claude/worktrees/<name>`, so `owl/../../gowl` is
+`.claude/worktrees/gowl`, where nothing is — and the hook goes quiet in the
+place most of the work happens. That is what
+[.githooks/go-work](../.githooks/go-work) is for: it finds gowl beside the
+clone the worktree hangs off, or takes the path, and writes a `go.work` naming
+it.
+
+```bash
+.githooks/go-work                 # beside the clone
+.githooks/go-work ../../../gowl   # or say where
+```
+
+In a clone with gowl beside it there is nothing to fix, and it says so and
+writes nothing. It also refuses to write one at the top of a clone that has
+worktrees hanging off it, for the reason below: that is the one place the file
+does harm.
+
+`go.work` is gitignored and has to stay that way. Go searches parent
+directories for one, and worktrees live *inside* the clone, so a `go.work`
+committed at the top would be found from every worktree under it — and a
+worktree is not one of the modules it lists, which makes every build in every
+worktree fail with
+
+```
+pattern ./...: directory prefix . does not contain modules listed in go.work
+```
+
+It costs the simulation nothing. The workspace names gowl in a `replace` and
+does not `use` it, the root module does not require it, and `go list ./...` at
+the top still does not match `lreat/owl` — so `go build ./...` builds the same
+packages against the same dependencies as it did without one.
 
 ## What crosses over, and how
 
