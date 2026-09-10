@@ -1,7 +1,9 @@
 package world
 
 import (
+	"cmp"
 	"math"
+	"slices"
 	"sort"
 
 	"lreat/core/entity"
@@ -583,26 +585,49 @@ func (g *Grid) fill() {
 // which a tile's own total is complete before it is passed on.
 func (g *Grid) drain() {
 	n := len(g.Tiles)
-	order := make([]int32, n)
+	// Which way the water leaves each tile, read before any of it moves.
+	// The aspect is a reading of the heights and the heights do not change
+	// here, so it is the same answer taken now as taken in the walk below.
+	// Taken now it is eight neighbours read row by row over the goroutines;
+	// taken there it was eight neighbours read in the order the tiles happen
+	// to sort into, which as far as the memory is concerned is no order at
+	// all. -1 is the edge of the map, where the water leaves.
+	down := make([]int32, n)
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			p := entity.Pos{X: i % g.W, Y: i / g.W}
+			a := g.Aspect(p)
+			if a == (entity.Pos{}) {
+				down[i] = -1
+				continue
+			}
+			down[i] = int32(g.Index(entity.Pos{X: p.X + a.X, Y: p.Y + a.Y}))
+		}
+	})
+	order := make([]heightNode, n)
 	for i := range order {
-		order[i] = int32(i)
+		order[i] = heightNode{h: g.Tiles[i].Height, idx: int32(i)}
 		g.Tiles[i].Flow = 1 / float64(n)
 	}
-	sort.Slice(order, func(a, b int) bool {
-		ha, hb := g.Tiles[order[a]].Height, g.Tiles[order[b]].Height
-		if ha != hb {
-			return ha > hb
+	// Highest first, ties by position, which is a total order: every tile
+	// sits in exactly one place and no two of them may be swapped, so what
+	// comes out does not depend on how it was sorted.
+	//
+	// Each height travels beside its tile's number rather than being looked
+	// up through it. A comparison used to be two reads at random into
+	// seventy megabytes of ground; it is now two reads of eight bytes lying
+	// beside each other, and the sort has a tenth of the ground to walk.
+	slices.SortFunc(order, func(a, b heightNode) int {
+		if a.h != b.h {
+			return cmp.Compare(b.h, a.h)
 		}
-		return order[a] < order[b] // ties settled by position, so runs repeat
+		return cmp.Compare(a.idx, b.idx)
 	})
-	for _, i := range order {
-		p := entity.Pos{X: int(i) % g.W, Y: int(i) / g.W}
-		a := g.Aspect(p)
-		if a == (entity.Pos{}) {
-			continue // the edge of the map: the water leaves here
+	for _, nd := range order {
+		if down[nd.idx] < 0 {
+			continue
 		}
-		down := entity.Pos{X: p.X + a.X, Y: p.Y + a.Y}
-		g.At(down).Flow += g.Tiles[i].Flow
+		g.Tiles[down[nd.idx]].Flow += g.Tiles[nd.idx].Flow
 	}
 }
 
