@@ -54,6 +54,19 @@ the crowd goes to them rather than merely naming them in the panel. Looking
 around by hand lets go of them again. The line under the graph says which part
 of the world is on the screen, because on a globe every view looks alike.
 
+`z` draws the map at twice as much ground to the cell and `Z` back in again,
+up to the scale that holds the whole world and no further; the wheel does the
+same. Panning answers where else to look and only this answers what shape the
+place is: a continent is four hundred tiles across, and where its coast runs
+is not something anybody can be told a screenful at a time. A cell that stands
+for a block of ground is drawn as the most telling tile in it rather than as
+the average of it — what people have built first, then the water where there
+is enough of it to be a feature of the block, and otherwise the ground itself.
+An average loses exactly what a map is for: a river is a tile wide and a
+settlement a dozen across, and the mean of the block holding either of them is
+the country around it. The line under the graph says the scale whenever it is
+not one tile to the cell.
+
 The arrows go to whichever of the two the page has. Where there is more map
 than screen they look around it and the graphs answer to `pgup` and `pgdn`;
 on a map the terminal holds whole — every valley run — and on both pages of
