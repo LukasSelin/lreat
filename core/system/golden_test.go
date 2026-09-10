@@ -31,6 +31,15 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
+// Retaken for how competence is got: learning curves rather than stepping,
+// each tier of it slower than the one under it, and what a person is shown
+// stops short of what the person showing them knows. Being taught was a flat
+// step from any teacher at any level, so a settlement rose at the rate of
+// its best member and everybody arrived at mastery together; now only the
+// work reaches the last tier and the settlement has to make its masters one
+// at a time. See core/entity/learn.go. It moves every settlement from the
+// first lesson given.
+//
 // Retaken for the rivers: a channel now cuts the outside of its own bends and
 // walks sideways across its valley, and what an age of weather takes off a
 // tile is divided by the rock under it, so soft beds go and hard ones are
@@ -47,9 +56,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "c984d655f4906307",
-	3: "4a34be73e4103abb",
-	9: "e45e762d53c4ed7b",
+	1: "8f12847549a8c28d",
+	3: "91ff41ce678372a5",
+	9: "9e0e050d8ecb5b01",
 }
 
 // digest is the hash the golden numbers are of.

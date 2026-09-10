@@ -126,7 +126,7 @@ func making(in ontology.Instance) *Def {
 		made, _ := pack(a, gives)
 		made.Move(yield)
 		a.Reputation += r.Renown * yield
-		a.AddSkill(r.Skill, r.Learn)
+		a.Learn(r.Skill, r.Learn)
 		a.Needs.Add(need.Esteem, r.Worth(a, w, yield)[need.Esteem])
 	}
 	return d

@@ -566,7 +566,7 @@ func moving(in ontology.Instance) *Def {
 			a.Inventory[entity.Tools] = max(0, a.Inventory[entity.Tools]-mv.Tool)
 		}
 		if mv.Skilled {
-			a.AddSkill(mv.Skill, mv.Learn)
+			a.Learn(mv.Skill, mv.Learn)
 		}
 		if o != nil {
 			o.Judge(a.ID, mv.Regard, w.Tick)

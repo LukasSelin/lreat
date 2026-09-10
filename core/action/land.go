@@ -134,7 +134,7 @@ var Irrigate = &Def{
 		a.Inventory[entity.Wood] -= irrigationCost
 		t.Rich = min(1, t.Rich+irrigationGain)
 		t.Fertility = min(t.Rich, t.Fertility+irrigationGain)
-		a.AddSkill(entity.Farming, 0.01)
+		a.Learn(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.03)
 		w.Emit(event.Built, a.ID, 0, "%s cut a channel to the field", a.Name)
 	},

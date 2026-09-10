@@ -498,7 +498,7 @@ var Clear = &Def{
 			a.Field, a.HasField = a.Pos, true
 			a.Parcel = []entity.Pos{a.Pos}
 		}
-		a.AddSkill(entity.Farming, 0.005)
+		a.Learn(entity.Farming, 0.005)
 		a.Needs.Add(need.Esteem, 0.02)
 		w.Emit(event.Built, a.ID, 0, "%s cleared a field", a.Name)
 	},
@@ -548,7 +548,7 @@ var Farm = &Def{
 			f := w.Grid.At(p)
 			f.Fertility = max(wornField, f.Fertility-wear)
 		}
-		a.AddSkill(entity.Farming, 0.01)
+		a.Learn(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)
 	},
 }
@@ -679,7 +679,7 @@ var BuildShelter = &Def{
 			gain = min(1-a.Shelter, gain*stoneHouse)
 		}
 		a.Shelter = need.Clamp(a.Shelter + gain)
-		a.AddSkill(entity.Building, 0.02)
+		a.Learn(entity.Building, 0.02)
 		a.Needs.Add(need.Esteem, 0.05)
 	},
 }
@@ -895,7 +895,7 @@ var Pave = &Def{
 			return
 		}
 		a.Inventory[entity.Wood] -= cost
-		a.AddSkill(entity.Building, 0.01)
+		a.Learn(entity.Building, 0.01)
 		a.Needs.Add(need.Esteem, 0.03)
 		a.Needs.Add(need.Belonging, 0.02)
 		what := "laid a road"
@@ -969,11 +969,38 @@ func craftQuality(a *entity.Agent, w *world.World) float64 {
 
 var Craft = product("make/timber>tool@bench")
 
+// TeachRate is what an hour with a master is worth to a beginner. Anybody
+// less than a master is worth proportionally less; see entity.Taught.
+const TeachRate = 0.04
+
+// lesson is the person nearby who would actually get something out of being
+// shown this one's best skill, and the skill it is.
+//
+// The check is here rather than only in Apply because a lesson with nothing
+// in it must not be worth an afternoon. Teaching was the settlement's fourth
+// commonest act, and once being shown stops short of the teacher, most of
+// the pairs that used to take it up have nothing left to pass between them -
+// two journeymen sitting down to teach each other what they both already
+// know. Left available, that act would go on paying its esteem for a lesson
+// nobody learned anything from, and the settlement would spend a twelfth of
+// its days on ceremony.
+func lesson(a *entity.Agent, w *world.World, radius int) (*entity.Agent, entity.Skill, float64, bool) {
+	skill, level := a.BestSkill()
+	if level < entity.TeachFloor {
+		return nil, 0, 0, false
+	}
+	o := w.Neighbor(a, radius)
+	if o == nil || !o.CanBeTaught(skill, level) {
+		return nil, 0, 0, false
+	}
+	return o, skill, level, true
+}
+
 var Teach = &Def{
 	Name: "teach", Ticks: 3, Target: towardCompany,
 	Available: func(a *entity.Agent, w *world.World) bool {
-		_, level := a.BestSkill()
-		return level >= 0.4 && hasCompany(a, w)
+		_, _, _, ok := lesson(a, w, meetRadius)
+		return ok
 	},
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		gain := need.Levels{need.Esteem: 0.2, need.Belonging: 0.05}
@@ -984,14 +1011,13 @@ var Teach = &Def{
 		return gain
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
-		o := w.Neighbor(a, companionRadius)
-		if o == nil {
+		o, skill, level, ok := lesson(a, w, companionRadius)
+		if !ok {
 			return
 		}
 		Introduce(a, o, w.Tick)
 		Introduce(o, a, w.Tick)
-		skill, level := a.BestSkill()
-		o.AddSkill(skill, 0.04)
+		o.Taught(skill, TeachRate, level)
 		Pass(a, o, skill)
 		// The student now knows what the teacher can do, and thinks a little
 		// better of them for the trouble taken.
@@ -1013,7 +1039,12 @@ var Study = &Def{
 	},
 	Apply: func(a *entity.Agent, w *world.World) {
 		w.Knowledge += (0.2 + a.Skills[entity.Scholarship]) * w.Mods.StudyRate
-		a.AddSkill(entity.Scholarship, 0.02)
+		// A desk is teaching turned inward, and it carries as far as
+		// teaching does and no further: what a scholar reads takes them to
+		// the door of the work, and only the work goes past it. The
+		// settlement's knowledge is raised either way - a book read by
+		// somebody who will never be a master is still a book read.
+		a.Study(entity.Scholarship, 0.02)
 		Broaden(a, w)
 		a.Needs.Add(need.Actualization, 0.3)
 		a.Needs.Add(need.Esteem, 0.03)

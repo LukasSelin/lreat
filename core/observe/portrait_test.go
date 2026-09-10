@@ -11,8 +11,8 @@ import (
 func TestPortraitTellsWhatAnAgentIsGoodAt(t *testing.T) {
 	w := world.NewSized(1, 40, 20)
 	a := w.Spawn("Ada", need.Neutral())
-	a.AddSkill(entity.Farming, 0.2)
-	a.AddSkill(entity.Crafting, 0.6)
+	a.Learn(entity.Farming, 0.2)
+	a.Learn(entity.Crafting, 0.6)
 	a.Efficacy[entity.Crafting] = 0.3 // it does not know how good it is
 
 	p := Look(w, a.ID)
