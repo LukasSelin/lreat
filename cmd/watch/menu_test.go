@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
+
+	"lreat/core/world"
 )
 
 func rune_(r rune) *tcell.EventKey { return tcell.NewEventKey(tcell.KeyRune, r, tcell.ModNone) }
@@ -340,10 +342,7 @@ func TestMenuDrawsHeadings(t *testing.T) {
 func TestChoosingAGlobeTakesItsOwnSize(t *testing.T) {
 	s := defaults()
 	m := &menuState{s: &s, opts: true, at: lineOf(t, "world")}
-	press(m, key(tcell.KeyRight))
-	if s.world() != "globe" {
-		t.Fatalf("the world line is on %q, want globe", s.world())
-	}
+	stepTo(t, m, &s, "globe")
 	cfg := s.config()
 	if !cfg.Wrap {
 		t.Fatal("a globe was founded with edges")
@@ -364,13 +363,38 @@ func TestChoosingAGlobeTakesItsOwnSize(t *testing.T) {
 		}
 	}
 	// And back again: the valley is sized to the terminal as it always was.
-	press(m, key(tcell.KeyLeft))
-	if s.world() != "valley" {
-		t.Fatalf("stepping back landed on %q, want valley", s.world())
-	}
+	stepTo(t, m, &s, "valley")
 	s.measure(120, 40)
 	w, h := fitMap(120, 40)
 	if s.width != w || s.height != h {
 		t.Fatalf("the valley came to %dx%d, want the window's %dx%d", s.width, s.height, w, h)
 	}
+}
+
+// Every world the menu offers is one the world package will actually found.
+// The two lists are apart, so this is what keeps them from drifting.
+func TestEveryWorldOfferedCanBeFounded(t *testing.T) {
+	for _, name := range presets {
+		if _, ok := world.Preset(name); !ok {
+			t.Fatalf("the menu offers %q, which is no world", name)
+		}
+	}
+	s := defaults()
+	if !slices.Contains(presets, s.world()) {
+		t.Fatalf("a settlement is founded in the %s by default, which the menu cannot reach", s.world())
+	}
+}
+
+// stepTo walks the world line round to the world named, however many others
+// stand between: a test about what a globe is should not also be a test of
+// what order the worlds are offered in.
+func stepTo(t *testing.T, m *menuState, s *setup, name string) {
+	t.Helper()
+	for range presets {
+		if s.world() == name {
+			return
+		}
+		press(m, key(tcell.KeyRight))
+	}
+	t.Fatalf("stepping the world line never reached %q; it is on %q", name, s.world())
 }

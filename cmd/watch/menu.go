@@ -52,9 +52,11 @@ type setup struct {
 }
 
 // presets are the worlds that can be founded here, in the order the option
-// steps through them. It is a list rather than a flag because there will be
-// more than two of them.
-var presets = []string{"valley", "globe"}
+// steps through them: the valley as it has always been drawn, the same
+// valley made out of sixteen ages of its own history instead, and the globe.
+// It is a list rather than a flag because there will be more of them, and
+// every name in it is one world.Preset knows.
+var presets = []string{"valley", "ancient", "globe"}
 
 // world is the preset said as a name, for the report and the menu; an empty
 // preset is the valley, which is what it has always meant.
@@ -158,7 +160,7 @@ func options() []option {
 	all := []option{{
 		group: "the world",
 		name:  "world",
-		help:  "the valley is a map with edges, sized to this terminal; the globe has none — a cylinder a thousand tiles round, four settlements on it, cold at the poles, and mostly off the screen at any moment (hjkl looks around it)",
+		help:  "the valley is a map with edges, sized to this terminal; ancient is that same valley made out of sixteen ages of its own history rather than drawn, so a range stands where two plates met; the globe has no edges — a cylinder a thousand tiles round, cold at the poles, and mostly off the screen at any moment (the arrows look around it)",
 		show:  func(s *setup) string { return s.world() },
 		step: func(s *setup, d int) {
 			at := slices.Index(presets, s.world())

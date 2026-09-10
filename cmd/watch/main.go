@@ -106,7 +106,7 @@ func main() {
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
 	snug := flag.Bool("fit", d.snug, "size the map to the terminal; -fit=false takes -width and -height instead")
-	preset := flag.String("preset", d.preset, "which world: valley, a map with edges, or globe, a cylinder with none")
+	preset := flag.String("preset", d.preset, "which world: valley, a map with edges; ancient, that valley made out of its own history; or globe, a cylinder with no edges")
 	skip := flag.Bool("start", false, "start straight away, without the menu")
 	flag.Parse()
 	if _, ok := world.Preset(*preset); !ok {
