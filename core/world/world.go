@@ -357,7 +357,8 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 		Personality: p,
 		Norms:       belief.RandomNorms(w.RNG),
 		Temperament: entity.RandomTemperament(w.RNG),
-		Vitality:    w.RandomVitality(),
+		Body:        w.RandomBody(),
+		Mind:        w.RandomMind(),
 		Health:      0.9,
 	}
 	// Everyone starts believing they are unremarkable. Confidence is earned
@@ -383,22 +384,67 @@ func (w *World) RandomPersonality() need.Weights {
 	return p
 }
 
-// RandomVitality draws a body around the ordinary one. The spread is narrow
-// on purpose: bodies differ, but a settlement's fortunes should turn on what
-// people want and believe, not on who was born strong.
-func (w *World) RandomVitality() float64 {
-	return clampVitality(1 + w.RNG.NormFloat64()*0.12)
-}
+// TraitSpread is how far a drawn measure strays from the ordinary one, and
+// TraitDrift how far a child's strays from its parent's. Both are narrow on
+// purpose: people differ, but a settlement's fortunes should turn on what
+// they want and believe, not on who was born strong or quick. A generation
+// is where the drift adds up, which is why the second number is the one to
+// reach for when a population ought to spread out over time.
+const (
+	TraitSpread = 0.12
+	TraitDrift  = 0.08
+)
 
-// InheritVitality returns a child's body derived from a parent's.
-func (w *World) InheritVitality(v float64) float64 {
+// RandomTrait draws one measure around the ordinary one, and InheritTrait a
+// child's from a parent's. Every measure of a body or a mind is drawn this
+// way, so they are all the same shape of thing and none of them is anybody's
+// special case.
+func (w *World) RandomTrait() float64 { return clampTrait(1 + w.RNG.NormFloat64()*TraitSpread) }
+
+func (w *World) InheritTrait(v float64) float64 {
 	if v <= 0 {
-		return w.RandomVitality()
+		return w.RandomTrait()
 	}
-	return clampVitality(v + w.RNG.NormFloat64()*0.08)
+	return clampTrait(v + w.RNG.NormFloat64()*TraitDrift)
 }
 
-func clampVitality(v float64) float64 {
+// RandomBody and RandomMind draw a whole creature. The order the measures
+// are drawn in is fixed and is part of what a seed means, so a measure added
+// here goes on the end.
+func (w *World) RandomBody() entity.Body {
+	return entity.Body{
+		Vitality:   w.RandomTrait(),
+		Metabolism: w.RandomTrait(),
+		Hardiness:  w.RandomTrait(),
+	}
+}
+
+func (w *World) RandomMind() entity.Mind {
+	return entity.Mind{
+		Plasticity: w.RandomTrait(),
+		Resolve:    w.RandomTrait(),
+		Horizon:    w.RandomTrait(),
+	}
+}
+
+// InheritBody and InheritMind are a child's, drifted from its parent's.
+func (w *World) InheritBody(b entity.Body) entity.Body {
+	return entity.Body{
+		Vitality:   w.InheritTrait(b.Vitality),
+		Metabolism: w.InheritTrait(b.Metabolism),
+		Hardiness:  w.InheritTrait(b.Hardiness),
+	}
+}
+
+func (w *World) InheritMind(m entity.Mind) entity.Mind {
+	return entity.Mind{
+		Plasticity: w.InheritTrait(m.Plasticity),
+		Resolve:    w.InheritTrait(m.Resolve),
+		Horizon:    w.InheritTrait(m.Horizon),
+	}
+}
+
+func clampTrait(v float64) float64 {
 	if v < 0.7 {
 		return 0.7
 	}

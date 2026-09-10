@@ -53,7 +53,14 @@ var roofWear = func() float64 {
 func Decay(w *world.World) {
 	for _, a := range w.Agents {
 		for t := range decay {
-			a.Needs.Add(need.Tier(t), -decay[t])
+			d := decay[t]
+			if need.Tier(t) == need.Physiological {
+				// What a body spends staying alive is the body's own. The
+				// rest of the tiers are wants and drain alike for everyone;
+				// this one is a fire that some people bank higher.
+				d *= a.Body.Burn()
+			}
+			a.Needs.Add(need.Tier(t), -d)
 		}
 
 		a.Shelter = math.Max(0, a.Shelter-roofWear*w.Mods.ShelterDecay)
@@ -67,7 +74,11 @@ func Decay(w *world.World) {
 		// In a mild season it is nothing whatever anyone has built; in the
 		// deep of a hard winter a body without a house burns half again
 		// what it otherwise would just staying warm.
-		exposure := w.ChillAt(a.Pos) * (1 - a.Shelter)
+		// What the cold costs is what the body standing in it can stand.
+		// One exposure carries both halves of a winter - the hunger of
+		// staying warm below, and the condition it takes further down - so
+		// a hardy frame is spared both and a frail one pays both.
+		exposure := w.ChillAt(a.Pos) * (1 - a.Shelter) / a.Body.Hardy()
 		a.Needs.Add(need.Physiological, -ColdDrain*exposure)
 
 		// Health follows nourishment and housing, at a hundredth of the rate

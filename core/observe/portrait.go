@@ -64,9 +64,14 @@ type Portrait struct {
 	// how sharply the agent is choosing right now.
 	Intensity float64
 
-	// What it is made of and has to hand.
+	// What it is made of and has to hand. Body and Mind are what this one
+	// was born as - what it burns, what cold it can stand, how fast it takes
+	// to a craft, how firmly it decides, how far it will go - and are the
+	// answer to why two people in the same settlement, wanting the same
+	// things, live differently. See entity.Body.
+	Body       entity.Body
+	Mind       entity.Mind
 	Health     float64
-	Vitality   float64
 	Shelter    float64
 	Wealth     float64
 	Reputation float64
@@ -127,7 +132,7 @@ func Look(w *world.World, id entity.ID) *Portrait {
 		ID: a.ID, Name: a.Name, Age: clock.Years(a.Age(w.Tick)), Pos: a.Pos,
 		Home: a.Home, HasHome: a.HasHome, Field: a.Field, HasField: a.HasField,
 		Needs: a.Needs, Urgency: need.Urgencies(a.Needs), Personality: a.Personality,
-		Health: a.Health, Vitality: a.Vitality, Shelter: a.Shelter,
+		Health: a.Health, Body: a.Body, Mind: a.Mind, Shelter: a.Shelter,
 		Wealth: a.Wealth, Reputation: a.Reputation, Inventory: a.Inventory,
 		Skills: a.Skills, Efficacy: a.Efficacy,
 		Norms: a.Norms, Caution: a.Caution, Temperament: a.Temperament,

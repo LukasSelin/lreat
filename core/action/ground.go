@@ -295,7 +295,7 @@ func KnownPlot(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	// The ground here and now is always in the running, appraised fresh
 	// rather than remembered, so that settling for where one happens to be
 	// standing is never off the table however little one has seen.
-	if p, ok := plotNear(w, a.Pos); ok {
+	if p, ok := plotNear(a, w, a.Pos); ok {
 		consider(p, LandWorth(w, p))
 	}
 	// And so is the nearest ground that can be built on at all, which in a

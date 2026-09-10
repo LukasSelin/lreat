@@ -18,7 +18,8 @@ func TestHardGroundIsSlowAndTiring(t *testing.T) {
 		w.Grid.Tiles[i].Terrain, w.Grid.Tiles[i].Height = world.Grass, 0
 	}
 	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 0, Y: 1})
-	a.Vitality, a.Health = 1, 1 // an ordinary body in good condition: one tick per grass tile
+	a.Body, a.Mind = entity.Ordinary()
+	a.Health = 1 // an ordinary body in good condition: one tick per grass tile
 	a.Plan = &entity.Plan{Action: "rest", Target: entity.Pos{X: 4, Y: 1}, Remaining: 1, Total: 1}
 	before := a.Needs[need.Physiological]
 	for i := 0; i < 4; i++ {
@@ -54,8 +55,10 @@ func TestStrongerBodiesTravelCheaper(t *testing.T) {
 	target := entity.Pos{X: 8, Y: 1}
 	hale := w.SpawnAt("hale", need.Neutral(), entity.Pos{X: 0, Y: 1})
 	worn := w.SpawnAt("worn", need.Neutral(), entity.Pos{X: 0, Y: 1})
-	hale.Vitality, hale.Health = 1.3, 1
-	worn.Vitality, worn.Health = 0.7, 0.2
+	hale.Body, hale.Mind = entity.Ordinary()
+	hale.Body.Vitality, hale.Health = 1.3, 1
+	worn.Body, worn.Mind = entity.Ordinary()
+	worn.Body.Vitality, worn.Health = 0.7, 0.2
 	for _, a := range []*entity.Agent{hale, worn} {
 		a.Needs[need.Physiological] = 1
 		a.Plan = &entity.Plan{Action: "rest", Target: target, Remaining: 1, Total: 1}
@@ -110,7 +113,8 @@ func TestTheSameErrandIsCheaperOnAStreet(t *testing.T) {
 			}
 		}
 		a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 0, Y: 2})
-		a.Vitality, a.Health = 1, 1
+		a.Body, a.Mind = entity.Ordinary()
+		a.Health = 1
 		a.Needs[need.Physiological] = 1
 		a.Plan = &entity.Plan{Action: "rest", Target: to, Remaining: 1, Total: 1}
 		ticks := 0
@@ -213,7 +217,8 @@ func TestAnAgentWithAnArmfulStaysOnItsOwnBank(t *testing.T) {
 	}
 
 	a := w.SpawnAt("walker", need.Neutral(), entity.Pos{X: 4, Y: 1})
-	a.Vitality, a.Health = 1, 1
+	a.Body, a.Mind = entity.Ordinary()
+	a.Health = 1
 	a.Inventory = [entity.GoodCount]float64{} // hands free: everyone spawns with bread on them
 	if !cross(a) {
 		t.Fatalf("empty-handed the walker reached %v, want the far bank at %v", a.Pos, far)

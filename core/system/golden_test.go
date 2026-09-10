@@ -31,6 +31,14 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
+// Retaken for bodies and minds: what an agent burns, what cold it can stand,
+// how fast it takes to a craft, how firmly it decides and how far it will go
+// were one number apiece for the whole population and are now drawn per agent
+// and inherited. Five more draws at every spawn move the world's chance from
+// the first tick, so these had to move whatever the traits did. The land did
+// not: all six map hashes are as they were, because a world is made before
+// anybody is put on it. See entity.Body.
+//
 // Retaken for the rivers: a channel now cuts the outside of its own bends and
 // walks sideways across its valley, and what an age of weather takes off a
 // tile is divided by the rock under it, so soft beds go and hard ones are
@@ -47,9 +55,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "c984d655f4906307",
-	3: "4a34be73e4103abb",
-	9: "e45e762d53c4ed7b",
+	1: "c697c7de162cf97c",
+	3: "e5509681a54aecb7",
+	9: "ca816c7a80cb38e9",
 }
 
 // digest is the hash the golden numbers are of.

@@ -176,11 +176,14 @@ type Agent struct {
 	Reputation float64
 	Shelter    float64 // quality of housing in [0,1]; decays
 
-	// Vitality is the body an agent was born with: how much effort it can
-	// carry, around 1 and rarely far from it. It is drawn at birth and
-	// inherited with drift, so bodies vary the way personalities do, by a
-	// little and across generations.
-	Vitality float64
+	// Body and Mind are what this one is made of and thinks with: the frame
+	// it was born with, what it burns, what cold it can stand, how fast it
+	// takes to a craft, how firmly it decides, how far it will go. All of
+	// them drawn at birth and inherited with drift, so a settlement's people
+	// vary the way their personalities do - by a little, and across
+	// generations. See trait.go.
+	Body Body
+	Mind Mind
 	// Health is present condition in [0,1]. It follows how well the agent is
 	// fed and housed, but slowly, so it reads as a constitution worn down or
 	// built back up over a long stretch rather than a second hunger bar.
@@ -281,11 +284,7 @@ const ordinaryBody = 1
 // spend walking out of. It is the body it was born with, grown into or given
 // back with age, condition aside.
 func (a *Agent) Endurance(tick int) float64 {
-	v := a.Vitality
-	if v <= 0 {
-		v = ordinaryBody
-	}
-	return v * AgeFactor(a.Age(tick))
+	return a.Body.Frame() * AgeFactor(a.Age(tick))
 }
 
 // Vigor is the pace the agent can actually keep: its frame at this age,

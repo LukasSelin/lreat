@@ -154,7 +154,8 @@ func TestAgentsWalkBeforeActing(t *testing.T) {
 	// Walking speed belongs to the terrain and the body; this test is about
 	// the order of walking and acting, so clear the route and give the walker
 	// an ordinary frame in good condition: one tick per tile.
-	a.Vitality, a.Health = 1, 1
+	a.Body, a.Mind = entity.Ordinary()
+	a.Health = 1
 	for x := a.Pos.X; x <= target.X; x++ {
 		w.Grid.At(entity.Pos{X: x, Y: a.Pos.Y}).Terrain = world.Grass
 		w.Grid.At(entity.Pos{X: x, Y: a.Pos.Y}).Height = 0
