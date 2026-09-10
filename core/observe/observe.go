@@ -6,7 +6,9 @@
 package observe
 
 import (
+	"slices"
 	"sort"
+	"sync"
 
 	"lreat/core/action"
 	"lreat/core/belief"
@@ -140,7 +142,17 @@ type Snapshot struct {
 	Map     *MapView
 }
 
-// Take builds a Snapshot. It must run on the simulation goroutine.
+// Take builds a Snapshot. It must run on the simulation goroutine: it reads
+// the whole world, and nothing may change under it while it does.
+//
+// Three things are read out and none of them reads what another writes. The
+// ground is copied, which on a globe is seventy megabytes and is memory
+// rather than arithmetic; the population is counted up; and the habit layer
+// is measured. So all three are done at once, each on a goroutine of its
+// own, and a snapshot costs the longest of them rather than the sum. Each
+// keeps its own order within itself - the ground by tile, the population by
+// agent, the habits by act and then by agent - so every number here is to
+// the last bit the number it was when they were done one after another.
 func Take(w *world.World) Snapshot {
 	s := Snapshot{
 		Tick:       w.Tick,
@@ -175,52 +187,126 @@ func Take(w *world.World) Snapshot {
 		}
 	}
 
-	m := &MapView{W: w.Grid.W, H: w.Grid.H, Wrap: w.Grid.Wrap, Tiles: make([]world.Tile, len(w.Grid.Tiles)), Market: w.MarketPos}
-	copy(m.Tiles, w.Grid.Tiles)
+	m := &MapView{W: w.Grid.W, H: w.Grid.H, Wrap: w.Grid.Wrap, Market: w.MarketPos}
 	s.Map = m
-
 	if len(w.Agents) == 0 {
+		m.Tiles = ground(w)
 		return s
 	}
 
-	counts := map[string]int{}
-	wealth := make([]float64, 0, len(w.Agents))
-	m.Agents = make([]Mark, 0, len(w.Agents))
+	// Measuring the habit layer wants the room grown to the slots there now
+	// are. It is the one write in any of this, so it is done here, before
+	// anybody is reading beside anybody else.
+	w.Room()
+	// The file of who is where is put right and then held still: counting
+	// the population looks people up in it, and a reader that put it right
+	// would be writing where the others are looking. See world.Freeze.
+	w.Freeze(true)
+	var c census
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() { defer wg.Done(); m.Tiles = ground(w) }()
+	go func() { defer wg.Done(); c = count(w) }()
+	go func() { defer wg.Done(); s.HabitSpread, s.MeanReach, s.GatedReach = habits(w) }()
+	wg.Wait()
+	w.Freeze(false)
+
+	n := float64(len(w.Agents))
+	m.Agents = c.marks
+	s.MeanNeeds = c.needs
+	s.MeanNorms = c.norms
+	s.MeanHealth, s.MeanShelter, s.MeanFood = c.health/n, c.shelter/n, c.food/n
+	s.MeanAge = clock.Years(c.age / len(w.Agents))
+	s.Starving, s.Children, s.Bearing, s.Elders = c.starving, c.children, c.bearing, c.elders
+	s.Friendships, s.Feuds, s.Hearsay = c.friendships, c.feuds, c.hearsay
+	for t := range s.MeanNeeds {
+		s.MeanNeeds[t] /= n
+	}
+	for i := range s.MeanNorms {
+		s.MeanNorms[i] /= n
+	}
+	for name, k := range c.counts {
+		s.Activity = append(s.Activity, Activity{Action: name, Agents: k})
+	}
+	sort.Slice(s.Activity, func(i, j int) bool {
+		if s.Activity[i].Agents != s.Activity[j].Agents {
+			return s.Activity[i].Agents > s.Activity[j].Agents
+		}
+		return s.Activity[i].Action < s.Activity[j].Action
+	})
+	s.WealthGini = Gini(c.wealth)
+	return s
+}
+
+// ground is the copy of the map a snapshot carries. It is cloned rather than
+// made and copied into: making a slice zeroes it, and the copy that follows
+// writes over every byte of the zeroes, so the ground was being walked twice
+// for a picture of it taken once. On a globe that was five milliseconds of
+// every snapshot.
+func ground(w *world.World) []world.Tile { return slices.Clone(w.Grid.Tiles) }
+
+// census is what one pass over the population comes to, gathered up so that
+// the pass can be made beside the copying of the ground rather than after
+// it. The means are still sums here; who divides them is Take.
+type census struct {
+	needs                 need.Levels
+	norms                 belief.Norms
+	health, shelter, food float64
+	age                   int
+	starving              int
+	children, bearing     int
+	elders                int
+	friendships, feuds    int
+	hearsay               int
+	marks                 []Mark
+	wealth                []float64
+	counts                map[string]int
+}
+
+// count walks the population once and adds up everything a snapshot says
+// about it. It only reads, and it reads the population in agent order, which
+// is the order the sums were always made in.
+func count(w *world.World) census {
+	c := census{
+		counts: map[string]int{},
+		marks:  make([]Mark, 0, len(w.Agents)),
+		wealth: make([]float64, 0, len(w.Agents)),
+	}
 	for _, a := range w.Agents {
-		for t := range s.MeanNeeds {
-			s.MeanNeeds[t] += a.Needs[t]
+		for t := range c.needs {
+			c.needs[t] += a.Needs[t]
 		}
-		for n := range s.MeanNorms {
-			s.MeanNorms[n] += a.Norms[n]
+		for i := range c.norms {
+			c.norms[i] += a.Norms[i]
 		}
-		s.MeanHealth += a.Health
-		s.MeanShelter += a.Shelter
-		s.MeanFood += a.Inventory[entity.Food] + a.Inventory[entity.Meals]
+		c.health += a.Health
+		c.shelter += a.Shelter
+		c.food += a.Inventory[entity.Food] + a.Inventory[entity.Meals]
 		if a.Starving > 0 {
-			s.Starving++
+			c.starving++
 		}
 		age := a.Age(w.Tick)
-		s.MeanAge += age
+		c.age += age
 		switch {
 		case age < entity.Maturity:
-			s.Children++
+			c.children++
 		case age < entity.Prime:
-			s.Bearing++
+			c.bearing++
 		default:
-			s.Elders++
+			c.elders++
 		}
 		mark := Mark{ID: a.ID, Pos: a.Pos}
 		if a.Plan != nil {
-			counts[a.Plan.Action]++
+			c.counts[a.Plan.Action]++
 			mark.Action = a.Plan.Action
 		}
-		m.Agents = append(m.Agents, mark)
-		wealth = append(wealth, a.Wealth)
+		c.marks = append(c.marks, mark)
+		c.wealth = append(c.wealth, a.Wealth)
 
 		for i := range a.Bonds {
 			b := &a.Bonds[i]
 			if b.Met == 0 {
-				s.Hearsay++
+				c.hearsay++
 			}
 			if b.To < a.ID {
 				continue // count each pair once
@@ -234,47 +320,29 @@ func Take(w *world.World) Snapshot {
 				continue
 			}
 			if b.Strength > 0.5 && back.Strength > 0.5 {
-				s.Friendships++
+				c.friendships++
 			}
 			if b.Regard < -0.3 && back.Regard < -0.3 {
-				s.Feuds++
+				c.feuds++
 			}
 		}
 	}
-	for t := range s.MeanNeeds {
-		s.MeanNeeds[t] /= float64(len(w.Agents))
-	}
-	s.MeanHealth /= float64(len(w.Agents))
-	s.MeanShelter /= float64(len(w.Agents))
-	s.MeanFood /= float64(len(w.Agents))
-	s.MeanAge = clock.Years(s.MeanAge / len(w.Agents))
-	for n := range s.MeanNorms {
-		s.MeanNorms[n] /= float64(len(w.Agents))
-	}
-	for name, n := range counts {
-		s.Activity = append(s.Activity, Activity{Action: name, Agents: n})
-	}
-	sort.Slice(s.Activity, func(i, j int) bool {
-		if s.Activity[i].Agents != s.Activity[j].Agents {
-			return s.Activity[i].Agents > s.Activity[j].Agents
-		}
-		return s.Activity[i].Action < s.Activity[j].Action
-	})
-	s.WealthGini = Gini(wealth)
-	s.HabitSpread, s.MeanReach, s.GatedReach = habits(w)
-	return s
+	return c
 }
 
 // habits measures the habit layer: how far apart agents' recognition lies,
 // and how far the gated actions have come within reach. Agents not
 // yet imprinted are read as holding the priors.
+//
+// It only reads. The room it measures against has to have been grown first -
+// see World.Room - because growing it is a write, and this runs beside the
+// other two passes a snapshot makes.
 func habits(w *world.World) (spread, mean, gated float64) {
 	n := float64(len(w.Agents))
 	if n == 0 {
 		return 0, 0, 0
 	}
 	var gatedN float64
-	w.Room()
 	// Each act is measured in two passes over the population rather than
 	// from a table of every unit signature: the centre first, then how far
 	// each agent stands from it. The unit signature is worked out twice for
