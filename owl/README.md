@@ -73,7 +73,7 @@ class adds every act the trees entail for it, here as there.
 The document is in OWL 2 EL, so `gowl`'s classifier will take it:
 
 ```bash
-gowl classify owl/lreat.ofn   # 142 classes, 169 inferred, consistent, coherent
+gowl classify owl/lreat.ofn   # 143 classes, 172 inferred, consistent, coherent
 gowl stats owl/lreat.ofn
 ```
 
