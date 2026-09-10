@@ -172,6 +172,109 @@ var Discoveries = []Discovery{
 		Text:  "smiths learned to work metal",
 		Opens: []string{"craft", "guard", "smelt"},
 	},
+	// What a settlement gets to only by having been somewhere a long time.
+	// Each of these asks for masters, and a master is three times the
+	// labour an ordinary hand is - so these are the far end of a run rather
+	// than the middle of one, and a settlement that never made anybody
+	// really good at anything never sees them at all. That is the point of
+	// them: the catalog used to be a thing every settlement held entire by
+	// year fifteen, and the top of it should be somewhere most of them
+	// never get.
+	{
+		// Weaving answers the winter, and only a settlement that has
+		// actually been caught out in one thinks of it. The condition is
+		// the moment rather than the climate: it must be biting now and a
+		// quarter of the people must be standing in it under a poor roof.
+		// A settlement that housed itself early never learns to weave,
+		// which is right - it solved the same problem another way.
+		Tech: "weaving", Knowledge: 20, Craft: craft(entity.Crafting),
+		Condition: func(w *world.World) bool {
+			return exposed(w) && adept(w, entity.Crafting, entity.Apprentice, 30) >= 2
+		},
+		Effect: func(w *world.World) { w.Mods.Warmth *= 0.6 },
+		Text:   "caught out in a hard winter, they learned to weave",
+	},
+	{
+		// The arch is masonry's second thought, and it needs the stone
+		// under it: quarrying first, then masons who have raised eighty
+		// things and are masters of it.
+		Tech: "the arch", Knowledge: 80, Craft: craft(entity.Building),
+		Condition: func(w *world.World) bool {
+			return w.Has("quarrying") && adept(w, entity.Building, entity.Master, 80) >= 2
+		},
+		Effect: func(w *world.World) {
+			w.Mods.BuildEfficiency *= 1.3
+			w.Mods.ShelterDecay *= 0.7
+		},
+		Text: "masons learned to turn an arch, and built to last",
+	},
+	{
+		// Husbandry is what a people who have trapped out their woods do
+		// next: keep the animal rather than hunt it. What separates it from
+		// trapping is that a kept beast needs somewhere to be kept, so it
+		// asks for builders and not only for tools - without that it fired
+		// on the same day trapping did on eleven seeds of twelve, which is
+		// not a second technology but a longer sentence about the first.
+		Tech: "husbandry", Knowledge: 40,
+		Condition: func(w *world.World) bool {
+			return w.Has("trapping") && forestThin(w) && tooled(w) >= 3 &&
+				adept(w, entity.Building, entity.Journeyman, 40) >= 2
+		},
+		Effect: func(w *world.World) { w.Mods.HuntYield *= 1.6 },
+		Text:   "with the woods trapped out, they began to keep the beasts instead",
+	},
+	{
+		// Medicine is writing's, because it is the one thing here that has
+		// to be written down to be kept: what somebody worked out about a
+		// fever is no use to the settlement if it dies with them.
+		Tech: "medicine", Knowledge: 150, Craft: craft(entity.Scholarship),
+		Condition: func(w *world.World) bool {
+			return w.Has("writing") && adept(w, entity.Scholarship, entity.Master, 40) >= 1
+		},
+		Effect: func(w *world.World) { w.Mods.Healing *= 2 },
+		Text:   "scholars wrote down what was known of tending the sick",
+	},
+	{
+		// The plough is the last of them and the deepest in: it takes the
+		// metal, and it takes three farmers who have each worked ground
+		// three hundred times and are masters of it. Two at a hundred and
+		// fifty was no bar at all - a settlement with metal already had
+		// them, so the plough arrived on the same day metallurgy did on
+		// six seeds of seven. Three hundred is past what any but a
+		// seriously farming people reach.
+		Tech: "the plough", Knowledge: 120, Craft: craft(entity.Farming),
+		Condition: func(w *world.World) bool {
+			return w.Has("metallurgy") && adept(w, entity.Farming, entity.Master, 300) >= 3
+		},
+		Effect: func(w *world.World) { w.Mods.FarmYield *= 1.4 },
+		Text:   "smiths and farmers between them worked out the plough",
+	},
+}
+
+// exposedShare is how much of a settlement must be out in the weather
+// before the weather is something it is trying to solve, and coldBites how
+// hard the cold must press to count as being out in it at all.
+const (
+	coldBites    = 0.5
+	exposedShare = 0.25
+	poorRoof     = 0.5
+)
+
+// exposed reports whether the cold is biting now and enough of the
+// settlement is standing in it under a poor roof to be feeling it. It is a
+// pressure of the moment like the rest of them, not a fact about the map:
+// the same settlement is exposed in February and not in June.
+func exposed(w *world.World) bool {
+	if len(w.Agents) == 0 || w.Climate.Chill() < coldBites {
+		return false
+	}
+	n := 0
+	for _, a := range w.Agents {
+		if a.Shelter < poorRoof {
+			n++
+		}
+	}
+	return float64(n) >= exposedShare*float64(len(w.Agents))
 }
 
 // Pressures a settlement can be under, which is what the later discoveries

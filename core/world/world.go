@@ -46,6 +46,17 @@ type Modifiers struct {
 	HuntYield       float64
 	Regrowth        float64 // how fast forest, wild food, and fish come back
 	Keeping         float64 // how much of the market's food spoils, as a share of the usual
+	// Warmth is how much of the cold a body actually feels, as a share of
+	// the usual. It is the one modifier that does nothing at all most of
+	// the year: a cloak is worth nothing in June and worth a life in
+	// February, so what it buys a settlement depends on where the
+	// settlement is and what winters it gets rather than on a flat rate.
+	Warmth float64
+	// Healing is how much faster a body climbs back toward the condition
+	// its circumstances would give it. It works one way only - see
+	// system.Decay - because knowing what to do for a fever helps somebody
+	// recover and does not make anybody fall ill quicker.
+	Healing float64
 }
 
 // Granaries is how many granaries are standing. It is what a granary does
@@ -68,6 +79,8 @@ func DefaultModifiers() Modifiers {
 		FishYield:       1,
 		HuntYield:       1,
 		Regrowth:        1,
+		Warmth:          1,
+		Healing:         1,
 		Keeping:         1,
 	}
 }

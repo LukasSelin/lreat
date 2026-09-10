@@ -78,14 +78,24 @@ func Decay(w *world.World) {
 		// One exposure carries both halves of a winter - the hunger of
 		// staying warm below, and the condition it takes further down - so
 		// a hardy frame is spared both and a frail one pays both.
-		exposure := w.ChillAt(a.Pos) * (1 - a.Shelter) / a.Body.Hardy()
+		// What the settlement has learned to put between a body and the
+		// weather comes off here, on the one line both halves of a winter
+		// are read from.
+		exposure := w.ChillAt(a.Pos) * (1 - a.Shelter) / a.Body.Hardy() * w.Mods.Warmth
 		a.Needs.Add(need.Physiological, -ColdDrain*exposure)
 
 		// Health follows nourishment and housing, at a hundredth of the rate
 		// they move themselves. A lean week barely shows; a lean season
 		// leaves a body that walks slower and tires sooner.
 		condition := 0.35 + 0.45*need.Clamp(a.Needs[need.Physiological]) + 0.2*a.Shelter - ColdCondition*exposure
-		a.Health = need.Clamp(a.Health + (condition-a.Health)*HealthRate)
+		// What is known about tending a body speeds the climb back and not
+		// the fall: a settlement that has learned medicine gets its people
+		// on their feet sooner, and does not lose them any faster for it.
+		rate := HealthRate
+		if condition > a.Health {
+			rate *= w.Mods.Healing
+		}
+		a.Health = need.Clamp(a.Health + (condition-a.Health)*rate)
 
 		// Safety is derived: housing, public order, and savings each matter.
 		target := 0.5*a.Shelter + 0.35*w.Safety + 0.15*math.Min(a.Wealth/20, 1)
