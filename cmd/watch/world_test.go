@@ -16,6 +16,9 @@ func land(s *observe.Snapshot, forest, fields, houses int, price float64) {
 	s.Forest, s.Forest0, s.Fields, s.Houses, s.FoodPrice = forest, 900, fields, houses, price
 	s.Knowledge, s.Safety, s.Growth = float64(s.Tick), 1, 1
 	s.Techs = []world.Tech{"pottery"}
+	// Worked out on day one, and mastered on day two hundred: the page has
+	// to say both, and say them as dates rather than as tick numbers.
+	s.Worked = []observe.Worked{{Tech: "pottery", Found: 1, Mastered: 200}}
 }
 
 // The world page says what became of the ground: the wood that came down,
@@ -36,7 +39,11 @@ func TestWorldPageShowsWhatBecameOfTheGround(t *testing.T) {
 	for _, want := range []string{
 		"the world", "forest", "fields", "houses", "food price", "knowledge",
 		"of the 900 it started with", // what the wood was before anyone cut it
-		"t1 pottery",                 // and when the settlement worked things out
+		"worked out",                 // and when the settlement worked things out
+		"pottery",
+		"spring y1", // the date it came to it, not the tick
+		"mastered",  // and that somebody got good at it
+		"autumn y1", // day two hundred, which is the autumn of year one
 		"what they have been doing with themselves",
 	} {
 		if !strings.Contains(text, want) {
@@ -45,26 +52,43 @@ func TestWorldPageShowsWhatBecameOfTheGround(t *testing.T) {
 	}
 }
 
-// Discoveries are kept with the tick they happened on, whichever page was up
-// and however long ago it was: the event log is bounded and a long run drops
-// its own beginning, which is where the first of them are.
-func TestDiscoveriesAreKeptWithTheirTick(t *testing.T) {
+// The history comes off the settlement rather than being reconstructed from
+// what the watch happened to see. A watch opened at day nine hundred gets
+// the dates of things worked out on day one hundred, which the old
+// bookkeeping - noting the tick a new name first appeared on screen - could
+// not do, and would have dated both to the moment it started looking.
+func TestDiscoveriesCarryTheSettlementsOwnDates(t *testing.T) {
 	v := &view{}
-	first := tick(100, 5, world.Vitals{})
-	first.Techs = []world.Tech{"fishing"}
-	v.record(&first)
-	later := tick(700, 5, world.Vitals{})
-	later.Techs = []world.Tech{"fishing", "pottery"}
-	v.record(&later)
-	again := tick(900, 5, world.Vitals{})
-	again.Techs = []world.Tech{"fishing", "pottery"}
-	v.record(&again)
+	late := tick(900, 5, world.Vitals{})
+	late.Worked = []observe.Worked{
+		{Tech: "fishing", Found: 100, Mastered: 400},
+		{Tech: "pottery", Found: 700},
+	}
+	v.record(&late)
 
 	if len(v.techs) != 2 {
 		t.Fatalf("kept %d discoveries, want 2", len(v.techs))
 	}
-	if v.techs[0].tick != 100 || v.techs[1].tick != 700 {
-		t.Fatalf("discovered at %d and %d, want 100 and 700", v.techs[0].tick, v.techs[1].tick)
+	if v.techs[0].Found != 100 || v.techs[1].Found != 700 {
+		t.Fatalf("worked out at %d and %d, want 100 and 700", v.techs[0].Found, v.techs[1].Found)
+	}
+	if v.techs[0].Mastered != 400 {
+		t.Fatalf("fishing mastered at %d, want 400", v.techs[0].Mastered)
+	}
+	if v.techs[1].Mastered != 0 {
+		t.Fatal("pottery has no master and should carry no date for one")
+	}
+}
+
+// A technology nobody has mastered is drawn, and says so, rather than being
+// left off the page until somebody is good at it.
+func TestUnmasteredTechnologiesAreStillDrawn(t *testing.T) {
+	v := &view{techs: []observe.Worked{{Tech: "pottery", Found: 700}}}
+	if got := v.techRows(); got != 1 {
+		t.Fatalf("one technology wants %d rows, want 1", got)
+	}
+	if when(700) == "" {
+		t.Fatal("a date should read as something")
 	}
 }
 

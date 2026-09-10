@@ -19,7 +19,20 @@ type Discovery struct {
 	Text      string
 	// Opens names actions the discovery puts within everyone's reach.
 	Opens []string
+	// Craft is the skill this technology's work lives in, and nil for the
+	// ones whose work is nobody's craft - a tavern is not a trade and a
+	// fish trap is not either. It is what mastery is read against: a
+	// settlement has mastered a technology when somebody in it stands in
+	// the master tier of its craft, which under entity's ladder is a thing
+	// only doing the work can reach. So the date is earned twice over and
+	// cannot be got by being told.
+	Craft *entity.Skill
 }
+
+// craft names the skill a technology's work lives in. It is a function
+// because a skill's zero value is farming, and a field left unset would
+// quietly claim to be a farm.
+func craft(s entity.Skill) *entity.Skill { return &s }
 
 // adept counts the people a settlement can call on for a skill: those who
 // have both got good at it and actually done it.
@@ -50,7 +63,7 @@ func adept(w *world.World, s entity.Skill, t entity.Tier, done int) int {
 // Discoveries is the catalog, checked in order every tick.
 var Discoveries = []Discovery{
 	{
-		Tech: "agriculture", Knowledge: 15,
+		Tech: "agriculture", Knowledge: 15, Craft: craft(entity.Farming),
 		// Two people who have worked ground eighty times and are
 		// out of the novice tier for it. Of six probed settlements this
 		// passes four and refuses two, and the two it refuses are the two
@@ -62,7 +75,7 @@ var Discoveries = []Discovery{
 		Text:      "farmers learned to rotate their fields",
 	},
 	{
-		Tech: "masonry", Knowledge: 40,
+		Tech: "masonry", Knowledge: 40, Craft: craft(entity.Building),
 		// Two journeymen with forty raisings behind them. Every settlement
 		// probed had them, which is the point: masonry opens the craft, the
 		// road and the granary, and a gate that shut it would shut most of
@@ -76,7 +89,7 @@ var Discoveries = []Discovery{
 		Opens: []string{"craft", "lay road", "build granary"},
 	},
 	{
-		Tech: "writing", Knowledge: 90,
+		Tech: "writing", Knowledge: 90, Craft: craft(entity.Scholarship),
 		// Three journeymen who have each done the work twenty times. Since
 		// reading alone stops at the top of the apprentice tier, a
 		// journeyman scholar is by construction one who has tutored rather
@@ -94,7 +107,7 @@ var Discoveries = []Discovery{
 	// bring water to them. The first two take no learning at all, only
 	// need: a hungry people by a river will fish. The later two take some.
 	{
-		Tech: "fishing", Knowledge: 0,
+		Tech: "fishing", Knowledge: 0, Craft: craft(entity.Fishing),
 		Condition: func(w *world.World) bool { return waterNear(w) && forestThin(w) },
 		Effect:    func(w *world.World) { w.Mods.FishYield *= 1.5 },
 		Text:      "with the woods picked thin, people turned to the river",
@@ -108,7 +121,7 @@ var Discoveries = []Discovery{
 		Opens:     []string{"hunt"},
 	},
 	{
-		Tech: "irrigation", Knowledge: 10,
+		Tech: "irrigation", Knowledge: 10, Craft: craft(entity.Farming),
 		Condition: func(w *world.World) bool { return w.Has("agriculture") && fieldsWorn(w) },
 		Effect:    func(w *world.World) { w.Mods.FarmYield *= 1.2 },
 		Text:      "with the fields gone poor, farmers cut channels from the river",
@@ -125,14 +138,14 @@ var Discoveries = []Discovery{
 	// market and spoiling there. Quarrying comes to masons who have stone
 	// near.
 	{
-		Tech: "pottery", Knowledge: 30,
+		Tech: "pottery", Knowledge: 30, Craft: craft(entity.Crafting),
 		Condition: func(w *world.World) bool { return w.Market.Stock[entity.Food] >= 8 },
 		Effect:    func(w *world.World) { w.Mods.Keeping *= 0.7 },
 		Text:      "with food spoiling at the market, potters learned to keep it",
 		Opens:     []string{"cook"},
 	},
 	{
-		Tech: "quarrying", Knowledge: 40,
+		Tech: "quarrying", Knowledge: 40, Craft: craft(entity.Building),
 		Condition: func(w *world.World) bool { return w.Has("masonry") && rockNear(w) },
 		Effect:    func(w *world.World) { w.Mods.BuildEfficiency *= 1.2 },
 		Text:      "masons learned to cut stone from the outcrops",
@@ -148,7 +161,7 @@ var Discoveries = []Discovery{
 		Effect:    func(*world.World) {},
 	},
 	{
-		Tech: "metallurgy", Knowledge: 200,
+		Tech: "metallurgy", Knowledge: 200, Craft: craft(entity.Crafting),
 		Condition: func(w *world.World) bool {
 			return w.Has("writing") && adept(w, entity.Crafting, entity.Master, 100) >= 2 && w.Market.Stock[entity.Tools] >= 5
 		},
@@ -273,10 +286,24 @@ func tooled(w *world.World) int {
 	return n
 }
 
-// Discover unlocks any technology whose conditions the world now meets.
+// Discover unlocks any technology whose conditions the world now meets, and
+// notes the ones the settlement has since become master of.
 func Discover(w *world.World) {
 	for _, d := range Discoveries {
-		if w.Has(d.Tech) || w.Knowledge < d.Knowledge {
+		if w.Has(d.Tech) {
+			// Held already: the only thing left to happen to it is that
+			// somebody becomes a master of its craft. adept with the master
+			// tier asks for exactly that, and asks for no practice beside
+			// it because none is needed - being shown a craft stops at the
+			// threshold of that tier, so anybody standing in it worked
+			// their way there.
+			if d.Craft != nil && w.Known(d.Tech).Mastered == 0 && adept(w, *d.Craft, entity.Master, 0) >= 1 {
+				w.Master(d.Tech)
+				w.Emit(event.Discovered, 0, 0, "%s: the settlement has a master of it", d.Tech)
+			}
+			continue
+		}
+		if w.Knowledge < d.Knowledge {
 			continue
 		}
 		if d.Condition != nil && !d.Condition(w) {

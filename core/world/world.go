@@ -152,7 +152,7 @@ type World struct {
 	watched  entity.ID
 	thoughts []Deliberation
 
-	techs     map[Tech]bool
+	techs     map[Tech]Known
 	nextID    entity.ID
 	nextReqID entity.RequestID
 
@@ -261,7 +261,7 @@ func NewWith(seed uint64, cfg Config) *World {
 			Price: [entity.GoodCount]float64{1, 0.5, 3, 1.5, 2},
 		},
 		Log:    event.NewLog(max(50_000, cfg.LogCapacity)),
-		techs:  map[Tech]bool{},
+		techs:  map[Tech]Known{},
 		nextID: 1,
 	}
 	w.Generate(cfg)
@@ -530,11 +530,48 @@ func (w *World) EmitAt(kind event.Kind, actor, target entity.ID, act string, whe
 	})
 }
 
-// Has reports whether a technology has been discovered.
-func (w *World) Has(t Tech) bool { return w.techs[t] }
+// Known is what a settlement has done with a technology: the tick it worked
+// the thing out, and the tick it first had somebody who was a master of the
+// craft the thing lives in. The two are a long way apart and the distance
+// between them is the interesting part - knowing how a field is rotated is
+// not the same as having a farmer, and a settlement can hold a technology
+// for a generation before anybody is really any good at it.
+//
+// Mastered is zero until it happens, and a technology whose craft nobody
+// names - the tavern, the fish trap - is never mastered because there is no
+// craft to be master of. Neither ever comes undone: a master who dies does
+// not take the date with them, because the question the date answers is
+// when this settlement first got there.
+type Known struct {
+	Found    int
+	Mastered int
+}
 
-// Unlock marks a technology as discovered.
-func (w *World) Unlock(t Tech) { w.techs[t] = true }
+// Has reports whether a technology has been discovered.
+func (w *World) Has(t Tech) bool { _, ok := w.techs[t]; return ok }
+
+// Unlock marks a technology as discovered on this tick. Discovering
+// something twice is not a thing that happens, and if it did the first time
+// would be the one worth keeping.
+func (w *World) Unlock(t Tech) {
+	if _, ok := w.techs[t]; !ok {
+		w.techs[t] = Known{Found: w.Tick}
+	}
+}
+
+// Master marks a technology as one this settlement now has a master of, the
+// first time it is true.
+func (w *World) Master(t Tech) {
+	k, ok := w.techs[t]
+	if !ok || k.Mastered != 0 {
+		return
+	}
+	k.Mastered = w.Tick
+	w.techs[t] = k
+}
+
+// Known returns what the settlement has done with a technology.
+func (w *World) Known(t Tech) Known { return w.techs[t] }
 
 // Techs returns discovered technologies in a stable order.
 func (w *World) Techs() []Tech {
