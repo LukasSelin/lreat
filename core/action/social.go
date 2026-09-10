@@ -203,24 +203,30 @@ func serve(doer, client *entity.Agent, w *world.World, s entity.Skill) {
 	switch s {
 	case entity.Building:
 		client.Shelter = need.Clamp(client.Shelter + 0.35*w.Mods.BuildEfficiency*(0.3+level))
-		doer.AddSkill(entity.Building, 0.02)
+		doer.Learn(entity.Building, 0.02)
 	case entity.Guarding:
 		w.Safety = need.Clamp(w.Safety + 0.05*(0.3+level))
 		client.Needs.Add(need.Safety, 0.15*(0.3+level))
-		doer.AddSkill(entity.Guarding, 0.02)
+		doer.Learn(entity.Guarding, 0.02)
 	case entity.Scholarship:
-		client.AddSkill(entity.Scholarship, 0.05*(0.3+level))
+		// Tutoring is teaching that was asked for and paid for, and it
+		// carries exactly as far as teaching that was not: to a gap under
+		// the tutor, and never to mastery. It used to scale by 0.3+level,
+		// which meant a tutor who knew nothing still taught something; now
+		// a tutor who knows nothing teaches nothing, and only the doing of
+		// it - the line under this one - takes anybody to the top.
+		client.Taught(entity.Scholarship, 0.05, level)
 		w.Knowledge += (0.1 + level) * w.Mods.StudyRate
-		doer.AddSkill(entity.Scholarship, 0.015)
+		doer.Learn(entity.Scholarship, 0.015)
 	case entity.Crafting:
 		client.Inventory[entity.Tools] += (0.3 + level) * w.Mods.CraftQuality
-		doer.AddSkill(entity.Crafting, 0.015)
+		doer.Learn(entity.Crafting, 0.015)
 	case entity.Farming:
 		client.Inventory[entity.Food] += (0.8 + 2*level) * w.Mods.FarmYield
-		doer.AddSkill(entity.Farming, 0.01)
+		doer.Learn(entity.Farming, 0.01)
 	case entity.Fishing:
 		client.Inventory[entity.Food] += (0.6 + 1.5*level) * w.Mods.FishYield
-		doer.AddSkill(entity.Fishing, 0.015)
+		doer.Learn(entity.Fishing, 0.015)
 	}
 	client.Needs.Add(need.Belonging, 0.05)
 }

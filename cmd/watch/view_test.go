@@ -125,7 +125,7 @@ func TestActivityGraphKeepsHistory(t *testing.T) {
 func TestCardShowsTheFollowedAgent(t *testing.T) {
 	w := world.NewSized(1, 40, 12)
 	a := w.Spawn("Ada", need.Neutral())
-	a.AddSkill(entity.Farming, 0.6)
+	a.Learn(entity.Farming, 0.6)
 	a.Plan = &entity.Plan{Action: "farm", Target: a.Pos, Remaining: 2, Total: 4}
 	w.Watch(a.ID)
 	w.Remember(world.Deliberation{Tick: 9, Agent: a.ID, Rule: "fit", Entropy: 1.2,

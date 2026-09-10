@@ -357,11 +357,6 @@ func (a *Agent) BestSkill() (Skill, float64) {
 	return best, level
 }
 
-// AddSkill raises a skill and clamps it to [0,1].
-func (a *Agent) AddSkill(s Skill, d float64) {
-	a.Skills[s] = need.Clamp(a.Skills[s] + d)
-}
-
 // Holds reports whether p is ground this agent has broken and works.
 func (a *Agent) Holds(p Pos) bool {
 	for _, q := range a.Parcel {

@@ -183,7 +183,7 @@ func raising(in ontology.Instance) *Def {
 			p.Done(w, a.Pos)
 		}
 		a.Reputation += p.Renown
-		a.AddSkill(entity.Building, p.Learn)
+		a.Learn(entity.Building, p.Learn)
 		// The standing and the company a raising promises are the
 		// builder's on the day; the safety it promises is the
 		// settlement's to give, and comes as the structure does its work.

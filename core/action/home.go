@@ -118,7 +118,7 @@ var MoveHouse = &Def{
 		w.Grid.Claim(a.Pos, a.ID)
 		a.Home = a.Pos
 		a.Inventory[entity.Wood] -= movingWood
-		a.AddSkill(entity.Building, 0.02)
+		a.Learn(entity.Building, 0.02)
 		a.Needs.Add(need.Esteem, 0.02)
 		w.Emit(event.Built, a.ID, 0, "%s moved house", a.Name)
 	},

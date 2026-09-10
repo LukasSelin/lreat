@@ -36,7 +36,16 @@ import (
 // population. Five more draws off every founder's own luck at imprinting and
 // off the world's at every birth, so these move whatever the drift does.
 //
-// Retaken for bodies and minds: what an agent burns, what cold it can stand,
+// Retaken before that for how competence is got: learning curves rather than
+// stepping, each tier of it slower than the one under it, and what a person
+// is shown stops short of what the person showing them knows. Being taught
+// was a flat step from any teacher at any level, so a settlement rose at the
+// rate of its best member and everybody arrived at mastery together; now only
+// the work reaches the last tier and the settlement has to make its masters
+// one at a time. See core/entity/learn.go. It moves every settlement from the
+// first lesson given.
+//
+// Retaken before that for bodies and minds: what an agent burns, what cold it can stand,
 // how fast it takes to a craft, how firmly it decides and how far it will go
 // were one number apiece for the whole population and are now drawn per agent
 // and inherited. Five more draws at every spawn move the world's chance from
@@ -60,9 +69,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "47e7ffa6c3b09640",
-	3: "e1790386a5472ab9",
-	9: "abed234d7157be70",
+	1: "429cf07db6e07668",
+	3: "15c8c75ba62dffbc",
+	9: "afae7a66ae492991",
 }
 
 // digest is the hash the golden numbers are of.

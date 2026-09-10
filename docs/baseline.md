@@ -40,65 +40,65 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  114   109     21     45     44 |  0.71  0.48  0.56  0.48  0.10 |  1.00
-   2   43   106     12     27     24 |  0.62  0.51  0.63  0.72  0.05 |  1.00
-   3  166   124     16     58     96 |  0.64  0.51  0.57  0.71  0.03 |  1.00
-   4  142   374     54     73    144 |  0.58  0.54  0.69  0.69  0.10 |  1.00
-   5   49   159     32     27     32 |  0.61  0.60  0.44  0.65  0.11 |  1.00
-   6  152   189     44     75     68 |  0.67  0.59  0.50  0.62  0.14 |  1.00
-   7  135    74     32     64     88 |  0.60  0.53  0.57  0.71  0.03 |  1.00
-   8   48   181     34     44     39 |  0.59  0.62  0.69  0.76  0.03 |  0.85
-   9   60   107     14     20     42 |  0.57  0.50  0.52  0.64  0.07 |  1.00
-  10  200   182     27     39     93 |  0.63  0.50  0.49  0.63  0.11 |  1.00
-  11  135   460     25     36    105 |  0.74  0.48  0.39  0.60  0.08 |  0.87
-  12  183   315     39     96     83 |  0.53  0.55  0.55  0.66  0.06 |  1.00
-  13  521   457     73    152    325 |  0.60  0.50  0.39  0.49  0.08 |  1.00
-  14  126   190     23     43    118 |  0.66  0.50  0.64  0.69  0.01 |  1.00
-  15  134   289     47     17    122 |  0.56  0.50  0.49  0.73  0.13 |  1.00
-  16   65   134     40     31     38 |  0.60  0.53  0.56  0.57  0.03 |  0.94
-  17  157   293     56     82    136 |  0.60  0.56  0.48  0.36  0.08 |  1.00
-  18  124   157     29     39     85 |  0.70  0.50  0.51  0.69  0.19 |  0.99
-  19   87   129     35     21     80 |  0.64  0.48  0.65  0.64  0.12 |  1.00
-  20   22   107     41     14     25 |  0.52  0.58  0.54  0.76  0.02 |  1.00
-  21  264   386     28     99    164 |  0.58  0.51  0.41  0.46  0.11 |  1.00
-  22  298   247     31     68    118 |  0.65  0.49  0.54  0.72  0.12 |  1.00
-  23  133   241     55     53    201 |  0.53  0.51  0.48  0.50  0.07 |  0.91
-  24  161   239     46     69     79 |  0.61  0.56  0.41  0.65  0.09 |  0.98
+   1  177   232     36     87      9 |  0.61  0.53  0.48  0.08  0.10 |  1.00
+   2   79   181     17     16     64 |  0.75  0.51  0.62  0.21  0.03 |  1.00
+   3  303   261     18     76    205 |  0.68  0.53  0.38  0.29  0.08 |  1.00
+   4   66   257     32     48     22 |  0.65  0.58  0.57  0.10  0.07 |  0.99
+   5   55   129     12     21     25 |  0.68  0.52  0.52  0.24  0.02 |  0.99
+   6  214   378     35     52     60 |  0.63  0.57  0.46  0.20  0.05 |  1.00
+   7  157   234     31     79     28 |  0.65  0.52  0.36  0.02  0.00 |  0.96
+   8   52   133     19     27     19 |  0.59  0.57  0.53  0.33  0.09 |  1.00
+   9  281   261     11     30    103 |  0.64  0.49  0.60  0.24  0.15 |  1.00
+  10  290   308     33     80     85 |  0.62  0.55  0.50  0.20  0.06 |  1.00
+  11   79   201     18     12     69 |  0.69  0.57  0.53  0.20  0.20 |  0.97
+  12  121   268     23     26     77 |  0.58  0.53  0.42  0.14  0.05 |  1.00
+  13  191   215     23     87     82 |  0.64  0.53  0.32  0.10  0.02 |  1.00
+  14  212   230     21     53    184 |  0.61  0.50  0.61  0.24  0.02 |  1.00
+  15   54   181     27     20     37 |  0.65  0.51  0.23  0.40  0.02 |  1.00
+  16   46    96     18     17     29 |  0.66  0.53  0.31  0.44  0.02 |  1.00
+  17  109   171     23     50     89 |  0.55  0.48  0.36  0.09  0.03 |  1.00
+  18  310   245     25     32    199 |  0.67  0.54  0.52  0.15  0.16 |  1.00
+  19   61   176     23     22     36 |  0.64  0.56  0.51  0.16  0.10 |  1.00
+  20   28   162     41     29     14 |  0.57  0.63  0.36  0.05  0.04 |  0.98
+  21  156   333     33     51     79 |  0.64  0.54  0.46  0.13  0.07 |  0.98
+  22  108   379     25     52     75 |  0.66  0.52  0.53  0.23  0.05 |  1.00
+  23   81   222     36     42     88 |  0.58  0.57  0.62  0.19  0.12 |  0.99
+  24  275   353     29     86    152 |  0.59  0.53  0.46  0.24  0.04 |  1.00
 
-take/berries@wood                  2144687  24.7%
-dwell/rest                         2100155  24.2%
-consume/provision                  1578588  18.2%
-pass/practice>pupil                 795802   9.2%
-dwell/guard@market                  759639   8.8%
-take/fish@water                     387256   4.5%
-dwell/meet@tavern>neighbour         219484   2.5%
-take/timber@wood                    133031   1.5%
-take/grain@field                    118530   1.4%
-pass/practice>self                  112960   1.3%
-transfer/provision>needy             77355   0.9%
-exchange/material>coin@market        49880   0.6%
-raise/timber>dwelling@open           42580   0.5%
-exchange/coin>provision@market       40438   0.5%
-tend/plant@open                      37799   0.4%
-transfer/provision<holder            22712   0.3%
-transfer/material>requester          16436   0.2%
-make/timber>tool@bench               10370   0.1%
-take/game@wood                        6981   0.1%
-strike/person>wrongdoer               6921   0.1%
-tend/clear@open                       5297   0.1%
-tend/water@field                      3597   0.0%
-take/stone@outcrop                    2844   0.0%
-raise/timber>road@ground              2496   0.0%
-make/provision+timber>meal@hearth      578   0.0%
-dwell/look                             292   0.0%
-raise/timber>tavern@open               164   0.0%
-move@dwelling                          102   0.0%
-raise/timber+stone>granary@open         79   0.0%
-make/stone+timber>tool@forge            69   0.0%
-raise/timber+stone>market@open          40   0.0%
+dwell/rest                         3373225  30.1%
+take/berries@wood                  2375608  21.2%
+consume/provision                  1937015  17.3%
+dwell/guard@market                 1146920  10.2%
+take/fish@water                     561565   5.0%
+dwell/meet@tavern>neighbour         448218   4.0%
+take/timber@wood                    207074   1.8%
+exchange/coin>provision@market      186529   1.7%
+transfer/material>requester         155425   1.4%
+exchange/material>coin@market       125762   1.1%
+pass/practice>self                  118631   1.1%
+take/grain@field                    117857   1.1%
+pass/practice>pupil                  92790   0.8%
+tend/plant@open                      80383   0.7%
+take/game@wood                       67049   0.6%
+transfer/provision>needy             59523   0.5%
+raise/timber>dwelling@open           55784   0.5%
+make/timber>tool@bench               41285   0.4%
+take/stone@outcrop                   13772   0.1%
+transfer/provision<holder             9545   0.1%
+strike/person>wrongdoer               8629   0.1%
+tend/clear@open                       4498   0.0%
+tend/water@field                      1717   0.0%
+raise/timber>road@ground              1596   0.0%
+raise/timber+stone>granary@open        831   0.0%
+make/stone+timber>tool@forge           673   0.0%
+make/provision+timber>meal@hearth      648   0.0%
+dwell/look                             290   0.0%
+raise/timber>tavern@open               276   0.0%
+raise/timber+stone>market@open          98   0.0%
+move@dwelling                           68   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.58 safe 0.54 held 0.82 all 0.302 food 4.83 hungry-with-food 0.26 | lasted 24/24 extinct 0 mean 146.6 median 135 | phys 0.61 safe 0.53 belng 0.53 estm 0.63
+gates: fed 0.59 safe 0.49 held 0.67 all 0.239 food 4.02 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 146.0 median 121 | phys 0.63 safe 0.54 belng 0.47 estm 0.20
 ```
 
 ## What the last change did
@@ -113,37 +113,45 @@ one number apiece and the same for every errand; what the habit carries is per
 action, and the fit is their product summed, so a habit reading a little
 differently on honesty for this act and not that one changes which act wins.
 
-But it buys less than the arithmetic suggests, and the numbers say where. It
-is a standing disposition rather than a judgement made afresh - the situation
-never varies on those coordinates, so what drift adds is a pull toward some
-acts and away from others, sized by how much the agent holds the value it
-hangs on. A scrupulous agent's idiosyncratic reading of which work is honest
-shapes what it does; a careless one's is multiplied by a norm near nothing.
+But it buys less than the arithmetic suggests. The situation never varies on
+those coordinates, so what drift adds is a standing disposition rather than a
+judgement made afresh: a pull toward some acts and away from others, sized by
+how much the agent holds the value it hangs on. A scrupulous agent's own
+reading of which work is honest shapes what it does; a careless one's is
+multiplied by a norm near nothing.
 
 **It is a draw, and what moved is how sharply people decide rather than how
 far apart they are.**
 
 ```
-offset  0, before: gates: fed 0.57 safe 0.51 held 0.82 all 0.285 | lasted 23/24 extinct 0 mean 178.6 median 160 | belng 0.57
-offset  0, moral:  gates: fed 0.58 safe 0.54 held 0.82 all 0.302 | lasted 24/24 extinct 0 mean 146.6 median 135 | belng 0.53
-offset 24, before: gates: fed 0.57 safe 0.50 held 0.82 all 0.292 | lasted 22/24 extinct 0 mean 178.4 median 157 | belng 0.57
-offset 24, moral:  gates: fed 0.57 safe 0.53 held 0.81 all 0.289 | lasted 23/24 extinct 0 mean 160.8 median 126 | belng 0.55
+offset  0, tiers: gates: fed 0.58 safe 0.45 held 0.71 all 0.244 | lasted 24/24 mean 174.3 median 110 | belng 0.50 estm 0.21
+offset  0, moral: gates: fed 0.59 safe 0.49 held 0.67 all 0.239 | lasted 24/24 mean 146.0 median 121 | belng 0.47 estm 0.20
+offset 24, tiers: gates: fed 0.57 safe 0.48 held 0.72 all 0.253 | lasted 24/24 mean 145.6 median 104 | belng 0.50 estm 0.20
+offset 24, moral: gates: fed 0.58 safe 0.51 held 0.70 all 0.252 | lasted 23/24 mean 145.3 median 123 | belng 0.50 estm 0.19
 ```
 
-Nothing reached its threshold. The safety gate is up 0.03 on both batches and
-survivors up one on both, which is the same sign twice and still well under
-what this file says is worth believing; `all` went up 0.017 and then down
-0.003. The mean population fell on both, by 32 and by 18, and that is the one
-reading this file says never to believe on its own - master's own batches have
-ranged 171 to 212.
+Nothing reached its threshold. `all`, which is the gate a birth passes, did not
+move at all: 0.244 to 0.239 and 0.253 to 0.252. `held` is down 0.04 and 0.02;
+`fed` up 0.01 on both. The mean population fell 28 on one batch and stood still
+on the other, which is what this file says population does.
 
-What is worth recording is the reading `tune` does not print. Over sixty years
-on two seeds outside the batch, the population's habit spread went 0.33 and
-0.26 to 0.32 and 0.27 - which is to say nowhere - while the choice entropy
-went 0.83 to 0.93 and 0.81 to 0.86. Five more coordinates of drift bring
-candidates nearer one another in fit, and a moment with less between its
-candidates is decided less sharply. So the change did not spread the
-population out; it made each of them a little less certain.
+The one reading that keeps its sign is the safety gate, up 0.04 and 0.03 here
+and up 0.03 and 0.03 when the same change was measured against the tree before
+the tiers landed. Four batches, four times up, never once reaching 0.05. That
+is worth writing down and is not worth believing yet; if it is real it is small,
+and the thing that would settle it is more seeds rather than more readings of
+these twenty-four.
+
+What is worth recording is a reading `tune` does not print. Over sixty years on
+two seeds outside the batch, the population's habit spread went 0.33 and 0.26
+to 0.32 and 0.27 - which is to say nowhere - while the choice entropy went 0.83
+to 0.93 and 0.81 to 0.86. Five more coordinates of drift bring candidates
+nearer one another in fit, and a moment with less between its candidates is
+decided less sharply. So the change did not spread the population out; it made
+each of them a little less certain. (Those two seeds were measured on the tree
+before the tiers; the tiers move learning and not this, but the numbers are
+from the older tree and are quoted as the shape of the thing rather than as
+readings of the one committed here.)
 
 That is the thing to weigh before turning this dial further. If what is wanted
 is two people looking at one piece of work and disagreeing about it, this is
@@ -156,6 +164,134 @@ belief.Conscience. See action.ValenceOf.
 What the changes before this one did, each measured against the master of its
 own day. They are kept for the method rather than for the numbers: none of
 them is a comparison with the run above.
+
+### What earning the last of it did
+
+Competence stopped being something the settlement accumulated and became
+something people earn. Three things changed and they are one change; see
+[core/entity/learn.go](../core/entity/learn.go).
+
+Learning curves. A skill used to go up by the same flat step from any source
+at any level, so the hour that took somebody from nothing to some use was
+worth exactly what the hour that would have made them the best there is was
+worth. Now the step is scaled by the tier it is taken from - novice,
+apprentice, journeyman, master, the four equal quarters of the range - at 1,
+0.55, 0.3 and 0.15. The first is left at one deliberately: the opening years,
+when a settlement is short of everything, are exactly as hard as they were,
+and what got harder is the far end. Mastery by work is about three times the
+labour it was.
+
+Being shown stops short. A lesson leaves the pupil `TaughtGap` under the
+teacher and never past the threshold of the master tier, so a master's pupil
+comes out a journeyman with the whole last quarter still to work for, and
+somebody still in the novice tier has nothing to show at all. Reading alone
+stops sooner, at the top of the apprentice tier, which is the level the
+settlement asks for before it will let anybody tutor. The teacher's level
+tells twice over, because it sets the rate as well as the ceiling: an hour
+with somebody who has just cleared the floor is worth a fraction of an hour
+with a master. The old flat step could not say that, and the pair it rewarded
+most was two amateurs teaching each other what they both already half knew.
+
+And `action.Teach` is gated on there being something to teach, without which
+the act would have gone on paying its esteem for lessons nobody learned
+anything from.
+
+**It is a real and large change, and the two batches agree about the size and
+the direction of all of it.**
+
+```
+offset  0, master: gates: fed 0.57 safe 0.51 held 0.82 all 0.285 | lasted 23/24 mean 178.6 median 160 | belng 0.57 estm 0.64
+offset  0, tiers:  gates: fed 0.58 safe 0.45 held 0.71 all 0.244 | lasted 24/24 mean 174.3 median 110 | belng 0.50 estm 0.21
+offset 24, master: gates: fed 0.57 safe 0.50 held 0.82 all 0.292 | lasted 22/24 mean 178.4 median 157 | belng 0.57 estm  n/a
+offset 24, tiers:  gates: fed 0.57 safe 0.48 held 0.72 all 0.253 | lasted 24/24 mean 145.6 median 104 | belng 0.50 estm 0.20
+```
+
+`estm` is down from 0.64 to 0.21 and 0.20, `held` down 0.11 and 0.10, and
+`belng` down 0.07 on both. Those three are past the thresholds this file sets
+and both batches say the same thing. `all` is down 0.041 and 0.039, which is
+just inside the 0.05 this file asks for - but two batches agreeing that
+closely on the direction and the size is worth more than either of them
+alone, and it is the same story the other three tell. `fed` did not move.
+
+Esteem is the one to understand rather than to mourn. `pass/practice>pupil`
+was the settlement's fourth commonest act at 8.1% of everything anybody did,
+997,606 lessons paying 0.2 of esteem each, and it is under 1% now. Most of
+that esteem was never earned by teaching anybody anything: it was a
+settlement of journeymen sitting down with each other to confirm what they
+both knew, and it went away when a lesson had to have something in it. `held`
+and `belng` follow it down for the same reason - the belonging in the act
+went with the act. If the esteem tier should be fuller than 0.21, the honest
+way is to pay it for being good at something rather than for the ceremony of
+saying so, and that is a change of its own with a batch either side of it.
+
+**The runaway is not gone, and this batch is the evidence against saying it
+is.** The typical settlement is smaller: the median fell from 160 and 157 to
+110 and 104, on two batches that agree. But seed 8 came to 807, which is
+larger than any settlement master has on either batch, and it is what holds
+the mean at 174.3 against master's 178.6 while the median falls by fifty.
+What the change did to the distribution is not to flatten it but to make the
+top of it rarer and more contingent - and, since bodies and minds landed
+first, more a matter of who happened to be born. A settlement that produces
+an exceptional individual now compounds harder than it used to, because
+masters are scarce and worth more. Anybody wanting the tail actually cut has
+to cut it somewhere else; this only raised the price of getting there.
+
+Nothing is dying for it. `lasted` went to 24 of 24 on both batches, against
+23 and 22, with nothing extinct on any of the four.
+
+The larder agrees. `food` is down from 4.33 to 3.07 and 3.42, and
+`take/fish@water` rose while the farmed and gathered staples fell: a
+settlement that cannot mint master farmers by standing people next to one
+lives closer to the margin and spreads its bets.
+
+### What turning the constants buys
+
+Nothing that can be measured, which is worth writing down so that nobody
+spends the batches finding it out again. Seven full batches, each moving one
+of the numbers above and leaving the rest:
+
+```
+committed     gap 0.20  curve 1,.55,.3,.15    all 0.236  held 0.71  estm 0.19
+              gap 0.15                        all 0.254  held 0.71  estm 0.22
+              gap 0.10                        all 0.243  held 0.71  estm 0.20
+              gap 0.20  curve 1,.7,.45,.25    all 0.248  held 0.72  estm 0.19
+              gap 0.10  curve 1,.7,.45,.25    all 0.249  held 0.70  estm 0.18
+              gap 0.20  curve 1,.3,.12,.05    all 0.238  held 0.70  estm 0.22
+              InheritedSkill 0.5 to 0.25      all 0.246  held 0.71  estm 0.19
+              InheritedSkill 0.5 to 0.0       all 0.241  held 0.71  estm 0.22
+```
+
+Those were taken on the tree before bodies and minds merged in, so the
+absolute numbers are not the run above and are kept for the shape rather than
+for themselves. The shape is the point: every variant lands inside `all`
+0.236 to 0.254 against a threshold of 0.05, `held` 0.69 to 0.72, `estm` 0.18
+to 0.22, and 24 of 24 lasted with nothing extinct. Halving all three upper
+tier rates - journeyman from 0.3 to 0.12, master from 0.15 to 0.05 - moved
+`all` by 0.002.
+
+The reason is that teaching saturates. Lessons sit under 1% of all acts under
+every one of those settings, against 8.1% before the change: everybody rises
+to whatever ceiling they are given and then there is nothing left to pass,
+wherever it is put. So what this change does is carried by its shape - that a
+ceiling exists at all, and that Teach is gated on there being something to
+teach - and not by the numbers in it. That is a good property, because none
+of it is balanced on a knife edge, and it also means there is no dial here
+worth turning.
+
+`InheritedSkill` is the surprise. Half a parent's skill at birth looked like
+the last free ride in the model, and taking it to zero moved nothing, because
+children are born to parents whose skills are mostly middling and half of
+middling lands in the novice tier, where learning was already at full rate.
+
+### What this does not yet read
+
+`Mind.Plasticity` is how fast one person takes to a thing, and it reaches
+reach and not skill: `action.Practise` scales by it and nothing in
+`entity.toward` does. That was true before this change and is only worth
+saying now because the ladder it would scale has just been built. A settlement
+where some people climb faster than others is what the trait was written for -
+its own comment says so - and wiring it through the tiers is the obvious next
+change, with a batch either side of it.
 
 ### What bodies and minds did
 
