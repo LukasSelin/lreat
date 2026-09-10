@@ -85,3 +85,33 @@ func TestARouterIsNotConfusedByItsLastSearch(t *testing.T) {
 		}
 	}
 }
+
+// On flat open ground every route of the same length costs the same, so
+// which of them a walker takes is settled entirely by the tie-break. It
+// has to be the straight one. This is not a nicety: the ground remembers
+// where people walked, and roads are laid where it is worn, so a tie-break
+// that leant in some direction of its own would wear the country in that
+// direction and lay the roads along it. The order the eight steps are
+// tried in is such a lean - it starts north-west - and what stands between
+// that order and the map is the preference for the step toward where the
+// walker is actually going. Take it away and nine routes in ten bend off
+// the straight line, most of them north-west.
+func TestARouteKeepsToTheStraightLineWhenGoingRoundCostsTheSame(t *testing.T) {
+	g := NewGrid(80, 80)
+	from := entity.Pos{X: 40, Y: 40}
+	for _, d := range dirs {
+		to := entity.Pos{X: from.X + d.X*12, Y: from.Y + d.Y*12}
+		path := g.Path(from, to)
+		if len(path) == 0 {
+			t.Fatalf("no way from %v to %v over open grass", from, to)
+		}
+		if want := g.Toward(from, to); path[0] != want {
+			t.Fatalf("going from %v to %v the first step is %v, not %v toward it",
+				from, to, path[0], want)
+		}
+		if len(path) != g.Dist(from, to) {
+			t.Fatalf("going from %v to %v takes %d steps; %d is the whole way",
+				from, to, len(path), g.Dist(from, to))
+		}
+	}
+}
