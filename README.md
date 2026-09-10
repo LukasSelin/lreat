@@ -10,7 +10,7 @@ are the ways to watch a settlement and to judge whether a change to it helped.
 
 ## Running it
 
-Go 1.25 or newer. No dependencies beyond the terminal library.
+Go 1.27 or newer. No dependencies beyond the terminal library.
 
 Watch a settlement develop live:
 
