@@ -2,8 +2,10 @@ package system
 
 import (
 	"lreat/core/action"
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/event"
+	"lreat/core/habit"
 	"lreat/core/ontology"
 	"lreat/core/world"
 )
@@ -27,6 +29,30 @@ type Discovery struct {
 	// only doing the work can reach. So the date is earned twice over and
 	// cannot be got by being told.
 	Craft *entity.Skill
+	// Signature is the kind of moment this discovery belongs to, in the
+	// same space agents recognise their own moments in, and Cost is how
+	// many days of that moment it takes to arrive at. Together they are
+	// the difference between a technology a settlement is handed the
+	// instant its conditions read true and one it works its way to.
+	//
+	// The two halves are direction and length, which is the whole of the
+	// idea. Direction says whether this settlement is working on the thing
+	// at all: a people who are cold and fed are pointed somewhere else than
+	// a people who are warm and starving, and neither is pointed where a
+	// comfortable people are. Length says how fast, because the projection
+	// of a person's situation onto the discovery's direction is how hard
+	// that moment is actually pressing on them - and a settlement with
+	// nothing much wrong with it has a short situation vector in every
+	// direction, so it makes no progress toward anything. That a
+	// prosperous people stagnate is not a rule here. It is what adding
+	// nearly zero for sixty years comes to.
+	//
+	// Zero Cost is the old behaviour: the moment the Condition reads true,
+	// it is had. The skill-gated half of the catalog is still that way,
+	// because wanting a thing badly is not how anybody comes by a master
+	// mason.
+	Signature habit.Signature
+	Cost      float64
 }
 
 // craft names the skill a technology's work lives in. It is a function
@@ -108,6 +134,10 @@ var Discoveries = []Discovery{
 	// need: a hungry people by a river will fish. The later two take some.
 	{
 		Tech: "fishing", Knowledge: 0, Craft: craft(entity.Fishing),
+		// A hungry person standing by water. It is the plainest moment in
+		// the catalog and it wants nothing else in it.
+		Signature: habit.Signature{habit.Hunger: 1},
+		Cost:      pressYear,
 		Condition: func(w *world.World) bool { return waterNear(w) && forestThin(w) },
 		Effect:    func(w *world.World) { w.Mods.FishYield *= 1.5 },
 		Text:      "with the woods picked thin, people turned to the river",
@@ -115,6 +145,11 @@ var Discoveries = []Discovery{
 	},
 	{
 		Tech: "trapping", Knowledge: 0,
+		// Hungry, and of a mind to make something rather than go and look.
+		// A snare is patience, so this one asks for industry in the person
+		// as well as want in the belly.
+		Signature: habit.Signature{habit.Hunger: 1, habit.Industry: 0.5},
+		Cost:      1.5 * pressYear,
 		Condition: func(w *world.World) bool { return forestThin(w) && tooled(w) >= 2 },
 		Effect:    func(w *world.World) { w.Mods.HuntYield *= 1.5 },
 		Text:      "hunters learned to set snares",
@@ -122,6 +157,11 @@ var Discoveries = []Discovery{
 	},
 	{
 		Tech: "irrigation", Knowledge: 10, Craft: craft(entity.Farming),
+		// Hungry and industrious both, and more of the second than fishing
+		// wants: nobody cuts a channel on the day they are hungry, they cut
+		// it in the year they have been.
+		Signature: habit.Signature{habit.Hunger: 1, habit.Industry: 0.8},
+		Cost:      2 * pressYear,
 		Condition: func(w *world.World) bool { return w.Has("agriculture") && fieldsWorn(w) },
 		Effect:    func(w *world.World) { w.Mods.FarmYield *= 1.2 },
 		Text:      "with the fields gone poor, farmers cut channels from the river",
@@ -129,6 +169,11 @@ var Discoveries = []Discovery{
 	},
 	{
 		Tech: "forestry", Knowledge: 10,
+		// Planting a wood is the longest thought anybody here has: it is
+		// work whose good falls to somebody else, so it belongs to the
+		// industrious and the traditional rather than to the hungry.
+		Signature: habit.Signature{habit.Industry: 1, habit.Tradition: 0.6, habit.Curious: 0.3},
+		Cost:      2 * pressYear,
 		Condition: forestGone,
 		Effect:    func(w *world.World) { w.Mods.Regrowth *= 2 },
 		Text:      "with the woods cleared, people began to plant them",
@@ -139,6 +184,13 @@ var Discoveries = []Discovery{
 	// near.
 	{
 		Tech: "pottery", Knowledge: 30, Craft: craft(entity.Crafting),
+		// Somebody with the leisure to wonder about a thing. Pottery is the
+		// one here that answers plenty rather than want, and its moment is
+		// curiosity rather than hunger - which is also why a settlement
+		// scraping by never gets it however much food happens to be on the
+		// market shelf that week.
+		Signature: habit.Signature{habit.Curious: 1, habit.Industry: 0.4},
+		Cost:      1.5 * pressYear,
 		Condition: func(w *world.World) bool { return w.Market.Stock[entity.Food] >= 8 },
 		Effect:    func(w *world.World) { w.Mods.Keeping *= 0.7 },
 		Text:      "with food spoiling at the market, potters learned to keep it",
@@ -155,6 +207,11 @@ var Discoveries = []Discovery{
 	// spare for it.
 	{
 		Tech: "brewing", Knowledge: 25,
+		// Lonely, and among people while being it - which is the particular
+		// misery a tavern answers and is not the same as being alone. A
+		// settlement of hermits never builds one however much grain it has.
+		Signature: habit.Signature{habit.Lonely: 1, habit.Company: 0.5},
+		Cost:      pressYear,
 		Condition: func(w *world.World) bool { return len(w.Agents) >= 12 && w.Market.Stock[entity.Food] >= 5 },
 		Text:      "with grain to spare, somebody opened a tavern",
 		Opens:     []string{"build tavern"},
@@ -389,6 +446,39 @@ func tooled(w *world.World) int {
 	return n
 }
 
+// pressYear is a year of one person being wholly in a moment: a projection
+// of one, every day, for three hundred and sixty days. Nobody is ever wholly
+// in a moment, so a Cost of one pressYear is a good deal more than a year -
+// which is the point of measuring in pressure rather than in time.
+const pressYear = float64(clock.Year)
+
+// pressing is how hard the settlement's most affected person is feeling a
+// moment, and who that is.
+//
+// It is the projection of that person's own situation onto the discovery's
+// direction, which is one operation that says both of the things wanted:
+// how well the moment matches, and how much of a moment it is. The maximum
+// over everybody rather than the mean or the sum, because a thing is worked
+// out by the person it is happening to hardest, and a settlement of five
+// hundred comfortable people with one desperate one in it is a settlement
+// where somebody is about to think of something. A mean would drown them.
+func pressing(w *world.World, d *Discovery) (float64, *entity.Agent) {
+	dir := habit.Unit(d.Signature)
+	if habit.Norm(dir) < habit.Epsilon {
+		return 0, nil
+	}
+	best, by := 0.0, (*entity.Agent)(nil)
+	for _, a := range w.Agents {
+		// Ties go to the earliest born, which is what keeps a run
+		// reproducible: agents are walked in birth order and a later one
+		// has to beat what it finds, not equal it.
+		if p := habit.Dot(action.Shared(a, w), dir); p > best {
+			best, by = p, a
+		}
+	}
+	return best, by
+}
+
 // Discover unlocks any technology whose conditions the world now meets, and
 // notes the ones the settlement has since become master of.
 func Discover(w *world.World) {
@@ -412,6 +502,18 @@ func Discover(w *world.World) {
 		if d.Condition != nil && !d.Condition(w) {
 			continue
 		}
+		// The condition says the settlement is in a position to work the
+		// thing out. What decides when it does is how hard somebody is
+		// actually feeling the want, day after day, until it comes to
+		// enough. A Cost of zero is the old behaviour and is had at once.
+		var by *entity.Agent
+		if d.Cost > 0 {
+			push, who := pressing(w, &d)
+			if w.Press(d.Tech, push) < d.Cost {
+				continue
+			}
+			by = who
+		}
 		w.Unlock(d.Tech)
 		d.Effect(w)
 		w.Room()
@@ -420,6 +522,14 @@ func Discover(w *world.World) {
 				w.ReachFloor[i] = max(w.ReachFloor[i], action.Opened)
 			}
 		}
-		w.Emit(event.Discovered, 0, 0, "%s: %s", d.Tech, d.Text)
+		// Naming whoever was most in the moment for it is most of what
+		// this change buys anybody watching: a technology stops being
+		// something that happened to a settlement and becomes something
+		// that happened to a person in one.
+		if by != nil {
+			w.Emit(event.Discovered, by.ID, 0, "%s: %s (%s worst of all)", d.Tech, d.Text, by.Name)
+		} else {
+			w.Emit(event.Discovered, 0, 0, "%s: %s", d.Tech, d.Text)
+		}
 	}
 }

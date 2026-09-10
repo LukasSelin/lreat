@@ -166,6 +166,7 @@ type World struct {
 	thoughts []Deliberation
 
 	techs     map[Tech]Known
+	pressed   map[Tech]float64
 	nextID    entity.ID
 	nextReqID entity.RequestID
 
@@ -273,9 +274,10 @@ func NewWith(seed uint64, cfg Config) *World {
 		Market: MarketState{
 			Price: [entity.GoodCount]float64{1, 0.5, 3, 1.5, 2},
 		},
-		Log:    event.NewLog(max(50_000, cfg.LogCapacity)),
-		techs:  map[Tech]Known{},
-		nextID: 1,
+		Log:     event.NewLog(max(50_000, cfg.LogCapacity)),
+		techs:   map[Tech]Known{},
+		pressed: map[Tech]float64{},
+		nextID:  1,
 	}
 	w.Generate(cfg)
 	w.Growing = make([]float64, len(w.Grid.Chunks))
@@ -585,6 +587,23 @@ func (w *World) Master(t Tech) {
 
 // Known returns what the settlement has done with a technology.
 func (w *World) Known(t Tech) Known { return w.techs[t] }
+
+// Press adds a day of pressure toward a technology and returns what has
+// accumulated. Pressure is measured in the only unit that makes sense for
+// it - how hard the moment pressed, summed over the days it pressed - so a
+// settlement in real trouble arrives in a few years and one mildly
+// inconvenienced takes decades. A settlement under no pressure at all
+// arrives never, which is not a rule written anywhere: it is what adding
+// zero repeatedly comes to.
+func (w *World) Press(t Tech, by float64) float64 {
+	if by > 0 {
+		w.pressed[t] += by
+	}
+	return w.pressed[t]
+}
+
+// Pressed is what has accumulated toward a technology.
+func (w *World) Pressed(t Tech) float64 { return w.pressed[t] }
 
 // Techs returns discovered technologies in a stable order.
 func (w *World) Techs() []Tech {
