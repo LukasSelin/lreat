@@ -283,3 +283,50 @@ func TestTheMapKeyCycles(t *testing.T) {
 		t.Errorf("a full cycle ended on %v, want the settlement", v.view)
 	}
 }
+
+// A frame that is already out of date is not drawn at all. Every event
+// redraws, and on a large terminal a frame is eleven milliseconds; an arrow
+// key held down used to cost one apiece, all but the last of them drawn for
+// a state that had already been left behind while the presses queued up.
+// The last event of a burst finds nothing waiting and draws the once.
+func TestAFrameWithMoreWaitingIsNotDrawn(t *testing.T) {
+	w := world.NewSized(1, 40, 12)
+	a := w.Spawn("a", need.Neutral())
+	a.Health = 0.42
+
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(120, 40)
+
+	first := observe.Take(w)
+	v := &view{screen: sc, snap: &first}
+	v.draw()
+	if !strings.Contains(screenText(sc), "0.42") {
+		t.Fatal("the first frame was not drawn")
+	}
+
+	// The settlement moves on, and another event is already waiting behind
+	// this one. The screen must still say what it said: this frame would be
+	// replaced before anybody could read it.
+	a.Health = 0.99
+	next := observe.Take(w)
+	v.snap = &next
+	waiting := true
+	v.busy = func() bool { return waiting }
+	v.draw()
+	if !strings.Contains(screenText(sc), "0.42") {
+		t.Fatal("a frame was drawn while another event was already waiting for the loop")
+	}
+
+	// Nothing waiting now, so this is the frame at the end of the burst and
+	// it is drawn, from where the burst left off rather than from where it
+	// began.
+	waiting = false
+	v.draw()
+	if !strings.Contains(screenText(sc), "0.99") {
+		t.Fatal("the frame at the end of a burst was not drawn")
+	}
+}

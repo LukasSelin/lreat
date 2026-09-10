@@ -236,11 +236,24 @@ func run(screen tcell.Screen, s setup) {
 	keys := make(chan tcell.Event, 16)
 	go func() {
 		for {
-			keys <- screen.PollEvent()
+			ev := screen.PollEvent()
+			if ev == nil {
+				return // the screen has been finished; there is nothing more to poll
+			}
+			keys <- ev
 		}
 	}()
 
 	v.screen = screen
+	// Every event draws, and drawing a large terminal is eleven
+	// milliseconds. An arrow key held down, or a run of ticks arriving
+	// together, is a burst of events, and drawing each of them meant a
+	// frame apiece - every one of them but the last drawn for a state that
+	// had already been left behind, while the presses queued up behind the
+	// screen. So a frame is skipped while anything is already waiting to be
+	// dealt with; the last event of a burst finds nothing waiting and draws
+	// the once, from where the burst left off. See view.draw.
+	v.busy = func() bool { return len(keys) > 0 || len(runner.Snapshots()) > 0 }
 	for {
 		select {
 		case s := <-runner.Snapshots():
@@ -297,6 +310,11 @@ type view struct {
 	pic    *observe.Portrait
 	look   func(entity.ID) *observe.Portrait
 	follow func(entity.ID)
+
+	// busy says whether another event is already waiting, in which case
+	// this frame would be replaced before it could be read and is not drawn
+	// at all. Nil in tests, which draw whenever they say to.
+	busy func() bool
 
 	// vitals swaps the map for the settlement's demographic record and
 	// world for what became of the ground it stands on. The history behind
@@ -666,6 +684,9 @@ var palette = map[ascii.Color]tcell.Style{
 }
 
 func (v *view) draw() {
+	if v.busy != nil && v.busy() {
+		return // whatever comes next will draw, and this frame is already old
+	}
 	sc := v.screen
 	sc.Clear()
 	if v.snap == nil {
