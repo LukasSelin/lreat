@@ -14,7 +14,8 @@ import (
 // whatever the season puts back is measurable.
 func forestAt(w *world.World, p entity.Pos) {
 	i := w.Grid.Index(p)
-	w.Grid.Tiles[i].Terrain, w.Grid.Wood[i], w.Grid.Wild[i] = world.Forest, 0.1, 0.1
+	w.Grid.Turn(p, world.Forest)
+	w.Grid.Wood[i], w.Grid.Wild[i] = 0.1, 0.1
 	w.Grid.Standing(i) // a wood that has stood a while, not a planting
 }
 

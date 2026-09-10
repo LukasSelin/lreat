@@ -25,7 +25,8 @@ func TestTheWoodsCreepBackAndThenStop(t *testing.T) {
 	cleared := 0
 	for i := range g.Tiles {
 		if t := &g.Tiles[i]; t.Terrain == world.Forest && i%2 == 0 {
-			t.Terrain, g.Wood[i], g.Wild[i] = world.Grass, 0, 0
+			g.Turn(g.PosOf(i), world.Grass)
+			g.Wood[i], g.Wild[i] = 0, 0
 			cleared++
 		}
 	}
@@ -60,8 +61,10 @@ func TestAPlantedStandComesOnBrushFirst(t *testing.T) {
 	w.Tick = 1
 	w.Climate = world.Climate{Temp: world.Thrive}
 	p := entity.Pos{X: w.MarketPos.X, Y: w.MarketPos.Y}
-	tile, i := w.Grid.At(p), w.Grid.Index(p)
-	tile.Terrain, tile.Structure, w.Grid.Wood[i], w.Grid.Wild[i] = world.Forest, world.None, 0, 0
+	i := w.Grid.Index(p)
+	w.Grid.Build(p, world.None)
+	w.Grid.Turn(p, world.Forest)
+	w.Grid.Wood[i], w.Grid.Wild[i] = 0, 0
 	w.Grid.Sow(i)
 
 	for i := 0; i < 20; i++ {

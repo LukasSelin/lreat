@@ -22,8 +22,10 @@ import "lreat/core/entity"
 //
 // It is not a second copy of what the chunks know. The chunks stopped
 // counting kinds when this began; they count what is built and what is
-// owned, which is what the passes over the ground ask them, and what kind
-// of ground a tile is is asked here and nowhere else.
+// owned, which is what the passes over the ground ask them, and how much
+// ground of a kind lies where is asked here and nowhere else. (What kind
+// one tile is, the day's pass reads off Layers.Kinds, which is the tile's
+// own kind kept beside it and not a count of anything.)
 
 // PatchSide is how many tiles a patch is across and down.
 const PatchSide = 16

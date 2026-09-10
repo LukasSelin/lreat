@@ -104,6 +104,7 @@ func (g *Grid) Build(p entity.Pos, s Structure) {
 	c.count(t, -1)
 	lent, deep := t.lends(), t.Deep()
 	t.Structure = s
+	g.Kinds[i] = kindOf(t)
 	c.count(t, 1)
 	g.relend(i, lent)
 	if t.Deep() != deep {
@@ -122,6 +123,7 @@ func (g *Grid) Turn(p entity.Pos, tr Terrain) {
 	g.mark(i, t, -1)
 	deep := t.Deep()
 	t.Terrain = tr
+	g.Kinds[i] = kindOf(t)
 	if tr != Field {
 		t.Fenced = false // a hedge stands round a field and nothing else
 	}
@@ -169,6 +171,7 @@ func (g *Grid) Recount() {
 	}
 	clear(g.lenders)
 	g.repatch()
+	g.rekind()
 	g.wet()
 	for i := range g.Tiles {
 		g.Chunks[g.ChunkOf(i)].Height += g.Tiles[i].Height
@@ -183,6 +186,23 @@ func (g *Grid) Recount() {
 		}
 	}
 }
+
+// rekind takes every tile's kind afresh from the tile; see Layers.Kinds.
+func (g *Grid) rekind() {
+	if len(g.Kinds) != len(g.Tiles) {
+		g.Kinds = make([]int64, len(g.Tiles))
+	}
+	for i := range g.Tiles {
+		g.Kinds[i] = kindOf(&g.Tiles[i])
+	}
+}
+
+// Rekind takes every tile's kind afresh from the tile. The map keeps it
+// itself wherever the ground is turned or built on - see Build and Turn -
+// and takes it afresh whenever the ground is remade wholesale, in Recount;
+// this is for a test that lays tiles by hand and then wants the day to
+// pass over them.
+func (g *Grid) Rekind() { g.rekind() }
 
 // Houses is how many houses stand on the map, and the rest likewise. Each
 // is a sum over the chunks rather than a walk over the tiles.

@@ -33,6 +33,13 @@ type Layers struct {
 	// ground could have at best: worked ground wears down toward nothing
 	// and rests back up toward Rich. See grow.go.
 	Fertility, Rich []float64
+	// Kinds is what each tile is, as the one word the day's pass gates its
+	// arithmetic on: the structure and the terrain together, see kindOf in
+	// pass.go. It is a reading of the tile kept beside it, so that the pass
+	// need not pick it out of the tile every day: Build and Turn keep it,
+	// and Recount takes it afresh. Nought is open grass with nothing on it,
+	// which is what a tile made and never touched is.
+	Kinds []int64
 }
 
 // NewLayers is the layers of a map of n tiles, all at nothing.
@@ -45,6 +52,7 @@ func NewLayers(n int) Layers {
 		Wild:      make([]float64, n),
 		Fertility: make([]float64, n),
 		Rich:      make([]float64, n),
+		Kinds:     make([]int64, n),
 	}
 }
 
@@ -59,6 +67,7 @@ func (l Layers) Copy() Layers {
 		Wild:      slices.Clone(l.Wild),
 		Fertility: slices.Clone(l.Fertility),
 		Rich:      slices.Clone(l.Rich),
+		Kinds:     slices.Clone(l.Kinds),
 	}
 }
 

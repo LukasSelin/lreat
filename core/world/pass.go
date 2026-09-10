@@ -6,14 +6,15 @@ package world
 // grow.go - Ripen, then Replenish - and that is the definition. This is the
 // same arithmetic done to a run of tiles at once, a layer at a time, so
 // that the pass streams the layers rather than picking each tile's numbers
-// out of the map: the kind of every tile in the run is read off the map
-// once into a word, and everything after that is a loop over one slice
-// asking that word whether the tile is the kind it is looking for. It is
-// the shape the pass has to be in for the arithmetic to be done several
-// tiles at a time, which is what pass_simd_amd64.go does with it where
-// the build and the processor allow; pass_noasm.go is the same loops one
-// tile at a time, and the helpers here are the tails of the runs either
-// way.
+// out of the map: what kind of ground each tile is - what stands on it and
+// what it is made of, as one word - is kept beside the map as a layer of
+// its own, and every loop here is a loop over one slice asking that word
+// whether the tile is the kind it is looking for. Nothing in the pass
+// reads a tile. It is the shape the pass has to be in for the arithmetic
+// to be done several tiles at a time, which is what pass_simd_amd64.go
+// does with it where the build and the processor allow; pass_noasm.go is
+// the same loops one tile at a time, and the helpers here are the tails of
+// the runs either way.
 //
 // Nothing here changes a result to the last bit. Each tile is given the
 // same operations on the same operands in the same order as Ripen and
@@ -31,7 +32,9 @@ package world
 // the structure in the high byte and the terrain in the low, so that the
 // terrain alone can be read back off it with a mask. It is a word rather
 // than a byte because the pass compares it lane for lane against the
-// numbers it gates, and the numbers are eight bytes wide.
+// numbers it gates, and the numbers are eight bytes wide. The map keeps
+// one for every tile in Layers.Kinds; Build and Turn write it, and Recount
+// takes it afresh.
 const (
 	kindShift = 8
 	kindMask  = 1<<kindShift - 1
@@ -115,33 +118,22 @@ func (g *Grid) FadeWear(lo, hi int, by float64) {
 // gets that much older and fills toward what its age accounts for, the
 // water gets its fish back and worn fields rest. It is Ripen and then
 // Replenish, tile by tile, done as loops over the layers; see the remarks
-// at the top of the file. The run is taken a chunk's width at a time, which
-// is the run a day hands it, so the kinds of a run fit on the stack.
+// at the top of the file.
 func (g *Grid) Grow(lo, hi int, k float64) {
-	fishBy, fallowBy := FishRegrowth*k, Fallow*k
-	for lo < hi {
-		n := min(ChunkSide, hi-lo)
-		var kind [ChunkSide]int64
-		tiles := g.Tiles[lo : lo+n]
-		for j := range tiles {
-			kind[j] = kindOf(&tiles[j])
-		}
-		ks := kind[:n]
-		// A stand ages by the weather it gets, not by the calendar; see
-		// Ripen. The age is put on before anything reads it.
-		age := g.Age[lo : lo+n]
-		grow(age, ks, k)
-		// Whatever is coming on fills a little further, bounded by the age
-		// it has had; see grown. Each filling is a pass of its own over the
-		// run, in the order the growing table has them.
-		for _, e := range stocked {
-			fill(e.stock(g)[lo:lo+n], age, ks, e.kind, e.spanned, e.full, e.rate*k)
-		}
-		// And what comes back that is not a stand coming on; see Replenish.
-		shoal(g.Fish[lo:lo+n], ks, fishBy)
-		rest(g.Fertility[lo:lo+n], g.Rich[lo:lo+n], ks, fallowBy)
-		lo += n
+	ks := g.Kinds[lo:hi]
+	// A stand ages by the weather it gets, not by the calendar; see Ripen.
+	// The age is put on before anything reads it.
+	age := g.Age[lo:hi]
+	grow(age, ks, k)
+	// Whatever is coming on fills a little further, bounded by the age it
+	// has had; see grown. Each filling is a pass of its own over the run,
+	// in the order the growing table has them.
+	for _, e := range stocked {
+		fill(e.stock(g)[lo:hi], age, ks, e.kind, e.spanned, e.full, e.rate*k)
 	}
+	// And what comes back that is not a stand coming on; see Replenish.
+	shoal(g.Fish[lo:hi], ks, FishRegrowth*k)
+	rest(g.Fertility[lo:hi], g.Rich[lo:hi], ks, Fallow*k)
 }
 
 // The passes one tile at a time. They are the whole of the pass where the

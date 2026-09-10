@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"lreat/core/clock"
+	"lreat/core/entity"
 )
 
 // varied is a generated map with every kind of ground laid along its first
@@ -29,7 +30,35 @@ func varied() *Grid {
 			}
 		}
 	}
+	g.Rekind() // the tiles were laid by hand, so the kinds are told again
 	return g
+}
+
+// The kind kept beside each tile is the tile's kind, on a map as it is
+// made, after the ground is turned, built on and razed, and after an age of
+// weather has remade it.
+func TestKindsFollowTheGround(t *testing.T) {
+	w := New(7)
+	g := w.Grid
+	check := func(when string) {
+		t.Helper()
+		for i := range g.Tiles {
+			if g.Kinds[i] != kindOf(&g.Tiles[i]) {
+				t.Fatalf("%s: tile %d is kept as kind %d and is kind %d", when, i, g.Kinds[i], kindOf(&g.Tiles[i]))
+			}
+		}
+	}
+	check("as made")
+	p := entity.Pos{X: 10, Y: 10}
+	g.Turn(p, Field)
+	g.Claim(p, 3)
+	g.Build(entity.Pos{X: 11, Y: 10}, House)
+	g.Turn(entity.Pos{X: 12, Y: 10}, Forest)
+	check("turned and built on")
+	g.Raze(p)
+	check("razed")
+	w.Erode()
+	check("weathered")
 }
 
 // layers is every layer of a map by name, for comparing two maps.

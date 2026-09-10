@@ -61,6 +61,7 @@ func TestWoodsHoldAHillsideTogether(t *testing.T) {
 				slopes = append(slopes, i)
 			}
 		}
+		g.Rekind()
 		before := heights(g)
 		for age := 0; age < 40; age++ {
 			w.Erode()
@@ -177,6 +178,7 @@ func TestSoilGoesWithTheGround(t *testing.T) {
 			slopes = append(slopes, i)
 		}
 	}
+	g.Rekind()
 	was := make(map[int]float64, len(slopes))
 	for _, i := range slopes {
 		was[i] = g.Rich[i]
