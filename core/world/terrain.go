@@ -60,10 +60,20 @@ func (w *World) Generate(cfg Config) {
 	// on the shape of it and a settlement needs roughly the same timber
 	// whatever ground it was given.
 	g.readWoods()
+	// How well the ground suits trees is read over the rows; the luck
+	// thrown on top of it is drawn here, one to a tile in tile order, as it
+	// always was. What a seed means is the order its chance comes out in,
+	// so the drawing never goes anywhere but this goroutine.
+	suit := make([]float64, len(g.Tiles))
+	g.EachRow(func(y int) {
+		for i := y * width; i < (y+1)*width; i++ {
+			suit[i] = g.WoodsAt(entity.Pos{X: i % width, Y: i / width})
+		}
+	})
 	wooded := make([]float64, 0, len(g.Tiles))
 	score := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
-		score[i] = g.WoodsAt(entity.Pos{X: i % width, Y: i / width}) + 0.35*w.RNG.Float64()
+		score[i] = suit[i] + 0.35*w.RNG.Float64()
 		if g.Tiles[i].Terrain == Grass {
 			wooded = append(wooded, score[i])
 		}
@@ -86,10 +96,12 @@ func (w *World) Generate(cfg Config) {
 	// outcrop is a comparison with the rest of the map, not a measurement.
 	heights := make([]float64, len(g.Tiles))
 	slopes := make([]float64, len(g.Tiles))
-	for i := range g.Tiles {
-		heights[i] = g.Tiles[i].Height
-		slopes[i] = g.Slope(entity.Pos{X: i % width, Y: i / width})
-	}
+	g.EachRow(func(y int) {
+		for i := y * width; i < (y+1)*width; i++ {
+			heights[i] = g.Tiles[i].Height
+			slopes[i] = g.Slope(entity.Pos{X: i % width, Y: i / width})
+		}
+	})
 	highAt := quantile(heights, 0.6)
 	bare := make([]float64, len(g.Tiles))
 	open := make([]float64, 0, len(g.Tiles))
@@ -111,7 +123,7 @@ func (w *World) Generate(cfg Config) {
 	// nothing. This was written of the poles alone, because latitude was the
 	// only thing the weather knew; with the height in it too, the same
 	// sentence puts snow on a mountain and does not have to name one.
-	for y := 0; y < height; y++ {
+	g.EachRow(func(y int) {
 		for x := 0; x < width; x++ {
 			p := entity.Pos{X: x, Y: y}
 			if g.Frozen(p) {
@@ -119,7 +131,7 @@ func (w *World) Generate(cfg Config) {
 				t.Terrain, t.Wood, t.Wild = Rock, 0, 0
 			}
 		}
-	}
+	})
 
 	// What the soil is made of, before what it will grow is asked: the
 	// fertility below reads the mixture, so the mixture has to be there.

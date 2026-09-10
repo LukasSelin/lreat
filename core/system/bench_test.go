@@ -49,6 +49,16 @@ func BenchmarkStepGlobe2000(b *testing.B) {
 	}
 }
 
+// BenchmarkGenerateValley is the making of the default map. It is far too
+// small a piece of ground to be worth spreading over goroutines - see
+// world.spreadTiles - so this is the number that says the spreading costs
+// nothing where it is not taken.
+func BenchmarkGenerateValley(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		world.New(uint64(i + 1))
+	}
+}
+
 // BenchmarkGenerateGlobe is the making of the globe.
 func BenchmarkGenerateGlobe(b *testing.B) {
 	for i := 0; i < b.N; i++ {

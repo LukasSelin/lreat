@@ -79,20 +79,38 @@ func (g *Grid) HoldsWood(p entity.Pos) bool {
 // forest and the next a heath. It is run when the land is made and again
 // whenever the weather has moved it.
 func (g *Grid) readWoods() {
+	// A slope is the eight heights round a tile, taken half a million times
+	// over; it is the dearest reading a map takes of itself, and it reads
+	// the ground and writes only its own answer. See Grid.EachRow.
 	slopes := make([]float64, len(g.Tiles))
-	for i := range g.Tiles {
-		slopes[i] = g.Slope(entity.Pos{X: i % g.W, Y: i / g.W})
-	}
-	g.steepAt = quantile(slopes, 0.9)
-	g.steepLine = quantile(slopes, 1-woodsSteep)
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			slopes[i] = g.Slope(entity.Pos{X: i % g.W, Y: i / g.W})
+		}
+	})
+	q := quantiles(slopes, 0.9, 1-woodsSteep)
+	g.steepAt, g.steepLine = q[0], q[1]
 	g.woodsRead = true // the slope readings are in; WoodsAt may be asked now
 
+	// How well each tile suits trees, then gathered into the list the tree
+	// line is read off. The reading is spread and the gathering is not, so
+	// the list is in tile order however the rows were worked. WoodsAt asks
+	// TooSteep, which reads the map afresh if the slopes are not in yet -
+	// they are, three lines above, or none of this would mean anything.
+	suit := make([]float64, len(g.Tiles))
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			if g.Tiles[i].Wet() {
+				continue // the river is not ground trees might have had
+			}
+			suit[i] = g.WoodsAt(entity.Pos{X: i % g.W, Y: i / g.W})
+		}
+	})
 	suits := make([]float64, 0, len(g.Tiles))
 	for i := range g.Tiles {
-		if g.Tiles[i].Wet() {
-			continue // the river is not ground trees might have had
+		if !g.Tiles[i].Wet() {
+			suits = append(suits, suit[i])
 		}
-		suits = append(suits, g.WoodsAt(entity.Pos{X: i % g.W, Y: i / g.W}))
 	}
 	if len(suits) > 0 {
 		g.woodsLine = quantile(suits, 1-woodsShare)
@@ -113,8 +131,10 @@ func (g *Grid) readHolds() {
 	if len(g.holds) != len(g.Tiles) {
 		g.holds = make([]bool, len(g.Tiles))
 	}
-	for i := range g.Tiles {
-		p := entity.Pos{X: i % g.W, Y: i / g.W}
-		g.holds[i] = !g.TooSteep(p) && !g.Frozen(p) && g.WoodsAt(p) >= g.woodsLine
-	}
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			p := entity.Pos{X: i % g.W, Y: i / g.W}
+			g.holds[i] = !g.TooSteep(p) && !g.Frozen(p) && g.WoodsAt(p) >= g.woodsLine
+		}
+	})
 }

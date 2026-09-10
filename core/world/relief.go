@@ -138,10 +138,101 @@ func clamp01(v float64) float64 { return math.Max(0, math.Min(1, v)) }
 // generator turns "the steepest tenth" or "the wettest twentieth" into a
 // number for this particular map.
 func quantile(v []float64, f float64) float64 {
+	return quantiles(v, f)[0]
+}
+
+// quantiles is several of those at once, off one sorted copy. Two readings
+// of the same measure - the steep ground and the very steep ground, the
+// rivers and the great rivers - are asked for together all through the
+// making of a world, and each of them was sorting half a million numbers
+// over again to answer a second question about the same list.
+func quantiles(v []float64, fs ...float64) []float64 {
 	c := append([]float64(nil), v...)
-	sort.Float64s(c)
-	i := int(f * float64(len(c)-1))
-	return c[i]
+	out := make([]float64, len(fs))
+	// A quantile is one number out of half a million, and sorting the other
+	// half million to find it is work nobody asked for. nth partitions
+	// instead and throws away the side the answer is not on. Where the list
+	// has a NaN in it there is no order to partition by and the sort still
+	// answers; nothing a map is measured by should ever have one, and the
+	// look for it is one pass against a sort's twenty.
+	if hasNaN(c) {
+		sort.Float64s(c)
+		for k, f := range fs {
+			out[k] = c[int(f*float64(len(c)-1))]
+		}
+		return out
+	}
+	for k, f := range fs {
+		out[k] = nth(c, int(f*float64(len(c)-1)))
+	}
+	return out
+}
+
+func hasNaN(v []float64) bool {
+	for _, x := range v {
+		if math.IsNaN(x) {
+			return true
+		}
+	}
+	return false
+}
+
+// nth is the kth smallest of v, and it shuffles v about to find it. The
+// answer is the same number a sorted copy would have at k - which of the
+// equal ones it is cannot be told apart, because they are equal - so a
+// reading taken this way is the reading that was always taken.
+//
+// The partition is three-way, which matters more here than anywhere: a map
+// with a plain on it has tens of thousands of tiles of slope exactly zero,
+// and a partition that only knows less and not-less walks all of them one
+// at a time. Split into less, equal and greater, a run of equal values is
+// finished in the pass that finds it.
+func nth(v []float64, k int) float64 {
+	lo, hi := 0, len(v)-1
+	for lo < hi {
+		p := med3(v, lo, hi)
+		// Dutch flag: v[lo:lt] below p, v[lt:gt+1] equal to it, v[gt+1:] above.
+		lt, i, gt := lo, lo, hi
+		for i <= gt {
+			switch {
+			case v[i] < p:
+				v[lt], v[i] = v[i], v[lt]
+				lt++
+				i++
+			case v[i] > p:
+				v[gt], v[i] = v[i], v[gt]
+				gt--
+			default:
+				i++
+			}
+		}
+		switch {
+		case k < lt:
+			hi = lt - 1
+		case k <= gt:
+			return p
+		default:
+			lo = gt + 1
+		}
+	}
+	return v[k]
+}
+
+// med3 is the middle of the first, last and middle values of the range: a
+// pivot that costs nothing and keeps ground that is already in order - a
+// height field read row by row very nearly is - from being the worst case.
+func med3(v []float64, lo, hi int) float64 {
+	a, b, c := v[lo], v[(lo+hi)/2], v[hi]
+	if a > b {
+		a, b = b, a
+	}
+	if b > c {
+		b = c
+		if a > b {
+			b = a
+		}
+	}
+	return b
 }
 
 // Height is the height of a tile in metres. Off the map it is the sea the
@@ -222,9 +313,11 @@ func (g *Grid) Sunlight(p entity.Pos) float64 {
 // and nothing to look up at.
 func (w *World) raise(g *Grid) {
 	h := w.relief(g)
-	for i := range g.Tiles {
-		g.Tiles[i].Height = h[i]
-	}
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			g.Tiles[i].Height = h[i]
+		}
+	})
 }
 
 // relief is the drawn height field itself, without putting it on the map. It
@@ -241,23 +334,26 @@ func (w *World) relief(g *Grid) []float64 {
 	where := w.lattice(g, float64(g.Span())/2)
 	rise := g.UplandRise()
 	h := make([]float64, len(g.Tiles))
-	foot, top := quantile(where, 1-uplandShare), quantile(where, 1)
+	q := quantiles(where, 1-uplandShare, 1)
+	foot, top := q[0], q[1]
 	reach := math.Max(1e-9, top-foot)
 
-	for i := range g.Tiles {
-		// The mask is eased rather than cut, so that the mountains have feet:
-		// ground just past the line rises a little and is a hill, ground at
-		// the top of it rises the whole way. Cut straight, the high country
-		// began at a wall with no approach to it.
-		m := smooth(clamp01((where[i] - foot) / reach))
-		// Part of the rise is the mass of the upland and part of it is the
-		// ridges on that mass, because a mountain is both and the two do not
-		// peak in the same places. Given entirely to the ridges, a seed whose
-		// crests happened to fall away from its high ground came out with no
-		// mountains at all - two of the first five did, and were the same
-		// gentle bowl the whole thing was meant to stop being.
-		h[i] = Relief*lie[i] + rise*m*(uplandMass+(1-uplandMass)*crest[i])
-	}
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			// The mask is eased rather than cut, so that the mountains have feet:
+			// ground just past the line rises a little and is a hill, ground at
+			// the top of it rises the whole way. Cut straight, the high country
+			// began at a wall with no approach to it.
+			m := smooth(clamp01((where[i] - foot) / reach))
+			// Part of the rise is the mass of the upland and part of it is the
+			// ridges on that mass, because a mountain is both and the two do not
+			// peak in the same places. Given entirely to the ridges, a seed whose
+			// crests happened to fall away from its high ground came out with no
+			// mountains at all - two of the first five did, and were the same
+			// gentle bowl the whole thing was meant to stop being.
+			h[i] = Relief*lie[i] + rise*m*(uplandMass+(1-uplandMass)*crest[i])
+		}
+	})
 	return h
 }
 
@@ -279,15 +375,17 @@ func (w *World) fold(g *Grid, ridged bool) []float64 {
 	amp, step := 1.0, float64(g.Span())/2
 	for step >= 2 {
 		lattice := w.lattice(g, step)
-		for i := range lattice {
-			v := lattice[i]
-			if ridged {
-				v = 1 - math.Abs(2*v-1)
-				v *= carry[i]
-				carry[i] = clamp01(0.4 + 0.6*v)
+		g.EachRow(func(y int) {
+			for i := y * g.W; i < (y+1)*g.W; i++ {
+				v := lattice[i]
+				if ridged {
+					v = 1 - math.Abs(2*v-1)
+					v *= carry[i]
+					carry[i] = clamp01(0.4 + 0.6*v)
+				}
+				out[i] += amp * v
 			}
-			out[i] += amp * v
-		}
+		})
 		amp, step = amp/2, step/2
 	}
 	// Stretched to fill [0,1], so that the top of a ridge means the top of
@@ -299,9 +397,11 @@ func (w *World) fold(g *Grid, ridged bool) []float64 {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
 	span := math.Max(1e-9, hi-lo)
-	for i := range out {
-		out[i] = (out[i] - lo) / span
-	}
+	g.EachRow(func(y int) {
+		for i := y * g.W; i < (y+1)*g.W; i++ {
+			out[i] = (out[i] - lo) / span
+		}
+	})
 	return out
 }
 
@@ -321,8 +421,11 @@ func (w *World) lattice(g *Grid, span float64) []float64 {
 	for i := range corner {
 		corner[i] = w.RNG.Float64()
 	}
+	// The corners are drawn above, in one order, on this goroutine. What
+	// follows is a blend of them and draws nothing, so it is spread over the
+	// rows. See Grid.EachRow.
 	out := make([]float64, len(g.Tiles))
-	for y := 0; y < g.H; y++ {
+	g.EachRow(func(y int) {
 		for x := 0; x < g.W; x++ {
 			fx, fy := float64(x)/across, float64(y)/span
 			cx, cy := int(fx), int(fy)
@@ -338,7 +441,7 @@ func (w *World) lattice(g *Grid, span float64) []float64 {
 			bot := at(0, 1)*(1-tx) + at(1, 1)*tx
 			out[y*g.W+x] = top*(1-ty) + bot*ty
 		}
-	}
+	})
 	return out
 }
 
@@ -517,8 +620,8 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 	for i := range g.Tiles {
 		flows[i] = g.Tiles[i].Flow
 	}
-	cut := quantile(flows, 1-waterShare)
-	big := quantile(flows, 1-waterShare/4)
+	q := quantiles(flows, 1-waterShare, 1-waterShare/4)
+	cut, big := q[0], q[1]
 
 	// A channel does not flicker. Ground becomes river when the water really
 	// gathers there, and stops being river only when the water has largely

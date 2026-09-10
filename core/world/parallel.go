@@ -67,3 +67,29 @@ func InParallel(n, workers int, f func(i, worker int)) {
 	}
 	wg.Wait()
 }
+
+// spreadTiles is how much ground a pass has to cover before it is worth
+// handing to goroutines. The default valley is under three thousand tiles
+// and is passed over quicker than the work could be dealt out; a globe is
+// half a million and is not.
+const spreadTiles = 1 << 14
+
+// EachRow runs f for every row of the grid, spread over goroutines where
+// there is ground enough to be worth it. It is how the passes that make a
+// world are spread - the ground is drawn, then measured, then read, and each
+// of those is the same arithmetic done half a million times over.
+//
+// f may read anything on the map, and may write the tiles of the row it was
+// given and slices at those tiles' indices, and nothing else. It must draw no
+// chance: the order the world's chance is drawn in while a world is being
+// made is the whole of what the seed means. Where a pass does draw, the
+// drawing stays in a walk of its own and only the arithmetic comes here.
+func (g *Grid) EachRow(f func(y int)) {
+	if len(g.Tiles) < spreadTiles {
+		for y := 0; y < g.H; y++ {
+			f(y)
+		}
+		return
+	}
+	InParallel(g.H, WorkersFor(g.H), func(y, _ int) { f(y) })
+}
