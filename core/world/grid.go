@@ -11,6 +11,7 @@ const (
 	Water
 	Field
 	Rock // an outcrop: stone to cut, nothing to grow
+	Ice  // sea that never thaws: nothing to take, and walked over, not swum
 	// TerrainCount is how many kinds of ground there are. It sizes the
 	// tables that have to carry a row for each; see kind.go.
 	TerrainCount
@@ -124,9 +125,13 @@ func (t *Tile) Bridged() bool {
 
 // Deep reports whether crossing this tile means swimming: water with nothing
 // built over it. A bridge is not deep, because the walker is on the road and
-// the water is underneath.
+// the water is underneath. Neither is ice: it is wet in every sense the
+// map-maker means - nothing grows on it, no silt settles on it, it stands
+// above nothing - and in none of the senses a walker means. A frozen sea is
+// something you cross on your feet with a sack on your back, which is why the
+// ice is the one place a laden walker may cross open water.
 func (t *Tile) Deep() bool {
-	return t.Wet() && t.Structure == None
+	return t.Wet() && t.Terrain != Ice && t.Structure == None
 }
 
 // Grid is the world map, row-major. With Wrap the east edge is joined to the
@@ -179,11 +184,14 @@ type Grid struct {
 	// the life of the world. See history.go.
 	hot []entity.Pos
 
-	// frost is, for each row, the height above which the year on that row
-	// never warms past Frost. It is the weather's, not the ground's, but it
-	// is kept here because everything that asks it is a question about a
-	// tile: it is written once, when the land is made, by the world that
-	// knows what climate this map has. See Frozen and Climate.frostline.
+	// frost is, for each tile, the height above which the year there never
+	// warms past Frost. It is the weather's, not the ground's, but it is kept
+	// here because everything that asks it is a question about a tile: it is
+	// written once, when the land is made, by the world that knows what
+	// climate this map has. It is by tile and not by row because the sea
+	// moderates the ground near it, so the line the frost keeps follows a
+	// coast rather than a parallel. See Frozen, Climate.frostlineAt and
+	// Maritime.
 	frost []float64
 
 	// sea is the height of the sea, or below zero on a map with none. See
@@ -394,21 +402,66 @@ func (t *Tile) Roofed() bool {
 }
 
 // Frozen reports whether the ground here never thaws: high enough, or far
-// enough toward the pole, that the year's mean stays under Frost. It is one
-// rule where there were two - the poles were bare because they were cold and
-// the peaks were green because nobody had told the weather they were high -
-// and it is what puts a tree line on a map with mountains on it.
+// enough toward the pole, or far enough from the sea, that the year's mean
+// stays under Frost. It is one rule where there were three - the poles were
+// bare because they were cold, the peaks were green because nobody had told
+// the weather they were high, and the ice edge was a ruled line because
+// nobody had told it where the water was - and it is what puts a tree line on
+// a map with mountains on it.
 //
 // It is a fact about the ground and the latitude, both of which the weather
 // wanders around rather than changes, so it is read off a height written down
 // when the land was made. Water is not frozen ground: what a frozen sea is
 // belongs to the sea, and nothing here has an answer for it yet.
 func (g *Grid) Frozen(p entity.Pos) bool {
-	if len(g.frost) != g.H || !g.In(p) {
+	if len(g.frost) != len(g.Tiles) || !g.In(p) {
 		return false
 	}
-	t := g.At(p)
-	return !t.Wet() && t.Height >= g.frost[p.Y]
+	i := g.Index(p)
+	return !g.Tiles[i].Wet() && g.Tiles[i].Height >= g.frost[i]
+}
+
+// Freezing reports whether the water at p never thaws. It is the water's half
+// of Frozen, read off the same frostline and the same height: high enough, or
+// far enough toward the pole, or far enough from the open sea, that the year
+// there never comes up to the point water turns back into water. An enclosed
+// polar sea freezes over while an open one at the same latitude does not,
+// which is Maritime doing to the ice what it does to the tree line.
+//
+// A river is asked the same question as the sea and gets the same answer. A
+// channel at eleven degrees below freezing is ice whatever is upstream of it,
+// and the fish in it were the last thing left at the pole that had no
+// business being there. See SeaFreeze and Icefall.
+func (g *Grid) Freezing(p entity.Pos) bool {
+	if len(g.frost) != len(g.Tiles) || !g.In(p) {
+		return false
+	}
+	i := g.Index(p)
+	return g.Tiles[i].Wet() && g.Tiles[i].Height > g.frost[i]+Icefall
+}
+
+// freeze turns the water that never thaws to ice, and gives back to the water
+// any ice that has stopped being either. It is run when the land is made and
+// again after every age of weather, because an age moves both the coast and
+// the ground under it: water that has come out from under the ice has no fish
+// in it yet and gets them back the way any water does, and ground the water
+// has left is carve's to name.
+func (g *Grid) freeze() {
+	if len(g.frost) != len(g.Tiles) {
+		return
+	}
+	g.EachRow(func(y int) {
+		for x := 0; x < g.W; x++ {
+			p := entity.Pos{X: x, Y: y}
+			t := &g.Tiles[y*g.W+x]
+			switch frozen := g.Freezing(p); {
+			case frozen && t.Terrain == Water:
+				t.Terrain, t.Fish = Ice, 0
+			case !frozen && t.Terrain == Ice:
+				t.Terrain, t.Fish = Water, 0
+			}
+		}
+	})
 }
 
 // RoomToBuild reports whether p is open ground with open ground all round

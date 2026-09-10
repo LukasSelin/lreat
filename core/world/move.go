@@ -29,6 +29,10 @@ var moveCost = [TerrainCount]float64{
 	Forest: 2.2,
 	Water:  3.5,
 	Rock:   1.8,
+	// Ice is flat and it is treacherous, and the two nearly cancel: a little
+	// dearer than open grass and cheaper than anything with a slope on it.
+	// It is not water's 3.5 because nobody is swimming - see Tile.Deep.
+	Ice: 1.4,
 }
 
 // structureCost is the effort of entering a tile that has been built on, and

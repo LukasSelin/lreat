@@ -276,6 +276,11 @@ var (
 	Water   = New("water", Ground, 0, habit.Signature{})
 	Outcrop = New("outcrop", Ground, 0, habit.Signature{})
 	Field   = New("field", Ground, Living|Owned, habit.Signature{})
+	// Ice is sea that never thaws. It is ground and not water: it affords
+	// nothing at all - there is no fishing through it and nothing grows on
+	// it - and it is walked over rather than swum, which is the whole of
+	// what makes it different from the water it is.
+	Ice = New("ice", Ground, 0, habit.Signature{})
 
 	Built = New("built", Site, 0, habit.Signature{})
 	// Lacking a roof is the unsafe, unsheltered moment, and a little more

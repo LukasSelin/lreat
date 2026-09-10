@@ -58,9 +58,15 @@ func TestHoldIsSane(t *testing.T) {
 
 // Wet ground is water and not ground at all, and three things follow that the
 // map would otherwise have to be told separately. Nothing grows in the
-// channel, nothing is built on it, and it costs more to cross than any ground
-// does - the last being what makes a bridge worth building rather than a
-// detour worth walking.
+// channel, nothing is built on it, and water somebody has to swim costs more
+// to cross than any ground does - the last being what makes a bridge worth
+// building rather than a detour worth walking.
+//
+// The crossing is asked of the water that is swum rather than of everything
+// wet, because those are two questions and ice is the tile that tells them
+// apart: it is water in every sense the map-maker means and in none of the
+// senses a walker does. A bridge over a frozen sea would be timber spent to
+// save nobody anything. See Tile.Deep.
 func TestWetGroundIsNotGround(t *testing.T) {
 	var wet int
 	for _, kind := range Terrains() {
@@ -74,9 +80,12 @@ func TestWetGroundIsNotGround(t *testing.T) {
 		if (&Tile{Terrain: kind}).Buildable() {
 			t.Errorf("%s is wet and buildable", kind)
 		}
+		if !(&Tile{Terrain: kind}).Deep() {
+			continue
+		}
 		for _, dry := range Terrains() {
 			if !dry.Wet() && moveCost[kind] <= moveCost[dry] {
-				t.Errorf("%s costs %v to cross and %s costs %v: water has to be dearer than ground",
+				t.Errorf("%s costs %v to swim and %s costs %v: water somebody swims has to be dearer than ground",
 					kind, moveCost[kind], dry, moveCost[dry])
 			}
 		}
