@@ -1,17 +1,21 @@
 package world
 
 import (
+	"math/rand/v2"
 	"testing"
 
 	"lreat/core/entity"
 )
 
-// sow turns a block of tiles into one farmer's field.
+// sow turns a block of tiles into one farmer's field, the way the ground is
+// turned and claimed in a settlement, so that the map's counts of what lies
+// where keep up: the fence pass reads them to find the fields at all.
 func sow(g *Grid, owner entity.ID, x0, y0, x1, y1 int) {
 	for y := y0; y <= y1; y++ {
 		for x := x0; x <= x1; x++ {
-			t := g.At(entity.Pos{X: x, Y: y})
-			t.Terrain, t.Owner = Field, owner
+			p := entity.Pos{X: x, Y: y}
+			g.Turn(p, Field)
+			g.Claim(p, owner)
 		}
 	}
 }
@@ -64,8 +68,7 @@ func TestGivingUpTheGroundTakesTheFence(t *testing.T) {
 	sow(g, 0, 2, 2, 4, 3) // and with the owner gone, back to grass everywhere
 	for y := 2; y <= 3; y++ {
 		for x := 2; x <= 4; x++ {
-			q := entity.Pos{X: x, Y: y}
-			g.At(q).Terrain = Grass
+			g.Turn(entity.Pos{X: x, Y: y}, Grass)
 		}
 	}
 	g.Fence()
@@ -136,4 +139,81 @@ func TestAFenceIsNeverAWall(t *testing.T) {
 	if len(g.Path(from, to)) == 0 {
 		t.Fatal("no way through a fence with no way round it")
 	}
+}
+
+// hedgesWalkingAllTheGround is what the fence pass came to when it walked
+// every awake tile: the definition the pass over the fields is held to.
+func hedgesWalkingAllTheGround(g *Grid) []bool {
+	seen := make([]bool, len(g.Tiles))
+	out := make([]bool, len(g.Tiles))
+	var block, stack []int32
+	g.EachActive(nil, func(i, _ int, t *Tile) {
+		if t.Terrain != Field || seen[i] {
+			return
+		}
+		block, stack = block[:0], append(stack[:0], int32(i))
+		seen[i] = true
+		for len(stack) > 0 {
+			j := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			block = append(block, j)
+			p := g.PosOf(int(j))
+			for d := range dirs {
+				q := entity.Pos{X: p.X + dirs[d].X, Y: p.Y + dirs[d].Y}
+				if !g.In(q) {
+					continue
+				}
+				k := int32(g.Index(q))
+				if seen[k] || g.Tiles[k].Terrain != Field {
+					continue
+				}
+				seen[k] = true
+				stack = append(stack, k)
+			}
+		}
+		enclosed := len(block) >= fenceSize
+		for _, j := range block {
+			out[j] = enclosed
+		}
+	})
+	return out
+}
+
+// The pass that visits only the fields comes to the same hedges as the one
+// that walked all the ground, on a map with holdings scattered over it,
+// and again after some of them are given up and others broken, so that the
+// day's stamp on the ground already answered for is exercised too.
+func TestFencingTheFieldsIsFencingAllTheGround(t *testing.T) {
+	w := New(11)
+	g := w.Grid
+	rng := rand.New(rand.NewPCG(3, 4))
+	strips := func(n int) {
+		for k := 0; k < n; k++ {
+			p := entity.Pos{X: rng.IntN(g.W), Y: rng.IntN(g.H)}
+			if g.At(p).Buildable() {
+				g.Turn(p, Field)
+				g.Claim(p, entity.ID(1+k%9))
+			}
+		}
+	}
+	same := func(when string) {
+		t.Helper()
+		g.Fence()
+		want := hedgesWalkingAllTheGround(g)
+		for i := range g.Tiles {
+			if g.Tiles[i].Fenced != want[i] {
+				t.Fatalf("%s: tile %d fenced %v, walking all the ground says %v", when, i, g.Tiles[i].Fenced, want[i])
+			}
+		}
+	}
+	strips(400)
+	same("first sown")
+	for k := 0; k < 120; k++ {
+		p := entity.Pos{X: rng.IntN(g.W), Y: rng.IntN(g.H)}
+		if g.At(p).Terrain == Field {
+			g.Raze(p)
+		}
+	}
+	strips(150)
+	same("given up and broken again")
 }

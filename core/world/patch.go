@@ -68,6 +68,26 @@ func (g *Grid) repatch() {
 	}
 }
 
+// eachInPatch visits every tile of patch p, row by row.
+func (g *Grid) eachInPatch(p int, f func(i int, t *Tile)) {
+	x0, y0 := (p%g.PW)*PatchSide, (p/g.PW)*PatchSide
+	x1, y1 := min(g.W, x0+PatchSide), min(g.H, y0+PatchSide)
+	for y := y0; y < y1; y++ {
+		row := y * g.W
+		for i := row + x0; i < row+x1; i++ {
+			f(i, &g.Tiles[i])
+		}
+	}
+}
+
+// chunkOfPatch is the chunk patch p lies in: a chunk is a whole number of
+// patches across and down, so a patch is never in two.
+func (g *Grid) chunkOfPatch(p int) int {
+	const per = ChunkSide / PatchSide
+	px, py := p%g.PW, p/g.PW
+	return (py/per)*g.CW + px/per
+}
+
 // patchAt is the patch p is in. p must be on the map and normalised.
 func (g *Grid) patchAt(p entity.Pos) int {
 	return (p.Y/PatchSide)*g.PW + p.X/PatchSide

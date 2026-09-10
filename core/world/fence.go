@@ -51,55 +51,67 @@ const (
 // fence. That is the honest reading of it - what is enclosed is the block of
 // worked ground, not one household's title - and it is why the toll is
 // charged on the line and not on the tile.
+//
+// Only the fields are visited, and only the patches that have any - see
+// patch.go - since a hedge stands round a field and nothing else: the
+// hedge comes off a tile as the tile stops being a field, in Turn, so there
+// is nothing to take off any other ground. A field is somebody's, and
+// ground that is somebody's is awake, so the patches are those of awake
+// chunks and the fields found are the fields the day would have found
+// walking all its ground. What a block comes to does not depend on which
+// of its strips it was found from, so the order the patches are taken in
+// is not a fact about anything. The ground already answered for is marked
+// with the day's stamp rather than cleared and marked afresh, which on a
+// globe was a walk over the whole map for a few dozen strips of corn.
 func (g *Grid) Fence() {
 	n := len(g.Tiles)
 	if len(g.fenceSeen) != n {
-		g.fenceSeen = make([]bool, n)
+		g.fenceSeen, g.fenceGen = make([]uint32, n), 0
 	}
-	seen := g.fenceSeen
-	for i := range seen {
-		seen[i] = false
+	g.fenceGen++
+	if g.fenceGen == 0 { // the stamp has come round: start it over
+		clear(g.fenceSeen)
+		g.fenceGen = 1
 	}
+	gen, seen := g.fenceGen, g.fenceSeen
 	block := g.fenceBlock[:0]
 	stack := g.fenceStack[:0]
-	// Only the awake ground is walked: a field is somebody's, and ground that
-	// is somebody's is awake. A tile that stops being a field while its
-	// chunk sleeps is unfenced by Turn as it goes.
-	g.EachActive(nil, func(i, _ int, t *Tile) {
-		if t.Terrain != Field {
-			t.Fenced = false // ground that is no longer a field is no longer fenced
-			return
+	for pi := range g.patches {
+		if g.patches[pi][Field] == 0 || !g.Awake(g.chunkOfPatch(pi)) {
+			continue
 		}
-		if seen[i] {
-			return // already answered for, with the rest of its block
-		}
-		// Everything that lies with this strip, found in a fixed order so
-		// that the same map always gives the same blocks.
-		block, stack = block[:0], append(stack[:0], int32(i))
-		seen[i] = true
-		for len(stack) > 0 {
-			j := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			block = append(block, j)
-			p := g.PosOf(int(j))
-			for d := range dirs {
-				q := entity.Pos{X: p.X + dirs[d].X, Y: p.Y + dirs[d].Y}
-				if !g.In(q) {
-					continue
-				}
-				k := int32(g.Index(q))
-				if seen[k] || g.Tiles[k].Terrain != Field {
-					continue
-				}
-				seen[k] = true
-				stack = append(stack, k)
+		g.eachInPatch(pi, func(i int, t *Tile) {
+			if t.Terrain != Field || seen[i] == gen {
+				return // not a field, or already answered for with the rest of its block
 			}
-		}
-		enclosed := len(block) >= fenceSize
-		for _, j := range block {
-			g.Tiles[j].Fenced = enclosed
-		}
-	})
+			// Everything that lies with this strip, found in a fixed order so
+			// that the same map always gives the same blocks.
+			block, stack = block[:0], append(stack[:0], int32(i))
+			seen[i] = gen
+			for len(stack) > 0 {
+				j := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				block = append(block, j)
+				p := g.PosOf(int(j))
+				for d := range dirs {
+					q := entity.Pos{X: p.X + dirs[d].X, Y: p.Y + dirs[d].Y}
+					if !g.In(q) {
+						continue
+					}
+					k := int32(g.Index(q))
+					if seen[k] == gen || g.Tiles[k].Terrain != Field {
+						continue
+					}
+					seen[k] = gen
+					stack = append(stack, k)
+				}
+			}
+			enclosed := len(block) >= fenceSize
+			for _, j := range block {
+				g.Tiles[j].Fenced = enclosed
+			}
+		})
+	}
 	g.fenceBlock, g.fenceStack = block[:0], stack[:0]
 }
 
