@@ -15,7 +15,8 @@ func village(t *testing.T) (*world.World, *entity.Agent, *entity.Agent) {
 	w := world.NewSized(5, 60, 20)
 	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass, Fertility: 0.3, Rich: 0.3}
+		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass}
+		w.Grid.Fertility[i], w.Grid.Rich[i] = 0.3, 0.3
 	}
 	w.MarketPos = entity.Pos{X: 20, Y: 10}
 	w.Grid.At(w.MarketPos).Structure = world.Market

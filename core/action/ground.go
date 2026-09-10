@@ -121,12 +121,12 @@ func groundWorth(w *world.World, p entity.Pos) float64 {
 	t := w.Grid.At(p)
 	// The soil that matters is not the soil under the floorboards - a house
 	// stands on anything - but the best a field near the door could be.
-	soil := t.Rich
+	soil := w.Grid.Rich[w.Grid.Index(p)]
 	for dy := -1; dy <= 1; dy++ {
 		for dx := -1; dx <= 1; dx++ {
 			q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
 			if w.Grid.In(q) {
-				if r := w.Grid.At(q).Rich; r > soil {
+				if r := w.Grid.Rich[w.Grid.Index(q)]; r > soil {
 					soil = r
 				}
 			}
@@ -138,7 +138,7 @@ func groundWorth(w *world.World, p entity.Pos) float64 {
 	// A house astride a thoroughfare is a house people walk through. The
 	// same reading, at the same price, that makes a mover step out of a
 	// street's way in home.go.
-	v -= inTheWay * t.Traffic / wornEnough
+	v -= inTheWay * w.Grid.Traffic[w.Grid.Index(p)] / wornEnough
 	return v
 }
 

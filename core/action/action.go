@@ -382,7 +382,7 @@ func bearing(a *entity.Agent, w *world.World) float64 {
 	}
 	sum := 0.0
 	for _, p := range a.Parcel {
-		sum += w.Grid.At(p).Fertility
+		sum += w.Grid.Fertility[w.Grid.Index(p)]
 	}
 	return sum / float64(len(a.Parcel))
 }
@@ -408,7 +408,7 @@ func cuttable(w *world.World, p entity.Pos) bool {
 // and the holdings lie outside it, which is where a village puts its fields.
 func plough(w *world.World, p entity.Pos) bool {
 	t := w.Grid.At(p)
-	return t.Buildable() && t.Fertility >= fieldSoil && !w.Grid.HasNeighbor(p, (*world.Tile).Roofed)
+	return t.Buildable() && w.Grid.Fertility[w.Grid.Index(p)] >= fieldSoil && !w.Grid.HasNeighbor(p, (*world.Tile).Roofed)
 }
 
 // newGround is the best ground worth breaking beside the holding: where the
@@ -427,8 +427,8 @@ func newGround(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 				if !w.Grid.In(q) || !plough(w, q) {
 					continue
 				}
-				if t := w.Grid.At(q); t.Fertility >= fertility {
-					best, fertility, found = w.Grid.Norm(q), t.Fertility, true
+				if f := w.Grid.Fertility[w.Grid.Index(q)]; f >= fertility {
+					best, fertility, found = w.Grid.Norm(q), f, true
 				}
 			}
 		}
@@ -453,8 +453,8 @@ func fieldSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
 		anchor = a.Home
 	}
-	return w.Grid.Nearest(anchor, ranging(a), func(_ entity.Pos, t *world.Tile) bool {
-		return t.Buildable() && t.Fertility >= fieldSoil
+	return w.Grid.Nearest(anchor, ranging(a), func(p entity.Pos, t *world.Tile) bool {
+		return t.Buildable() && w.Grid.Fertility[w.Grid.Index(p)] >= fieldSoil
 	})
 }
 
@@ -487,7 +487,7 @@ var Clear = &Def{
 	Expect: func(a *entity.Agent, w *world.World, target entity.Pos) need.Levels {
 		// Instrumental: a strip is worth what its first harvest will be.
 		return need.Levels{
-			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.At(target).Fertility) * 0.5,
+			need.Physiological: foodValue(a) * farmYield(a, w, w.Grid.Fertility[w.Grid.Index(target)]) * 0.5,
 			need.Esteem:        0.02,
 		}
 	},
@@ -554,8 +554,8 @@ var Farm = &Def{
 		// family's, off land that gets a rest between crops.
 		wear := farmWear / float64(len(a.Parcel))
 		for _, p := range a.Parcel {
-			f := w.Grid.At(p)
-			f.Fertility = max(wornField, f.Fertility-wear)
+			f := w.Grid.Index(p)
+			w.Grid.Fertility[f] = max(wornField, w.Grid.Fertility[f]-wear)
 		}
 		a.Learn(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.02)

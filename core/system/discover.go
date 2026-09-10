@@ -285,8 +285,9 @@ func exposed(w *world.World) bool {
 // nearMarket is how far around the market the land is looked at.
 const nearMarket = 20
 
-// meanOf averages f over the tiles near the market that ok picks out.
-func meanOf(w *world.World, ok func(*world.Tile) bool, f func(*world.Tile) float64) (float64, int) {
+// meanOf averages f over the tiles near the market that ok picks out. f is
+// handed the tile and where it is kept, for the readings beside the map.
+func meanOf(w *world.World, ok func(*world.Tile) bool, f func(int, *world.Tile) float64) (float64, int) {
 	var sum float64
 	n := 0
 	// Only the window is walked, in the order a walk over the whole map
@@ -296,9 +297,10 @@ func meanOf(w *world.World, ok func(*world.Tile) bool, f func(*world.Tile) float
 	for y := max(0, m.Y-nearMarket); y <= min(g.H-1, m.Y+nearMarket); y++ {
 		for dx := x0; dx <= x1; dx++ {
 			p := g.Norm(entity.Pos{X: m.X + dx, Y: y})
-			t := g.At(p)
+			i := g.Index(p)
+			t := &g.Tiles[i]
 			if ok(t) {
-				sum += f(t)
+				sum += f(i, t)
 				n++
 			}
 		}
@@ -352,13 +354,13 @@ func abs(v int) int {
 
 // waterNear reports whether there is water to fish near the market.
 func waterNear(w *world.World) bool {
-	_, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Water) }, func(*world.Tile) float64 { return 0 })
+	_, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Water) }, func(int, *world.Tile) float64 { return 0 })
 	return n > 0
 }
 
 // fieldsWorn reports whether the fields near the market have gone poor.
 func fieldsWorn(w *world.World) bool {
-	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) }, func(t *world.Tile) float64 { return t.Fertility })
+	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) }, func(i int, _ *world.Tile) float64 { return w.Grid.Fertility[i] })
 	return n >= 3 && fert < 0.45
 }
 

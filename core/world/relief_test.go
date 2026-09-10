@@ -136,10 +136,10 @@ func TestGroundStandsAboveItsRiver(t *testing.T) {
 			continue
 		}
 		if t.Drain < 2 {
-			lowFert += t.Fertility
+			lowFert += g.Fertility[i]
 			lowN++
 		} else if t.Drain > 20 {
-			highFert += t.Fertility
+			highFert += g.Fertility[i]
 			highN++
 		}
 	}

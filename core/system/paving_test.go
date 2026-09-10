@@ -66,7 +66,7 @@ func TestPavingWaitsForTraffic(t *testing.T) {
 	// One tick of living, then wipe the record of where anyone walked.
 	Run(w, 1)
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i].Traffic = 0
+		w.Grid.Traffic[i] = 0
 	}
 	for _, a := range w.Agents {
 		a.Plan = nil

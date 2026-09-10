@@ -77,13 +77,13 @@ func ruinTimes(t *testing.T, n int) int {
 func TestAnUnworkedFieldGoesBackToGrass(t *testing.T) {
 	w := world.New(3)
 	p := entity.Pos{X: 6, Y: 6}
-	tile := w.Grid.At(p)
-	tile.Terrain, tile.Owner, tile.Fertility = world.Field, entity.ID(999), 0.5
+	tile, i := w.Grid.At(p), w.Grid.Index(p)
+	tile.Terrain, tile.Owner, w.Grid.Fertility[i] = world.Field, entity.ID(999), 0.5
 	for i := 0; i < 20*clock.Year && w.Grid.At(p).Terrain == world.Field; i++ {
 		Upkeep(w)
 	}
-	if got := w.Grid.At(p); got.Terrain != world.Grass || got.Owner != 0 || got.Fertility != 0.5 {
-		t.Fatalf("an abandoned field came back as %+v, want open grass still worth 0.5", *got)
+	if got := w.Grid.At(p); got.Terrain != world.Grass || got.Owner != 0 || w.Grid.Fertility[i] != 0.5 {
+		t.Fatalf("an abandoned field came back as %+v worth %v, want open grass still worth 0.5", *got, w.Grid.Fertility[i])
 	}
 }
 

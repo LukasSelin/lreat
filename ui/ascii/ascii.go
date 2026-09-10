@@ -188,15 +188,17 @@ func tileCell(g *world.Grid, p entity.Pos) Cell {
 	case world.Tavern:
 		return Cell{Ch: '&', Color: Tavern}
 	}
-	return ground[t.Terrain](scene{g: g, p: p, t: t, b: band(g, t.Height)})
+	return ground[t.Terrain](scene{g: g, p: p, i: g.Index(p), t: t, b: band(g, t.Height)})
 }
 
-// scene is what drawing one tile needs: the tile, where it is, the grid it
-// sits in for the questions that are about its neighbours, and which height
+// scene is what drawing one tile needs: the tile, where it is and where it
+// is kept, the grid it sits in for the questions that are about its
+// neighbours and for the readings kept beside the map, and which height
 // band it falls in.
 type scene struct {
 	g *world.Grid
 	p entity.Pos
+	i int
 	t *world.Tile
 	b int
 }

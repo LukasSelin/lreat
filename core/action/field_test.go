@@ -75,7 +75,7 @@ func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 	holding := held(t, w, a)
 	before := make([]float64, len(holding))
 	for i, p := range holding {
-		before[i] = w.Grid.At(p).Fertility
+		before[i] = w.Grid.Fertility[w.Grid.Index(p)]
 	}
 	season(w, ontology.Crop.Full())
 	if !run(w, a, Farm) {
@@ -86,7 +86,7 @@ func TestAHoldingIsWorkedAsOneFarm(t *testing.T) {
 	}
 	taken := 0.0
 	for i, p := range holding {
-		worn := before[i] - w.Grid.At(p).Fertility
+		worn := before[i] - w.Grid.Fertility[w.Grid.Index(p)]
 		if worn <= 0 {
 			t.Fatalf("strip %v gave nothing to the harvest", p)
 		}

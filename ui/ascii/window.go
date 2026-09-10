@@ -96,7 +96,7 @@ func RenderWindow(m *observe.MapView, view View, win Window) [][]Cell {
 			}
 			t := g.At(p)
 			if reading {
-				rows[j][i] = Views[view].draw(scene{g: g, p: p, t: t, b: band(g, t.Height)})
+				rows[j][i] = Views[view].draw(scene{g: g, p: p, i: g.Index(p), t: t, b: band(g, t.Height)})
 				continue
 			}
 			rows[j][i] = tileCell(g, p)

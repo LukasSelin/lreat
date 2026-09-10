@@ -81,7 +81,7 @@ func TestFoundingWoodsAreOldWoods(t *testing.T) {
 // how far along it is. Both are the number an act already reads before it
 // takes anything.
 func TestGreenReadsWhatIsStandingAndNotWhatCouldBe(t *testing.T) {
-	bare := &Tile{Terrain: Grass, Rich: 1}
+	bare := &Tile{Terrain: Grass}
 	if bare.Green() != 0 {
 		t.Errorf("open grass reads %v; it carries no crop anybody can take", bare.Green())
 	}
@@ -105,12 +105,12 @@ func TestGreenReadsWhatIsStandingAndNotWhatCouldBe(t *testing.T) {
 
 	// A strip keeps no count: what it has to give is how far it has come, so
 	// it is bare the day it is sown and full when it is in ear.
-	sown := &Tile{Terrain: Field, Rich: 1}
+	sown := &Tile{Terrain: Field}
 	sown.Sow()
 	if sown.Green() != 0 {
 		t.Errorf("a strip sown this morning reads %v, want 0", sown.Green())
 	}
-	ripe := &Tile{Terrain: Field, Rich: 1}
+	ripe := &Tile{Terrain: Field}
 	ripe.Age = ontology.Crop.Full()
 	if ripe.Green() != 1 {
 		t.Errorf("a strip in ear reads %v, want 1", ripe.Green())

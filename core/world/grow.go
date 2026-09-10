@@ -180,14 +180,15 @@ const (
 	Fallow       = 0.0006
 )
 
-// Replenish is what k of growing weather puts back that is not a stand
-// coming on: the fish in the water and the rest a worn field gets.
-func (t *Tile) Replenish(k float64) {
+// Replenish is what k of growing weather puts back on tile i that is not a
+// stand coming on: the fish in the water and the rest a worn field gets.
+func (g *Grid) Replenish(i int, k float64) {
+	t := &g.Tiles[i]
 	switch t.Terrain {
 	case Water:
 		t.Fish = min(1, t.Fish+FishRegrowth*k)
 	case Field:
-		t.Fertility = min(t.Rich, t.Fertility+Fallow*k)
+		g.Fertility[i] = min(g.Rich[i], g.Fertility[i]+Fallow*k)
 	}
 }
 

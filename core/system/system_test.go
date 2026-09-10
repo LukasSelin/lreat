@@ -127,7 +127,8 @@ func TestDistanceDiscountsActions(t *testing.T) {
 	w := world.NewSized(1, 60, 20)
 	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass, Fertility: 0.5}
+		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass}
+		w.Grid.Fertility[i] = 0.5
 	}
 	w.Grid.At(entity.Pos{X: 0, Y: 10}).Terrain = world.Forest
 	w.Grid.At(entity.Pos{X: 0, Y: 10}).Wood = 1

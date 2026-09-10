@@ -68,7 +68,7 @@ func wither(w *world.World) {
 		// What becomes of it is settled before any luck is spent, so that
 		// a certainty costs the world no draw, and so that ground with
 		// nothing standing on it costs none either.
-		tr := t.Befalling(unkept(t, w))
+		tr := t.Befalling(unkept(i, t, w))
 		if tr == nil {
 			return
 		}
@@ -113,9 +113,9 @@ func wither(w *world.World) {
 // It only reads, which is what lets the first of wither's two walks ask it
 // on several goroutines at once. The look into the population is by number
 // into a file the world is frozen over; see world.Freeze.
-func unkept(t *world.Tile, w *world.World) bool {
+func unkept(i int, t *world.Tile, w *world.World) bool {
 	if t.Structure == world.Road {
-		return t.Traffic < world.Walked
+		return w.Grid.Traffic[i] < world.Walked
 	}
 	return t.Owner != 0 && w.Find(t.Owner) == nil
 }

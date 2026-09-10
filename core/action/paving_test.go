@@ -35,7 +35,7 @@ func TestNobodyPavesUntroddenGround(t *testing.T) {
 	w := world.New(9)
 	a := townsfolk(t, w)
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i].Traffic = 0
+		w.Grid.Traffic[i] = 0
 	}
 	if _, ok := Pave.Target(a, w); ok {
 		t.Fatal("an agent found somewhere worth paving with nowhere worn")
@@ -105,7 +105,7 @@ func TestACrossingComesBeforeAStreet(t *testing.T) {
 	// than either of these does, so it won on the trees rather than on being
 	// walked and the test read as a crossing losing to a street.
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i].Traffic = 0
+		w.Grid.Traffic[i] = 0
 	}
 	// The two tiles are found rather than counted off from the agent. Fixed
 	// offsets have now been wrong twice: the ground grew mountains and put a

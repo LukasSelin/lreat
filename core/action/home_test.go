@@ -38,8 +38,8 @@ func tilth(w *world.World, p entity.Pos, v float64) {
 		for dx := -1; dx <= 1; dx++ {
 			q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
 			if w.Grid.In(q) {
-				t := w.Grid.At(q)
-				t.Fertility, t.Rich = v, v
+				i := w.Grid.Index(q)
+				w.Grid.Fertility[i], w.Grid.Rich[i] = v, v
 			}
 		}
 	}
@@ -104,7 +104,7 @@ func TestAHouseInTheWayStepsAside(t *testing.T) {
 	if !ok {
 		t.Fatal("a house with a way worn through it stayed put")
 	}
-	if w.Grid.At(p).Traffic > w.Grid.At(home).Traffic {
+	if w.Grid.Traffic[w.Grid.Index(p)] > w.Grid.Traffic[w.Grid.Index(home)] {
 		t.Fatalf("moved from worn ground at %v onto worse at %v", home, p)
 	}
 }

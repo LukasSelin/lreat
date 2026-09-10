@@ -75,13 +75,13 @@ func Land(w *world.World) {
 	// spends itself on once the country is bigger than one settlement: it
 	// grows with the ground that is awake rather than with the people, so
 	// the more of the world is lived in the more this is the day.
-	g.EachActiveOver(nil, func(_, c int, t *world.Tile) {
-		if t.Traffic > 0 {
-			t.Traffic *= world.Fade
+	g.EachActiveOver(nil, func(i, c int, t *world.Tile) {
+		if g.Traffic[i] > 0 {
+			g.Traffic[i] *= world.Fade
 		}
 		k := rates[c]
 		t.Ripen(k)
-		t.Replenish(k)
+		g.Replenish(i, k)
 	})
 	g.Stamp(w.Growing, w.Tick)
 	// The hedges are read off the fields as they now stand, so a strip broken

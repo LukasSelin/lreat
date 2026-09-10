@@ -43,10 +43,10 @@ func TestTerrainHasRiverForestAndMarketOnGrass(t *testing.T) {
 		}
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
 		if g.HasNeighbor(p, func(n *Tile) bool { return n.Terrain == Water }) {
-			nearSum += tile.Fertility
+			nearSum += g.Fertility[i]
 			near++
 		} else {
-			farSum += tile.Fertility
+			farSum += g.Fertility[i]
 			far++
 		}
 	}

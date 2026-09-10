@@ -146,8 +146,8 @@ func (w *World) Generate(cfg Config) {
 		if t.Wet() {
 			continue
 		}
-		t.Fertility = g.SoilAt(entity.Pos{X: i % width, Y: i / width})
-		t.Rich = t.Fertility
+		g.Fertility[i] = g.SoilAt(entity.Pos{X: i % width, Y: i / width})
+		g.Rich[i] = g.Fertility[i]
 	}
 	g.Recount()
 	w.Forest0 = g.Forest()
@@ -172,7 +172,7 @@ func (w *World) Generate(cfg Config) {
 		// other way round put markets on dry hillsides, and the settlements
 		// that grew there starved.
 		t := &g.Tiles[i]
-		score := 2*t.Fertility +
+		score := 2*g.Fertility[i] +
 			1.2*clamp01(1-t.Drain/FloodDepth) -
 			4*g.Slope(p) -
 			0.03*float64(g.Dist(p, center))

@@ -68,44 +68,41 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 		t.Fatal("no sleeping chunk with woods on it to test with")
 	}
 	c := &g.Chunks[sleeping]
-	// Take a copy of the chunk's tiles and pass over them day by day with
-	// the weather the world actually has, alongside the world sleeping.
-	copyOf := func() []world.Tile {
-		var out []world.Tile
-		for y := c.Y0; y < c.Y0+c.H; y++ {
-			for x := c.X0; x < c.X0+c.W; x++ {
-				out = append(out, *g.At(entity.Pos{X: x, Y: y}))
-			}
+	// The chunk's tiles, in the order the day walks them.
+	var tiles []int
+	for y := c.Y0; y < c.Y0+c.H; y++ {
+		for x := c.X0; x < c.X0+c.W; x++ {
+			tiles = append(tiles, g.Index(entity.Pos{X: x, Y: y}))
 		}
-		return out
 	}
+	// Take a copy of the map and pass over the chunk day by day with the
+	// weather the world actually has, alongside the world sleeping.
 	w.CatchUp(sleeping) // start level
-	byDay := copyOf()
+	byDay := g.Clone()
 	for day := 0; day < 90; day++ {
 		Step(w)
 		k := w.Rates()[sleeping] // the rate the world applies to this chunk
-		for i := range byDay {
-			byDay[i].Ripen(k)
-			byDay[i].Replenish(k)
+		for _, i := range tiles {
+			byDay.Tiles[i].Ripen(k)
+			byDay.Replenish(i, k)
 		}
 		if g.Active[sleeping] {
 			t.Fatalf("the chunk woke on day %d; pick another", w.Tick)
 		}
 	}
 	w.CatchUp(sleeping)
-	atOnce := copyOf()
 	compared := 0
-	for i := range byDay {
-		a, b := byDay[i], atOnce[i]
+	for _, i := range tiles {
+		a, b := &byDay.Tiles[i], &g.Tiles[i]
 		if a.Terrain != b.Terrain {
 			continue // seed fell here while it slept; the copy saw no seed
 		}
 		compared++
-		if math.Abs(a.Age-b.Age) > 1e-9 || math.Abs(a.Wood-b.Wood) > 1e-6 || math.Abs(a.Wild-b.Wild) > 1e-6 || math.Abs(a.Fish-b.Fish) > 1e-9 {
-			t.Fatalf("tile %d by day %+v, at once %+v", i, a, b)
+		if math.Abs(a.Age-b.Age) > 1e-9 || math.Abs(a.Wood-b.Wood) > 1e-6 || math.Abs(a.Wild-b.Wild) > 1e-6 || math.Abs(a.Fish-b.Fish) > 1e-9 || byDay.Read(i) != g.Read(i) {
+			t.Fatalf("tile %d by day %+v %+v, at once %+v %+v", i, *a, byDay.Read(i), *b, g.Read(i))
 		}
 	}
-	if compared < len(byDay)/2 {
-		t.Fatalf("only %d of %d tiles were left to compare", compared, len(byDay))
+	if compared < len(tiles)/2 {
+		t.Fatalf("only %d of %d tiles were left to compare", compared, len(tiles))
 	}
 }

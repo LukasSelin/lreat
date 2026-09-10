@@ -68,7 +68,7 @@ const Walked = 5
 func (g *Grid) Tread(p entity.Pos, load float64) {
 	if g.In(p) {
 		i := g.Index(p)
-		g.Tiles[i].Traffic += Wear + Haul*load
+		g.Traffic[i] += Wear + Haul*load
 		g.Chunks[g.ChunkOf(i)].Trodden = true
 	}
 }
@@ -76,9 +76,9 @@ func (g *Grid) Tread(p entity.Pos, load float64) {
 // Weather fades every tile's wear by one tick's worth, on the ground that
 // is awake; ground asleep has no wear, having never been crossed.
 func (g *Grid) Weather() {
-	g.EachActive(nil, func(_, _ int, t *Tile) {
-		if t.Traffic > 0 {
-			t.Traffic *= Fade
+	g.EachActive(nil, func(i, _ int, _ *Tile) {
+		if g.Traffic[i] > 0 {
+			g.Traffic[i] *= Fade
 		}
 	})
 }
@@ -121,7 +121,7 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 		return 0
 	}
 	i := g.Index(p)
-	d := g.Tiles[i].Traffic
+	d := g.Traffic[i]
 	// Away from the edge the eight neighbours are eight fixed steps along
 	// the tile slice, in the same order dirs walks them, so the case for a
 	// road adds up the same way without asking the map where it is eight
@@ -135,7 +135,7 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 				continue
 			}
 			if ways := g.ways(entity.Pos{X: (i + o) % w, Y: (i + o) / w}); ways > 0 {
-				d += t.Traffic / float64(ways)
+				d += g.Traffic[i+o] / float64(ways)
 			}
 		}
 		return d * g.Saving(p)
@@ -150,7 +150,7 @@ func (g *Grid) Draw(p entity.Pos) float64 {
 			continue
 		}
 		if ways := g.ways(q); ways > 0 {
-			d += t.Traffic / float64(ways)
+			d += g.Traffic[g.Index(q)] / float64(ways)
 		}
 	}
 	return d * g.Saving(p)
@@ -321,7 +321,7 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 		// Draw. So a tile with no such neighbour has only its own wear to
 		// make a case of, and where that is under a road's worth on the
 		// dearest ground there is, the case is nothing and is not read.
-		if g.lenders[i] == 0 && t.Traffic*maxSaving < FordEnough {
+		if g.lenders[i] == 0 && g.Traffic[i]*maxSaving < FordEnough {
 			return
 		}
 		if d := g.Draw(g.PosOf(i)); d >= FordEnough {

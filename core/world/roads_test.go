@@ -109,15 +109,15 @@ func TestGroundRemembersBeingWalkedOn(t *testing.T) {
 		g.Tread(busy, 0)
 	}
 	g.Tread(quiet, 0)
-	if g.At(busy).Traffic <= g.At(quiet).Traffic {
+	if g.Traffic[g.Index(busy)] <= g.Traffic[g.Index(quiet)] {
 		t.Fatal("the well-walked tile is no more worn than the once-walked one")
 	}
 
-	before := g.At(busy).Traffic
+	before := g.Traffic[g.Index(busy)]
 	for i := 0; i < 200; i++ {
 		g.Weather()
 	}
-	if after := g.At(busy).Traffic; after >= before {
+	if after := g.Traffic[g.Index(busy)]; after >= before {
 		t.Fatalf("wear went from %.2f to %.2f with nobody walking; it should fade", before, after)
 	}
 }
@@ -156,14 +156,14 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	if entity.Dist(p, door) != 1 {
 		t.Fatalf("Busiest picked %v, want ground next to the doorway at %v", p, door)
 	}
-	if worn <= g.At(p).Traffic {
+	if worn <= g.Traffic[g.Index(p)] {
 		t.Fatalf("the case for %v is %.1f, no more than the tile's own wear; the doorway lent nothing", p, worn)
 	}
 
 	// Open ground speaks only for itself: were it to lend too, paving would
 	// come out in patches rather than in lines.
 	quiet := entity.Pos{X: 24, Y: 8}
-	if g.Draw(quiet) != g.At(quiet).Traffic {
+	if g.Draw(quiet) != g.Traffic[g.Index(quiet)] {
 		t.Fatal("open ground lent its wear to a neighbour")
 	}
 
@@ -181,14 +181,14 @@ func TestBusiestFindsTheWornWay(t *testing.T) {
 	// Paving settles the question, and the ground stops asking because a road
 	// is not Pavable and lends nothing, not because the wear is thrown away.
 	// The wear stays on as the road's keep: see Walked.
-	worn = g.At(lone).Traffic
+	worn = g.Traffic[g.Index(lone)]
 	g.Pave(lone)
 	if _, _, ok := g.Busiest(lone, 0, nil); ok {
 		t.Fatal("a paved tile is still offered as ground crying out for a road")
 	}
-	if g.At(lone).Traffic != worn {
+	if g.Traffic[g.Index(lone)] != worn {
 		t.Fatalf("the road kept %.1f of the %.1f of wear that made the case for it",
-			g.At(lone).Traffic, worn)
+			g.Traffic[g.Index(lone)], worn)
 	}
 }
 
@@ -207,7 +207,7 @@ func TestADoorwayLendsItsWearOnce(t *testing.T) {
 	gap := entity.Pos{X: 10, Y: 9}
 	if d := g.Draw(gap); d < 90 || d > 110 {
 		t.Fatalf("the gap beside a doorway worn %.0f drew %.1f, want about an eighth of it",
-			g.At(door).Traffic, d)
+			g.Traffic[g.Index(door)], d)
 	}
 
 	// Hem the house in and the one way left carries the lot: that gap really
@@ -218,16 +218,16 @@ func TestADoorwayLendsItsWearOnce(t *testing.T) {
 			g.Build(q, House)
 		}
 	}
-	if d := g.Draw(gap); d < g.At(door).Traffic {
+	if d := g.Draw(gap); d < g.Traffic[g.Index(door)] {
 		t.Fatalf("the only gap out of a hemmed-in house drew %.1f of its %.1f of wear",
-			d, g.At(door).Traffic)
+			d, g.Traffic[g.Index(door)])
 	}
 
 	// With a street outside it the house is served, and says nothing more.
 	g.Build(gap, Road)
 	other := entity.Pos{X: 10, Y: 11}
 	g.Build(other, None)
-	g.At(other).Traffic = 0
+	g.Traffic[g.Index(other)] = 0
 	if d := g.Draw(other); d != 0 {
 		t.Fatalf("a house with a street outside it drew %.1f for a second one", d)
 	}
@@ -354,9 +354,9 @@ func TestTheCaseForARoadIsWeighedByWhatItSaves(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		g.Tread(meadow, 0)
 	}
-	if d := g.Draw(meadow); d != g.At(meadow).Traffic {
+	if d := g.Draw(meadow); d != g.Traffic[g.Index(meadow)] {
 		t.Fatalf("grass drew %.1f against %.1f of wear; it is meant to be the unit",
-			d, g.At(meadow).Traffic)
+			d, g.Traffic[g.Index(meadow)])
 	}
 
 	// The same wear on dearer going makes a better case, in the order the
@@ -368,7 +368,7 @@ func TestTheCaseForARoadIsWeighedByWhatItSaves(t *testing.T) {
 	}{{Grass, "grass"}, {Field, "field"}, {Rock, "rock"}, {Forest, "wood"}, {Water, "water"}} {
 		p := entity.Pos{X: 10, Y: 10}
 		g.Turn(p, c.terrain)
-		g.At(p).Traffic = 100
+		g.Traffic[g.Index(p)] = 100
 		d := g.Draw(p)
 		if d <= last {
 			t.Fatalf("%s drew %.1f, no better than the easier going before it at %.1f",
@@ -382,8 +382,8 @@ func TestTheCaseForARoadIsWeighedByWhatItSaves(t *testing.T) {
 	// sixth of the wear rather than on an allowance of its own.
 	ford := entity.Pos{X: 10, Y: 10} // still water from the walk above
 	lane := entity.Pos{X: 14, Y: 14}
-	g.At(ford).Traffic = 100
-	g.At(lane).Traffic = 600
+	g.Traffic[g.Index(ford)] = 100
+	g.Traffic[g.Index(lane)] = 600
 	if w, l := g.Draw(ford), g.Draw(lane); w < l*0.99 || w > l*1.01 {
 		t.Fatalf("a ford worn 100 drew %.1f against a lane worn 600 at %.1f; want them level", w, l)
 	}
@@ -405,7 +405,7 @@ func TestHaulingMarksTheGroundMoreThanStrolling(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		g.Tread(cartway, 4) // four sacks on the back
 	}
-	if l, c := g.At(lane).Traffic, g.At(cartway).Traffic; c <= l {
+	if l, c := g.Traffic[g.Index(lane)], g.Traffic[g.Index(cartway)]; c <= l {
 		t.Fatalf("the cartway is worn %.0f against the strolled lane's %.0f; "+
 			"carrying is meant to tell", c, l)
 	}
@@ -414,7 +414,7 @@ func TestHaulingMarksTheGroundMoreThanStrolling(t *testing.T) {
 	// footpath too and being walked at all is what keeps it - see Walked.
 	quiet := entity.Pos{X: 8, Y: 8}
 	g.Tread(quiet, 0)
-	if g.At(quiet).Traffic != Wear {
-		t.Fatalf("an empty-handed crossing marked %.2f, want %v", g.At(quiet).Traffic, Wear)
+	if g.Traffic[g.Index(quiet)] != Wear {
+		t.Fatalf("an empty-handed crossing marked %.2f, want %v", g.Traffic[g.Index(quiet)], Wear)
 	}
 }

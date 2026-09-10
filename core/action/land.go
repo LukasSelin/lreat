@@ -105,8 +105,8 @@ func thirsty(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	var best entity.Pos
 	rich := 1.0
 	for _, p := range a.Parcel {
-		if t := w.Grid.At(p); t.Rich < rich && nearWater(w, p) {
-			best, rich = p, t.Rich
+		if r := w.Grid.Rich[w.Grid.Index(p)]; r < rich && nearWater(w, p) {
+			best, rich = p, r
 		}
 	}
 	return best, rich < 1
@@ -132,8 +132,9 @@ var Irrigate = &Def{
 			return
 		}
 		a.Inventory[entity.Wood] -= irrigationCost
-		t.Rich = min(1, t.Rich+irrigationGain)
-		t.Fertility = min(t.Rich, t.Fertility+irrigationGain)
+		i := w.Grid.Index(a.Pos)
+		w.Grid.Rich[i] = min(1, w.Grid.Rich[i]+irrigationGain)
+		w.Grid.Fertility[i] = min(w.Grid.Rich[i], w.Grid.Fertility[i]+irrigationGain)
 		a.Learn(entity.Farming, 0.01)
 		a.Needs.Add(need.Esteem, 0.03)
 		w.Emit(event.Built, a.ID, 0, "%s cut a channel to the field", a.Name)

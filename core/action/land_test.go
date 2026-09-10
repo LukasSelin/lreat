@@ -15,7 +15,8 @@ func shore(t *testing.T) (*world.World, *entity.Agent) {
 	w := world.NewSized(3, 12, 6)
 	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
-		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass, Fertility: 0.3, Rich: 0.3}
+		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass}
+		w.Grid.Fertility[i], w.Grid.Rich[i] = 0.3, 0.3
 	}
 	for y := 0; y < w.Grid.H; y++ {
 		t := w.Grid.At(entity.Pos{X: 6, Y: y})
@@ -92,16 +93,16 @@ func TestFarmingWearsAFieldAndFallowRestoresIt(t *testing.T) {
 	if !run(w, a, Farm) {
 		t.Fatal("farm should be possible on a field in ear")
 	}
-	f := w.Grid.At(a.Field)
-	rich := f.Rich
+	f := w.Grid.Index(a.Field)
+	rich := w.Grid.Rich[f]
 	for i := 0; i < 10; i++ {
 		season(w, ontology.Crop.Full())
 		Farm.Apply(a, w)
 	}
-	if !(f.Fertility < rich) {
-		t.Fatalf("ten harvests should wear the field: %v of %v", f.Fertility, rich)
+	if !(w.Grid.Fertility[f] < rich) {
+		t.Fatalf("ten harvests should wear the field: %v of %v", w.Grid.Fertility[f], rich)
 	}
-	if f.Fertility < wornField {
+	if w.Grid.Fertility[f] < wornField {
 		t.Fatal("a field should not be worn below the floor")
 	}
 }
@@ -153,7 +154,7 @@ func TestHuntingNeedsToolsAndWearsThem(t *testing.T) {
 func TestIrrigationRaisesWhatAFieldCanHold(t *testing.T) {
 	w, a := shore(t)
 	run(w, a, Clear)
-	f := w.Grid.At(a.Field)
+	f := w.Grid.Index(a.Field)
 	if Irrigate.Available(a, w) {
 		t.Fatal("irrigating without wood should not be possible")
 	}
@@ -161,13 +162,13 @@ func TestIrrigationRaisesWhatAFieldCanHold(t *testing.T) {
 	if !run(w, a, Irrigate) {
 		t.Fatal("irrigating a field near water should be possible")
 	}
-	if !(f.Rich > 0.3) || !(f.Fertility > 0.3) {
-		t.Fatalf("irrigation should raise the field: rich %v, fertility %v", f.Rich, f.Fertility)
+	if !(w.Grid.Rich[f] > 0.3) || !(w.Grid.Fertility[f] > 0.3) {
+		t.Fatalf("irrigation should raise the field: rich %v, fertility %v", w.Grid.Rich[f], w.Grid.Fertility[f])
 	}
 	if a.Inventory[entity.Wood] != 2-irrigationCost {
 		t.Fatal("irrigation should cost wood")
 	}
-	for f.Rich < 1 {
+	for w.Grid.Rich[f] < 1 {
 		a.Inventory[entity.Wood] = 2
 		run(w, a, Irrigate)
 	}

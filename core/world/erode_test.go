@@ -179,7 +179,7 @@ func TestSoilGoesWithTheGround(t *testing.T) {
 	}
 	was := make(map[int]float64, len(slopes))
 	for _, i := range slopes {
-		was[i] = g.Tiles[i].Rich
+		was[i] = g.Rich[i]
 	}
 	for age := 0; age < 40; age++ {
 		w.Erode()
@@ -198,7 +198,7 @@ func TestSoilGoesWithTheGround(t *testing.T) {
 			continue
 		}
 		before += was[i]
-		after += g.Tiles[i].Rich
+		after += g.Rich[i]
 		kept++
 	}
 	if len(slopes) == 0 || kept == 0 {

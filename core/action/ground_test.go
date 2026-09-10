@@ -13,8 +13,9 @@ func TestGroundIsJudgedByWhatIsOnIt(t *testing.T) {
 	w, _ := shore(t)
 	rich := entity.Pos{X: 3, Y: 4}
 	poor := entity.Pos{X: 3, Y: 5}
-	w.Grid.At(rich).Fertility, w.Grid.At(rich).Rich = 1, 1
-	w.Grid.At(poor).Fertility, w.Grid.At(poor).Rich = 0, 0
+	ri, pi := w.Grid.Index(rich), w.Grid.Index(poor)
+	w.Grid.Fertility[ri], w.Grid.Rich[ri] = 1, 1
+	w.Grid.Fertility[pi], w.Grid.Rich[pi] = 0, 0
 	if landWorth(w, rich) <= landWorth(w, poor) {
 		t.Fatalf("rich ground at %.1f, poor at %.1f", landWorth(w, rich), landWorth(w, poor))
 	}
@@ -103,7 +104,8 @@ func TestAHeadFullOfGroundKeepsTheBest(t *testing.T) {
 func TestSitingTakesTheBestGroundKnown(t *testing.T) {
 	w, _ := shore(t)
 	good := entity.Pos{X: 2, Y: 4}
-	w.Grid.At(good).Fertility, w.Grid.At(good).Rich = 1, 1
+	gi := w.Grid.Index(good)
+	w.Grid.Fertility[gi], w.Grid.Rich[gi] = 1, 1
 	a := blank(w, "settler")
 	a.Pos = entity.Pos{X: 9, Y: 5}
 	for _, p := range []entity.Pos{good, {X: 8, Y: 5}} {

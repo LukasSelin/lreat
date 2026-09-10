@@ -106,7 +106,7 @@ var Views = [...]Reading{
 			if s.t.Terrain == world.Water {
 				return Cell{Ch: '~', Color: Water}
 			}
-			return shade(s, Crop, clamp(s.t.Rich))
+			return shade(s, Crop, clamp(s.g.Rich[s.i]))
 		}},
 
 	// What is standing: timber to cut and wild food to gather. Both come off
@@ -214,7 +214,7 @@ var Views = [...]Reading{
 
 	Wear: {Ramp: Worn, Name: "wear", Low: "untrodden", High: "a thoroughfare",
 		draw: func(s scene) Cell {
-			return shade(s, Worn, clamp(s.t.Traffic/wornEnough))
+			return shade(s, Worn, clamp(s.g.Traffic[s.i]/wornEnough))
 		}},
 }
 

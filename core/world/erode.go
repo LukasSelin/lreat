@@ -237,8 +237,8 @@ func (g *Grid) wear(by float64) {
 		// what that slope could have grown; what lands on the flat is what
 		// makes a flood plain worth farming.
 		if !t.Wet() {
-			t.Rich = clamp01(t.Rich + change[i]/SoilDepth)
-			t.Fertility = math.Min(t.Fertility, t.Rich)
+			g.Rich[i] = clamp01(g.Rich[i] + change[i]/SoilDepth)
+			g.Fertility[i] = math.Min(g.Fertility[i], g.Rich[i])
 			mix(t, gained[i])
 		}
 	}
@@ -276,10 +276,10 @@ func (g *Grid) resoil() {
 		sand, clay := g.TextureAt(p)
 		t.Sand += toward * (sand - t.Sand)
 		t.Clay += toward * (clay - t.Clay)
-		if can := g.SoilAt(p); can > t.Rich {
-			t.Rich += toward * (can - t.Rich)
+		if can := g.SoilAt(p); can > g.Rich[i] {
+			g.Rich[i] += toward * (can - g.Rich[i])
 		}
-		t.Fertility = math.Min(t.Fertility, t.Rich)
+		g.Fertility[i] = math.Min(g.Fertility[i], g.Rich[i])
 	}
 }
 

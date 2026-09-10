@@ -67,7 +67,8 @@ func TestWornFieldsTeachIrrigation(t *testing.T) {
 		p := entity.Pos{X: i % w.Grid.W, Y: i / w.Grid.W}
 		t := &w.Grid.Tiles[i]
 		if t.Terrain == world.Grass && entity.Dist(p, w.MarketPos) < 5 && n < 4 {
-			t.Terrain, t.Fertility, t.Rich = world.Field, 0.15, 0.6
+			t.Terrain = world.Field
+			w.Grid.Fertility[i], w.Grid.Rich[i] = 0.15, 0.6
 			n++
 		}
 	}
