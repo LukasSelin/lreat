@@ -327,7 +327,7 @@ type view struct {
 	// from one, and zero for none. See focus.go.
 	focus     int
 	traces    []trace
-	techs     []found
+	techs     []observe.Worked
 	peak      int
 	peakAt    int
 	gone      int // the tick the last person died, zero while anyone lives
@@ -824,15 +824,37 @@ func (v *view) draw() {
 	// settlement's, and the growth figure says what the season is doing to
 	// the land.
 	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Date.Season, s.Temp, s.Growth)
-	techs := "none yet"
-	if len(s.Techs) > 0 {
-		parts := make([]string, len(s.Techs))
-		for i, t := range s.Techs {
-			parts[i] = string(t)
+	// What the settlement has worked out, one to a line, with the year it
+	// came to it and the year it first had a master of the craft. It used
+	// to be a single line of names, which at eleven technologies was a
+	// comma and a truncation: the names are the least interesting part,
+	// because a settlement that has held masonry since year four and still
+	// has no mason is in a different position from one that mastered it
+	// last spring, and the old line could not tell them apart.
+	//
+	// The panel is thirty-eight columns and shares its height with the card
+	// of whoever is being followed, so this takes what it can and counts
+	// the rest. Newest first: the old ones are on the world page and what
+	// is worth seeing here is what has just happened.
+	if len(s.Worked) == 0 {
+		put(tcell.StyleDefault.Dim(true), "worked out: nothing yet")
+	} else {
+		put(tcell.StyleDefault, "worked out:")
+		room := max(1, (sh-len(keys)-1-line)/2)
+		shown := 0
+		for i := len(s.Worked) - 1; i >= 0 && shown < room; i-- {
+			f := s.Worked[i]
+			mark, style := "—", tcell.StyleDefault.Dim(true)
+			if f.Mastered != 0 {
+				mark, style = fmt.Sprintf("y%d", clock.At(f.Mastered).Year), tcell.StyleDefault
+			}
+			put(style, " %-12s y%-4d %s", trim(string(f.Tech), 12), clock.At(f.Found).Year, mark)
+			shown++
 		}
-		techs = strings.Join(parts, ", ")
+		if rest := len(s.Worked) - shown; rest > 0 {
+			put(tcell.StyleDefault.Dim(true), " and %d more, on the world page", rest)
+		}
 	}
-	put(tcell.StyleDefault, "techs: %s", trim(techs, panelWidth-9))
 	line++
 	if v.sel != 0 {
 		v.drawCard(px, &line, sh-len(keys)-1)

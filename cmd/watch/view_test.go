@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"lreat/core/clock"
 	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/observe"
@@ -328,5 +329,52 @@ func TestAFrameWithMoreWaitingIsNotDrawn(t *testing.T) {
 	v.draw()
 	if !strings.Contains(screenText(sc), "0.99") {
 		t.Fatal("the frame at the end of a burst was not drawn")
+	}
+}
+
+// The panel says what the settlement has worked out and when, and whether
+// anybody in it is a master of the thing. A list of bare names was the least
+// useful form of this: a settlement that has held masonry since year four
+// with no mason is in a different position from one that mastered it last
+// spring, and names alone cannot tell them apart.
+func TestPanelDatesWhatWasWorkedOutAndMastered(t *testing.T) {
+	w := world.NewSized(1, 40, 12)
+	w.Spawn("a", need.Neutral())
+	w.Tick = 3 * clock.Year
+	w.Unlock("masonry")
+	w.Master("masonry")
+	w.Tick = 9 * clock.Year
+	w.Unlock("pottery") // held, and nobody is any good at it
+
+	sc := tcell.NewSimulationScreen("UTF-8")
+	if err := sc.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer sc.Fini()
+	sc.SetSize(120, 40)
+
+	s := observe.Take(w)
+	v := &view{screen: sc, snap: &s}
+	v.draw()
+
+	cells, width, _ := sc.GetContents()
+	var b strings.Builder
+	for i, c := range cells {
+		if i%width == 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteRune(c.Runes[0])
+	}
+	text := b.String()
+	for _, want := range []string{"worked out", "masonry", "y4", "pottery", "y10"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("the panel never says %q:\n%s", want, text)
+		}
+	}
+	// The one nobody has mastered says so rather than being left blank or
+	// left off, because "we have it and cannot do it" is the thing worth
+	// seeing.
+	if !strings.Contains(text, "—") {
+		t.Fatalf("an unmastered technology should be marked as such:\n%s", text)
 	}
 }

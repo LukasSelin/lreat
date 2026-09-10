@@ -168,7 +168,17 @@ type Agent struct {
 
 	Inventory [GoodCount]float64
 	Skills    [SkillCount]float64
-	Wealth    float64
+	// Practice is how many times this one has actually done the work each
+	// skill lives in. Skills says what somebody can do and this says how
+	// they came by it, and since a lesson stops short of the teacher the
+	// two are not the same person's history: one who was shown a craft to
+	// the ceiling and one who ground their way to the same level over
+	// fifteen years read alike in Skills and nothing alike here. Only Learn
+	// raises it - being taught and reading do not - so it is a count of
+	// hands on the thing. See learn.go, and the discoveries that ask for
+	// it.
+	Practice [SkillCount]int
+	Wealth   float64
 	// Reputation is public standing: the visible record of things made,
 	// taught, and done that a stranger can see or has heard tell of. It is
 	// not what anyone thinks of the agent's character; that lives in other

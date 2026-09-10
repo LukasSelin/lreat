@@ -105,8 +105,14 @@ const (
 	TeachFloor = TierBand
 )
 
-// Learn is what doing the work teaches. It is the only way to mastery.
-func (a *Agent) Learn(s Skill, d float64) float64 { return a.toward(s, d, Mastery) }
+// Learn is what doing the work teaches. It is the only way to mastery, and
+// the only thing that counts as having done it: every call is one more time
+// this pair of hands has been on the thing, whether or not the skill had any
+// room left to rise.
+func (a *Agent) Learn(s Skill, d float64) float64 {
+	a.Practice[s]++
+	return a.toward(s, d, Mastery)
+}
 
 // Study is what reading alone teaches: the same curve, stopped early.
 func (a *Agent) Study(s Skill, d float64) float64 { return a.toward(s, d, StudyCeiling) }

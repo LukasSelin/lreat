@@ -6,8 +6,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"lreat/core/clock"
 	"lreat/core/observe"
-	"lreat/core/world"
 	"lreat/ui/ascii"
 )
 
@@ -84,36 +84,82 @@ const (
 	// that: the weave is the one thing here with no natural height, and a
 	// tall terminal spent on blank rows under it is a tall terminal wasted.
 	workHeight = 6
-	// workBelow is what stands under the weave and has to be left room for:
-	// the legend, a blank line, the technologies, and a blank line over the
-	// keys along the foot.
-	workBelow = 4
+	// workBelow is what stands under the weave and has to be left room for
+	// besides the technologies themselves: the legend, a blank line, and a
+	// blank line over the keys along the foot. What the technologies take
+	// is v.techRows, which grows with the settlement's history.
+	workBelow = 3
+	// techMost is the most rows of technology the page will give up its
+	// weave for. A settlement that has worked out everything has eleven,
+	// which on a short terminal would leave the weave nothing; past this
+	// the rest are counted rather than named, oldest named first because
+	// the early ones are the ones with a mastery date worth reading.
+	techMost = 8
 )
 
-// found is a technology and the tick the settlement came to it. Discovery is
-// the one thing in this world that never comes undone, so a list of them
-// with their ticks is the settlement's whole technical history.
-type found struct {
-	tick int
-	tech world.Tech
+// discoveries takes the settlement's technical history off the snapshot.
+//
+// The watch used to keep this itself, noting the tick at which each new name
+// appeared, because the event log is bounded and a long run drops its own
+// beginning - which is where the first discoveries are. The world records
+// both dates now, so there is nothing to reconstruct: what is here is what
+// the settlement knows about itself, and a watch opened on a run already
+// under way gets the whole history rather than the part it was present for.
+func (v *view) discoveries(s *observe.Snapshot) { v.techs = s.Worked }
+
+// when is a date as this page says it: the season and the year, which is
+// close enough for something that happens once. A tick is not a date and
+// saying "t3140" tells nobody anything.
+func when(tick int) string {
+	d := clock.At(tick)
+	return fmt.Sprintf("%s y%d", d.Season, d.Year)
 }
 
-// discoveries notes anything the settlement has come to since the last look.
-// It is kept here rather than read off the event log because the log is
-// bounded and a long run drops its own beginning, which is where the first
-// discoveries are.
-func (v *view) discoveries(s *observe.Snapshot) {
-	if len(s.Techs) == len(v.techs) {
+// techRows is how many rows the technologies want, which the weave above
+// them has to give up.
+func (v *view) techRows() int {
+	n := len(v.techs)
+	if n == 0 {
+		return 1
+	}
+	if n > techMost {
+		return techMost + 1 // the named ones, and a line counting the rest
+	}
+	return n
+}
+
+// drawTechs writes the settlement's whole technical history: what it worked
+// out, when, and when it first had somebody who was a master of the craft
+// the thing lives in.
+//
+// The two dates are the point of the block. Working a thing out and being
+// any good at it are a long way apart - a settlement can hold masonry for a
+// generation before it has a mason - and the gap between the columns is that
+// distance drawn. A dash in the second column is a technology the settlement
+// has and nobody has mastered, either because its work is nobody's craft or
+// because nobody has put the years in yet.
+func (v *view) drawTechs(line, sw int) {
+	sc, dim := v.screen, tcell.StyleDefault.Dim(true)
+	if len(v.techs) == 0 {
+		puts(sc, 0, line, dim, trim("worked out: nothing yet", sw))
 		return
 	}
-	known := make(map[world.Tech]bool, len(v.techs))
-	for _, f := range v.techs {
-		known[f.tech] = true
+	shown := v.techs
+	if len(shown) > techMost {
+		shown = shown[:techMost]
 	}
-	for _, t := range s.Techs {
-		if !known[t] {
-			v.techs = append(v.techs, found{tick: s.Tick, tech: t})
+	for i, f := range shown {
+		mastered := "—"
+		style := dim
+		if f.Mastered != 0 {
+			mastered = "mastered " + when(f.Mastered)
+			style = tcell.StyleDefault
 		}
+		puts(sc, 0, line+i, style,
+			trim(fmt.Sprintf("  %-13s %-12s %s", f.Tech, when(f.Found), mastered), sw))
+	}
+	if rest := len(v.techs) - len(shown); rest > 0 {
+		puts(sc, 0, line+len(shown), dim, trim(fmt.Sprintf("  and %d more", rest), sw))
 	}
 }
 
@@ -137,7 +183,7 @@ func (v *view) drawWorld(sw, sh int) {
 		// A measure is dropped rather than drawn over the weave: the page
 		// gives the weave its floor and the keys their line whatever the
 		// window is, and what will not fit above that simply is not shown.
-		if line >= sh-1-workBelow-workHeight {
+		if line >= sh-1-workBelow-v.techRows()-workHeight {
 			break
 		}
 		v.drawMeasure(line, width, m, cols, opened && open.name == m.name)
@@ -159,7 +205,7 @@ func (v *view) drawWorld(sw, sh int) {
 	// The space gets the screen's whole width rather than the measures'
 	// narrower one, so it is squeezed on its own terms, and whatever height
 	// the page has not already spent.
-	weave := max(workHeight, sh-1-workBelow-line)
+	weave := max(workHeight, sh-1-workBelow-v.techRows()-line)
 	if opened {
 		v.drawOpen(0, line, sw, weave, open)
 	} else {
@@ -187,17 +233,11 @@ func (v *view) drawWorld(sw, sh int) {
 	}
 	line += 2
 
-	// Everything the settlement has ever worked out, with the tick it came
-	// to it. Nothing here is ever lost again, so it is the one line of the
-	// page that only grows.
-	var techs []string
-	for _, f := range v.techs {
-		techs = append(techs, fmt.Sprintf("t%d %s", f.tick, f.tech))
-	}
-	if len(techs) == 0 {
-		techs = []string{"nothing yet"}
-	}
-	puts(sc, 0, line, tcell.StyleDefault, trim("worked out: "+strings.Join(techs, "   "), sw))
+	// Everything the settlement has ever worked out, when, and when it got
+	// good at it. Nothing here is ever lost again, so it is the one part of
+	// the page that only grows.
+	puts(sc, 0, line, tcell.StyleDefault.Bold(true), trim("worked out", sw))
+	v.drawTechs(line+1, sw)
 
 	puts(sc, 0, sh-1, dim, trim(v.keyed("w back to the map   d vitals   q quit"), sw))
 	sc.Show()
@@ -333,7 +373,11 @@ func (v *view) worldReport() string {
 	}
 	var techs []string
 	for _, f := range v.techs {
-		techs = append(techs, fmt.Sprintf("t%d %s", f.tick, f.tech))
+		e := fmt.Sprintf("%s %s", f.Tech, when(f.Found))
+		if f.Mastered != 0 {
+			e += ", mastered " + when(f.Mastered)
+		}
+		techs = append(techs, e)
 	}
 	if len(techs) == 0 {
 		techs = []string{"nothing"}

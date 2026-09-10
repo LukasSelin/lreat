@@ -46,6 +46,17 @@ type Modifiers struct {
 	HuntYield       float64
 	Regrowth        float64 // how fast forest, wild food, and fish come back
 	Keeping         float64 // how much of the market's food spoils, as a share of the usual
+	// Warmth is how much of the cold a body actually feels, as a share of
+	// the usual. It is the one modifier that does nothing at all most of
+	// the year: a cloak is worth nothing in June and worth a life in
+	// February, so what it buys a settlement depends on where the
+	// settlement is and what winters it gets rather than on a flat rate.
+	Warmth float64
+	// Healing is how much faster a body climbs back toward the condition
+	// its circumstances would give it. It works one way only - see
+	// system.Decay - because knowing what to do for a fever helps somebody
+	// recover and does not make anybody fall ill quicker.
+	Healing float64
 }
 
 // Granaries is how many granaries are standing. It is what a granary does
@@ -68,6 +79,8 @@ func DefaultModifiers() Modifiers {
 		FishYield:       1,
 		HuntYield:       1,
 		Regrowth:        1,
+		Warmth:          1,
+		Healing:         1,
 		Keeping:         1,
 	}
 }
@@ -152,7 +165,8 @@ type World struct {
 	watched  entity.ID
 	thoughts []Deliberation
 
-	techs     map[Tech]bool
+	techs     map[Tech]Known
+	pressed   map[Tech]float64
 	nextID    entity.ID
 	nextReqID entity.RequestID
 
@@ -260,9 +274,10 @@ func NewWith(seed uint64, cfg Config) *World {
 		Market: MarketState{
 			Price: [entity.GoodCount]float64{1, 0.5, 3, 1.5, 2},
 		},
-		Log:    event.NewLog(max(50_000, cfg.LogCapacity)),
-		techs:  map[Tech]bool{},
-		nextID: 1,
+		Log:     event.NewLog(max(50_000, cfg.LogCapacity)),
+		techs:   map[Tech]Known{},
+		pressed: map[Tech]float64{},
+		nextID:  1,
 	}
 	w.Generate(cfg)
 	w.Growing = make([]float64, len(w.Grid.Chunks))
@@ -530,11 +545,65 @@ func (w *World) EmitAt(kind event.Kind, actor, target entity.ID, act string, whe
 	})
 }
 
-// Has reports whether a technology has been discovered.
-func (w *World) Has(t Tech) bool { return w.techs[t] }
+// Known is what a settlement has done with a technology: the tick it worked
+// the thing out, and the tick it first had somebody who was a master of the
+// craft the thing lives in. The two are a long way apart and the distance
+// between them is the interesting part - knowing how a field is rotated is
+// not the same as having a farmer, and a settlement can hold a technology
+// for a generation before anybody is really any good at it.
+//
+// Mastered is zero until it happens, and a technology whose craft nobody
+// names - the tavern, the fish trap - is never mastered because there is no
+// craft to be master of. Neither ever comes undone: a master who dies does
+// not take the date with them, because the question the date answers is
+// when this settlement first got there.
+type Known struct {
+	Found    int
+	Mastered int
+}
 
-// Unlock marks a technology as discovered.
-func (w *World) Unlock(t Tech) { w.techs[t] = true }
+// Has reports whether a technology has been discovered.
+func (w *World) Has(t Tech) bool { _, ok := w.techs[t]; return ok }
+
+// Unlock marks a technology as discovered on this tick. Discovering
+// something twice is not a thing that happens, and if it did the first time
+// would be the one worth keeping.
+func (w *World) Unlock(t Tech) {
+	if _, ok := w.techs[t]; !ok {
+		w.techs[t] = Known{Found: w.Tick}
+	}
+}
+
+// Master marks a technology as one this settlement now has a master of, the
+// first time it is true.
+func (w *World) Master(t Tech) {
+	k, ok := w.techs[t]
+	if !ok || k.Mastered != 0 {
+		return
+	}
+	k.Mastered = w.Tick
+	w.techs[t] = k
+}
+
+// Known returns what the settlement has done with a technology.
+func (w *World) Known(t Tech) Known { return w.techs[t] }
+
+// Press adds a day of pressure toward a technology and returns what has
+// accumulated. Pressure is measured in the only unit that makes sense for
+// it - how hard the moment pressed, summed over the days it pressed - so a
+// settlement in real trouble arrives in a few years and one mildly
+// inconvenienced takes decades. A settlement under no pressure at all
+// arrives never, which is not a rule written anywhere: it is what adding
+// zero repeatedly comes to.
+func (w *World) Press(t Tech, by float64) float64 {
+	if by > 0 {
+		w.pressed[t] += by
+	}
+	return w.pressed[t]
+}
+
+// Pressed is what has accumulated toward a technology.
+func (w *World) Pressed(t Tech) float64 { return w.pressed[t] }
 
 // Techs returns discovered technologies in a stable order.
 func (w *World) Techs() []Tech {

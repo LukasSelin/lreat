@@ -75,9 +75,13 @@ type Snapshot struct {
 	WealthGini float64
 	Knowledge  float64
 	Techs      []world.Tech
-	Safety     float64
-	FoodPrice  float64
-	Events     int
+	// Worked is the same technologies with the dates on them: when each was
+	// worked out and when the settlement first had a master of its craft.
+	// Techs is kept beside it because most readers only want the names.
+	Worked    []Worked
+	Safety    float64
+	FoodPrice float64
+	Events    int
 	// The weather. Temp is this tick's temperature and Season names the
 	// quarter of the year it falls in; Growth is what the season lets the
 	// land put back, 1 being an ordinary year's average.
@@ -160,6 +164,7 @@ func Take(w *world.World) Snapshot {
 		Population: len(w.Agents),
 		Knowledge:  w.Knowledge,
 		Techs:      w.Techs(),
+		Worked:     worked(w),
 		Safety:     w.Safety,
 		FoodPrice:  w.Market.Price[entity.Food],
 		Temp:       w.Climate.Temp,
@@ -426,6 +431,30 @@ func Perceive(w *world.World, viewer entity.ID, since int) []event.Event {
 		case e.Actor != 0 && v.BondWith(e.Actor) > 0.3:
 			out = append(out, e)
 		}
+	}
+	return out
+}
+
+// Worked is one technology and what has become of it. The dates are ticks;
+// clock.At turns them into something worth reading, which is the whole
+// reason they are carried rather than left as a count.
+type Worked struct {
+	Tech     world.Tech
+	Found    int
+	Mastered int // zero until somebody is a master of its craft
+}
+
+// worked reads the dates off the world in the order Techs gives them, so
+// that two snapshots of the same settlement list them the same way.
+func worked(w *world.World) []Worked {
+	techs := w.Techs()
+	if len(techs) == 0 {
+		return nil
+	}
+	out := make([]Worked, 0, len(techs))
+	for _, t := range techs {
+		k := w.Known(t)
+		out = append(out, Worked{Tech: t, Found: k.Found, Mastered: k.Mastered})
 	}
 	return out
 }

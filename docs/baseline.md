@@ -40,68 +40,355 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  177   232     36     87      9 |  0.61  0.53  0.48  0.08  0.10 |  1.00
-   2   79   181     17     16     64 |  0.75  0.51  0.62  0.21  0.03 |  1.00
-   3  303   261     18     76    205 |  0.68  0.53  0.38  0.29  0.08 |  1.00
-   4   66   257     32     48     22 |  0.65  0.58  0.57  0.10  0.07 |  0.99
-   5   55   129     12     21     25 |  0.68  0.52  0.52  0.24  0.02 |  0.99
-   6  214   378     35     52     60 |  0.63  0.57  0.46  0.20  0.05 |  1.00
-   7  157   234     31     79     28 |  0.65  0.52  0.36  0.02  0.00 |  0.96
-   8   52   133     19     27     19 |  0.59  0.57  0.53  0.33  0.09 |  1.00
-   9  281   261     11     30    103 |  0.64  0.49  0.60  0.24  0.15 |  1.00
-  10  290   308     33     80     85 |  0.62  0.55  0.50  0.20  0.06 |  1.00
-  11   79   201     18     12     69 |  0.69  0.57  0.53  0.20  0.20 |  0.97
-  12  121   268     23     26     77 |  0.58  0.53  0.42  0.14  0.05 |  1.00
-  13  191   215     23     87     82 |  0.64  0.53  0.32  0.10  0.02 |  1.00
-  14  212   230     21     53    184 |  0.61  0.50  0.61  0.24  0.02 |  1.00
-  15   54   181     27     20     37 |  0.65  0.51  0.23  0.40  0.02 |  1.00
-  16   46    96     18     17     29 |  0.66  0.53  0.31  0.44  0.02 |  1.00
-  17  109   171     23     50     89 |  0.55  0.48  0.36  0.09  0.03 |  1.00
-  18  310   245     25     32    199 |  0.67  0.54  0.52  0.15  0.16 |  1.00
-  19   61   176     23     22     36 |  0.64  0.56  0.51  0.16  0.10 |  1.00
-  20   28   162     41     29     14 |  0.57  0.63  0.36  0.05  0.04 |  0.98
-  21  156   333     33     51     79 |  0.64  0.54  0.46  0.13  0.07 |  0.98
-  22  108   379     25     52     75 |  0.66  0.52  0.53  0.23  0.05 |  1.00
-  23   81   222     36     42     88 |  0.58  0.57  0.62  0.19  0.12 |  0.99
-  24  275   353     29     86    152 |  0.59  0.53  0.46  0.24  0.04 |  1.00
+   1  208   159     32    108     10 |  0.65  0.58  0.43  0.06  0.13 |  1.00
+   2   96   262     26     32     74 |  0.57  0.52  0.46  0.20  0.02 |  1.00
+   3  141   402     18     50    140 |  0.66  0.57  0.49  0.19  0.10 |  1.00
+   4   38   135     36     18     17 |  0.48  0.58  0.54  0.15  0.17 |  0.94
+   5   35   174     24     20     11 |  0.58  0.49  0.61  0.19  0.00 |  0.99
+   6  139   289     52     47     24 |  0.65  0.56  0.52  0.15  0.05 |  1.00
+   7  213   302     32     89     55 |  0.62  0.52  0.32  0.04  0.03 |  1.00
+   8   38   131     22     24     12 |  0.55  0.55  0.48  0.29  0.08 |  1.00
+   9  198   210     22     22     61 |  0.68  0.48  0.56  0.23  0.14 |  1.00
+  10  593   309     28    102    134 |  0.66  0.55  0.52  0.29  0.08 |  1.00
+  11   53   171     34     13     48 |  0.72  0.58  0.55  0.26  0.20 |  1.00
+  12   98   209     39     38     28 |  0.62  0.56  0.41  0.19  0.07 |  1.00
+  13  413   307     38    215    128 |  0.62  0.58  0.34  0.07  0.03 |  1.00
+  14  183   253     33     57    178 |  0.65  0.51  0.53  0.27  0.02 |  1.00
+  15  156   306     29     19    106 |  0.61  0.56  0.63  0.26  0.13 |  1.00
+  16   28   119     33     11     27 |  0.59  0.52  0.40  0.32  0.00 |  1.00
+  17  114   148     40     47     87 |  0.58  0.56  0.41  0.14  0.08 |  1.00
+  18  129   228     26     35     98 |  0.61  0.52  0.41  0.10  0.09 |  1.00
+  19   46   196     29     21     44 |  0.62  0.62  0.44  0.19  0.06 |  0.97
+  20   15   108     39     14      7 |  0.84  0.70  0.47  0.03  0.04 |  0.83
+  21  219   418     34     86     66 |  0.58  0.53  0.49  0.15  0.06 |  1.00
+  22  148   377     34     65     70 |  0.56  0.52  0.49  0.21  0.06 |  1.00
+  23   85   242     47     35     83 |  0.54  0.53  0.56  0.09  0.10 |  0.99
+  24  251   438     41     96    160 |  0.60  0.55  0.39  0.20  0.03 |  1.00
 
-dwell/rest                         3373225  30.1%
-take/berries@wood                  2375608  21.2%
-consume/provision                  1937015  17.3%
-dwell/guard@market                 1146920  10.2%
-take/fish@water                     561565   5.0%
-dwell/meet@tavern>neighbour         448218   4.0%
-take/timber@wood                    207074   1.8%
-exchange/coin>provision@market      186529   1.7%
-transfer/material>requester         155425   1.4%
-exchange/material>coin@market       125762   1.1%
-pass/practice>self                  118631   1.1%
-take/grain@field                    117857   1.1%
-pass/practice>pupil                  92790   0.8%
-tend/plant@open                      80383   0.7%
-take/game@wood                       67049   0.6%
-transfer/provision>needy             59523   0.5%
-raise/timber>dwelling@open           55784   0.5%
-make/timber>tool@bench               41285   0.4%
-take/stone@outcrop                   13772   0.1%
-transfer/provision<holder             9545   0.1%
-strike/person>wrongdoer               8629   0.1%
-tend/clear@open                       4498   0.0%
-tend/water@field                      1717   0.0%
-raise/timber>road@ground              1596   0.0%
-raise/timber+stone>granary@open        831   0.0%
-make/stone+timber>tool@forge           673   0.0%
-make/provision+timber>meal@hearth      648   0.0%
-dwell/look                             290   0.0%
-raise/timber>tavern@open               276   0.0%
-raise/timber+stone>market@open          98   0.0%
-move@dwelling                           68   0.0%
+dwell/rest                         3522631  32.7%
+take/berries@wood                  2135489  19.8%
+consume/provision                  1826093  16.9%
+dwell/guard@market                 1016721   9.4%
+take/fish@water                     549031   5.1%
+dwell/meet@tavern>neighbour         447093   4.1%
+take/timber@wood                    206228   1.9%
+exchange/coin>provision@market      145845   1.4%
+transfer/material>requester         137776   1.3%
+take/grain@field                    129729   1.2%
+pass/practice>self                  112380   1.0%
+exchange/material>coin@market        99278   0.9%
+pass/practice>pupil                  97387   0.9%
+tend/plant@open                      72955   0.7%
+transfer/provision>needy             72683   0.7%
+raise/timber>dwelling@open           71038   0.7%
+take/game@wood                       47968   0.4%
+make/timber>tool@bench               34553   0.3%
+transfer/provision<holder            15206   0.1%
+strike/person>wrongdoer              12714   0.1%
+take/stone@outcrop                   11769   0.1%
+tend/clear@open                       4505   0.0%
+raise/timber>road@ground              1868   0.0%
+tend/water@field                      1628   0.0%
+raise/timber+stone>granary@open        830   0.0%
+make/stone+timber>tool@forge           487   0.0%
+dwell/look                             295   0.0%
+raise/timber>tavern@open               246   0.0%
+make/provision+timber>meal@hearth      208   0.0%
+raise/timber+stone>market@open          88   0.0%
+move@dwelling                           77   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.59 safe 0.49 held 0.67 all 0.239 food 4.02 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 146.0 median 121 | phys 0.63 safe 0.54 belng 0.47 estm 0.20
+gates: fed 0.59 safe 0.52 held 0.69 all 0.261 food 3.93 hungry-with-food 0.27 | lasted 23/24 extinct 0 mean 151.5 median 139 | phys 0.62 safe 0.55 belng 0.48 estm 0.18
 ```
 
 ## What the last change did
+
+The land's answers are worked toward now rather than handed over, and what
+does the working is a person.
+
+Each of the six carries two new things: a `habit.Signature`, which is the
+kind of moment it belongs to, in the same twenty-dimensional space agents
+recognise their own moments in; and a `Cost` in pressure-days. Every tick,
+the settlement's most affected person presses on it, and when the pressing
+comes to the cost the thing is worked out.
+
+The pressing is one operation:
+
+```go
+push := habit.Dot(action.Shared(a, w), habit.Unit(d.Signature))
+```
+
+That is the projection of a person's own situation onto the discovery's
+direction, and it says both of the things wanted at once. The direction says
+whether this settlement is working on the thing at all - a people who are
+cold and fed are pointed somewhere other than a people who are warm and
+starving. The length says how fast, because how far the situation reaches
+along that direction is how hard the moment is actually pressing.
+
+`action.Fit` throws this second half away on purpose: it normalises both
+sides, and [situation.go](../core/action/situation.go) even zeroes `Lack` and
+`Stock` out of the norm, because a long moment was beating a well-matched one
+on cosine. For choosing an action that is right. For arriving at a
+technology it is exactly backwards, and the half `Fit` discards is the half
+that paces research.
+
+### That a comfortable people stagnate is not a rule here
+
+It is what adding nearly nothing for twenty years comes to. A settlement with
+little wrong with it has a short situation vector in every direction, so its
+projection onto any discovery is near zero and it arrives at nothing - not
+because anything says so, but because that is what the arithmetic does.
+`TestAComfortableSettlementWorksNothingOut` stands two identical settlements
+on identically thinned ground, makes one hungry and leaves the other wanting
+for nothing, and runs twenty years of days over both: the first works out
+fishing and the second does not, and has less pressure to show for the same
+two decades.
+
+### It happens to a person
+
+The projection is the maximum over everybody rather than the mean or the sum,
+which is the whole of the per-agent reading. A thing is worked out by the
+person it is happening to hardest, and a settlement of five hundred
+comfortable people with one desperate one in it is a settlement where
+somebody is about to think of something; a mean would drown them. The
+discovery event names whoever that was, so a technology stops being a thing
+that happened to a settlement.
+
+### Where they land
+
+Twelve seeds, master against this tree, mean year of arrival:
+
+```
+                master        spike
+pottery         year  6.0     year 15.1     12/12 both
+brewing         year  4.8     year 12.9     12/12 both
+fishing         year 11.8     year 14.8     12/12 both
+trapping        year 12.3     year 15.9     12/12 both
+```
+
+The two that moved most are the two whose conditions were nearly free.
+Brewing wanted twelve people and five food on the market shelf, which a
+settlement has in its fourth year and then has forever; pottery wanted eight
+food. Neither was a pressure, and both are now paced by one - loneliness
+among company for the tavern, and curiosity with the leisure to indulge it
+for the pot. Fishing and trapping moved less because `forestThin` was already
+doing the binding.
+
+Irrigation and forestry are unchanged at nothing: their conditions -
+`fieldsWorn`, `forestGone` - almost never read true, so they never begin
+accumulating. That was so before this change and is not this change's doing,
+but it is now visible as a zero in `w.Pressed` rather than as an absence.
+
+**On the batch it is a draw, and the population came down a little from where
+the five new technologies had put it.**
+
+```
+offset  0, master: gates: fed 0.60 safe 0.52 held 0.68 all 0.260 | lasted 24/24 mean 164.4 median 176 | estm 0.17
+offset  0, press:  gates: fed 0.59 safe 0.52 held 0.69 all 0.261 | lasted 23/24 mean 151.5 median 139 | estm 0.18
+offset 24, master: gates: fed 0.57 safe 0.51 held 0.69 all 0.253 | lasted 24/24 mean 152.0 median 129 | estm 0.17
+offset 24, press:  gates: fed 0.59 safe 0.52 held 0.70 all 0.264 | lasted 24/24 mean 147.8 median 126 | estm 0.15
+```
+
+Nothing is past a threshold. `all` moved 0.001 and 0.011, both up; `fed`,
+`held` and `safe` a hundredth or two each. `food` is down 0.40 and 0.16, and
+the mean population down 13 and 4, both batches the same direction - which is
+the delay showing up as slightly less settlement, and is about half of what
+the five technologies added in the commit before.
+
+### What this is a spike of, and what it is not
+
+The skill-gated half of the catalog is untouched. A settlement does not feel
+its way to a master mason, and the arch still asks for two of them: capability
+and motive are different things and collapsing them into one vector would let
+a desperate people invent the arch with nobody who can lay stone. What the
+vector decides is when and how fast among the things a settlement is already
+in a position to work out.
+
+The cost of going further is legibility. Six hand-written predicates have
+become six predicates and six sparse vectors, and the vectors are harder to
+argue with: "why did this settlement never get medicine" is a question a
+condition answers and a cosine does not. The vectors are kept sparse and
+commented for that reason - two or three coordinates each, with the moment
+they stand for written beside them - and that is the whole of the mitigation
+there is.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the deep technologies did
+
+Five technologies at the far end of the tree, and two modifiers that are not
+flat multipliers.
+
+The catalog stopped at metallurgy, which a settlement reaches around year
+forty-nine, and everything before it was held by nearly everybody. There was
+nothing at the top for a settlement to still be climbing at sixty years. The
+five are weaving, husbandry, the arch, medicine and the plough, and what they
+ask for is masters - which under [core/entity/learn.go](../core/entity/learn.go)
+is the one tier nobody can be given, so the top of the catalog cannot be got
+by being taught.
+
+Two of them turn knobs that did not exist:
+
+`Warmth` is how much of the cold a body actually feels. Weaving takes it to
+three fifths, and it comes off `system.Decay` on the one line both halves of
+a winter are read from - the hunger of staying warm and the condition it
+takes. It is the first modifier here that does nothing most of the year: a
+cloak is worth nothing in June and worth a life in February, so what it buys
+depends on where a settlement is and what winters it gets rather than on a
+rate. A settlement that housed itself early never learns to weave at all,
+which is right, because it solved the same problem another way.
+
+`Healing` is how fast a body climbs back toward the condition its
+circumstances would give it, and medicine doubles it. It works one way only:
+knowing what to do for a fever gets somebody on their feet sooner and does
+not make anybody fall ill quicker. There is a test for each half of that.
+
+Where each of them lands, over twelve seeds:
+
+```
+weaving      12/12   years 12-22   the winter, and a quarter of the people out in it
+husbandry    12/12   years 13-27   trapped-out woods, tools, and builders for the pens
+the arch      4/12   years 36-59   quarrying, two master masons with eighty raisings
+medicine      5/12   years 25-36   writing, a master scholar with forty turns at it
+the plough    2/12   years 39-57   metal, three master farmers with three hundred days
+```
+
+Two of them had to be given a real bar before they were technologies at all.
+Husbandry first asked for what trapping asks for and a little more, and fired
+on the same day trapping did on eleven seeds of twelve - which is not a
+second technology but a longer sentence about the first. It asks for builders
+now, because a kept beast needs somewhere to be kept, and it lands a decade
+after trapping. The plough asked for two master farmers at a hundred and
+fifty days, which a settlement with metal already had, so it arrived the same
+day metallurgy did on six seeds of seven; at three master farmers with three
+hundred days it is past what any but a seriously farming people reach.
+Medicine went the other way - at two master scholars it fired on nothing at
+all, because reading stops at the top of the apprentice tier and a master
+scholar is somebody who has tutored for years.
+
+**On the batch it is close to a draw, and what moved is the population,
+upward, on both.**
+
+```
+offset  0, master: gates: fed 0.59 safe 0.54 held 0.70 all 0.272 | lasted 24/24 mean 146.9 median 141 | estm 0.16
+offset  0, deep:   gates: fed 0.60 safe 0.52 held 0.68 all 0.260 | lasted 24/24 mean 164.4 median 176 | estm 0.17
+offset 24, master: gates: fed 0.57 safe 0.51 held 0.70 all 0.252 | lasted 24/24 mean 131.1 median 108 | estm 0.15
+offset 24, deep:   gates: fed 0.57 safe 0.51 held 0.69 all 0.253 | lasted 24/24 mean 152.0 median 129 | estm 0.17
+```
+
+Nothing is past a threshold. `all` went down 0.012 and then up 0.001; `fed`,
+`held`, `safe` and `estm` all moved by a hundredth or two and disagreed about
+the sign. `lasted` is 24 of 24 on all four with nothing extinct.
+
+The mean population is up 17 and 21 and the median up 35 and 21, on both
+batches, in the same direction. This file says population is never worth
+believing on its own and that stands - but the direction is worth writing
+down, because it runs against the last few changes. Five new multipliers are
+five new multipliers and the settlements are a little larger for them. What
+keeps it to about a tenth rather than a third is that three of the five are
+rare and all five are late: nothing here arrives before year twelve, and the
+two that lift a yield outright reach two and twelve settlements, one of them
+only in the last third of a run. A settlement that has made no masters gets
+weaving and nothing else.
+
+`food` is up from 3.95 to 4.33 on the default batch and unchanged on the
+other, which is the same story told quietly.
+
+### What earning the research did
+
+A discovery now asks a settlement what it has actually done, not how many of
+its people are over a line.
+
+Every skill-gated technology was unlocked by `skilled`, a count of agents at
+or above some level of a skill. That was a fair question when a level could
+only be got one way. It stopped being one when a lesson began stopping short
+of the teacher: somebody can now stand in the journeyman tier having been
+shown the whole of it and never once had their hands on the work, and it was
+that person the catalog was reading. Agriculture asked for two people at a
+fifth of farming, in settlements whose most practised farmer had broken
+ground five times in sixty years. The field was being invented by people who
+had never really farmed.
+
+So `entity.Agent.Practice` counts, per skill, how many times this pair of
+hands has actually done the work. Only `Learn` raises it - being taught and
+reading do not - so it is the half of a person's history that `Skills`
+cannot tell you. `system.adept` asks for both halves, and the four
+skill-gated discoveries ask it:
+
+| | asked before | asks now |
+|---|---|---|
+| agriculture | 2 at 0.20 farming | 2 apprentices, 80 days on the ground |
+| masonry | 2 at 0.30 building | 2 journeymen, 40 raisings |
+| writing | 3 at 0.30 scholarship | 3 journeymen, 20 turns at the work |
+| metallurgy | 2 at 0.40 crafting | 2 masters, 100 makings |
+
+The numbers are read off what settlements reach rather than chosen. A probe
+over six seeds printed every agent's tier and practice at sixty years, and
+each threshold is set where it separates the settlements that do the work
+from the settlements that do not - which for farming is a real divide, since
+three of the six had masters with two to seven hundred days on the ground and
+the other three had nobody past thirty.
+
+**On the summary line this change did nothing, and the summary line is the
+wrong instrument for it.**
+
+```
+offset  0, master: gates: fed 0.59 safe 0.49 held 0.67 all 0.239 | lasted 24/24 mean 146.0 median 121 | estm 0.20
+offset  0, adept:  gates: fed 0.59 safe 0.54 held 0.70 all 0.272 | lasted 24/24 mean 146.9 median 141 | estm 0.16
+offset 24, master: gates: fed 0.58 safe 0.51 held 0.70 all 0.252 | lasted 23/24 mean 145.3 median 123 | estm 0.19
+offset 24, adept:  gates: fed 0.57 safe 0.51 held 0.70 all 0.252 | lasted 24/24 mean 131.1 median 108 | estm 0.15
+```
+
+`all` went up 0.033 and then did not move at all. `safe` up 0.05 and then
+0.00. `fed`, `held` and `lasted` are unmoved on both. The population points
+opposite ways in the way it always does. The one reading that agrees with
+itself is `estm`, down 0.04 on both batches, which is inside the threshold
+this file sets and is the tail of the change before this one rather than
+anything here.
+
+What moved is the shape of a settlement's history, which no gate in that line
+measures. The same probe run on master and on this tree, twelve seeds, the
+year each technology arrived:
+
+```
+                master          adept
+agriculture     year  3.9       year 12.4      12/12 both
+masonry         year  4.6       year 13.1      12/12 both
+writing         year  6.6       year 18.9      12/12 both
+metallurgy      year 15.2       year 49.2      12/12 -> 9/12
+```
+
+On master a settlement holds the whole catalog by year fifteen, which is a
+quarter of one life. It now takes until year forty-nine to work metal, and
+three settlements in twelve never do. The gap between founding and the last
+technology went from eleven years to thirty-seven.
+
+That is the change, and the reason the year-sixty gates cannot see it is that
+sixty years is long enough to arrive anyway. A settlement kept off masonry
+for eight extra years builds fewer houses in those years and the same number
+by the end; what it does not have is the compounding it used to get from
+holding every multiplier before its founders were dead. Anybody wanting this
+to show in the gates should read a shorter batch, where the difference has
+not yet been slept off.
+
+Agriculture is the one that had to be raised twice. At five-and-twenty days
+it did nothing at all, because twenty-five days of farming is exactly what
+carries somebody to the apprentice tier and the practice bar sat on top of
+the tier bar rather than beyond it. Eighty is past it, and moved the mean
+arrival from year 5.1 to year 12.4. It is still 12 of 12: every settlement
+eventually farms, and this asks it to farm first and learn the rotation
+after, which is the order the thing actually happened in.
+
+The land's own answers were left alone. Fishing, trapping, forestry,
+irrigation, pottery and brewing are unlocked by need and not by skill - a
+hungry people by a river will fish, whatever they know - and the catalog
+already says so where they are defined.
+
+### What the moral coordinates did
 
 Every dimension of a habit drifts per agent now. Five of the twenty - the
 moral ones, honesty through caution - used to be held fixed across the whole
@@ -158,12 +445,6 @@ is two people looking at one piece of work and disagreeing about it, this is
 not the lever: that wants the act's own valence in the situation rather than
 only the agent's norms, the way the value rule already reads it through
 belief.Conscience. See action.ValenceOf.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What earning the last of it did
 
