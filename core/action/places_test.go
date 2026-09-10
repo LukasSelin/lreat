@@ -13,6 +13,7 @@ import (
 func village(t *testing.T) (*world.World, *entity.Agent, *entity.Agent) {
 	t.Helper()
 	w := world.NewSized(5, 60, 20)
+	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass, Fertility: 0.3, Rich: 0.3}
 	}

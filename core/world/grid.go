@@ -136,6 +136,9 @@ type Grid struct {
 	W, H  int
 	Wrap  bool
 	Tiles []Tile
+	// Layers is the ground that changes by the day, one slice per reading
+	// and indexed as Tiles is; see layers.go.
+	Layers
 	// Chunks is the map in pieces, CW across and CH down. See chunk.go.
 	CW, CH int
 	Chunks []Chunk
@@ -230,7 +233,7 @@ func (g *Grid) ownRouter() *Router {
 
 // NewGrid returns an all-grass grid.
 func NewGrid(w, h int) *Grid {
-	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h), lenders: make([]uint8, w*h), sea: -1}
+	g := &Grid{W: w, H: h, Tiles: make([]Tile, w*h), Layers: NewLayers(w * h), lenders: make([]uint8, w*h), sea: -1}
 	g.layChunks()
 	g.layPatches()
 	g.repatch()
@@ -253,7 +256,7 @@ func (g *Grid) At(p entity.Pos) *Tile {
 
 // Clone returns a deep copy, for snapshots.
 func (g *Grid) Clone() *Grid {
-	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles)), sea: g.sea}
+	c := &Grid{W: g.W, H: g.H, Wrap: g.Wrap, Tiles: make([]Tile, len(g.Tiles)), Layers: g.Layers.Copy(), sea: g.sea}
 	copy(c.Tiles, g.Tiles)
 	c.lenders = make([]uint8, len(g.Tiles))
 	c.layChunks()

@@ -140,8 +140,8 @@ func TestTheSameSeedRunsTheSameHistory(t *testing.T) {
 	a := NewWith(7, historyConfig(12)).Grid
 	b := NewWith(7, historyConfig(12)).Grid
 	for i := range a.Tiles {
-		if a.Tiles[i] != b.Tiles[i] {
-			t.Fatalf("tile %d came out %+v one time and %+v the next", i, a.Tiles[i], b.Tiles[i])
+		if a.Tiles[i] != b.Tiles[i] || a.Read(i) != b.Read(i) {
+			t.Fatalf("tile %d came out %+v %+v one time and %+v %+v the next", i, a.Tiles[i], a.Read(i), b.Tiles[i], b.Read(i))
 		}
 	}
 }

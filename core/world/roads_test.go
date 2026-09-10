@@ -8,6 +8,7 @@ import (
 
 func TestPaveRespectsWhatIsAlreadyThere(t *testing.T) {
 	w := NewSized(1, 12, 12)
+	w.Grid.Layers = NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = Tile{Terrain: Grass}
 	}
@@ -56,6 +57,7 @@ func TestPaveRespectsWhatIsAlreadyThere(t *testing.T) {
 // again should extend the network rather than start over.
 func TestPaveStreetsConnectsTheSettlement(t *testing.T) {
 	w := NewSized(2, 24, 16)
+	w.Grid.Layers = NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = Tile{Terrain: Grass}
 	}
@@ -296,6 +298,7 @@ func TestWaysSaysWhatWalkingTheGroundSaid(t *testing.T) {
 	w := NewSized(9, 40, 24)
 	g := w.Grid
 	rng := w.RNG
+	g.Layers = NewLayers(len(g.Tiles))
 	for i := range g.Tiles {
 		tile := &g.Tiles[i]
 		*tile = Tile{Terrain: Grass}

@@ -42,7 +42,7 @@ func TestDeterminism(t *testing.T) {
 		}
 	}
 	for i := range sa.Map.Tiles {
-		if sa.Map.Tiles[i] != sb.Map.Tiles[i] {
+		if sa.Map.Tiles[i] != sb.Map.Tiles[i] || sa.Map.Read(i) != sb.Map.Read(i) {
 			t.Fatalf("map tile %d differs", i)
 		}
 	}
@@ -125,6 +125,7 @@ func TestDistanceDiscountsActions(t *testing.T) {
 	// Two identical agents want wood; the one next to a forest should score
 	// gathering higher than the one far from it.
 	w := world.NewSized(1, 60, 20)
+	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass, Fertility: 0.5}
 	}

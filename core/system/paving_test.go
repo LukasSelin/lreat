@@ -121,6 +121,7 @@ func TestASettlementBridgesTheRiverItStraddles(t *testing.T) {
 // can never change. See ontology.Transforms and world.Walked.
 func TestAnUnwalkedRoadGrowsOver(t *testing.T) {
 	w := world.NewSized(4, 16, 16)
+	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass}
 	}

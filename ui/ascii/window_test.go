@@ -91,7 +91,7 @@ func TestAWindowOffTheMapIsBlank(t *testing.T) {
 		t.Fatal("the first row of the map drew nothing")
 	}
 
-	valley := &observe.MapView{W: 8, H: 8, Tiles: make([]world.Tile, 64)}
+	valley := &observe.MapView{W: 8, H: 8, Tiles: make([]world.Tile, 64), Layers: world.NewLayers(64)}
 	off := RenderWindow(valley, Settlement, Window{X: 6, Y: 0, W: 4, H: 1})
 	if off[0][1] == blank {
 		t.Fatal("the last column of the valley drew nothing")
@@ -126,7 +126,7 @@ func TestAWindowReadsBothWays(t *testing.T) {
 
 // Everybody standing in the window is drawn there, and nobody outside it is.
 func TestAWindowDrawsTheFiguresInIt(t *testing.T) {
-	m := &observe.MapView{W: 40, H: 10, Tiles: make([]world.Tile, 400), Agents: []observe.Mark{
+	m := &observe.MapView{W: 40, H: 10, Tiles: make([]world.Tile, 400), Layers: world.NewLayers(400), Agents: []observe.Mark{
 		{ID: 1, Pos: entity.Pos{X: 22, Y: 4}, Action: "farm"},
 		{ID: 2, Pos: entity.Pos{X: 2, Y: 4}, Action: "farm"},
 	}}

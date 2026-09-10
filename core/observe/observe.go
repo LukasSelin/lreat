@@ -43,8 +43,11 @@ type MapView struct {
 	// to go round it the same way the world does. Without it a viewer
 	// reading a tile's neighbours gets the seam wrong, and one looking
 	// eastward past the last column falls off a map that has no edge.
-	Wrap   bool
-	Tiles  []world.Tile
+	Wrap  bool
+	Tiles []world.Tile
+	// Layers is the ground that changes by the day, copied beside the
+	// tiles; see world.Layers.
+	world.Layers
 	Agents []Mark
 	Market entity.Pos
 }
@@ -195,7 +198,7 @@ func Take(w *world.World) Snapshot {
 	m := &MapView{W: w.Grid.W, H: w.Grid.H, Wrap: w.Grid.Wrap, Market: w.MarketPos}
 	s.Map = m
 	if len(w.Agents) == 0 {
-		m.Tiles = ground(w)
+		m.Tiles, m.Layers = ground(w)
 		return s
 	}
 
@@ -210,7 +213,7 @@ func Take(w *world.World) Snapshot {
 	var c census
 	var wg sync.WaitGroup
 	wg.Add(3)
-	go func() { defer wg.Done(); m.Tiles = ground(w) }()
+	go func() { defer wg.Done(); m.Tiles, m.Layers = ground(w) }()
 	go func() { defer wg.Done(); c = count(w) }()
 	go func() { defer wg.Done(); s.HabitSpread, s.MeanReach, s.GatedReach = habits(w) }()
 	wg.Wait()
@@ -247,8 +250,10 @@ func Take(w *world.World) Snapshot {
 // made and copied into: making a slice zeroes it, and the copy that follows
 // writes over every byte of the zeroes, so the ground was being walked twice
 // for a picture of it taken once. On a globe that was five milliseconds of
-// every snapshot.
-func ground(w *world.World) []world.Tile { return slices.Clone(w.Grid.Tiles) }
+// every snapshot. The layers come with it, copied the same way.
+func ground(w *world.World) ([]world.Tile, world.Layers) {
+	return slices.Clone(w.Grid.Tiles), w.Grid.Layers.Copy()
+}
 
 // census is what one pass over the population comes to, gathered up so that
 // the pass can be made beside the copying of the ground rather than after

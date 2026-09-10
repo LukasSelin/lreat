@@ -15,7 +15,7 @@ import (
 // window to be asked where it is looking, and made in a moment, which a
 // world a thousand tiles round is not.
 func ground(w, h int, wrap bool) *observe.MapView {
-	return &observe.MapView{W: w, H: h, Wrap: wrap, Tiles: make([]world.Tile, w*h)}
+	return &observe.MapView{W: w, H: h, Wrap: wrap, Tiles: make([]world.Tile, w*h), Layers: world.NewLayers(w * h)}
 }
 
 // watching is a view of a map, on a screen of the given size, with the

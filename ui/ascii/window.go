@@ -35,7 +35,7 @@ func Whole(m *observe.MapView) Window { return Window{W: m.W, H: m.H} }
 // falls away, which is a reading of the eight tiles round it and not of the
 // tile itself, and on a globe is a reading that crosses the seam.
 func gridOf(m *observe.MapView) *world.Grid {
-	return &world.Grid{W: m.W, H: m.H, Wrap: m.Wrap, Tiles: m.Tiles}
+	return &world.Grid{W: m.W, H: m.H, Wrap: m.Wrap, Tiles: m.Tiles, Layers: m.Layers}
 }
 
 // Tile is the position the window's cell at x, y is of, and whether that

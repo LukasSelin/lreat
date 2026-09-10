@@ -19,7 +19,7 @@ import (
 func tick(t int, pop int, v world.Vitals) observe.Snapshot {
 	return observe.Snapshot{
 		Tick: t, Population: pop, Deaths: v.Starved + v.Failed, Vitals: v,
-		Map: &observe.MapView{W: 40, H: 12, Tiles: make([]world.Tile, 40*12)},
+		Map: &observe.MapView{W: 40, H: 12, Tiles: make([]world.Tile, 40*12), Layers: world.NewLayers(40 * 12)},
 	}
 }
 

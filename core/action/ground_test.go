@@ -163,6 +163,7 @@ func TestLookingIsForPeopleWithNowhereToLive(t *testing.T) {
 // same spot do not walk off in single file.
 func TestScoutsHeadForUnknownCountry(t *testing.T) {
 	w := world.NewSized(4, 60, 60)
+	w.Grid.Layers = world.NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = world.Tile{Terrain: world.Grass}
 	}

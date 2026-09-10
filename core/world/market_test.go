@@ -10,6 +10,7 @@ import (
 // the one at hand rather than to the one the town was founded on.
 func TestTradeGoesToTheNearestSquare(t *testing.T) {
 	w := NewSized(3, 24, 12)
+	w.Grid.Layers = NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = Tile{Terrain: Grass}
 	}
@@ -51,6 +52,7 @@ func TestASquareIsFoundedOnce(t *testing.T) {
 // every errand in the catalog is walked to whatever this returns.
 func TestAStaleSquareIsNotTradedOn(t *testing.T) {
 	w := NewSized(3, 24, 12)
+	w.Grid.Layers = NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = Tile{Terrain: Grass}
 	}
@@ -75,6 +77,7 @@ func TestAStaleSquareIsNotTradedOn(t *testing.T) {
 // A world with no square at all says so rather than pointing at bare ground.
 func TestNoSquareIsNoSquare(t *testing.T) {
 	w := NewSized(3, 12, 6)
+	w.Grid.Layers = NewLayers(len(w.Grid.Tiles))
 	for i := range w.Grid.Tiles {
 		w.Grid.Tiles[i] = Tile{Terrain: Grass}
 	}
