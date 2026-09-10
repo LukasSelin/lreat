@@ -31,7 +31,16 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for the moral coordinates: all twenty dimensions of a habit drift
+// Retaken for what a discovery asks of a settlement: a technology used to be
+// unlocked by a count of people over a level, and is now unlocked by people
+// who have both reached a tier and done the work the tier is in. Agriculture
+// asked for two people at a fifth of farming, in settlements whose best
+// farmer had broken ground five times in sixty years; it asks for two
+// apprentices with eighty days on the ground. See system.adept. It
+// moves every settlement from the first discovery on, and the ones it moves
+// furthest are the ones that were living off a technology they never earned.
+//
+// Retaken before that for the moral coordinates: all twenty dimensions of a habit drift
 // per agent now, where the five moral ones used to be held fixed across the
 // population. Five more draws off every founder's own luck at imprinting and
 // off the world's at every birth, so these move whatever the drift does.
@@ -69,9 +78,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "429cf07db6e07668",
-	3: "15c8c75ba62dffbc",
-	9: "afae7a66ae492991",
+	1: "1a4878c5c4fec607",
+	3: "74fcf6fd0048f38d",
+	9: "39d590378ddae2f9",
 }
 
 // digest is the hash the golden numbers are of.

@@ -15,8 +15,11 @@ func TestDiscoveryOpensActionsToEveryone(t *testing.T) {
 	w := fitWorld(11)
 	populate(w, 3)
 	w.Knowledge = 1000
+	// Journeymen who have done the work, not journeymen who were shown it:
+	// a discovery now asks for both. See adept.
 	for i := 0; i < 3; i++ {
 		w.Agents[i].Skills[entity.Scholarship] = 0.5
+		w.Agents[i].Practice[entity.Scholarship] = 20
 	}
 	Discover(w)
 	if !w.Has("writing") {

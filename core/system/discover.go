@@ -21,11 +21,26 @@ type Discovery struct {
 	Opens []string
 }
 
-// skilled counts agents with at least level in a skill.
-func skilled(w *world.World, s entity.Skill, level float64) int {
+// adept counts the people a settlement can call on for a skill: those who
+// have both got good at it and actually done it.
+//
+// Both halves are needed and neither is the other. Since a lesson stops
+// short of the teacher and reading stops sooner still, somebody can stand in
+// the journeyman tier having been shown the whole of it and never once had
+// their hands on the work - and it was that person the discoveries used to
+// be unlocked by. Agriculture asked for two people at a fifth of farming, in
+// settlements whose most practised farmer had broken ground five times in
+// sixty years; the fields were being invented by people who had never
+// really farmed. Practice is the other half: how many times this pair of
+// hands has actually done it, which only entity.Learn raises.
+//
+// The numbers each discovery asks for are read off what settlements
+// actually reach rather than chosen: see the tune probe quoted in
+// docs/baseline.md.
+func adept(w *world.World, s entity.Skill, t entity.Tier, done int) int {
 	n := 0
 	for _, a := range w.Agents {
-		if a.Skills[s] >= level {
+		if entity.TierOf(a.Skills[s]) >= t && a.Practice[s] >= done {
 			n++
 		}
 	}
@@ -36,13 +51,23 @@ func skilled(w *world.World, s entity.Skill, level float64) int {
 var Discoveries = []Discovery{
 	{
 		Tech: "agriculture", Knowledge: 15,
-		Condition: func(w *world.World) bool { return skilled(w, entity.Farming, 0.2) >= 2 },
+		// Two people who have worked ground eighty times and are
+		// out of the novice tier for it. Of six probed settlements this
+		// passes four and refuses two, and the two it refuses are the two
+		// that never farmed: their best hands had four and sixteen days on
+		// the ground in sixty years. A people who forage do not invent the
+		// field, and they no longer get the yield for it.
+		Condition: func(w *world.World) bool { return adept(w, entity.Farming, entity.Apprentice, 80) >= 2 },
 		Effect:    func(w *world.World) { w.Mods.FarmYield *= 1.8 },
 		Text:      "farmers learned to rotate their fields",
 	},
 	{
 		Tech: "masonry", Knowledge: 40,
-		Condition: func(w *world.World) bool { return skilled(w, entity.Building, 0.3) >= 2 },
+		// Two journeymen with forty raisings behind them. Every settlement
+		// probed had them, which is the point: masonry opens the craft, the
+		// road and the granary, and a gate that shut it would shut most of
+		// what comes after. It is a raise on 0.3 of building and not a wall.
+		Condition: func(w *world.World) bool { return adept(w, entity.Building, entity.Journeyman, 40) >= 2 },
 		Effect: func(w *world.World) {
 			w.Mods.BuildEfficiency *= 1.6
 			w.Mods.ShelterDecay *= 0.5
@@ -52,7 +77,12 @@ var Discoveries = []Discovery{
 	},
 	{
 		Tech: "writing", Knowledge: 90,
-		Condition: func(w *world.World) bool { return skilled(w, entity.Scholarship, 0.3) >= 3 },
+		// Three journeymen who have each done the work twenty times. Since
+		// reading alone stops at the top of the apprentice tier, a
+		// journeyman scholar is by construction one who has tutored rather
+		// than only studied - so this asks for three people who have taught
+		// what they know, which is close to what a written record is for.
+		Condition: func(w *world.World) bool { return adept(w, entity.Scholarship, entity.Journeyman, 20) >= 3 },
 		Effect:    func(w *world.World) { w.Mods.StudyRate *= 2 },
 		Text:      "scholars started keeping written records",
 		Opens:     []string{"study", "teach"},
@@ -120,7 +150,7 @@ var Discoveries = []Discovery{
 	{
 		Tech: "metallurgy", Knowledge: 200,
 		Condition: func(w *world.World) bool {
-			return w.Has("writing") && skilled(w, entity.Crafting, 0.4) >= 2 && w.Market.Stock[entity.Tools] >= 5
+			return w.Has("writing") && adept(w, entity.Crafting, entity.Master, 100) >= 2 && w.Market.Stock[entity.Tools] >= 5
 		},
 		Effect: func(w *world.World) {
 			w.Mods.CraftQuality *= 2

@@ -40,68 +40,164 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  177   232     36     87      9 |  0.61  0.53  0.48  0.08  0.10 |  1.00
-   2   79   181     17     16     64 |  0.75  0.51  0.62  0.21  0.03 |  1.00
-   3  303   261     18     76    205 |  0.68  0.53  0.38  0.29  0.08 |  1.00
-   4   66   257     32     48     22 |  0.65  0.58  0.57  0.10  0.07 |  0.99
-   5   55   129     12     21     25 |  0.68  0.52  0.52  0.24  0.02 |  0.99
-   6  214   378     35     52     60 |  0.63  0.57  0.46  0.20  0.05 |  1.00
-   7  157   234     31     79     28 |  0.65  0.52  0.36  0.02  0.00 |  0.96
-   8   52   133     19     27     19 |  0.59  0.57  0.53  0.33  0.09 |  1.00
-   9  281   261     11     30    103 |  0.64  0.49  0.60  0.24  0.15 |  1.00
-  10  290   308     33     80     85 |  0.62  0.55  0.50  0.20  0.06 |  1.00
-  11   79   201     18     12     69 |  0.69  0.57  0.53  0.20  0.20 |  0.97
-  12  121   268     23     26     77 |  0.58  0.53  0.42  0.14  0.05 |  1.00
-  13  191   215     23     87     82 |  0.64  0.53  0.32  0.10  0.02 |  1.00
-  14  212   230     21     53    184 |  0.61  0.50  0.61  0.24  0.02 |  1.00
-  15   54   181     27     20     37 |  0.65  0.51  0.23  0.40  0.02 |  1.00
-  16   46    96     18     17     29 |  0.66  0.53  0.31  0.44  0.02 |  1.00
-  17  109   171     23     50     89 |  0.55  0.48  0.36  0.09  0.03 |  1.00
-  18  310   245     25     32    199 |  0.67  0.54  0.52  0.15  0.16 |  1.00
-  19   61   176     23     22     36 |  0.64  0.56  0.51  0.16  0.10 |  1.00
-  20   28   162     41     29     14 |  0.57  0.63  0.36  0.05  0.04 |  0.98
-  21  156   333     33     51     79 |  0.64  0.54  0.46  0.13  0.07 |  0.98
-  22  108   379     25     52     75 |  0.66  0.52  0.53  0.23  0.05 |  1.00
-  23   81   222     36     42     88 |  0.58  0.57  0.62  0.19  0.12 |  0.99
-  24  275   353     29     86    152 |  0.59  0.53  0.46  0.24  0.04 |  1.00
+   1  213   169     34     83     11 |  0.60  0.51  0.47  0.05  0.12 |  1.00
+   2  122   233     26     29    114 |  0.61  0.55  0.57  0.30  0.04 |  1.00
+   3  155   241     27     80    106 |  0.63  0.56  0.49  0.19  0.04 |  1.00
+   4   51   180     55     42     21 |  0.48  0.63  0.59  0.12  0.05 |  1.00
+   5   49   190     26     19     20 |  0.65  0.57  0.66  0.19  0.03 |  1.00
+   6  116   303     37     53     37 |  0.63  0.59  0.47  0.12  0.05 |  0.99
+   7  311   302     33    173     52 |  0.68  0.49  0.37  0.01  0.01 |  0.77
+   8   42   172     32     21     19 |  0.60  0.53  0.40  0.34  0.11 |  1.00
+   9  141   227     15     26     45 |  0.56  0.53  0.58  0.20  0.13 |  1.00
+  10  296   368     44     97     99 |  0.58  0.56  0.55  0.22  0.05 |  1.00
+  11  165   322     34     70     87 |  0.72  0.57  0.56  0.16  0.11 |  1.00
+  12   89   151     22     56     41 |  0.58  0.57  0.41  0.18  0.03 |  1.00
+  13  355   272     29    173    171 |  0.65  0.56  0.38  0.12  0.04 |  1.00
+  14  104   207     30     46     69 |  0.60  0.50  0.52  0.19  0.01 |  1.00
+  15  103   208     22     47     60 |  0.68  0.54  0.41  0.27  0.05 |  1.00
+  16   39   125     48     30     44 |  0.49  0.62  0.53  0.05  0.05 |  1.00
+  17  155   236     55     67     83 |  0.64  0.58  0.49  0.14  0.09 |  1.00
+  18  168   229     35     50    137 |  0.61  0.57  0.48  0.18  0.14 |  1.00
+  19   62   188     17     34     44 |  0.67  0.54  0.61  0.13  0.04 |  1.00
+  20   33   206     40     27     12 |  0.60  0.64  0.36  0.03  0.10 |  0.82
+  21  225   462     20     51    101 |  0.67  0.53  0.48  0.14  0.12 |  1.00
+  22  176   241     15     65     54 |  0.64  0.50  0.45  0.22  0.07 |  1.00
+  23   91   172     49     31     71 |  0.55  0.52  0.60  0.08  0.08 |  1.00
+  24  265   361     38     83    179 |  0.67  0.54  0.51  0.19  0.01 |  1.00
 
-dwell/rest                         3373225  30.1%
-take/berries@wood                  2375608  21.2%
-consume/provision                  1937015  17.3%
-dwell/guard@market                 1146920  10.2%
-take/fish@water                     561565   5.0%
-dwell/meet@tavern>neighbour         448218   4.0%
-take/timber@wood                    207074   1.8%
-exchange/coin>provision@market      186529   1.7%
-transfer/material>requester         155425   1.4%
-exchange/material>coin@market       125762   1.1%
-pass/practice>self                  118631   1.1%
-take/grain@field                    117857   1.1%
-pass/practice>pupil                  92790   0.8%
-tend/plant@open                      80383   0.7%
-take/game@wood                       67049   0.6%
-transfer/provision>needy             59523   0.5%
-raise/timber>dwelling@open           55784   0.5%
-make/timber>tool@bench               41285   0.4%
-take/stone@outcrop                   13772   0.1%
-transfer/provision<holder             9545   0.1%
-strike/person>wrongdoer               8629   0.1%
-tend/clear@open                       4498   0.0%
-tend/water@field                      1717   0.0%
-raise/timber>road@ground              1596   0.0%
-raise/timber+stone>granary@open        831   0.0%
-make/stone+timber>tool@forge           673   0.0%
-make/provision+timber>meal@hearth      648   0.0%
-dwell/look                             290   0.0%
-raise/timber>tavern@open               276   0.0%
-raise/timber+stone>market@open          98   0.0%
-move@dwelling                           68   0.0%
+dwell/rest                         3456751  33.1%
+take/berries@wood                  2207859  21.1%
+consume/provision                  1732840  16.6%
+dwell/guard@market                  871751   8.3%
+take/fish@water                     564442   5.4%
+dwell/meet@tavern>neighbour         443341   4.2%
+take/timber@wood                    212342   2.0%
+exchange/coin>provision@market      121015   1.2%
+transfer/material>requester         119659   1.1%
+take/grain@field                    111114   1.1%
+pass/practice>self                   98547   0.9%
+pass/practice>pupil                  90541   0.9%
+exchange/material>coin@market        75224   0.7%
+tend/plant@open                      71018   0.7%
+raise/timber>dwelling@open           71015   0.7%
+take/game@wood                       64754   0.6%
+transfer/provision>needy             58734   0.6%
+make/timber>tool@bench               33807   0.3%
+take/stone@outcrop                   10901   0.1%
+transfer/provision<holder            10404   0.1%
+strike/person>wrongdoer               9357   0.1%
+tend/clear@open                       4364   0.0%
+raise/timber>road@ground              1575   0.0%
+tend/water@field                      1398   0.0%
+raise/timber+stone>granary@open        664   0.0%
+make/stone+timber>tool@forge           457   0.0%
+dwell/look                             299   0.0%
+make/provision+timber>meal@hearth      248   0.0%
+raise/timber>tavern@open               236   0.0%
+raise/timber+stone>market@open          94   0.0%
+move@dwelling                           80   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.59 safe 0.49 held 0.67 all 0.239 food 4.02 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 146.0 median 121 | phys 0.63 safe 0.54 belng 0.47 estm 0.20
+gates: fed 0.59 safe 0.54 held 0.70 all 0.272 food 3.95 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 146.9 median 141 | phys 0.62 safe 0.55 belng 0.50 estm 0.16
 ```
 
 ## What the last change did
+
+A discovery now asks a settlement what it has actually done, not how many of
+its people are over a line.
+
+Every skill-gated technology was unlocked by `skilled`, a count of agents at
+or above some level of a skill. That was a fair question when a level could
+only be got one way. It stopped being one when a lesson began stopping short
+of the teacher: somebody can now stand in the journeyman tier having been
+shown the whole of it and never once had their hands on the work, and it was
+that person the catalog was reading. Agriculture asked for two people at a
+fifth of farming, in settlements whose most practised farmer had broken
+ground five times in sixty years. The field was being invented by people who
+had never really farmed.
+
+So `entity.Agent.Practice` counts, per skill, how many times this pair of
+hands has actually done the work. Only `Learn` raises it - being taught and
+reading do not - so it is the half of a person's history that `Skills`
+cannot tell you. `system.adept` asks for both halves, and the four
+skill-gated discoveries ask it:
+
+| | asked before | asks now |
+|---|---|---|
+| agriculture | 2 at 0.20 farming | 2 apprentices, 80 days on the ground |
+| masonry | 2 at 0.30 building | 2 journeymen, 40 raisings |
+| writing | 3 at 0.30 scholarship | 3 journeymen, 20 turns at the work |
+| metallurgy | 2 at 0.40 crafting | 2 masters, 100 makings |
+
+The numbers are read off what settlements reach rather than chosen. A probe
+over six seeds printed every agent's tier and practice at sixty years, and
+each threshold is set where it separates the settlements that do the work
+from the settlements that do not - which for farming is a real divide, since
+three of the six had masters with two to seven hundred days on the ground and
+the other three had nobody past thirty.
+
+**On the summary line this change did nothing, and the summary line is the
+wrong instrument for it.**
+
+```
+offset  0, master: gates: fed 0.59 safe 0.49 held 0.67 all 0.239 | lasted 24/24 mean 146.0 median 121 | estm 0.20
+offset  0, adept:  gates: fed 0.59 safe 0.54 held 0.70 all 0.272 | lasted 24/24 mean 146.9 median 141 | estm 0.16
+offset 24, master: gates: fed 0.58 safe 0.51 held 0.70 all 0.252 | lasted 23/24 mean 145.3 median 123 | estm 0.19
+offset 24, adept:  gates: fed 0.57 safe 0.51 held 0.70 all 0.252 | lasted 24/24 mean 131.1 median 108 | estm 0.15
+```
+
+`all` went up 0.033 and then did not move at all. `safe` up 0.05 and then
+0.00. `fed`, `held` and `lasted` are unmoved on both. The population points
+opposite ways in the way it always does. The one reading that agrees with
+itself is `estm`, down 0.04 on both batches, which is inside the threshold
+this file sets and is the tail of the change before this one rather than
+anything here.
+
+What moved is the shape of a settlement's history, which no gate in that line
+measures. The same probe run on master and on this tree, twelve seeds, the
+year each technology arrived:
+
+```
+                master          adept
+agriculture     year  3.9       year 12.4      12/12 both
+masonry         year  4.6       year 13.1      12/12 both
+writing         year  6.6       year 18.9      12/12 both
+metallurgy      year 15.2       year 49.2      12/12 -> 9/12
+```
+
+On master a settlement holds the whole catalog by year fifteen, which is a
+quarter of one life. It now takes until year forty-nine to work metal, and
+three settlements in twelve never do. The gap between founding and the last
+technology went from eleven years to thirty-seven.
+
+That is the change, and the reason the year-sixty gates cannot see it is that
+sixty years is long enough to arrive anyway. A settlement kept off masonry
+for eight extra years builds fewer houses in those years and the same number
+by the end; what it does not have is the compounding it used to get from
+holding every multiplier before its founders were dead. Anybody wanting this
+to show in the gates should read a shorter batch, where the difference has
+not yet been slept off.
+
+Agriculture is the one that had to be raised twice. At five-and-twenty days
+it did nothing at all, because twenty-five days of farming is exactly what
+carries somebody to the apprentice tier and the practice bar sat on top of
+the tier bar rather than beyond it. Eighty is past it, and moved the mean
+arrival from year 5.1 to year 12.4. It is still 12 of 12: every settlement
+eventually farms, and this asks it to farm first and learn the rotation
+after, which is the order the thing actually happened in.
+
+The land's own answers were left alone. Fishing, trapping, forestry,
+irrigation, pottery and brewing are unlocked by need and not by skill - a
+hungry people by a river will fish, whatever they know - and the catalog
+already says so where they are defined.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the moral coordinates did
 
 Every dimension of a habit drifts per agent now. Five of the twenty - the
 moral ones, honesty through caution - used to be held fixed across the whole
@@ -158,12 +254,6 @@ is two people looking at one piece of work and disagreeing about it, this is
 not the lever: that wants the act's own valence in the situation rather than
 only the agent's norms, the way the value rule already reads it through
 belief.Conscience. See action.ValenceOf.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What earning the last of it did
 
