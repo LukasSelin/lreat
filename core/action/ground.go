@@ -147,12 +147,18 @@ func groundWorth(w *world.World, p entity.Pos) float64 {
 // of it changes slowly or not at all, which is what makes it worth carrying
 // in one's head for years. It costs two short searches, so it is only asked
 // of ground that has already proved itself on the cheap readings.
+// timberKinds is the ground timber stands on, asked of the trees rather
+// than named here. Siting a house reads the worth of every plot it
+// considers and every plot reads this, so it is the second commonest
+// search a settlement makes.
+var timberKinds = world.KindsOffering(ontology.Timber)
+
 func landWorth(w *world.World, p entity.Pos) float64 {
 	v := groundWorth(w, p)
 	if nearWater(w, p) {
 		v += nearWaterWorth
 	}
-	if q, ok := w.Grid.Nearest(p, timberReach, func(_ entity.Pos, t *world.Tile) bool {
+	if q, ok := w.Grid.NearestOfKind(p, timberReach, timberKinds, func(_ entity.Pos, t *world.Tile) bool {
 		return t.Offers(ontology.Timber) >= 0.3
 	}); ok {
 		// A wood at the door is worth all of it; one at the edge of reach,

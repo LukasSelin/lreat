@@ -352,13 +352,21 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 		held := world.StockOf(m)
 		return far{
 			Find: func(a *entity.Agent, w *world.World) (entity.Pos, bool) {
-				// Nothing of this ground anywhere the search could reach
-				// means the search fails, and the counts say so without
-				// it being walked. See world.Grid.AnyWithin.
-				if !w.Grid.AnyWithin(a.Pos, searchRadius+g.Margin, g.Kinds) {
-					return entity.Pos{}, false
+				// What this search is looking for stands on ground of a
+				// kind, so the counts can turn the whole search away and
+				// step over the ground between what is left of it. Where
+				// the answer only stands *near* that ground - a bank, in
+				// reach of water - only the first of those is true, and
+				// the reach is asked over the margin. See
+				// world.Grid.NearestOfKind.
+				kinds := g.Kinds
+				if g.Margin > 0 {
+					if !w.Grid.AnyWithin(a.Pos, searchRadius+g.Margin, kinds) {
+						return entity.Pos{}, false
+					}
+					kinds = 0
 				}
-				return w.Grid.Nearest(a.Pos, searchRadius, func(p entity.Pos, tile *world.Tile) bool {
+				return w.Grid.NearestOfKind(a.Pos, searchRadius, kinds, func(p entity.Pos, tile *world.Tile) bool {
 					if !g.Here(w, p, tile) {
 						return false
 					}

@@ -1,5 +1,7 @@
 package world
 
+import "lreat/core/entity"
+
 // What kind of ground lies where, at a size worth asking about.
 //
 // A patch is a small square of the map with one count per kind of ground
@@ -62,4 +64,20 @@ func (g *Grid) repatch() {
 	for i := range g.Tiles {
 		g.mark(i, &g.Tiles[i], 1)
 	}
+}
+
+// patchAt is the patch p is in. p must be on the map and normalised.
+func (g *Grid) patchAt(p entity.Pos) int {
+	return (p.Y/PatchSide)*g.PW + p.X/PatchSide
+}
+
+// patchHolds reports whether patch i holds any tile of these kinds.
+func (g *Grid) patchHolds(i int, kinds KindSet) bool {
+	held := &g.patches[i]
+	for t := Terrain(0); t < TerrainCount; t++ {
+		if kinds.Has(t) && held[t] > 0 {
+			return true
+		}
+	}
+	return false
 }

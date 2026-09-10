@@ -36,6 +36,9 @@ const (
 
 func isWater(_ entity.Pos, t *world.Tile) bool { return t.Is(ontology.Water) }
 
+// waterKinds is the ground that is water, asked of the trees.
+var waterKinds = world.KindsOf(ontology.Water)
+
 // known reports whether an agent can attempt one of the land's answers: the
 // settlement has discovered it, or the agent has come near enough on its
 // own, through study or teaching, to try it before anyone else has. The
@@ -91,7 +94,7 @@ var Hunt = mover("take/game@wood")
 
 // nearWater reports whether water lies within reach of p.
 func nearWater(w *world.World, p entity.Pos) bool {
-	_, ok := w.Grid.Nearest(p, waterReach, isWater)
+	_, ok := w.Grid.NearestOfKind(p, waterReach, waterKinds, isWater)
 	return ok
 }
 

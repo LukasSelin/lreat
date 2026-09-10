@@ -277,8 +277,48 @@ func (g *Grid) Count(ok func(*Tile) bool) int {
 // ok. It walks square rings outward in a fixed order, so results are
 // deterministic and ties resolve the same way every run.
 func (g *Grid) Nearest(from entity.Pos, maxR int, ok func(p entity.Pos, t *Tile) bool) (entity.Pos, bool) {
+	return g.NearestOfKind(from, maxR, 0, ok)
+}
+
+// NearestOfKind is Nearest told what ground could possibly satisfy it. It
+// is for a search whose answer can only ever stand on ground of one of
+// these kinds - somewhere with timber standing on it is a wood, and
+// nothing else is - and it uses that twice.
+//
+// Once before it starts: no ground of these kinds within the radius means
+// no answer within the radius, so there is nothing to walk. And then on
+// every tile it would otherwise ask about: a tile whose patch holds none
+// of these kinds cannot be the answer, so it is stepped over without the
+// tile being read or the predicate being run. The rings are walked in the
+// order they always were and the tiles that could match are asked in the
+// order they always were, so the answer is the answer Nearest would have
+// given. What changes is only how much ground is read to reach it.
+//
+// The patch a tile is in is worked out once per run of tiles that share
+// one, which on a ring is fifteen tiles in sixteen.
+//
+// A kinds of zero means nothing is known about what could satisfy the
+// search, and every tile is asked, as Nearest does. Passing kinds that
+// the answer could stand *near* rather than *on* would be wrong: a bank
+// is dry ground beside water, and no patch of it need hold any water.
+func (g *Grid) NearestOfKind(from entity.Pos, maxR int, kinds KindSet, ok func(p entity.Pos, t *Tile) bool) (entity.Pos, bool) {
 	from = g.Norm(from)
+	if kinds != 0 && !g.AnyWithin(from, maxR, kinds) {
+		return entity.Pos{}, false
+	}
 	check := func(p entity.Pos) bool { return ok(p, g.At(p)) }
+	if kinds != 0 {
+		was, held := -1, false
+		check = func(p entity.Pos) bool {
+			if i := g.patchAt(p); i != was {
+				was, held = i, g.patchHolds(i, kinds)
+			}
+			if !held {
+				return false
+			}
+			return ok(p, g.At(p))
+		}
+	}
 	if g.In(from) && check(from) {
 		return from, true
 	}

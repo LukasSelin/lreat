@@ -128,3 +128,45 @@ func TestACloneCarriesItsPatches(t *testing.T) {
 		}
 	}
 }
+
+// NearestOfKind steps over ground that cannot hold the answer. It must
+// come back with the very tile Nearest would have come back with - not
+// merely a tile that satisfies the predicate, but the same one, since ties
+// between equally near tiles are settled by the order the rings are walked
+// in and a settlement built on the other one is a different settlement.
+func TestNearestOfKindFindsWhatNearestFinds(t *testing.T) {
+	for _, wrap := range []bool{false, true} {
+		width := 200
+		if wrap {
+			width = 192
+		}
+		w := NewWith(23, Config{Width: width, Height: 128, Wrap: wrap})
+		g := w.Grid
+		rng := rand.New(rand.NewPCG(11, 12))
+		// Each of these is true only of ground of the kinds beside it.
+		cases := []struct {
+			kinds KindSet
+			ok    func(p entity.Pos, t *Tile) bool
+		}{
+			{Kinds(Forest), func(_ entity.Pos, t *Tile) bool { return t.Terrain == Forest }},
+			{Kinds(Water), func(_ entity.Pos, t *Tile) bool { return t.Terrain == Water }},
+			{Kinds(Rock), func(_ entity.Pos, t *Tile) bool { return t.Terrain == Rock }},
+			{KindsOffering(ontology.Timber), func(_ entity.Pos, t *Tile) bool { return t.Offers(ontology.Timber) >= 0.3 }},
+			{KindsOffering(ontology.Stone), func(_ entity.Pos, t *Tile) bool { return t.Offers(ontology.Stone) > 0 }},
+			// One that is true of only some of its kind, so the search
+			// cannot stop at the first patch that holds any.
+			{Kinds(Forest), func(p entity.Pos, t *Tile) bool { return t.Terrain == Forest && p.X%3 == 0 }},
+		}
+		for q := 0; q < 4000; q++ {
+			p := entity.Pos{X: rng.IntN(g.W), Y: rng.IntN(g.H)}
+			radius := 1 + rng.IntN(40)
+			c := cases[rng.IntN(len(cases))]
+			want, wantOK := g.Nearest(p, radius, c.ok)
+			got, gotOK := g.NearestOfKind(p, radius, c.kinds, c.ok)
+			if gotOK != wantOK || got != want {
+				t.Fatalf("wrap %v: nearest to %v within %d: told the kinds it found %v/%v, told nothing %v/%v",
+					wrap, p, radius, got, gotOK, want, wantOK)
+			}
+		}
+	}
+}
