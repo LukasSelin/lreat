@@ -80,12 +80,45 @@ func Anticipate(a, o *entity.Agent) float64 {
 // Mostly it is whoever they expect to enjoy, discounted by the walk;
 // sometimes it is a stranger, more often for agents who do not hold
 // tradition dear. Nobody goes to see somebody on the far side of the map.
+//
+// Only the stranger needs the crowd. Choosing whoever one would most enjoy
+// reads like a question about everybody standing near, and it is not: a
+// person one has never met is the same prospect as any other person one has
+// never met - the same guarded or open guess off one's own temperament -
+// so the best of all of them is simply the nearest of them. Only the people
+// this agent actually knows have to be weighed one by one, and there are
+// hardly any: a settlement of eighteen thousand averages a bond and a
+// third a head while the crowd within reach averages a hundred and fifty.
+//
+// So the crowd is gathered only when somebody is off to meet a stranger on
+// purpose, which is the one case that needs to count heads to pick one at
+// random. The draw that decides which case it is happens exactly where it
+// happened before, and only when there is somebody to meet at all, so a run
+// takes the same turnings it always did.
 func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
-	// Into the agent's own room rather than a fresh list each time: this
-	// is asked whenever anybody weighs going to see somebody, and in a
-	// crowd the list is the crowd. See entity.Agent.Company. Nothing
-	// leaves here but one person, so what the room holds afterwards is
-	// nobody's business.
+	// Nobody within reach is the answer that costs no luck. It has to be
+	// settled before the draw below and not after, or every agent alone in
+	// a field would draw a number it never used to draw and the whole run
+	// would go elsewhere. Asking the nearest is the same question as
+	// asking whether the crowd is empty, and it stops at the first person
+	// it finds.
+	if w.Neighbor(a, meetRadius) == nil {
+		return nil
+	}
+	explore := exploreBase + exploreRange*(1-a.Norms[belief.Tradition])
+	if a.Luck.Float64() < explore {
+		return stranger(a, w)
+	}
+	return preferred(a, w)
+}
+
+// stranger is somebody within reach at random, which is the one thing here
+// that needs the crowd itself: to draw one of them evenly is to know how
+// many there are.
+func stranger(a *entity.Agent, w *world.World) *entity.Agent {
+	// Into the agent's own room rather than a fresh list each time. See
+	// entity.Agent.Company. Nothing leaves here but one person, so what
+	// the room holds afterwards is nobody's business.
 	near := a.Company[:0]
 	w.Nearby(a.Pos, meetRadius, func(o *entity.Agent) bool {
 		if o != a {
@@ -101,19 +134,41 @@ func PickCompany(a *entity.Agent, w *world.World) *entity.Agent {
 	clear(near[len(near):cap(near)])
 	a.Company = near
 	if len(near) == 0 {
-		return nil
+		return nil // unreachable: somebody was within reach a moment ago
 	}
-	explore := exploreBase + exploreRange*(1-a.Norms[belief.Tradition])
-	if a.Luck.Float64() < explore {
-		return near[a.Luck.IntN(len(near))]
-	}
+	return near[a.Luck.IntN(len(near))]
+}
+
+// preferred is whom a would most like to see, worked out from the people a
+// knows and the nearest it does not, rather than from the whole crowd.
+//
+// The crowd used to be walked in order of birth and the best kept with a
+// strict better-than, so where two people were equally welcome the elder
+// was taken. That is kept here by settling ties on age directly, which
+// means the two halves of the search can be done in either order and give
+// the same person.
+func preferred(a *entity.Agent, w *world.World) *entity.Agent {
 	var best *entity.Agent
 	bestScore := math.Inf(-1)
-	for _, o := range near {
+	weigh := func(o *entity.Agent) {
 		s := Anticipate(a, o) - 0.01*float64(w.Grid.Dist(a.Pos, o.Pos))
-		if s > bestScore {
+		if s > bestScore || (s == bestScore && best != nil && o.ID < best.ID) {
 			best, bestScore = o, s
 		}
+	}
+	for i := range a.Bonds {
+		o := w.Find(a.Bonds[i].To)
+		if o == nil || o == a || w.Grid.Dist(a.Pos, o.Pos) > meetRadius {
+			continue
+		}
+		weigh(o)
+	}
+	// Everybody a has never met is the same prospect to it, so the best of
+	// them is the nearest of them, and the nearest is asked for directly.
+	if o := w.Closest(a.Pos, meetRadius, func(o *entity.Agent) bool {
+		return o != a && a.Look(o.ID) == nil
+	}); o != nil {
+		weigh(o)
 	}
 	return best
 }

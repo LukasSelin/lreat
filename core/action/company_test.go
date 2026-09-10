@@ -1,6 +1,9 @@
 package action
 
 import (
+	"fmt"
+	"math"
+	"math/rand/v2"
 	"testing"
 
 	"lreat/core/belief"
@@ -149,4 +152,81 @@ func TestWarmthChangesWhatCompanyIsWorth(t *testing.T) {
 	if Socialize.Expect(warm, w, other.Pos)[need.Belonging] <= Socialize.Expect(cold, w, other.Pos)[need.Belonging] {
 		t.Fatal("a warm agent should expect more from company than a cold one")
 	}
+}
+
+// byTheWholeCrowd is how the most welcome company used to be found: every
+// person within reach, in order of birth, the best kept with a strict
+// better-than so that ties fell to the elder.
+func byTheWholeCrowd(a *entity.Agent, w *world.World) *entity.Agent {
+	var best *entity.Agent
+	bestScore := math.Inf(-1)
+	w.Nearby(a.Pos, meetRadius, func(o *entity.Agent) bool {
+		if o == a {
+			return true
+		}
+		if s := Anticipate(a, o) - 0.01*float64(w.Grid.Dist(a.Pos, o.Pos)); s > bestScore {
+			best, bestScore = o, s
+		}
+		return true
+	})
+	return best
+}
+
+// preferred looks at the people it knows and the nearest it does not,
+// instead of at everybody standing near. It has to land on the same person
+// the whole crowd would have given - not merely somebody as welcome, but
+// the same one, since who is visited decides who befriends whom.
+//
+// The crowd is built by hand rather than lived into being, so that the
+// cases that could tell the two apart are all present: people standing on
+// one another, so that ties on welcome and on distance both happen; some
+// known and most not; bonds ranging from loathing to devotion; and some
+// bonds to people who have wandered out of reach or died, which the short
+// way has to skip and the long way never sees.
+func TestPreferredIsWhoTheWholeCrowdWouldGive(t *testing.T) {
+	w := world.New(5)
+	rng := rand.New(rand.NewPCG(19, 20))
+	var all []*entity.Agent
+	for i := 0; i < 80; i++ {
+		a := blank(w, "a")
+		a.Pos = entity.Pos{X: 20 + rng.IntN(9), Y: 8 + rng.IntN(9)}
+		w.Moved(a)
+		a.Temperament.Trust = rng.Float64()
+		all = append(all, a)
+	}
+	// A few standing well outside everybody's reach, to be bonded to and
+	// never met.
+	for i := 0; i < 6; i++ {
+		a := blank(w, "far")
+		a.Pos = entity.Pos{X: 60 + rng.IntN(5), Y: 30}
+		w.Moved(a)
+		all = append(all, a)
+	}
+	for _, a := range all {
+		for k := 0; k < rng.IntN(6); k++ {
+			o := all[rng.IntN(len(all))]
+			if o == a {
+				continue
+			}
+			b := entity.Bond{To: o.ID, Met: rng.IntN(3)}
+			b.Regard = rng.Float64()*2 - 1
+			b.Expect = rng.Float64()*2 - 1
+			a.Bonds = append(a.Bonds, b)
+		}
+	}
+	// A bond to somebody who is not in the world at all.
+	all[0].Bonds = append(all[0].Bonds, entity.Bond{To: entity.ID(9999), Met: 1, Expect: 1})
+	for _, a := range all {
+		want := byTheWholeCrowd(a, w)
+		if got := preferred(a, w); got != want {
+			t.Fatalf("%d would visit %v; the whole crowd says %v", a.ID, id(got), id(want))
+		}
+	}
+}
+
+func id(a *entity.Agent) string {
+	if a == nil {
+		return "nobody"
+	}
+	return fmt.Sprint(a.ID)
 }
