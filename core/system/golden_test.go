@@ -84,11 +84,22 @@ var golden = map[uint64]string{
 }
 
 // digest is the hash the golden numbers are of.
+//
+// Each tile is written out field by field, in the order and the form fmt
+// gives a Tile printed whole, so that where a field is kept - on the tile
+// or in a layer beside it, see Layers - is not part of what is hashed. It
+// was fmt's own rendering of the struct, and the numbers were taken on that;
+// this writes the same bytes, and the test proves it by not having moved.
 func digest(w *world.World) string {
 	h := sha256.New()
 	fmt.Fprint(h, fingerprint(w))
-	for i := range w.Grid.Tiles {
-		fmt.Fprintf(h, "%v", w.Grid.Tiles[i])
+	g := w.Grid
+	for i := range g.Tiles {
+		t := &g.Tiles[i]
+		fmt.Fprintf(h, "{%v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v}",
+			t.Terrain, t.Structure, t.Owner, t.Fertility, t.Rich, t.Wood, t.Wild, t.Fish,
+			t.Height, t.Flow, t.Drain, t.Bedrock, t.Sand, t.Clay, t.Plate, t.Formed,
+			t.Age, t.Fenced, t.Traffic)
 	}
 	fmt.Fprintf(h, "%d", w.Log.Len())
 	return hex.EncodeToString(h.Sum(nil))[:16]

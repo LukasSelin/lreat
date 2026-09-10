@@ -17,10 +17,19 @@ import (
 // walks of their own with only the arithmetic spread. If any draw ever
 // wandered into a spread pass, these hashes would part company on the
 // second run.
+//
+// The tile is written out field by field rather than printed whole, for the
+// same reason the golden digest in package system is: where a field is kept
+// is not what is being checked.
 func digest(w *World) string {
 	h := sha256.New()
-	for i := range w.Grid.Tiles {
-		fmt.Fprintf(h, "%v", w.Grid.Tiles[i])
+	g := w.Grid
+	for i := range g.Tiles {
+		t := &g.Tiles[i]
+		fmt.Fprintf(h, "{%v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v}",
+			t.Terrain, t.Structure, t.Owner, t.Fertility, t.Rich, t.Wood, t.Wild, t.Fish,
+			t.Height, t.Flow, t.Drain, t.Bedrock, t.Sand, t.Clay, t.Plate, t.Formed,
+			t.Age, t.Fenced, t.Traffic)
 	}
 	return hex.EncodeToString(h.Sum(nil))[:16]
 }
