@@ -88,7 +88,7 @@ func (w *World) Generate(cfg Config) {
 		t.Terrain = Forest
 		t.Wood = 0.6 + 0.4*w.RNG.Float64()
 		t.Wild = 0.6 + 0.4*w.RNG.Float64()
-		t.Standing() // the woods a map is made with are old woods
+		g.Standing(i) // the woods a map is made with are old woods
 	}
 
 	// Outcrops are where the soil has gone: high, steep ground the water runs

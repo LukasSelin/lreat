@@ -136,12 +136,12 @@ func (w *World) CatchUp(i int) {
 	days := w.Tick - 1 - c.Weathered
 	if growth > 0 || days > 0 {
 		fade := math.Pow(Fade, float64(max(0, days)))
-		g.eachIn(i, func(j int, t *Tile) {
+		g.eachIn(i, func(j int, _ *Tile) {
 			if days > 0 && g.Traffic[j] > 0 {
 				g.Traffic[j] *= fade
 			}
 			if growth > 0 {
-				t.Ripen(growth)
+				g.Ripen(j, growth)
 				g.Replenish(j, growth)
 			}
 		})

@@ -391,7 +391,7 @@ func bearing(a *entity.Agent, w *world.World) float64 {
 // and is worked as one - see bearing - but the crop stands on the strip it
 // was sown in, and it is cut strip by strip.
 func ripe(w *world.World, p entity.Pos) float64 {
-	return w.Grid.At(p).Along(ontology.Crop)
+	return w.Grid.Along(w.Grid.Index(p), ontology.Crop)
 }
 
 // cuttable reports whether the crop on a strip has come far enough to be
@@ -399,7 +399,7 @@ func ripe(w *world.World, p entity.Pos) float64 {
 // worth cutting once it is in ear, and that is a stage of the growing and
 // not a number kept here. See ontology.Crop for what a holding is for.
 func cuttable(w *world.World, p entity.Pos) bool {
-	return w.Grid.At(p).Reached(ontology.InEar)
+	return w.Grid.Reached(w.Grid.Index(p), ontology.InEar)
 }
 
 // plough reports whether open ground is worth breaking: soil the crop will
@@ -460,7 +460,6 @@ func fieldSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 
 // breakGround turns open ground beside a holding into another strip of it.
 func breakGround(a *entity.Agent, w *world.World) bool {
-	t := w.Grid.At(a.Pos)
 	if !plough(w, a.Pos) || len(a.Parcel) >= fieldTiles {
 		return false
 	}
@@ -469,7 +468,7 @@ func breakGround(a *entity.Agent, w *world.World) bool {
 	}
 	w.Grid.Turn(a.Pos, world.Field)
 	w.Grid.Claim(a.Pos, a.ID)
-	t.Sow() // broken ground, sown now, in ear within the quarter
+	w.Grid.Sow(w.Grid.Index(a.Pos)) // broken ground, sown now, in ear within the quarter
 	a.Parcel = append(a.Parcel, a.Pos)
 	return true
 }
@@ -503,7 +502,7 @@ var Clear = &Def{
 			}
 			w.Grid.Turn(a.Pos, world.Field)
 			w.Grid.Claim(a.Pos, a.ID)
-			t.Sow()
+			w.Grid.Sow(w.Grid.Index(a.Pos))
 			a.Field, a.HasField = a.Pos, true
 			a.Parcel = []entity.Pos{a.Pos}
 		}
@@ -541,7 +540,7 @@ var Farm = &Def{
 		// What comes off the strip is what has grown on it since it was last
 		// cut, and cutting it leaves bare ground behind.
 		yield := farmYield(a, w, bearing(a, w)) * ripe(w, a.Pos)
-		w.Grid.At(a.Pos).Sow()
+		w.Grid.Sow(w.Grid.Index(a.Pos))
 		// A tool makes the work go further, and wears with it.
 		if a.Inventory[entity.Tools] >= 0.5 {
 			yield *= toolFarming

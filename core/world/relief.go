@@ -683,7 +683,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		held := t.Structure != None || t.Owner != 0
 		switch {
 		case wet[i] && !t.Wet() && !held:
-			t.Terrain, t.Wood, t.Wild, t.Age = Water, 0, 0, 0
+			t.Terrain, t.Wood, t.Wild, g.Age[i] = Water, 0, 0, 0
 			t.Fish = 0.7 + 0.3*rng.Float64()
 		case !wet[i] && t.Wet():
 			t.Terrain, t.Fish = Grass, 0
@@ -817,7 +817,7 @@ func (g *Grid) flood(share float64, rng interface{ Float64() float64 }) {
 	g.sea = quantile(heights, share)
 	for i := range g.Tiles {
 		if t := &g.Tiles[i]; g.underSea(i) {
-			t.Terrain, t.Wood, t.Wild, t.Age = Water, 0, 0, 0
+			t.Terrain, t.Wood, t.Wild, g.Age[i] = Water, 0, 0, 0
 			t.Fish = 0.7 + 0.3*rng.Float64()
 		}
 	}

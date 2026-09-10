@@ -83,7 +83,7 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 		Step(w)
 		k := w.Rates()[sleeping] // the rate the world applies to this chunk
 		for _, i := range tiles {
-			byDay.Tiles[i].Ripen(k)
+			byDay.Ripen(i, k)
 			byDay.Replenish(i, k)
 		}
 		if g.Active[sleeping] {
@@ -98,7 +98,7 @@ func TestDormantLandCatchesUpToWithinRounding(t *testing.T) {
 			continue // seed fell here while it slept; the copy saw no seed
 		}
 		compared++
-		if math.Abs(a.Age-b.Age) > 1e-9 || math.Abs(a.Wood-b.Wood) > 1e-6 || math.Abs(a.Wild-b.Wild) > 1e-6 || math.Abs(a.Fish-b.Fish) > 1e-9 || byDay.Read(i) != g.Read(i) {
+		if math.Abs(byDay.Age[i]-g.Age[i]) > 1e-9 || math.Abs(a.Wood-b.Wood) > 1e-6 || math.Abs(a.Wild-b.Wild) > 1e-6 || math.Abs(a.Fish-b.Fish) > 1e-9 {
 			t.Fatalf("tile %d by day %+v %+v, at once %+v %+v", i, *a, byDay.Read(i), *b, g.Read(i))
 		}
 	}

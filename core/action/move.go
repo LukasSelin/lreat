@@ -206,7 +206,7 @@ var moves = map[string]move{
 			if t.Wood < 0.1 {
 				w.Grid.Turn(p, world.Grass)
 				t.Wood = 0
-				t.Sow() // the stand is gone; what comes back starts from nothing
+				w.Grid.Sow(w.Grid.Index(p)) // the stand is gone; what comes back starts from nothing
 			}
 		},
 	},

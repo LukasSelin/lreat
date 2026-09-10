@@ -32,44 +32,48 @@ var alive = func() (a [Tavern + 1][Rock + 1]bool) {
 // something alive, and ClassOf says which terrain that is.
 func (t *Tile) Alive() bool { return alive[t.Structure][t.Terrain] }
 
-// Along is how far through process p what stands here has come, in [0,1].
-// It is the reading a stage is asked for against, and it is p's share of
-// the tile's one age: a wood is coming on as brush and as timber at once,
-// and is far further along the first than the second.
-func (t *Tile) Along(p *ontology.Process) float64 {
-	return t.Grown(p.Full())
+// The age of what stands on a tile is kept in a layer beside the map - see
+// Layers - so what asks after it asks the grid, by the tile's index.
+
+// Along is how far through process p what stands on tile i has come, in
+// [0,1]. It is the reading a stage is asked for against, and it is p's
+// share of the tile's one age: a wood is coming on as brush and as timber
+// at once, and is far further along the first than the second.
+func (g *Grid) Along(i int, p *ontology.Process) float64 {
+	return g.Grown(i, p.Full())
 }
 
-// Reached reports whether what stands here has come as far as ph. It is
-// what lets an act ask for a stage - a harvest wants a field in ear - and
-// it is written as the share of the whole rather than as an age in ticks
-// because the two disagree in the last bit, and one field flipping on one
-// tick re-rolls every draw in the run after it.
-func (t *Tile) Reached(ph ontology.Phase) bool {
-	return t.Along(ph.Process) >= ph.Share()
+// Reached reports whether what stands on tile i has come as far as ph. It
+// is what lets an act ask for a stage - a harvest wants a field in ear -
+// and it is written as the share of the whole rather than as an age in
+// ticks because the two disagree in the last bit, and one field flipping on
+// one tick re-rolls every draw in the run after it.
+func (g *Grid) Reached(i int, ph ontology.Phase) bool {
+	return g.Along(i, ph.Process) >= ph.Share()
 }
 
-// Grown is how far along what grows here is, in [0,1], against the time such
-// a thing takes to come on. It only rises: a wood that has made its timber
-// holds it, and a stand does not go over and take the wood with it. What
-// starts it again is the ground being cleared and something else sown on it.
-func (t *Tile) Grown(full float64) float64 {
+// Grown is how far along what grows on tile i is, in [0,1], against the
+// time such a thing takes to come on. It only rises: a wood that has made
+// its timber holds it, and a stand does not go over and take the wood with
+// it. What starts it again is the ground being cleared and something else
+// sown on it.
+func (g *Grid) Grown(i int, full float64) float64 {
 	if full <= 0 {
 		return 1
 	}
-	return clamp01(t.Age / full)
+	return clamp01(g.Age[i] / full)
 }
 
-// Sow starts whatever is to grow here over: the ground is bare, and what
-// stands on it from now on is this year's, not last year's. It is called
-// wherever the terrain changes hands - a wood seeded or planted, a wood
-// felled to a clearing, a strip broken, a strip harvested, a road laid over
-// any of them - so that nothing inherits the age of what it replaced.
-func (t *Tile) Sow() { t.Age = 0 }
+// Sow starts whatever is to grow on tile i over: the ground is bare, and
+// what stands on it from now on is this year's, not last year's. It is
+// called wherever the terrain changes hands - a wood seeded or planted, a
+// wood felled to a clearing, a strip broken, a strip harvested, a road laid
+// over any of them - so that nothing inherits the age of what it replaced.
+func (g *Grid) Sow(i int) { g.Age[i] = 0 }
 
-// Standing puts a tile's growth at full, for ground that is meant to have
+// Standing puts tile i's growth at full, for ground that is meant to have
 // been there all along: the woods a map is made with are old woods.
-func (t *Tile) Standing() { t.Age = ontology.Timbering.Full() }
+func (g *Grid) Standing(i int) { g.Age[i] = ontology.Timbering.Full() }
 
 // growing is which processes run on each kind of ground, worked out once
 // in the same way as alive. Asking the ontology gathers them afresh, and
@@ -118,7 +122,8 @@ func grown(have, ceiling, by float64) float64 {
 //
 // It is the day's pass with k a day's weather, and the catching up of a
 // chunk that slept with k a season's; see active.go.
-func (t *Tile) Ripen(k float64) {
+func (g *Grid) Ripen(i int, k float64) {
+	t := &g.Tiles[i]
 	ps := growing[t.Structure][t.Terrain]
 	if len(ps) == 0 {
 		return
@@ -126,13 +131,13 @@ func (t *Tile) Ripen(k float64) {
 	// A stand ages by the weather it gets, not by the calendar: what a
 	// winter gives it is nothing, and that is the same clock everything
 	// else growing keeps.
-	t.Age += k
+	g.Age[i] += k
 	for _, f := range ps {
 		if f.p.Rate == 0 || f.stock == nil {
 			continue
 		}
 		s := f.stock(t)
-		*s = grown(*s, t.Along(f.p), f.p.Rate*k)
+		*s = grown(*s, g.Along(i, f.p), f.p.Rate*k)
 	}
 }
 
@@ -154,7 +159,8 @@ func (t *Tile) Ripen(k float64) {
 // take. That last one is the reading disagreeing with the eye, and it is the
 // simulation's own answer rather than a picture of one: what this map shades
 // is what there is to be had.
-func (t *Tile) Green() float64 {
+func (g *Grid) Green(i int) float64 {
+	t := &g.Tiles[i]
 	ps := growing[t.Structure][t.Terrain]
 	if len(ps) == 0 {
 		return 0
@@ -165,7 +171,7 @@ func (t *Tile) Green() float64 {
 			sum += clamp01(*f.stock(t))
 			continue
 		}
-		sum += t.Along(f.p)
+		sum += g.Along(i, f.p)
 	}
 	return sum / float64(len(ps))
 }

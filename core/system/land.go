@@ -75,12 +75,12 @@ func Land(w *world.World) {
 	// spends itself on once the country is bigger than one settlement: it
 	// grows with the ground that is awake rather than with the people, so
 	// the more of the world is lived in the more this is the day.
-	g.EachActiveOver(nil, func(i, c int, t *world.Tile) {
+	g.EachActiveOver(nil, func(i, c int, _ *world.Tile) {
 		if g.Traffic[i] > 0 {
 			g.Traffic[i] *= world.Fade
 		}
 		k := rates[c]
-		t.Ripen(k)
+		g.Ripen(i, k)
 		g.Replenish(i, k)
 	})
 	g.Stamp(w.Growing, w.Tick)
@@ -105,14 +105,15 @@ func Land(w *world.World) {
 		// Seed falls in the growing season, not on frozen ground.
 		if w.RNG.Float64() < reseedChance*w.GrowthAt(p) {
 			g.Turn(p, world.Forest)
+			i := g.Index(p)
 			t.Wood, t.Wild = 0, 0
-			t.Sow() // a seedling wood, with nothing on it yet
+			g.Sow(i) // a seedling wood, with nothing on it yet
 			// Seed that falls on sleeping ground is owed nothing of the
 			// growing weather the ground slept through, but that ground
 			// will be given all of it when it wakes. So the seedling is
 			// sown that much before its time, and comes out at nought.
-			if c := g.ChunkOf(g.Index(p)); !g.Awake(c) {
-				t.Age -= w.Growing[c] - g.Chunks[c].Grown
+			if c := g.ChunkOf(i); !g.Awake(c) {
+				g.Age[i] -= w.Growing[c] - g.Chunks[c].Grown
 			}
 		}
 	}

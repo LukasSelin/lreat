@@ -77,11 +77,6 @@ type Tile struct {
 	Plate  uint8
 	Formed uint8
 
-	// Age is how much growing weather what stands on this tile has had, in
-	// growing ticks. It is what makes a thicket different from a wood and a
-	// sown strip different from one in ear; see grow.go.
-	Age float64
-
 	// Fenced is whether this tile lies inside a fence: a strip of a block of
 	// worked ground large enough that somebody hedged it. It is not a
 	// structure and not a terrain - the ground under it is still field, and
@@ -438,7 +433,7 @@ func (g *Grid) Raze(p entity.Pos) bool {
 	}
 	if t.Terrain == Field {
 		g.Turn(p, Grass)
-		t.Age, t.Fenced = 0, false // the crop and the hedge go with the claim
+		g.Age[g.Index(p)], t.Fenced = 0, false // the crop and the hedge go with the claim
 	}
 	g.Build(p, None)
 	g.Claim(p, 0)

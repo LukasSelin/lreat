@@ -15,7 +15,7 @@ import (
 func forestAt(w *world.World, p entity.Pos) *world.Tile {
 	t := w.Grid.At(p)
 	t.Terrain, t.Wood, t.Wild = world.Forest, 0.1, 0.1
-	t.Standing() // a wood that has stood a while, not a planting
+	w.Grid.Standing(w.Grid.Index(p)) // a wood that has stood a while, not a planting
 	return t
 }
 

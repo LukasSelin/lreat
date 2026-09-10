@@ -62,7 +62,7 @@ func TestAPlantedStandComesOnBrushFirst(t *testing.T) {
 	p := entity.Pos{X: w.MarketPos.X, Y: w.MarketPos.Y}
 	tile := w.Grid.At(p)
 	tile.Terrain, tile.Structure, tile.Wood, tile.Wild = world.Forest, world.None, 0, 0
-	tile.Sow()
+	w.Grid.Sow(w.Grid.Index(p))
 
 	for i := 0; i < 20; i++ {
 		Land(w)

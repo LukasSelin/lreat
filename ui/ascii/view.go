@@ -172,7 +172,7 @@ var Views = [...]Reading{
 			if s.t.Terrain == world.Water {
 				return Cell{Ch: '~', Color: Water}
 			}
-			return shade(s, Crop, clamp(s.t.Green()))
+			return shade(s, Crop, clamp(s.g.Green(s.i)))
 		}},
 
 	// Where people actually walk. Nobody plans this and nothing draws it: it

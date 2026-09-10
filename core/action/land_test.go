@@ -43,7 +43,7 @@ func shore(t *testing.T) (*world.World, *entity.Agent) {
 func season(w *world.World, ticks float64) {
 	for i := range w.Grid.Tiles {
 		if t := &w.Grid.Tiles[i]; t.Alive() {
-			t.Age += ticks
+			w.Grid.Age[i] += ticks
 		}
 	}
 }
@@ -193,12 +193,12 @@ func TestPlantingMakesAForest(t *testing.T) {
 	if tile := w.Grid.At(a.Pos); tile.Wild > 0 || tile.Wood > 0 {
 		t.Fatalf("a planting gives %v wild and %v timber the day it is put in", tile.Wild, tile.Wood)
 	}
-	tile := w.Grid.At(a.Pos)
+	i := w.Grid.Index(a.Pos)
 	season(w, ontology.Brush.Full())
-	if tile.Grown(ontology.Brush.Full()) < 1 {
+	if w.Grid.Grown(i, ontology.Brush.Full()) < 1 {
 		t.Fatal("a stand that has stood a brush's lifetime should be grown")
 	}
-	if tile.Grown(ontology.Timbering.Full()) >= 1 {
+	if w.Grid.Grown(i, ontology.Timbering.Full()) >= 1 {
 		t.Fatal("timber should take longer than brush to come on")
 	}
 }

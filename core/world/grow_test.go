@@ -35,7 +35,7 @@ func TestLivingGroundMatchesTheOntology(t *testing.T) {
 func TestAStandComesOnAndHolds(t *testing.T) {
 	g := NewGrid(3, 3)
 	p := entity.Pos{X: 1, Y: 1}
-	tile := g.At(p)
+	tile, i := g.At(p), g.Index(p)
 	if tile.Alive() {
 		t.Fatal("open grass carries a standing crop")
 	}
@@ -43,22 +43,22 @@ func TestAStandComesOnAndHolds(t *testing.T) {
 	if !tile.Alive() {
 		t.Fatal("a wood carries nothing growing")
 	}
-	if tile.Grown(ontology.Timbering.Full()) != 0 {
+	if g.Grown(i, ontology.Timbering.Full()) != 0 {
 		t.Fatal("a stand sown this tick is already grown")
 	}
-	tile.Age = ontology.Brush.Full()
-	if tile.Grown(ontology.Brush.Full()) != 1 {
+	g.Age[i] = ontology.Brush.Full()
+	if g.Grown(i, ontology.Brush.Full()) != 1 {
 		t.Fatal("brush that has had its years is not grown")
 	}
-	if tile.Grown(ontology.Timbering.Full()) >= 1 {
+	if g.Grown(i, ontology.Timbering.Full()) >= 1 {
 		t.Fatal("timber comes on as fast as brush")
 	}
-	tile.Age = 10 * ontology.Timbering.Full()
-	if tile.Grown(ontology.Timbering.Full()) != 1 {
+	g.Age[i] = 10 * ontology.Timbering.Full()
+	if g.Grown(i, ontology.Timbering.Full()) != 1 {
 		t.Fatal("an old wood is more than grown")
 	}
-	tile.Sow()
-	if tile.Grown(ontology.Timbering.Full()) != 0 {
+	g.Sow(i)
+	if g.Grown(i, ontology.Timbering.Full()) != 0 {
 		t.Fatal("sowing did not start the stand over")
 	}
 }
@@ -68,8 +68,8 @@ func TestAStandComesOnAndHolds(t *testing.T) {
 func TestFoundingWoodsAreOldWoods(t *testing.T) {
 	g := New(2).Grid
 	for i := range g.Tiles {
-		if t2 := &g.Tiles[i]; t2.Terrain == Forest && t2.Grown(ontology.Timbering.Full()) < 1 {
-			t.Fatalf("a founding wood is only %.2f grown", t2.Grown(ontology.Timbering.Full()))
+		if g.Tiles[i].Terrain == Forest && g.Grown(i, ontology.Timbering.Full()) < 1 {
+			t.Fatalf("a founding wood is only %.2f grown", g.Grown(i, ontology.Timbering.Full()))
 		}
 	}
 }
@@ -81,48 +81,56 @@ func TestFoundingWoodsAreOldWoods(t *testing.T) {
 // how far along it is. Both are the number an act already reads before it
 // takes anything.
 func TestGreenReadsWhatIsStandingAndNotWhatCouldBe(t *testing.T) {
-	bare := &Tile{Terrain: Grass}
-	if bare.Green() != 0 {
-		t.Errorf("open grass reads %v; it carries no crop anybody can take", bare.Green())
+	// One tile of each kind of ground, side by side on a strip of map.
+	g := NewGrid(7, 1)
+	kind := func(i int, terrain Terrain, wood, wild float64) int {
+		g.Tiles[i].Terrain = terrain
+		g.Tiles[i].Wood, g.Tiles[i].Wild = wood, wild
+		return i
 	}
-	water := &Tile{Terrain: Water}
-	if water.Green() != 0 {
-		t.Errorf("open water reads %v", water.Green())
+	bare := kind(0, Grass, 0, 0)
+	if g.Green(bare) != 0 {
+		t.Errorf("open grass reads %v; it carries no crop anybody can take", g.Green(bare))
+	}
+	water := kind(1, Water, 0, 0)
+	if g.Green(water) != 0 {
+		t.Errorf("open water reads %v", g.Green(water))
 	}
 
 	// A wood with everything standing, and the same wood gathered out. It is
 	// a wood on both days, and only one of them has anything on it.
-	wood := &Tile{Terrain: Forest, Wood: 1, Wild: 1}
-	wood.Standing()
-	if wood.Green() != 1 {
-		t.Errorf("a full wood reads %v, want 1", wood.Green())
+	wood := kind(2, Forest, 1, 1)
+	g.Standing(wood)
+	if g.Green(wood) != 1 {
+		t.Errorf("a full wood reads %v, want 1", g.Green(wood))
 	}
-	felled := &Tile{Terrain: Forest, Wood: 0, Wild: 0}
-	felled.Standing()
-	if felled.Green() != 0 {
-		t.Errorf("a wood gathered to nothing reads %v; the count is what a taking draws down", felled.Green())
+	felled := kind(3, Forest, 0, 0)
+	g.Standing(felled)
+	if g.Green(felled) != 0 {
+		t.Errorf("a wood gathered to nothing reads %v; the count is what a taking draws down", g.Green(felled))
 	}
 
 	// A strip keeps no count: what it has to give is how far it has come, so
 	// it is bare the day it is sown and full when it is in ear.
-	sown := &Tile{Terrain: Field}
-	sown.Sow()
-	if sown.Green() != 0 {
-		t.Errorf("a strip sown this morning reads %v, want 0", sown.Green())
+	sown := kind(4, Field, 0, 0)
+	g.Sow(sown)
+	if g.Green(sown) != 0 {
+		t.Errorf("a strip sown this morning reads %v, want 0", g.Green(sown))
 	}
-	ripe := &Tile{Terrain: Field}
-	ripe.Age = ontology.Crop.Full()
-	if ripe.Green() != 1 {
-		t.Errorf("a strip in ear reads %v, want 1", ripe.Green())
+	ripe := kind(5, Field, 0, 0)
+	g.Age[ripe] = ontology.Crop.Full()
+	if g.Green(ripe) != 1 {
+		t.Errorf("a strip in ear reads %v, want 1", g.Green(ripe))
 	}
-	if !(ripe.Green() > sown.Green()) {
+	if !(g.Green(ripe) > g.Green(sown)) {
 		t.Error("a strip in ear should read greener than one just sown")
 	}
 
 	// A house on ground that used to grow something reads as nothing: what
 	// is under a roof is not a crop.
-	roofed := &Tile{Terrain: Grass, Structure: House}
-	if roofed.Green() != 0 {
-		t.Errorf("a house reads %v", roofed.Green())
+	roofed := kind(6, Grass, 0, 0)
+	g.Tiles[roofed].Structure = House
+	if g.Green(roofed) != 0 {
+		t.Errorf("a house reads %v", g.Green(roofed))
 	}
 }

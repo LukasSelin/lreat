@@ -29,7 +29,7 @@ func digest(w *World) string {
 		fmt.Fprintf(h, "{%v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v}",
 			t.Terrain, t.Structure, t.Owner, g.Fertility[i], g.Rich[i], t.Wood, t.Wild, t.Fish,
 			t.Height, t.Flow, t.Drain, t.Bedrock, t.Sand, t.Clay, t.Plate, t.Formed,
-			t.Age, t.Fenced, g.Traffic[i])
+			g.Age[i], t.Fenced, g.Traffic[i])
 	}
 	return hex.EncodeToString(h.Sum(nil))[:16]
 }

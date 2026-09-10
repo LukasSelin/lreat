@@ -170,7 +170,7 @@ var PlantTrees = &Def{
 		// which is the whole of what the act is for.
 		w.Grid.Turn(a.Pos, world.Forest)
 		t.Wood, t.Wild = 0, 0
-		t.Sow()
+		w.Grid.Sow(w.Grid.Index(a.Pos))
 		a.Needs.Add(need.Esteem, 0.02)
 		a.Needs.Add(need.Actualization, 0.02)
 	},
