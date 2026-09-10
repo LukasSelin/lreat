@@ -579,6 +579,7 @@ func (v *view) choose(id entity.ID) {
 var palette = map[ascii.Color]tcell.Style{
 	ascii.Default:     tcell.StyleDefault,
 	ascii.Water:       tcell.StyleDefault.Foreground(tcell.ColorBlue),
+	ascii.Ice:         tcell.StyleDefault.Foreground(tcell.PaletteColor(195)),
 	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),
 	ascii.FieldFenced: tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
 	ascii.House:       tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),

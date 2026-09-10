@@ -124,6 +124,9 @@ func (w *World) Erode() {
 	// dry shoulder may now be damp enough to hold a wood, and what the water
 	// has cut into may not.
 	g.readWoods()
+	// The coast has moved, so the ice on it has: sea that was land is frozen
+	// if it is cold enough, and ice that is no longer sea is water again.
+	g.freeze()
 	g.Recount() // the water has moved, and the woods with it
 }
 
