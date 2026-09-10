@@ -69,19 +69,19 @@ func Land(w *world.World) {
 	// and the first came first, but neither reads what the other writes,
 	// so one walk over the awake ground does both and it is the same day.
 	//
-	// Nothing here reads a tile but the one it was handed, writes anything
-	// but that tile, or draws the world's chance, so the walk is spread over
-	// goroutines - see world.EachActiveOver. It is the largest thing a day
-	// spends itself on once the country is bigger than one settlement: it
-	// grows with the ground that is awake rather than with the people, so
-	// the more of the world is lived in the more this is the day.
-	g.EachActiveOver(nil, func(i, c int, _ *world.Tile) {
-		if g.Traffic[i] > 0 {
-			g.Traffic[i] *= world.Fade
-		}
-		k := rates[c]
-		g.Ripen(i, k)
-		g.Replenish(i, k)
+	// The walk takes the ground a row of a chunk at a time and does each
+	// row as loops over the layers - the wear, then what grows, then what
+	// comes back - rather than a tile at a time; see world.Grow, which is
+	// Ripen and Replenish tile by tile to the last bit. Nothing in it reads
+	// a tile's numbers but that tile's, writes any but those, or draws the
+	// world's chance, so the rows are spread over goroutines - see
+	// world.EachActiveRow. It is the largest thing a day spends itself on
+	// once the country is bigger than one settlement: it grows with the
+	// ground that is awake rather than with the people, so the more of the
+	// world is lived in the more this is the day.
+	g.EachActiveRow(nil, func(lo, hi, c int) {
+		g.FadeWear(lo, hi, world.Fade)
+		g.Grow(lo, hi, rates[c])
 	})
 	g.Stamp(w.Growing, w.Tick)
 	// The hedges are read off the fields as they now stand, so a strip broken

@@ -76,11 +76,7 @@ func (g *Grid) Tread(p entity.Pos, load float64) {
 // Weather fades every tile's wear by one tick's worth, on the ground that
 // is awake; ground asleep has no wear, having never been crossed.
 func (g *Grid) Weather() {
-	g.EachActive(nil, func(i, _ int, _ *Tile) {
-		if g.Traffic[i] > 0 {
-			g.Traffic[i] *= Fade
-		}
-	})
+	g.EachActiveRow(nil, func(lo, hi, _ int) { g.FadeWear(lo, hi, Fade) })
 }
 
 // Draw is the case for laying a road on p: what people walk here, plus a

@@ -136,13 +136,12 @@ func (w *World) CatchUp(i int) {
 	days := w.Tick - 1 - c.Weathered
 	if growth > 0 || days > 0 {
 		fade := math.Pow(Fade, float64(max(0, days)))
-		g.eachIn(i, func(j int, _ *Tile) {
-			if days > 0 && g.Traffic[j] > 0 {
-				g.Traffic[j] *= fade
+		g.rowsIn(i, func(lo, hi int) {
+			if days > 0 {
+				g.FadeWear(lo, hi, fade)
 			}
 			if growth > 0 {
-				g.Ripen(j, growth)
-				g.Replenish(j, growth)
+				g.Grow(lo, hi, growth)
 			}
 		})
 	}
@@ -213,6 +212,17 @@ func (g *Grid) EachActive(only func(c int) bool, f func(i, c int, t *Tile)) {
 				}
 			}
 		}
+	}
+}
+
+// rowsIn hands f each row of chunk c as the run of tile indices [lo, hi)
+// it takes up: a chunk is a square of a row-major map, so its ground is a
+// run per row and not one run.
+func (g *Grid) rowsIn(c int, f func(lo, hi int)) {
+	ch := &g.Chunks[c]
+	for y := ch.Y0; y < ch.Y0+ch.H; y++ {
+		lo := y*g.W + ch.X0
+		f(lo, lo+ch.W)
 	}
 }
 
@@ -294,7 +304,9 @@ const spreadFrom = 4
 // order the world's chance is drawn in is a fact about the settlement, and
 // this order is not a fact about anything. A pass that cannot keep to that
 // belongs in EachActive, which is most of them; two keep to it, and they are
-// the two the ground costs most in. See parallel.go.
+// among the passes the ground costs most in. The day's own pass over the
+// ground keeps to it too, and takes the ground a row of a chunk at a time
+// rather than a tile at a time: see EachActiveRow. See parallel.go.
 //
 // only, where it is given, is asked from several goroutines and must be safe
 // to ask that way.
@@ -319,6 +331,40 @@ func (g *Grid) EachActiveOver(only func(c int) bool, f func(i, c int, t *Tile)) 
 			for i := row + ch.X0; i < row+ch.X0+ch.W; i++ {
 				f(i, c, &g.Tiles[i])
 			}
+		}
+	})
+}
+
+// EachActiveRow is EachActiveOver for a pass that works on runs of tiles
+// rather than on tiles: it hands f every row of every awake chunk that
+// only admits, as the run of tile indices [lo, hi) and the chunk it is in.
+// The rows are spread over goroutines a chunk to each where enough of the
+// ground is awake to be worth it, and taken chunk by chunk where it is not;
+// the order is not kept either way, so f must be a pass that does not care
+// - one that draws no chance, reads what it likes, and writes only the
+// layers at [lo, hi). That is the day's pass over the ground: see
+// system.Land, and Grow and FadeWear in pass.go.
+func (g *Grid) EachActiveRow(only func(c int) bool, f func(lo, hi, c int)) {
+	awake := 0
+	for c := range g.Chunks {
+		if g.Awake(c) && (only == nil || only(c)) {
+			awake++
+		}
+	}
+	workers := 1
+	if awake >= spreadFrom {
+		workers = WorkersFor(awake)
+	}
+	InParallel(len(g.Chunks), workers, func(c, _ int) {
+		if !g.Awake(c) || (only != nil && !only(c)) {
+			return
+		}
+		// The rows of the chunk, as rowsIn hands them out, written out here
+		// so that a day makes no closure per chunk to hand them on with.
+		ch := &g.Chunks[c]
+		for y := ch.Y0; y < ch.Y0+ch.H; y++ {
+			lo := y*g.W + ch.X0
+			f(lo, lo+ch.W, c)
 		}
 	})
 }
