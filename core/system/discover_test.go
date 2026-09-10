@@ -9,6 +9,7 @@ import (
 	"lreat/core/entity"
 	"lreat/core/event"
 	"lreat/core/need"
+	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
@@ -94,40 +95,55 @@ func TestAThinForestByARiverTeachesFishing(t *testing.T) {
 	}
 }
 
-func TestWornFieldsTeachIrrigation(t *testing.T) {
+// Irrigation answers fields the river does not reach. It used to answer
+// fields gone poor, which is a thing this world does not do - fallow puts
+// fertility back faster than farming takes it, so a settlement's fields sit
+// at 0.94 to 1.00 of what the ground can hold for the whole of a run, and
+// the condition was unreachable from the day it was written. See fieldsDry.
+func TestFieldsOutOfTheRiversReachTeachIrrigation(t *testing.T) {
 	w := pressured(43)
 	n := 0
 	for i := range w.Grid.Tiles {
 		p := entity.Pos{X: i % w.Grid.W, Y: i / w.Grid.W}
 		t := &w.Grid.Tiles[i]
 		if t.Terrain == world.Grass && entity.Dist(p, w.MarketPos) < 5 && n < 4 {
-			t.Terrain, t.Fertility, t.Rich = world.Field, 0.15, 0.6
+			// Good soil, standing well above the water: nothing wrong with
+			// this ground but that the river cannot get to it.
+			t.Terrain, t.Fertility, t.Rich = world.Field, 0.9, 0.9
+			t.Drain = world.FloodDepth
 			n++
 		}
 	}
 	wanting(w)
 	insist(w)
 	if !w.Has("irrigation") {
-		t.Fatal("worn fields near the market should teach irrigation")
+		t.Fatal("dry fields near the market should teach irrigation")
 	}
 	if w.ReachFloor[action.Index(action.Irrigate)] < action.Opened {
 		t.Fatal("irrigation should open irrigate to everyone")
 	}
 }
 
+// Forestry answers the settlement having cleared the woods it was founded
+// among - its own ground, against the country at large. It used to ask
+// whether the map had lost two fifths of its forest, which one settlement
+// cannot do: over sixty years the whole-map share bottomed out between 0.61
+// and 1.00 against a bar of 0.60. So the woods cleared here are the ones
+// around the market, which is where a settlement actually cuts.
 func TestClearedWoodsTeachForestry(t *testing.T) {
 	w := pressured(44)
 	cleared := 0
 	for i := range w.Grid.Tiles {
-		if w.Grid.Tiles[i].Terrain == world.Forest && float64(cleared) < 0.5*float64(w.Forest0) {
-			w.Grid.Turn(w.Grid.PosOf(i), world.Grass)
+		p := w.Grid.PosOf(i)
+		if w.Grid.Tiles[i].Terrain == world.Forest && entity.Dist(p, w.MarketPos) <= nearMarket {
+			w.Grid.Turn(p, world.Grass)
 			cleared++
 		}
 	}
 	wanting(w)
 	insist(w)
 	if !w.Has("forestry") {
-		t.Fatalf("clearing half the forest should teach forestry (forest0 %d, cleared %d)", w.Forest0, cleared)
+		t.Fatalf("clearing the woods around the market should teach forestry (cleared %d)", cleared)
 	}
 	if w.Mods.Regrowth <= 1 {
 		t.Fatal("forestry should make the land come back faster")
@@ -198,5 +214,30 @@ func TestADiscoveryNamesWhoeverFeltItWorst(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("no discovery named the person it happened to")
+	}
+}
+
+// Fields do not wear, and this is the test that says so, because it is the
+// reason irrigation asks what it asks. Fallow puts fertility back toward
+// what the ground can hold faster than farming takes it out, so a worked
+// field sits near its own ceiling for the whole of a run - which is why a
+// condition asking for fields gone poor was asking for a thing that does
+// not happen here.
+//
+// If the land is ever made to push back, this test is the one that should
+// fail first, and the condition it justifies should be looked at again.
+func TestFieldsDoNotWearOut(t *testing.T) {
+	w := fitWorld(61)
+	populate(w, 20)
+	Run(w, 30*clock.Year)
+
+	worn, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) && t.Rich > 0 },
+		func(t *world.Tile) float64 { return t.Fertility / t.Rich })
+	if n < 3 {
+		t.Skipf("only %d fields near the market; nothing to read", n)
+	}
+	if worn < 0.9 {
+		t.Fatalf("fields stand at %.2f of what the ground can hold after thirty years; they used to stand near 1.00, "+
+			"and if the land now pushes back, fieldsDry and the comment on it want revisiting", worn)
 	}
 }

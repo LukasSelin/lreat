@@ -40,68 +40,167 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  208   159     32    108     10 |  0.65  0.58  0.43  0.06  0.13 |  1.00
+   1  105   138     29     71      9 |  0.64  0.58  0.40  0.05  0.12 |  0.99
    2   96   262     26     32     74 |  0.57  0.52  0.46  0.20  0.02 |  1.00
    3  141   402     18     50    140 |  0.66  0.57  0.49  0.19  0.10 |  1.00
-   4   38   135     36     18     17 |  0.48  0.58  0.54  0.15  0.17 |  0.94
+   4   44   156     33     26     11 |  0.51  0.60  0.57  0.16  0.13 |  0.96
    5   35   174     24     20     11 |  0.58  0.49  0.61  0.19  0.00 |  0.99
-   6  139   289     52     47     24 |  0.65  0.56  0.52  0.15  0.05 |  1.00
-   7  213   302     32     89     55 |  0.62  0.52  0.32  0.04  0.03 |  1.00
-   8   38   131     22     24     12 |  0.55  0.55  0.48  0.29  0.08 |  1.00
+   6  175   330     29     86     38 |  0.69  0.64  0.46  0.21  0.06 |  1.00
+   7  248   297     41    104     54 |  0.62  0.50  0.36  0.04  0.02 |  0.99
+   8   76   134     16     24     26 |  0.56  0.53  0.54  0.43  0.10 |  1.00
    9  198   210     22     22     61 |  0.68  0.48  0.56  0.23  0.14 |  1.00
-  10  593   309     28    102    134 |  0.66  0.55  0.52  0.29  0.08 |  1.00
+  10  626   299     27     90    151 |  0.66  0.55  0.55  0.30  0.09 |  1.00
   11   53   171     34     13     48 |  0.72  0.58  0.55  0.26  0.20 |  1.00
   12   98   209     39     38     28 |  0.62  0.56  0.41  0.19  0.07 |  1.00
-  13  413   307     38    215    128 |  0.62  0.58  0.34  0.07  0.03 |  1.00
-  14  183   253     33     57    178 |  0.65  0.51  0.53  0.27  0.02 |  1.00
-  15  156   306     29     19    106 |  0.61  0.56  0.63  0.26  0.13 |  1.00
+  13  283   273     34    149    115 |  0.63  0.58  0.29  0.07  0.05 |  0.98
+  14  280   327     35     95    181 |  0.60  0.54  0.55  0.24  0.02 |  1.00
+  15  174   282     40     28     90 |  0.67  0.60  0.66  0.31  0.15 |  1.00
   16   28   119     33     11     27 |  0.59  0.52  0.40  0.32  0.00 |  1.00
-  17  114   148     40     47     87 |  0.58  0.56  0.41  0.14  0.08 |  1.00
+  17   90   156     32     40     83 |  0.62  0.54  0.49  0.15  0.10 |  1.00
   18  129   228     26     35     98 |  0.61  0.52  0.41  0.10  0.09 |  1.00
-  19   46   196     29     21     44 |  0.62  0.62  0.44  0.19  0.06 |  0.97
+  19   40   164     20     19     40 |  0.64  0.63  0.55  0.20  0.07 |  1.00
   20   15   108     39     14      7 |  0.84  0.70  0.47  0.03  0.04 |  0.83
-  21  219   418     34     86     66 |  0.58  0.53  0.49  0.15  0.06 |  1.00
+  21  189   438     33     84     53 |  0.58  0.54  0.45  0.13  0.08 |  1.00
   22  148   377     34     65     70 |  0.56  0.52  0.49  0.21  0.06 |  1.00
-  23   85   242     47     35     83 |  0.54  0.53  0.56  0.09  0.10 |  0.99
+  23  139   144     32     52    100 |  0.59  0.51  0.77  0.09  0.10 |  1.00
   24  251   438     41     96    160 |  0.60  0.55  0.39  0.20  0.03 |  1.00
 
-dwell/rest                         3522631  32.7%
-take/berries@wood                  2135489  19.8%
-consume/provision                  1826093  16.9%
-dwell/guard@market                 1016721   9.4%
-take/fish@water                     549031   5.1%
-dwell/meet@tavern>neighbour         447093   4.1%
-take/timber@wood                    206228   1.9%
-exchange/coin>provision@market      145845   1.4%
-transfer/material>requester         137776   1.3%
-take/grain@field                    129729   1.2%
-pass/practice>self                  112380   1.0%
-exchange/material>coin@market        99278   0.9%
-pass/practice>pupil                  97387   0.9%
-tend/plant@open                      72955   0.7%
-transfer/provision>needy             72683   0.7%
-raise/timber>dwelling@open           71038   0.7%
-take/game@wood                       47968   0.4%
-make/timber>tool@bench               34553   0.3%
-transfer/provision<holder            15206   0.1%
-strike/person>wrongdoer              12714   0.1%
-take/stone@outcrop                   11769   0.1%
-tend/clear@open                       4505   0.0%
-raise/timber>road@ground              1868   0.0%
-tend/water@field                      1628   0.0%
-raise/timber+stone>granary@open        830   0.0%
-make/stone+timber>tool@forge           487   0.0%
-dwell/look                             295   0.0%
-raise/timber>tavern@open               246   0.0%
-make/provision+timber>meal@hearth      208   0.0%
-raise/timber+stone>market@open          88   0.0%
-move@dwelling                           77   0.0%
+dwell/rest                         3418055  31.7%
+take/berries@wood                  2079692  19.3%
+consume/provision                  1846149  17.1%
+dwell/guard@market                 1072487   9.9%
+take/fish@water                     572589   5.3%
+dwell/meet@tavern>neighbour         450193   4.2%
+take/timber@wood                    220749   2.0%
+exchange/coin>provision@market      163062   1.5%
+transfer/material>requester         135235   1.3%
+take/grain@field                    134404   1.2%
+pass/practice>self                  115850   1.1%
+exchange/material>coin@market       105252   1.0%
+pass/practice>pupil                  98252   0.9%
+tend/plant@open                      94418   0.9%
+transfer/provision>needy             76247   0.7%
+raise/timber>dwelling@open           64474   0.6%
+take/game@wood                       53397   0.5%
+make/timber>tool@bench               41733   0.4%
+transfer/provision<holder            19990   0.2%
+strike/person>wrongdoer              13435   0.1%
+take/stone@outcrop                   11897   0.1%
+tend/clear@open                       4363   0.0%
+tend/water@field                      2565   0.0%
+raise/timber>road@ground              1773   0.0%
+raise/timber+stone>granary@open        827   0.0%
+make/stone+timber>tool@forge           493   0.0%
+make/provision+timber>meal@hearth      370   0.0%
+dwell/look                             292   0.0%
+raise/timber>tavern@open               264   0.0%
+raise/timber+stone>market@open          95   0.0%
+move@dwelling                           79   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.59 safe 0.52 held 0.69 all 0.261 food 3.93 hungry-with-food 0.27 | lasted 23/24 extinct 0 mean 151.5 median 139 | phys 0.62 safe 0.55 belng 0.48 estm 0.18
+gates: fed 0.59 safe 0.51 held 0.69 all 0.256 food 4.02 hungry-with-food 0.27 | lasted 23/24 extinct 0 mean 152.5 median 139 | phys 0.63 safe 0.55 belng 0.50 estm 0.19
 ```
 
 ## What the last change did
+
+Irrigation and forestry were unreachable, and had been since they were
+written. The pressure spike made it visible - a zero standing in `w.Pressed`
+where the other four were accumulating - but it was not the spike's doing.
+Both conditions asked the world for something it does not do.
+
+They were wrong in two different ways, and only one of them was a number.
+
+### Forestry was reading the wrong ground
+
+`forestGone` asked whether the map had lost two fifths of its forest. One
+settlement cannot do that. Over sixty years the whole-map share bottomed out
+at 1.00, 0.68, 0.61 and 0.98 on four probed seeds, against a bar of 0.60 -
+and 1.00 means a settlement that cleared nothing net at all, because regrowth
+kept pace with it everywhere but where it actually was.
+
+Where it actually was, it cleared plenty: the wood share of the ground around
+the market fell to between 0.03 and 0.18. Every other pressure in the file
+reads the near ground for the reason `usedForest` gives - the woods a
+settlement lives off are the few tiles nearest it and the country beyond
+stays full whatever it does. This one was reading the country.
+
+It reads the settlement's own ground against the country now, and fires below
+seven tenths of the ambient share. That is scale-free, which matters because
+maps differ: a people who cleared their surroundings stand out however wooded
+the map they were dropped on, and a people who settled in a clearing and cut
+nothing do not. On six probed seeds the ratio bottomed between 0.32 and 1.18,
+so the bar separates them rather than passing or failing all of them.
+
+### Irrigation was asking for a thing this world does not do
+
+`fieldsWorn` wanted the mean fertility of the fields near the market under
+0.45. It was never once true, on any seed, in sixty years - and that is not a
+threshold set too low. **Fields do not wear.** `Fallow` puts fertility back
+toward `Rich` faster than farming takes it out, so a settlement's fields sit
+between 0.94 and 1.00 of what the ground can hold for the whole of a run.
+There is no threshold that would have worked, because there is no signal:
+the measure is flat at its ceiling.
+
+`TestFieldsDoNotWearOut` now says so, and says what should happen if it ever
+stops being true. Land that pushes back is most of what would make a
+settlement move on, and making fields wear is a change worth having - but it
+is a change to what the ground does rather than to what a discovery asks of
+it, and it wants a batch of its own.
+
+So irrigation answers the other thing irrigation is for. A field high above
+the river is dry whatever its soil is worth, and a channel is the answer to
+that and to nothing else. `fieldsDry` reads the mean dampness of the fields
+near the market - 1 on the valley floor, 0 at `FloodDepth` above it - and
+fires under 0.65. Settlements pick good land and farm at a median of 0.64 to
+0.83, so this picks out the ones that have been pushed uphill rather than the
+ones that chose where to be.
+
+It is also a better pressure than wear would have been: it can come and go as
+a holding spreads, where wear only ever accumulates.
+
+### Where they land now
+
+Twelve seeds:
+
+```
+              was          now
+irrigation    0/12         9/12    years 16-50
+forestry      0/12         4/12    years  6-11
+```
+
+The seeds that still get neither are settlements whose condition genuinely
+never holds - they did not clear their woods and they farm the valley floor -
+and they show a zero in `Pressed` for the honest reason rather than because
+nothing could ever have moved it.
+
+**On the batch it is a draw.**
+
+```
+offset  0, master: gates: fed 0.59 safe 0.52 held 0.69 all 0.261 food 3.93 | lasted 23/24 mean 151.5 median 139
+offset  0, reach:  gates: fed 0.59 safe 0.51 held 0.69 all 0.256 food 4.02 | lasted 23/24 mean 152.5 median 139
+offset 24, master: gates: fed 0.59 safe 0.52 held 0.70 all 0.264 food 3.76 | lasted 24/24 mean 147.8 median 126
+offset 24, reach:  gates: fed 0.59 safe 0.52 held 0.69 all 0.258 food 4.01 | lasted 24/24 mean 167.1 median 153
+```
+
+Nothing is past a threshold. `fed` and `held` did not move at all, `all` went
+down 0.005 and 0.006, and the population is flat on one batch and up 19 on
+the other, which is what population always does. `food` is up 0.09 and 0.25,
+both batches the same direction, which is the only thing here that reads like
+a consequence rather than like noise - nine settlements in twelve now get a
+fifth more off their fields, and it shows up as a fuller larder and not as
+more people.
+
+The golden numbers did not move. Forestry arrives at year six at the
+earliest and the golden run is fifteen hundred days, so nothing this changed
+happens inside it.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What pressing toward the land's answers did
 
 The land's answers are worked toward now rather than handed over, and what
 does the working is a person.
@@ -211,12 +310,6 @@ condition answers and a cosine does not. The vectors are kept sparse and
 commented for that reason - two or three coordinates each, with the moment
 they stand for written beside them - and that is the whole of the mitigation
 there is.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What the deep technologies did
 
