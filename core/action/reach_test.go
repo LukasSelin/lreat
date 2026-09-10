@@ -105,10 +105,18 @@ func TestChildrenInheritHabitsAndAShareOfReach(t *testing.T) {
 	if slices.Equal(drifted.Habits, parent.Habits) {
 		t.Fatal("with drift a child should differ from its parent")
 	}
+	// The moral coordinates drift with the rest of them. A child is not
+	// handed its parent's reading of which acts are the honest ones any
+	// more exactly than it is handed the rest of its recognition; see the
+	// remarks in package habit on what that claims about people.
+	moved := false
 	for k := habit.Honesty; k <= habit.Caution; k++ {
 		if drifted.Habits[i][k] != parent.Habits[i][k] {
-			t.Fatal("drift touched a frozen coordinate")
+			moved = true
 		}
+	}
+	if !moved {
+		t.Fatal("a child took its parent's morals to the last bit; every coordinate drifts now")
 	}
 }
 

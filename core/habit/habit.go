@@ -116,19 +116,41 @@ var Names = [Dims]string{
 // in [-1, 1] with 0 meaning neutral.
 type Signature [Dims]float64
 
-// Varying marks the dimensions that may differ from one agent to the next.
-// The moral dimensions are fixed: an agent's values are its own and identical
-// across every candidate it weighs, so a signature that drifted on them would
-// only say what the agent already says everywhere, and the dimension would
-// cancel out of the choice. Values belong to the agent; signatures describe
-// situations.
-var Varying = func() [Dims]bool {
-	var l [Dims]bool
-	for i := range l {
-		l[i] = i < Honesty || i > Caution
-	}
-	return l
-}()
+// Every dimension of a habit may differ from one agent to the next, the five
+// moral ones included. They did not, once, and the reason given was that an
+// agent's values are the same across every candidate it weighs, so drift on
+// them would cancel out of the choice.
+//
+// It does not cancel. What the situation carries on those coordinates is the
+// agent's own norms, one number apiece and the same for every errand it is
+// weighing - but what the habit carries is per action, and the fit is their
+// product summed. A habit that reads a little differently on honesty for
+// this act and not that one changes which act wins, and changes it in
+// proportion to how honest the agent is.
+//
+// What it buys is worth stating exactly, because it is less than it first
+// sounds. What the situation carries on these coordinates does not change
+// from one errand to the next - it is the agent's norms, and those are the
+// same all morning - so drift on the habit is a standing disposition and not
+// a judgement made afresh: this person is drawn to this act a little more
+// than the next person is, and the size of that pull is how much the person
+// holds the value it hangs on. A scrupulous agent's idiosyncratic reading of
+// which acts are the honest ones shapes what it does; a careless one's
+// hardly bears on anything, because it is multiplied by a norm near nothing.
+// That is a taste with a moral shape to it, inherited and taught like the
+// rest of a recognition. It is not two people looking at one piece of work
+// and disagreeing about it, which would want the act's own valence in the
+// situation rather than only the agent's norms; see action.ValenceOf, which
+// the value rule uses that way and the fit rule does not.
+//
+// Measured, what it moves is how open a choice is rather than how far the
+// population's habits lie apart: over sixty years on two seeds the habit
+// spread was 0.33 and 0.26 before and 0.32 and 0.27 after, while the choice
+// entropy went 0.83 to 0.93 and 0.81 to 0.86. Five more coordinates of drift
+// bring candidates nearer each other in fit, and a moment with less between
+// its candidates is a moment decided less sharply.
+//
+// Values still belong to the agent, in belief.Norms, where they always were.
 
 // Tuning constants, grouped so tuning is one edit.
 const (

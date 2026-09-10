@@ -40,68 +40,124 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1   88   118     26     31     17 |  0.59  0.47  0.57  0.66  0.03 |  1.00
-   2  120   185     33     57     71 |  0.63  0.52  0.72  0.69  0.02 |  1.00
-   3  395   565     40     82    353 |  0.62  0.51  0.55  0.51  0.04 |  1.00
-   4  396   332     28    140     96 |  0.61  0.48  0.49  0.59  0.04 |  1.00
-   5  174   114     21     41    123 |  0.66  0.45  0.54  0.55  0.09 |  1.00
-   6  454   379     22     51    233 |  0.69  0.47  0.66  0.70  0.20 |  1.00
-   7  128   248     33     78    136 |  0.58  0.56  0.42  0.52  0.05 |  1.00
-   8  369   326     29    114    113 |  0.59  0.48  0.66  0.55  0.01 |  1.00
-   9  203   233     34     55    102 |  0.52  0.47  0.55  0.57  0.06 |  1.00
-  10   48    88     18     15     16 |  0.61  0.46  0.64  0.85  0.08 |  1.00
-  11  144   268     48     31    158 |  0.70  0.50  0.46  0.60  0.11 |  1.00
-  12  161   176     21     41     82 |  0.64  0.43  0.41  0.70  0.03 |  1.00
-  13   10    72      5      4     12 |  0.67  0.44  0.91  0.86  0.12 |  0.67
-  14   35   133     34     21     43 |  0.64  0.57  0.65  0.69  0.07 |  1.00
-  15  127   193     38     40     79 |  0.64  0.50  0.47  0.62  0.11 |  1.00
-  16   94    95     35     47     79 |  0.58  0.52  0.47  0.54  0.05 |  1.00
-  17  104   171     29     22    111 |  0.63  0.51  0.59  0.69  0.13 |  0.98
-  18  160   154     38     68     83 |  0.49  0.54  0.45  0.67  0.10 |  1.00
-  19  346   288     39    134    156 |  0.64  0.49  0.60  0.56  0.09 |  1.00
-  20   58   242     47     35     61 |  0.61  0.55  0.69  0.70  0.02 |  0.86
-  21   68   183     62     44     34 |  0.57  0.62  0.65  0.57  0.04 |  1.00
-  22  233   288     26     75    130 |  0.64  0.51  0.50  0.69  0.09 |  1.00
-  23  163   158     37    100     66 |  0.64  0.56  0.71  0.71  0.02 |  0.90
-  24  208   326     40     75    193 |  0.61  0.54  0.32  0.53  0.06 |  1.00
+   1  114   109     21     45     44 |  0.71  0.48  0.56  0.48  0.10 |  1.00
+   2   43   106     12     27     24 |  0.62  0.51  0.63  0.72  0.05 |  1.00
+   3  166   124     16     58     96 |  0.64  0.51  0.57  0.71  0.03 |  1.00
+   4  142   374     54     73    144 |  0.58  0.54  0.69  0.69  0.10 |  1.00
+   5   49   159     32     27     32 |  0.61  0.60  0.44  0.65  0.11 |  1.00
+   6  152   189     44     75     68 |  0.67  0.59  0.50  0.62  0.14 |  1.00
+   7  135    74     32     64     88 |  0.60  0.53  0.57  0.71  0.03 |  1.00
+   8   48   181     34     44     39 |  0.59  0.62  0.69  0.76  0.03 |  0.85
+   9   60   107     14     20     42 |  0.57  0.50  0.52  0.64  0.07 |  1.00
+  10  200   182     27     39     93 |  0.63  0.50  0.49  0.63  0.11 |  1.00
+  11  135   460     25     36    105 |  0.74  0.48  0.39  0.60  0.08 |  0.87
+  12  183   315     39     96     83 |  0.53  0.55  0.55  0.66  0.06 |  1.00
+  13  521   457     73    152    325 |  0.60  0.50  0.39  0.49  0.08 |  1.00
+  14  126   190     23     43    118 |  0.66  0.50  0.64  0.69  0.01 |  1.00
+  15  134   289     47     17    122 |  0.56  0.50  0.49  0.73  0.13 |  1.00
+  16   65   134     40     31     38 |  0.60  0.53  0.56  0.57  0.03 |  0.94
+  17  157   293     56     82    136 |  0.60  0.56  0.48  0.36  0.08 |  1.00
+  18  124   157     29     39     85 |  0.70  0.50  0.51  0.69  0.19 |  0.99
+  19   87   129     35     21     80 |  0.64  0.48  0.65  0.64  0.12 |  1.00
+  20   22   107     41     14     25 |  0.52  0.58  0.54  0.76  0.02 |  1.00
+  21  264   386     28     99    164 |  0.58  0.51  0.41  0.46  0.11 |  1.00
+  22  298   247     31     68    118 |  0.65  0.49  0.54  0.72  0.12 |  1.00
+  23  133   241     55     53    201 |  0.53  0.51  0.48  0.50  0.07 |  0.91
+  24  161   239     46     69     79 |  0.61  0.56  0.41  0.65  0.09 |  0.98
 
-dwell/rest                         2920204  27.2%
-take/berries@wood                  2810292  26.1%
-consume/provision                  1737960  16.2%
-dwell/guard@market                 1014219   9.4%
-pass/practice>pupil                 873645   8.1%
-take/fish@water                     403687   3.8%
-dwell/meet@tavern>neighbour         302147   2.8%
-take/timber@wood                    148702   1.4%
-take/grain@field                    109319   1.0%
-pass/practice>self                  108882   1.0%
-transfer/provision>needy             83484   0.8%
-raise/timber>dwelling@open           50023   0.5%
-tend/plant@open                      44524   0.4%
-exchange/material>coin@market        42513   0.4%
-exchange/coin>provision@market       39915   0.4%
-transfer/material>requester          17213   0.2%
-transfer/provision<holder            11050   0.1%
-make/timber>tool@bench                8116   0.1%
-tend/clear@open                       5767   0.1%
-take/game@wood                        5358   0.0%
-strike/person>wrongdoer               4369   0.0%
-tend/water@field                      3173   0.0%
-raise/timber>road@ground              2879   0.0%
-take/stone@outcrop                    1880   0.0%
-dwell/look                             319   0.0%
-make/provision+timber>meal@hearth      206   0.0%
-raise/timber>tavern@open               134   0.0%
-move@dwelling                          104   0.0%
-raise/timber+stone>granary@open         54   0.0%
-make/stone+timber>tool@forge            53   0.0%
-raise/timber+stone>market@open          28   0.0%
+take/berries@wood                  2144687  24.7%
+dwell/rest                         2100155  24.2%
+consume/provision                  1578588  18.2%
+pass/practice>pupil                 795802   9.2%
+dwell/guard@market                  759639   8.8%
+take/fish@water                     387256   4.5%
+dwell/meet@tavern>neighbour         219484   2.5%
+take/timber@wood                    133031   1.5%
+take/grain@field                    118530   1.4%
+pass/practice>self                  112960   1.3%
+transfer/provision>needy             77355   0.9%
+exchange/material>coin@market        49880   0.6%
+raise/timber>dwelling@open           42580   0.5%
+exchange/coin>provision@market       40438   0.5%
+tend/plant@open                      37799   0.4%
+transfer/provision<holder            22712   0.3%
+transfer/material>requester          16436   0.2%
+make/timber>tool@bench               10370   0.1%
+take/game@wood                        6981   0.1%
+strike/person>wrongdoer               6921   0.1%
+tend/clear@open                       5297   0.1%
+tend/water@field                      3597   0.0%
+take/stone@outcrop                    2844   0.0%
+raise/timber>road@ground              2496   0.0%
+make/provision+timber>meal@hearth      578   0.0%
+dwell/look                             292   0.0%
+raise/timber>tavern@open               164   0.0%
+move@dwelling                          102   0.0%
+raise/timber+stone>granary@open         79   0.0%
+make/stone+timber>tool@forge            69   0.0%
+raise/timber+stone>market@open          40   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.57 safe 0.51 held 0.82 all 0.285 food 4.33 hungry-with-food 0.27 | lasted 23/24 extinct 0 mean 178.6 median 160 | phys 0.62 safe 0.51 belng 0.57 estm 0.64
+gates: fed 0.58 safe 0.54 held 0.82 all 0.302 food 4.83 hungry-with-food 0.26 | lasted 24/24 extinct 0 mean 146.6 median 135 | phys 0.61 safe 0.53 belng 0.53 estm 0.63
 ```
 
 ## What the last change did
+
+Every dimension of a habit drifts per agent now. Five of the twenty - the
+moral ones, honesty through caution - used to be held fixed across the whole
+population, on the reasoning that an agent's values are the same across every
+candidate it weighs and so drift on them would cancel out of the choice.
+
+It does not cancel. What the situation carries there is the agent's own norms,
+one number apiece and the same for every errand; what the habit carries is per
+action, and the fit is their product summed, so a habit reading a little
+differently on honesty for this act and not that one changes which act wins.
+
+But it buys less than the arithmetic suggests, and the numbers say where. It
+is a standing disposition rather than a judgement made afresh - the situation
+never varies on those coordinates, so what drift adds is a pull toward some
+acts and away from others, sized by how much the agent holds the value it
+hangs on. A scrupulous agent's idiosyncratic reading of which work is honest
+shapes what it does; a careless one's is multiplied by a norm near nothing.
+
+**It is a draw, and what moved is how sharply people decide rather than how
+far apart they are.**
+
+```
+offset  0, before: gates: fed 0.57 safe 0.51 held 0.82 all 0.285 | lasted 23/24 extinct 0 mean 178.6 median 160 | belng 0.57
+offset  0, moral:  gates: fed 0.58 safe 0.54 held 0.82 all 0.302 | lasted 24/24 extinct 0 mean 146.6 median 135 | belng 0.53
+offset 24, before: gates: fed 0.57 safe 0.50 held 0.82 all 0.292 | lasted 22/24 extinct 0 mean 178.4 median 157 | belng 0.57
+offset 24, moral:  gates: fed 0.57 safe 0.53 held 0.81 all 0.289 | lasted 23/24 extinct 0 mean 160.8 median 126 | belng 0.55
+```
+
+Nothing reached its threshold. The safety gate is up 0.03 on both batches and
+survivors up one on both, which is the same sign twice and still well under
+what this file says is worth believing; `all` went up 0.017 and then down
+0.003. The mean population fell on both, by 32 and by 18, and that is the one
+reading this file says never to believe on its own - master's own batches have
+ranged 171 to 212.
+
+What is worth recording is the reading `tune` does not print. Over sixty years
+on two seeds outside the batch, the population's habit spread went 0.33 and
+0.26 to 0.32 and 0.27 - which is to say nowhere - while the choice entropy
+went 0.83 to 0.93 and 0.81 to 0.86. Five more coordinates of drift bring
+candidates nearer one another in fit, and a moment with less between its
+candidates is decided less sharply. So the change did not spread the
+population out; it made each of them a little less certain.
+
+That is the thing to weigh before turning this dial further. If what is wanted
+is two people looking at one piece of work and disagreeing about it, this is
+not the lever: that wants the act's own valence in the situation rather than
+only the agent's norms, the way the value rule already reads it through
+belief.Conscience. See action.ValenceOf.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What bodies and minds did
 
 Bodies and minds. What an agent burns to stay alive, what cold it can stand,
 how fast practice brings a craft within reach, how firmly it settles a moment
@@ -150,12 +206,6 @@ That dial is the thing to turn if they should matter more, and it should be
 turned on its own, with a batch either side of it - not folded into the change
 that introduced them, where a moved number could not be told apart from the
 traits themselves being a good idea.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What the rivers did
 

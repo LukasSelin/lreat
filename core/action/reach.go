@@ -129,9 +129,7 @@ func Inherit(child, parent *entity.Agent, w *world.World, rng *rand.Rand) {
 	if rng != nil {
 		for i := range Catalog {
 			for k := range child.Habits[i] {
-				if habit.Varying[k] {
-					child.Habits[i][k] += rng.NormFloat64() * InheritNoise
-				}
+				child.Habits[i][k] += rng.NormFloat64() * InheritNoise
 			}
 			habit.ClampNorm(&child.Habits[i], habit.MinNorm, habit.MaxNorm)
 		}

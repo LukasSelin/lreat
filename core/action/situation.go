@@ -257,9 +257,7 @@ func Imprint(a *entity.Agent) {
 		a.Habits[i] = prior
 		if a.Luck != nil && BornNoise > 0 && habit.Norm(prior) >= habit.Epsilon {
 			for k := range a.Habits[i] {
-				if habit.Varying[k] {
-					a.Habits[i][k] += a.Luck.NormFloat64() * BornNoise
-				}
+				a.Habits[i][k] += a.Luck.NormFloat64() * BornNoise
 			}
 			habit.ClampNorm(&a.Habits[i], habit.MinNorm, habit.MaxNorm)
 		}

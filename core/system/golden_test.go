@@ -31,6 +31,11 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
+// Retaken for the moral coordinates: all twenty dimensions of a habit drift
+// per agent now, where the five moral ones used to be held fixed across the
+// population. Five more draws off every founder's own luck at imprinting and
+// off the world's at every birth, so these move whatever the drift does.
+//
 // Retaken for bodies and minds: what an agent burns, what cold it can stand,
 // how fast it takes to a craft, how firmly it decides and how far it will go
 // were one number apiece for the whole population and are now drawn per agent
@@ -55,9 +60,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "c697c7de162cf97c",
-	3: "e5509681a54aecb7",
-	9: "ca816c7a80cb38e9",
+	1: "47e7ffa6c3b09640",
+	3: "e1790386a5472ab9",
+	9: "abed234d7157be70",
 }
 
 // digest is the hash the golden numbers are of.
