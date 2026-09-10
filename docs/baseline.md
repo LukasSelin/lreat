@@ -1011,3 +1011,12 @@ like.
 `world.Crowded` counts everyone turned away by the cap on a tick, and it is
 what to read if the question comes up again. While it stays at nothing, the
 land is doing the binding.
+
+The ceiling is a flag on all three commands - `-cap` on headless, tune and
+watch, and a line on watch's start screen - and `-cap=0` takes it off
+altogether, leaving the land as the only thing that stops a settlement. That
+is the setting to reach for when the question really is what a world carries,
+which a globe makes worth asking; it is not the setting to take a baseline
+batch under, because a day costs what the population squared costs and a seed
+that runs away takes the batch with it. Any batch quoted in this file was
+taken at the default 5000 unless it says otherwise.

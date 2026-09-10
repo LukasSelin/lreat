@@ -61,6 +61,7 @@ import (
 	"lreat/core/need"
 	"lreat/core/observe"
 	"lreat/core/sim"
+	"lreat/core/system"
 	"lreat/core/world"
 	"lreat/report"
 	"lreat/ui/ascii"
@@ -104,6 +105,7 @@ func main() {
 	width := flag.Int("width", d.width, "map width")
 	height := flag.Int("height", d.height, "map height")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
+	ceiling := flag.Int("cap", d.ceiling, "how many people this program will carry: a guard on the machine, not a fact about the world (0 takes it off and lets the land do the stopping)")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
 	snug := flag.Bool("fit", d.snug, "size the map to the terminal; -fit=false takes -width and -height instead")
 	preset := flag.String("preset", d.preset, "which world: valley, a map with edges; ancient, that valley made out of its own history; or globe, a cylinder with no edges")
@@ -117,6 +119,7 @@ func main() {
 		seed: *seed, agents: *agents, tps: *tps,
 		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp, preset: *preset,
+		ceiling: *ceiling,
 	}
 	s.snug = snugFrom(*snug, given("width") || given("height"), given("fit"))
 
@@ -185,6 +188,7 @@ func run(screen tcell.Screen, s setup) {
 	screen.Clear()
 	puts(screen, 0, 0, tcell.StyleDefault, fmt.Sprintf("raising the %s: %d by %d...", s.world(), s.width, s.height))
 	screen.Show()
+	system.MaxPopulation = s.ceiling
 	w := world.NewWith(s.seed, s.config())
 	w.Rules.Fit = s.fit
 	w.Rules.Temperature = s.temp

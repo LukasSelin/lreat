@@ -59,7 +59,19 @@ const (
 // still stops rather than running the batch into the ground. world.Crowded
 // counts who was turned away, which is how anybody can tell whether it is
 // binding again.
+//
+// Zero, or anything below it, takes the guard off altogether: births are then
+// gated by the land and the larder and nothing else, and the run is as long
+// as the machine will bear. That is the honest setting for asking what a
+// world actually carries - a globe is a great deal more ground than the
+// valley the number was chosen against - and it is the caller's business to
+// know that a day costs what the population squared costs.
 var MaxPopulation = 5000
+
+// Room says whether the settlement may take one more. An unset ceiling - zero
+// or below - is no ceiling: nothing but the world stands between a fertile
+// pair and a child.
+func Room(n int) bool { return MaxPopulation <= 0 || n < MaxPopulation }
 
 // Population handles deaths and births. Births need the three lower tiers
 // met, which is why a city that cannot feed and protect its people does not
@@ -101,7 +113,7 @@ func Population(w *world.World) {
 	n := len(w.Agents)
 	for i := 0; i < n; i++ {
 		a := w.Agents[i]
-		if len(w.Agents) >= MaxPopulation {
+		if !Room(len(w.Agents)) {
 			w.Vitals.Gates[world.Crowded] += n - i
 			break
 		}

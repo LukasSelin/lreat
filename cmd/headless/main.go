@@ -36,6 +36,7 @@ func main() {
 	epochs := flag.Int("epochs", 0, "ages of the earth to run before the world is handed over: 0 draws the land, anything else makes it out of its own history")
 	ticks := flag.Int("ticks", 50*clock.Year, "days to simulate")
 	agents := flag.Int("agents", 20, "starting population")
+	ceiling := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world (0 takes it off, and the land is then the only thing stopping the settlement)")
 	every := flag.Int("every", 5*clock.Year, "report interval in days")
 	showMap := flag.Bool("map", false, "print the map at each report")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
@@ -46,6 +47,7 @@ func main() {
 	profile := flag.String("cpuprofile", "", "write a CPU profile of the run to this file")
 	flag.Parse()
 	world.Workers = *workers
+	system.MaxPopulation = *ceiling
 	if *profile != "" {
 		f, err := os.Create(*profile)
 		if err != nil {

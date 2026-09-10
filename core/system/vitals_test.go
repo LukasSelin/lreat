@@ -107,3 +107,51 @@ func TestFertilityGatesAreThisTickOnly(t *testing.T) {
 			w.Vitals.Gates[world.Hungry], w.Vitals.Gates[world.Ready])
 	}
 }
+
+// The ceiling is a number this program is given, not one the world knows, so
+// it has to hold wherever it is put — including out of the way entirely. A
+// settlement under a ceiling of two turns the rest away and says so; the same
+// settlement with the ceiling off is stopped by nothing but the land.
+func TestCeilingBindsWhereItIsSetAndNowhereWhenItIsOff(t *testing.T) {
+	was := MaxPopulation
+	defer func() { MaxPopulation = was }()
+
+	// Room is what the birth pass asks, and it is the whole of the rule.
+	MaxPopulation = 2
+	if !Room(1) || Room(2) || Room(3) {
+		t.Fatalf("a ceiling of two has room for %v, %v, %v at one, two and three", Room(1), Room(2), Room(3))
+	}
+	for _, off := range []int{0, -1} {
+		MaxPopulation = off
+		if !Room(1_000_000) {
+			t.Fatalf("a ceiling of %d still turned somebody away", off)
+		}
+	}
+
+	founded := func() *world.World {
+		w := world.NewSized(1, 40, 12)
+		for _, n := range []string{"Ada", "Bo", "Cai"} {
+			a := w.Spawn(n, need.Neutral())
+			a.Born = w.Tick - entity.Maturity - 1
+			a.Needs = need.Levels{0.9, 0.9, 0.9, 0.5, 0.5}
+		}
+		return w
+	}
+
+	MaxPopulation = 2
+	w := founded()
+	Population(w)
+	if w.Vitals.Gates[world.Crowded] != 3 {
+		t.Fatalf("the ceiling turned %d away, want all three", w.Vitals.Gates[world.Crowded])
+	}
+	if w.Vitals.Born != 0 {
+		t.Fatalf("%d were born past a ceiling already below the population", w.Vitals.Born)
+	}
+
+	MaxPopulation = 0
+	w = founded()
+	Population(w)
+	if w.Vitals.Gates[world.Crowded] != 0 {
+		t.Fatalf("no ceiling still turned %d away", w.Vitals.Gates[world.Crowded])
+	}
+}

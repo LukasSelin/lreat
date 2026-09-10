@@ -8,6 +8,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"lreat/core/system"
 	"lreat/core/world"
 )
 
@@ -44,6 +45,12 @@ type setup struct {
 	tps  float64
 	fit  bool
 	temp float64
+	// ceiling is how many people the machine will carry, and is a guard on
+	// this program rather than anything the settlement knows about. Nothing
+	// on the map has ever come near the default; a globe is ground enough
+	// that somebody might want to find out, and 0 is the answer of taking
+	// the guard off and letting the land say. See system.MaxPopulation.
+	ceiling int
 	// preset is which world this is: the valley every settlement was
 	// founded in, which has edges and is sized to whoever is watching, or
 	// the globe, which has none and comes at a size of its own. See
@@ -126,6 +133,9 @@ func defaults() setup {
 		tps:    20,
 		fit:    r.Fit,
 		temp:   r.Temperature,
+		// The ceiling opens where the package left it, so that this line
+		// says what a run would do if nobody touched it.
+		ceiling: system.MaxPopulation,
 	}
 }
 
@@ -279,6 +289,20 @@ func options() []option {
 			return fmt.Sprintf("%.2f", s.temp)
 		},
 		step: func(s *setup, d int) { s.temp = clampFloat(s.temp+0.05*float64(d), 0, 2) },
+	}, {
+		group: "the people",
+		name:  "ceiling",
+		help:  "how many people this program will carry: a guard on the machine, not a fact about the world, and nobody in the settlement can feel it. No ceiling lets the land do the stopping, which is the honest question to ask of a globe - a day costs what the population squared costs, so a settlement that runs away will slow to a crawl rather than stop",
+		show: func(s *setup) string {
+			if s.ceiling <= 0 {
+				return "none"
+			}
+			return fmt.Sprintf("%d", s.ceiling)
+		},
+		step: func(s *setup, d int) { s.ceiling = clampInt(s.ceiling+500*d, 0, 1000000) },
+		digits: func(s *setup, n uint64) {
+			s.ceiling = clampInt(int(min(n, 1000000)), 0, 1000000)
+		},
 	}}
 	// The lines are written above in the order they read best beside one
 	// another and come out in their groups' order, because a heading stands
