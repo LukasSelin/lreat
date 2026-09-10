@@ -151,8 +151,8 @@ func TestNearestOfKindFindsWhatNearestFinds(t *testing.T) {
 			{Kinds(Forest), func(_ entity.Pos, t *Tile) bool { return t.Terrain == Forest }},
 			{Kinds(Water), func(_ entity.Pos, t *Tile) bool { return t.Terrain == Water }},
 			{Kinds(Rock), func(_ entity.Pos, t *Tile) bool { return t.Terrain == Rock }},
-			{KindsOffering(ontology.Timber), func(_ entity.Pos, t *Tile) bool { return t.Offers(ontology.Timber) >= 0.3 }},
-			{KindsOffering(ontology.Stone), func(_ entity.Pos, t *Tile) bool { return t.Offers(ontology.Stone) > 0 }},
+			{KindsOffering(ontology.Timber), func(p entity.Pos, _ *Tile) bool { return g.Offers(g.Index(p), ontology.Timber) >= 0.3 }},
+			{KindsOffering(ontology.Stone), func(_ entity.Pos, t *Tile) bool { return t.Affords(ontology.Stone) }},
 			// One that is true of only some of its kind, so the search
 			// cannot stop at the first patch that holds any.
 			{Kinds(Forest), func(p entity.Pos, t *Tile) bool { return t.Terrain == Forest && p.X%3 == 0 }},

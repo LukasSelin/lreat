@@ -97,7 +97,7 @@ func digest(w *world.World) string {
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
 		fmt.Fprintf(h, "{%v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v}",
-			t.Terrain, t.Structure, t.Owner, g.Fertility[i], g.Rich[i], t.Wood, t.Wild, t.Fish,
+			t.Terrain, t.Structure, t.Owner, g.Fertility[i], g.Rich[i], g.Wood[i], g.Wild[i], g.Fish[i],
 			t.Height, t.Flow, t.Drain, t.Bedrock, t.Sand, t.Clay, t.Plate, t.Formed,
 			g.Age[i], t.Fenced, g.Traffic[i])
 	}

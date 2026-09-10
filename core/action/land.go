@@ -58,22 +58,24 @@ func bank(w *world.World) func(p entity.Pos, t *world.Tile) bool {
 		if t.Is(ontology.Water) {
 			return false
 		}
-		return bestWater(w, p) != nil
+		return bestWater(w, p) >= 0
 	}
 }
 
-// bestWater is the water tile beside p with the most fish, or nil.
-func bestWater(w *world.World, p entity.Pos) *world.Tile {
-	var best *world.Tile
+// bestWater is the water tile beside p with the most fish, as its index on
+// the map, or under nought where there is none.
+func bestWater(w *world.World, p entity.Pos) int {
+	g := w.Grid
+	best := -1
 	for dy := -1; dy <= 1; dy++ {
 		for dx := -1; dx <= 1; dx++ {
 			q := entity.Pos{X: p.X + dx, Y: p.Y + dy}
-			if !w.Grid.In(q) {
+			if !g.In(q) {
 				continue
 			}
-			t := w.Grid.At(q)
-			if t.Offers(ontology.Fish) >= 0.2 && (best == nil || t.Fish > best.Fish) {
-				best = t
+			i := g.Index(q)
+			if g.Offers(i, ontology.Fish) >= 0.2 && (best < 0 || g.Fish[i] > g.Fish[best]) {
+				best = i
 			}
 		}
 	}
@@ -169,8 +171,9 @@ var PlantTrees = &Def{
 		// years yet. The good of it goes to whoever is here when it is grown,
 		// which is the whole of what the act is for.
 		w.Grid.Turn(a.Pos, world.Forest)
-		t.Wood, t.Wild = 0, 0
-		w.Grid.Sow(w.Grid.Index(a.Pos))
+		i := w.Grid.Index(a.Pos)
+		w.Grid.Wood[i], w.Grid.Wild[i] = 0, 0
+		w.Grid.Sow(i)
 		a.Needs.Add(need.Esteem, 0.02)
 		a.Needs.Add(need.Actualization, 0.02)
 	},

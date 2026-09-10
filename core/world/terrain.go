@@ -86,8 +86,8 @@ func (w *World) Generate(cfg Config) {
 			continue
 		}
 		t.Terrain = Forest
-		t.Wood = 0.6 + 0.4*w.RNG.Float64()
-		t.Wild = 0.6 + 0.4*w.RNG.Float64()
+		g.Wood[i] = 0.6 + 0.4*w.RNG.Float64()
+		g.Wild[i] = 0.6 + 0.4*w.RNG.Float64()
 		g.Standing(i) // the woods a map is made with are old woods
 	}
 
@@ -127,8 +127,8 @@ func (w *World) Generate(cfg Config) {
 		for x := 0; x < width; x++ {
 			p := entity.Pos{X: x, Y: y}
 			if g.Frozen(p) {
-				t := g.At(p)
-				t.Terrain, t.Wood, t.Wild = Rock, 0, 0
+				i := g.Index(p)
+				g.Tiles[i].Terrain, g.Wood[i], g.Wild[i] = Rock, 0, 0
 			}
 		}
 	})

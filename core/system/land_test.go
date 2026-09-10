@@ -25,7 +25,7 @@ func TestTheWoodsCreepBackAndThenStop(t *testing.T) {
 	cleared := 0
 	for i := range g.Tiles {
 		if t := &g.Tiles[i]; t.Terrain == world.Forest && i%2 == 0 {
-			t.Terrain, t.Wood, t.Wild = world.Grass, 0, 0
+			t.Terrain, g.Wood[i], g.Wild[i] = world.Grass, 0, 0
 			cleared++
 		}
 	}
@@ -60,20 +60,20 @@ func TestAPlantedStandComesOnBrushFirst(t *testing.T) {
 	w.Tick = 1
 	w.Climate = world.Climate{Temp: world.Thrive}
 	p := entity.Pos{X: w.MarketPos.X, Y: w.MarketPos.Y}
-	tile := w.Grid.At(p)
-	tile.Terrain, tile.Structure, tile.Wood, tile.Wild = world.Forest, world.None, 0, 0
-	w.Grid.Sow(w.Grid.Index(p))
+	tile, i := w.Grid.At(p), w.Grid.Index(p)
+	tile.Terrain, tile.Structure, w.Grid.Wood[i], w.Grid.Wild[i] = world.Forest, world.None, 0, 0
+	w.Grid.Sow(i)
 
 	for i := 0; i < 20; i++ {
 		Land(w)
 	}
-	if tile.Wood > 0.05 || tile.Wild > 0.05 {
-		t.Fatalf("a planting gives %.2f timber and %.2f wild food in its first year", tile.Wood, tile.Wild)
+	if w.Grid.Wood[i] > 0.05 || w.Grid.Wild[i] > 0.05 {
+		t.Fatalf("a planting gives %.2f timber and %.2f wild food in its first year", w.Grid.Wood[i], w.Grid.Wild[i])
 	}
 	for i := 0; i < int(ontology.Brush.Full()); i++ {
 		Land(w)
 	}
-	brush, timber := tile.Wild, tile.Wood
+	brush, timber := w.Grid.Wild[i], w.Grid.Wood[i]
 	if brush < 0.8 {
 		t.Fatalf("brush is only %.2f grown after its whole span", brush)
 	}

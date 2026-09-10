@@ -140,7 +140,7 @@ func TestSharedReflectsValuesAndStock(t *testing.T) {
 func bareCountry(w *world.World) {
 	for i := range w.Grid.Tiles {
 		t := &w.Grid.Tiles[i]
-		t.Wood, t.Wild, t.Fish = 0, 0, 0
+		w.Grid.Wood[i], w.Grid.Wild[i], w.Grid.Fish[i] = 0, 0, 0
 		if t.Terrain == world.Forest {
 			w.Grid.Turn(entity.Pos{X: i % w.Grid.W, Y: i / w.Grid.W}, world.Grass)
 		}

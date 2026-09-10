@@ -40,7 +40,7 @@ func TestAThinForestByARiverTeachesFishing(t *testing.T) {
 	w := pressured(42)
 	for i := range w.Grid.Tiles {
 		if w.Grid.Tiles[i].Terrain == world.Forest {
-			w.Grid.Tiles[i].Wild = 0.1
+			w.Grid.Wild[i] = 0.1
 		}
 	}
 	Discover(w)

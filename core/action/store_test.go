@@ -13,8 +13,8 @@ import (
 // same act wherever it is.
 func TestAMaterialIsSomewhere(t *testing.T) {
 	w, a := shore(t)
-	tile := w.Grid.At(entity.Pos{X: 1, Y: 1})
-	tile.Wood = 0.7
+	tile := w.Grid.Index(entity.Pos{X: 1, Y: 1})
+	w.Grid.Wood[tile] = 0.7
 
 	// Berries are food in a pack: the good is found up the tree.
 	mine, ok := pack(a, ontology.Berries)
@@ -51,14 +51,14 @@ func TestAMaterialIsSomewhere(t *testing.T) {
 
 	// The ground: a stock where there is one, bottomless where there is
 	// not.
-	if got := soil(tile, ontology.Timber).Held(); got != 0.7 {
+	if got := soil(w.Grid, tile, ontology.Timber).Held(); got != 0.7 {
 		t.Fatalf("the wood holds %v timber, want 0.7", got)
 	}
-	soil(tile, ontology.Timber).Move(-1)
-	if tile.Wood != 0 {
+	soil(w.Grid, tile, ontology.Timber).Move(-1)
+	if w.Grid.Wood[tile] != 0 {
 		t.Fatal("the ground never holds less than nothing")
 	}
-	if !math.IsInf(soil(tile, ontology.Stone).Held(), 1) {
+	if !math.IsInf(soil(w.Grid, tile, ontology.Stone).Held(), 1) {
 		t.Fatal("stone in the ground should have no end")
 	}
 

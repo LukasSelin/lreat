@@ -23,7 +23,7 @@ func TestGroundThatIsDrawnOnRecovers(t *testing.T) {
 			continue
 		}
 		for _, m := range ontology.Affords[c] {
-			if _, ok := world.Stock(&world.Tile{Terrain: kind}, m); ok {
+			if world.StockOf(m) != nil {
 				t.Errorf("%s affords %s and keeps a count of it, and nothing puts it back", kind, m.Name)
 			}
 		}

@@ -117,7 +117,7 @@ var Views = [...]Reading{
 			if s.t.Terrain == world.Water {
 				return Cell{Ch: '~', Color: Water}
 			}
-			return shade(s, Wood, clamp((s.t.Wood+s.t.Wild)/2))
+			return shade(s, Wood, clamp((s.g.Wood[s.i]+s.g.Wild[s.i])/2))
 		}},
 
 	// What the rock under the ground is. It is the one reading that is a
@@ -190,7 +190,7 @@ var Views = [...]Reading{
 			if s.t.Terrain != world.Water {
 				return Cell{Ch: '.', Color: Bare}
 			}
-			return shade(s, Shoal, clamp(s.t.Fish))
+			return shade(s, Shoal, clamp(s.g.Fish[s.i]))
 		}},
 
 	// Who holds what. This is the one reading that is not a quantity: a

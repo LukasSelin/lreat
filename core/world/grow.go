@@ -82,7 +82,7 @@ func (g *Grid) Standing(i int) { g.Age[i] = ontology.Timbering.Full() }
 // up together once so that the day's pass looks up nothing.
 type filling struct {
 	p     *ontology.Process
-	stock func(*Tile) *float64
+	stock func(*Grid) []float64
 }
 
 var growing = func() (g [Tavern + 1][Rock + 1][]filling) {
@@ -136,8 +136,8 @@ func (g *Grid) Ripen(i int, k float64) {
 		if f.p.Rate == 0 || f.stock == nil {
 			continue
 		}
-		s := f.stock(t)
-		*s = grown(*s, g.Along(i, f.p), f.p.Rate*k)
+		s := f.stock(g)
+		s[i] = grown(s[i], g.Along(i, f.p), f.p.Rate*k)
 	}
 }
 
@@ -168,7 +168,7 @@ func (g *Grid) Green(i int) float64 {
 	sum := 0.0
 	for _, f := range ps {
 		if f.stock != nil {
-			sum += clamp01(*f.stock(t))
+			sum += clamp01(f.stock(g)[i])
 			continue
 		}
 		sum += g.Along(i, f.p)
@@ -189,10 +189,9 @@ const (
 // Replenish is what k of growing weather puts back on tile i that is not a
 // stand coming on: the fish in the water and the rest a worn field gets.
 func (g *Grid) Replenish(i int, k float64) {
-	t := &g.Tiles[i]
-	switch t.Terrain {
+	switch g.Tiles[i].Terrain {
 	case Water:
-		t.Fish = min(1, t.Fish+FishRegrowth*k)
+		g.Fish[i] = min(1, g.Fish[i]+FishRegrowth*k)
 	case Field:
 		g.Fertility[i] = min(g.Rich[i], g.Fertility[i]+Fallow*k)
 	}

@@ -23,11 +23,12 @@ import (
 // knows how to reach.
 
 // ground is what a site is like to take from: how to know a tile of it,
-// and which tile the taking draws on when standing there. Fishing stands
-// on the bank and draws on the water beside it.
+// and which tile the taking draws on when standing there, as its index on
+// the map or under nought for none. Fishing stands on the bank and draws
+// on the water beside it.
 type ground struct {
 	Here  func(w *world.World, p entity.Pos, t *world.Tile) bool
-	Drawn func(w *world.World, p entity.Pos) *world.Tile
+	Drawn func(w *world.World, p entity.Pos) int
 	// Kinds is the ground Here can be true of, or true near: no tile of
 	// any other kind can satisfy it. Margin is how far off that ground a
 	// tile may stand and still satisfy it - nought where Here asks about
@@ -42,7 +43,7 @@ type ground struct {
 	Margin int
 }
 
-func at(w *world.World, p entity.Pos) *world.Tile { return w.Grid.At(p) }
+func at(w *world.World, p entity.Pos) int { return w.Grid.Index(p) }
 
 var grounds = map[*ontology.Class]ground{
 	ontology.Wood: {
@@ -137,8 +138,9 @@ type move struct {
 	// the body's tiers come with what was got.
 	Worth func(a *entity.Agent, w *world.World, quantity float64) need.Levels
 	Gives need.Levels
-	// Gone is what becomes of the tile once the move has drawn on it.
-	Gone func(w *world.World, p entity.Pos, t *world.Tile)
+	// Gone is what becomes of the tile once the move has drawn on it: p is
+	// where the actor stands and drawn the index of the tile drawn on.
+	Gone func(w *world.World, p entity.Pos, drawn int)
 	// Event is what the act is called in the record, and Report how it
 	// reads; nil for a move nobody records.
 	Event  event.Kind
@@ -202,11 +204,11 @@ var moves = map[string]move{
 			}
 			return need.Levels{need.Safety: want, need.Esteem: want * 0.3}
 		},
-		Gone: func(w *world.World, p entity.Pos, t *world.Tile) {
-			if t.Wood < 0.1 {
+		Gone: func(w *world.World, p entity.Pos, drawn int) {
+			if w.Grid.Wood[drawn] < 0.1 {
 				w.Grid.Turn(p, world.Grass)
-				t.Wood = 0
-				w.Grid.Sow(w.Grid.Index(p)) // the stand is gone; what comes back starts from nothing
+				w.Grid.Wood[drawn] = 0
+				w.Grid.Sow(drawn) // the stand is gone; what comes back starts from nothing
 			}
 		},
 	},
@@ -371,22 +373,22 @@ func farSide(in ontology.Instance, parts []*ontology.Class, terms map[*ontology.
 						return false
 					}
 					drawn := g.Drawn(w, p)
-					if drawn == nil {
+					if drawn < 0 {
 						return false
 					}
 					// Ground with no stock of it holds no end of it.
-					return held == nil || *held(drawn) >= t.Least
+					return held == nil || held(w.Grid)[drawn] >= t.Least
 				})
 			},
 			Store: func(_ *entity.Agent, w *world.World, p entity.Pos, m *ontology.Class, _ int) store {
-				tile := g.Drawn(w, p)
-				if tile == nil {
+				drawn := g.Drawn(w, p)
+				if drawn < 0 {
 					return nil
 				}
-				return soil(tile, m)
+				return soil(w.Grid, drawn, m)
 			},
 			There: func(_ *entity.Agent, w *world.World, p entity.Pos) bool {
-				return g.Here(w, p, w.Grid.At(p)) && g.Drawn(w, p) != nil
+				return g.Here(w, p, w.Grid.At(p)) && g.Drawn(w, p) >= 0
 			},
 		}, true
 	}
@@ -588,8 +590,10 @@ func moving(in ontology.Instance) *Def {
 			}
 		}
 		if mv.Gone != nil {
-			if tile := grounds[in.Site]; tile.Drawn != nil {
-				mv.Gone(w, a.Pos, tile.Drawn(w, a.Pos))
+			if site := grounds[in.Site]; site.Drawn != nil {
+				if drawn := site.Drawn(w, a.Pos); drawn >= 0 {
+					mv.Gone(w, a.Pos, drawn)
+				}
 			}
 		}
 		if o != nil {

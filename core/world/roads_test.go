@@ -16,11 +16,11 @@ func TestPaveRespectsWhatIsAlreadyThere(t *testing.T) {
 
 	wood := entity.Pos{X: 2, Y: 2}
 	g.Turn(wood, Forest)
-	g.At(wood).Wood = 0.8
+	g.Wood[g.Index(wood)] = 0.8
 	if !g.Pave(wood) {
 		t.Fatal("a road would not go through the woods")
 	}
-	if tile := g.At(wood); tile.Terrain != Grass || tile.Wood != 0 {
+	if tile := g.At(wood); tile.Terrain != Grass || g.Wood[g.Index(wood)] != 0 {
 		t.Fatalf("the trees survived the road: %+v", tile)
 	}
 

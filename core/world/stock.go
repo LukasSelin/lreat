@@ -51,7 +51,16 @@ func (t *Tile) Is(c *ontology.Class) bool {
 	return g != nil && g.IsA(c)
 }
 
-// Offers is how much of m this tile has to give: nothing where the ground is
+// Affords reports whether the ground here is the kind that has m to give at
+// all, whatever is standing on it today: an outcrop affords stone and a
+// meadow does not. It is the ontology's question asked of a tile, and it
+// is all a search needs that is looking for a kind of ground rather than
+// for what is left on it.
+func (t *Tile) Affords(m *ontology.Class) bool {
+	return ontology.Offers(GroundOf(t), m)
+}
+
+// Offers is how much of m tile i has to give: nothing where the ground is
 // not the kind that affords m at all, the standing stock where there is a
 // count of it, and one where the ground affords m without keeping a count,
 // stone in an outcrop being bottomless.
@@ -61,11 +70,11 @@ func (t *Tile) Is(c *ontology.Class) bool {
 // on it; asking the first while meaning the second is what makes every new
 // kind of ground a hunt through the callers, since the compiler has nothing
 // to say about a comparison that stayed valid and stopped being right.
-func (t *Tile) Offers(m *ontology.Class) float64 {
-	if !ontology.Offers(GroundOf(t), m) {
+func (g *Grid) Offers(i int, m *ontology.Class) float64 {
+	if !g.Tiles[i].Affords(m) {
 		return 0
 	}
-	if s, ok := Stock(t, m); ok {
+	if s, ok := g.Stock(i, m); ok {
 		return *s
 	}
 	return 1
@@ -129,26 +138,31 @@ func GoodOf(m *ontology.Class) (entity.Good, bool) {
 	return 0, false
 }
 
-// stocks is what the ground holds of a material, by tile. A material the
-// ground holds but has no stock of (stone in an outcrop) has no entry.
-var stocks = map[*ontology.Class]func(*Tile) *float64{
-	ontology.Berries: func(t *Tile) *float64 { return &t.Wild },
-	ontology.Game:    func(t *Tile) *float64 { return &t.Wild },
-	ontology.Timber:  func(t *Tile) *float64 { return &t.Wood },
-	ontology.Fish:    func(t *Tile) *float64 { return &t.Fish },
+// stocks is what the ground holds of a material: the layer of the map that
+// keeps the count, indexed by tile. A material the ground holds but has no
+// stock of (stone in an outcrop) has no entry. Berries and game are one
+// count between them, which is why two of these are the same layer.
+var stocks = map[*ontology.Class]func(*Grid) []float64{
+	ontology.Berries: func(g *Grid) []float64 { return g.Wild },
+	ontology.Game:    func(g *Grid) []float64 { return g.Wild },
+	ontology.Timber:  func(g *Grid) []float64 { return g.Wood },
+	ontology.Fish:    func(g *Grid) []float64 { return g.Fish },
 }
 
-// Stock is the number on this tile that stands for how much of m is here.
-// ok is false where the ground affords m without keeping a count of it.
-// StockOf is Stock resolved for a material instead of for a tile: the number
-// on a tile that holds m, or nil where the ground has no stock of it and is
+// StockOf is Stock resolved for a material instead of for a tile: the layer
+// of a map that holds m, or nil where the ground has no stock of it and is
 // bottomless. It is for the searches that ask the same question of every tile
 // on the map, which would otherwise look the material up on each of them.
-func StockOf(m *ontology.Class) func(*Tile) *float64 { return stocks[m] }
+func StockOf(m *ontology.Class) func(*Grid) []float64 { return stocks[m] }
 
-func Stock(t *Tile, m *ontology.Class) (*float64, bool) {
+// Stock is the number that stands for how much of m is on tile i. ok is
+// false where the ground affords m without keeping a count of it. The
+// number is where it is kept, so what is moved through it is moved on the
+// map: a layer is made once with the map and never grows, so the pointer
+// stands as long as the map does.
+func (g *Grid) Stock(i int, m *ontology.Class) (*float64, bool) {
 	if s, ok := stocks[m]; ok {
-		return s(t), true
+		return &s(g)[i], true
 	}
 	return nil, false
 }

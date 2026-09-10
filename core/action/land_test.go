@@ -19,12 +19,13 @@ func shore(t *testing.T) (*world.World, *entity.Agent) {
 		w.Grid.Fertility[i], w.Grid.Rich[i] = 0.3, 0.3
 	}
 	for y := 0; y < w.Grid.H; y++ {
-		t := w.Grid.At(entity.Pos{X: 6, Y: y})
-		t.Terrain, t.Fish = world.Water, 1
+		p := entity.Pos{X: 6, Y: y}
+		w.Grid.At(p).Terrain, w.Grid.Fish[w.Grid.Index(p)] = world.Water, 1
 	}
 	for y := 0; y < 3; y++ {
-		t := w.Grid.At(entity.Pos{X: 1, Y: y})
-		t.Terrain, t.Wood, t.Wild = world.Forest, 1, 1
+		p := entity.Pos{X: 1, Y: y}
+		i := w.Grid.Index(p)
+		w.Grid.At(p).Terrain, w.Grid.Wood[i], w.Grid.Wild[i] = world.Forest, 1, 1
 	}
 	w.Grid.At(entity.Pos{X: 9, Y: 2}).Structure = world.Market
 	w.MarketPos = entity.Pos{X: 9, Y: 2}
@@ -63,11 +64,11 @@ func run(w *world.World, a *entity.Agent, d *Def) bool {
 
 func TestForagingThinsTheForest(t *testing.T) {
 	w, a := shore(t)
-	before := w.Grid.At(entity.Pos{X: 1, Y: 2}).Wild
+	before := w.Grid.Wild[w.Grid.Index(entity.Pos{X: 1, Y: 2})]
 	if !run(w, a, Forage) {
 		t.Fatal("forage should be possible beside a forest")
 	}
-	wild := w.Grid.At(a.Pos).Wild
+	wild := w.Grid.Wild[w.Grid.Index(a.Pos)]
 	if !(wild < before) {
 		t.Fatalf("foraging should take from the forest: %v -> %v", before, wild)
 	}
@@ -115,12 +116,12 @@ func TestFishingTakesFromTheWater(t *testing.T) {
 	if a.Inventory[entity.Food] <= 2 {
 		t.Fatal("fishing should give food")
 	}
-	if bestWater(w, a.Pos) == nil {
+	if bestWater(w, a.Pos) < 0 {
 		t.Fatal("the agent should stand on a bank")
 	}
 	var least float64 = 2
 	for y := 0; y < w.Grid.H; y++ {
-		least = min(least, w.Grid.At(entity.Pos{X: 6, Y: y}).Fish)
+		least = min(least, w.Grid.Fish[w.Grid.Index(entity.Pos{X: 6, Y: y})])
 	}
 	if !(least < 1) {
 		t.Fatal("fishing should take from a water tile")
@@ -136,14 +137,14 @@ func TestHuntingNeedsToolsAndWearsThem(t *testing.T) {
 		t.Fatal("hunting without tools should not be possible")
 	}
 	a.Inventory[entity.Tools] = 1
-	before := w.Grid.At(entity.Pos{X: 1, Y: 2}).Wild
+	before := w.Grid.Wild[w.Grid.Index(entity.Pos{X: 1, Y: 2})]
 	if !run(w, a, Hunt) {
 		t.Fatal("hunting should be possible with tools and a forest")
 	}
 	if !(a.Inventory[entity.Tools] < 1) {
 		t.Fatal("hunting should wear the tool")
 	}
-	if !(w.Grid.At(a.Pos).Wild < before-forageTake) {
+	if !(w.Grid.Wild[w.Grid.Index(a.Pos)] < before-forageTake) {
 		t.Fatal("hunting should take more from the forest than foraging")
 	}
 	if !(huntYield(w, 1) > forageYield(1)) {
@@ -190,10 +191,10 @@ func TestPlantingMakesAForest(t *testing.T) {
 	// A planting is a planting. There is nothing on it to forage and nothing
 	// to fell, and the good of it goes to whoever is still here when it has
 	// grown; the brush comes back first and the timber long after.
-	if tile := w.Grid.At(a.Pos); tile.Wild > 0 || tile.Wood > 0 {
-		t.Fatalf("a planting gives %v wild and %v timber the day it is put in", tile.Wild, tile.Wood)
-	}
 	i := w.Grid.Index(a.Pos)
+	if w.Grid.Wild[i] > 0 || w.Grid.Wood[i] > 0 {
+		t.Fatalf("a planting gives %v wild and %v timber the day it is put in", w.Grid.Wild[i], w.Grid.Wood[i])
+	}
 	season(w, ontology.Brush.Full())
 	if w.Grid.Grown(i, ontology.Brush.Full()) < 1 {
 		t.Fatal("a stand that has stood a brush's lifetime should be grown")

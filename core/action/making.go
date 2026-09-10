@@ -66,7 +66,7 @@ func GranaryKeeping(w *world.World) float64 {
 	return k
 }
 
-func isRock(_ entity.Pos, t *world.Tile) bool { return t.Offers(ontology.Stone) > 0 }
+func isRock(_ entity.Pos, t *world.Tile) bool { return t.Affords(ontology.Stone) }
 
 // rockNear reports whether there is stone to cut within reach of p.
 func rockNear(w *world.World, p entity.Pos, radius int) bool {

@@ -64,10 +64,10 @@ func shelf(w *world.World, m *ontology.Class) (store, bool) {
 	return cell{&w.Market.Stock[g]}, true
 }
 
-// soil is what a tile holds of m, given that the ground it stands for
+// soil is what tile i holds of m, given that the ground it stands for
 // holds it at all: its stock, or a bottomless store where it has none.
-func soil(t *world.Tile, m *ontology.Class) store {
-	if s, ok := world.Stock(t, m); ok {
+func soil(g *world.Grid, i int, m *ontology.Class) store {
+	if s, ok := g.Stock(i, m); ok {
 		return cell{s}
 	}
 	return bottomless{}

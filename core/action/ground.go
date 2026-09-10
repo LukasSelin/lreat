@@ -158,8 +158,8 @@ func landWorth(w *world.World, p entity.Pos) float64 {
 	if nearWater(w, p) {
 		v += nearWaterWorth
 	}
-	if q, ok := w.Grid.NearestOfKind(p, timberReach, timberKinds, func(_ entity.Pos, t *world.Tile) bool {
-		return t.Offers(ontology.Timber) >= 0.3
+	if q, ok := w.Grid.NearestOfKind(p, timberReach, timberKinds, func(q entity.Pos, _ *world.Tile) bool {
+		return w.Grid.Offers(w.Grid.Index(q), ontology.Timber) >= 0.3
 	}); ok {
 		// A wood at the door is worth all of it; one at the edge of reach,
 		// almost none. Wood is fetched an armful at a time, so the walk is

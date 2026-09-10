@@ -184,7 +184,7 @@ func TestTheFishReadingSpansItsRange(t *testing.T) {
 		t.Fatalf("only %d water tiles to shade", len(water))
 	}
 	for n, i := range water {
-		m.Tiles[i].Fish = float64(n) / float64(len(water)-1)
+		m.Fish[i] = float64(n) / float64(len(water)-1)
 	}
 	seen := map[rune]bool{}
 	for _, row := range RenderView(m, Fish) {

@@ -12,11 +12,10 @@ import (
 
 // forestAt makes p a forest tile stripped of what grows on it, so that
 // whatever the season puts back is measurable.
-func forestAt(w *world.World, p entity.Pos) *world.Tile {
-	t := w.Grid.At(p)
-	t.Terrain, t.Wood, t.Wild = world.Forest, 0.1, 0.1
-	w.Grid.Standing(w.Grid.Index(p)) // a wood that has stood a while, not a planting
-	return t
+func forestAt(w *world.World, p entity.Pos) {
+	i := w.Grid.Index(p)
+	w.Grid.Tiles[i].Terrain, w.Grid.Wood[i], w.Grid.Wild[i] = world.Forest, 0.1, 0.1
+	w.Grid.Standing(i) // a wood that has stood a while, not a planting
 }
 
 // A forest keeps the season's hours: it puts wood and wild food back fast in
@@ -26,17 +25,17 @@ func TestLittleGrowsInAFrost(t *testing.T) {
 
 	warm := fitWorld(3)
 	warm.Climate = world.Climate{Temp: world.Thrive + 2}
-	tile := forestAt(warm, p)
-	before := tile.Wood
+	forestAt(warm, p)
+	before := warm.Grid.Wood[warm.Grid.Index(p)]
 	Land(warm)
-	grown := warm.Grid.At(p).Wood - before
+	grown := warm.Grid.Wood[warm.Grid.Index(p)] - before
 
 	cold := fitWorld(3)
 	cold.Climate = world.Climate{Temp: world.Frost - 5}
-	tile = forestAt(cold, p)
-	before = tile.Wood
+	forestAt(cold, p)
+	before = cold.Grid.Wood[cold.Grid.Index(p)]
 	Land(cold)
-	frozen := cold.Grid.At(p).Wood - before
+	frozen := cold.Grid.Wood[cold.Grid.Index(p)] - before
 
 	if grown <= 0 {
 		t.Fatalf("summer put back %.6f of a forest, want growth", grown)

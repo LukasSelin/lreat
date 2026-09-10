@@ -71,8 +71,8 @@ func TestHungryAgentSeeksFood(t *testing.T) {
 	// happened to put a wood where this agent spawned: on a map that put it
 	// on good open ground instead, the same starving agent broke a field -
 	// which is also food, and a slower answer to the same question.
-	here := w.Grid.At(a.Pos)
-	here.Terrain, here.Wood, here.Wild = world.Forest, 0.7, 0.7
+	here := w.Grid.Index(a.Pos)
+	w.Grid.Tiles[here].Terrain, w.Grid.Wood[here], w.Grid.Wild[here] = world.Forest, 0.7, 0.7
 	d, _ := Choose(a, w)
 	if d != action.Forage && d != action.Farm {
 		t.Fatalf("starving agent without food chose %q, want forage or farm", d.Name)
@@ -131,7 +131,7 @@ func TestDistanceDiscountsActions(t *testing.T) {
 		w.Grid.Fertility[i] = 0.5
 	}
 	w.Grid.At(entity.Pos{X: 0, Y: 10}).Terrain = world.Forest
-	w.Grid.At(entity.Pos{X: 0, Y: 10}).Wood = 1
+	w.Grid.Wood[w.Grid.Index(entity.Pos{X: 0, Y: 10})] = 1
 	near := w.SpawnAt("near", need.Neutral(), entity.Pos{X: 1, Y: 10})
 	far := w.SpawnAt("far", need.Neutral(), entity.Pos{X: 59, Y: 10})
 	for _, a := range []*entity.Agent{near, far} {

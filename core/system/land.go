@@ -106,7 +106,7 @@ func Land(w *world.World) {
 		if w.RNG.Float64() < reseedChance*w.GrowthAt(p) {
 			g.Turn(p, world.Forest)
 			i := g.Index(p)
-			t.Wood, t.Wild = 0, 0
+			g.Wood[i], g.Wild[i] = 0, 0
 			g.Sow(i) // a seedling wood, with nothing on it yet
 			// Seed that falls on sleeping ground is owed nothing of the
 			// growing weather the ground slept through, but that ground

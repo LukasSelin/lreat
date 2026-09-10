@@ -20,7 +20,7 @@ func TestAMoveFromTheGround(t *testing.T) {
 	for y := 3; y < 6; y++ {
 		w.Grid.At(entity.Pos{X: 2, Y: y}).Terrain = world.Rock
 	}
-	w.Grid.At(entity.Pos{X: 2, Y: 3}).Wood = 1 // one outcrop with driftwood on it
+	w.Grid.Wood[w.Grid.Index(entity.Pos{X: 2, Y: 3})] = 1 // one outcrop with driftwood on it
 	key := "take/timber@outcrop"
 	moves[key] = move{Name: "salvage",
 		Each:  map[*ontology.Class]part{ontology.Timber: {Quantity: fixed(0.25), Drain: 0.5, Least: 0.75}},
@@ -38,8 +38,8 @@ func TestAMoveFromTheGround(t *testing.T) {
 	if w.Grid.At(a.Pos).Terrain != world.Rock {
 		t.Fatalf("stood on %v, not the outcrop", a.Pos)
 	}
-	if a.Inventory[entity.Wood] != 0.25 || w.Grid.At(a.Pos).Wood != 0.5 {
-		t.Fatalf("pack %v ground %v; want 0.25 gained and 0.5 drained", a.Inventory[entity.Wood], w.Grid.At(a.Pos).Wood)
+	if a.Inventory[entity.Wood] != 0.25 || w.Grid.Wood[w.Grid.Index(a.Pos)] != 0.5 {
+		t.Fatalf("pack %v ground %v; want 0.25 gained and 0.5 drained", a.Inventory[entity.Wood], w.Grid.Wood[w.Grid.Index(a.Pos)])
 	}
 	if _, ok := d.Target(a, w); ok {
 		t.Fatal("with the outcrops below the least, there should be nowhere worth going")

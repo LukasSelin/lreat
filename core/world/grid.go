@@ -31,20 +31,13 @@ const (
 // Tile is one cell of the world: what the ground is, what stands on it and
 // whose it is, and the land itself - its height, its drainage, the rock
 // under it and the soil over that. What changes on it by the day - how
-// worn it is, how far what grows on it has come, what it has to give - is
-// kept beside the map rather than on the tile; see Layers. Wood is the
-// standing timber on a forest tile and is what gathering consumes; Wild is
-// what the forest has to give in food, berries and game, and is what
-// foraging and hunting consume. Fish is what a water tile has to give. All
-// of them regrow, slowly, so the land pushes back against a settlement that
-// takes too much and yields to one that leaves it be.
+// worn it is, how far what grows on it has come, what it has to give and
+// what a field has in it - is kept beside the map rather than on the tile;
+// see Layers.
 type Tile struct {
 	Terrain   Terrain
 	Structure Structure
 	Owner     entity.ID
-	Wood      float64
-	Wild      float64
-	Fish      float64
 
 	// Height is metres above the lowest ground on the map, and Flow is the
 	// share of the map whose water drains through this tile. Between them

@@ -85,7 +85,7 @@ func TestGreenReadsWhatIsStandingAndNotWhatCouldBe(t *testing.T) {
 	g := NewGrid(7, 1)
 	kind := func(i int, terrain Terrain, wood, wild float64) int {
 		g.Tiles[i].Terrain = terrain
-		g.Tiles[i].Wood, g.Tiles[i].Wild = wood, wild
+		g.Wood[i], g.Wild[i] = wood, wild
 		return i
 	}
 	bare := kind(0, Grass, 0, 0)

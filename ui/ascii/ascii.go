@@ -213,7 +213,7 @@ var ground = [world.TerrainCount]func(scene) Cell{
 	// A wood is drawn by how much of it is left to cut, and coloured by how
 	// high it stands.
 	world.Forest: func(s scene) Cell {
-		if s.t.Wood >= 0.5 {
+		if s.g.Wood[s.i] >= 0.5 {
 			return Cell{Ch: 'T', Color: Wood[s.b]}
 		}
 		return Cell{Ch: 't', Color: Wood[s.b]}
