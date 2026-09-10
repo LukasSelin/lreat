@@ -44,7 +44,8 @@ func TestElderlyBodiesAreSlower(t *testing.T) {
 	elder := w.SpawnAt("elder", need.Neutral(), entity.Pos{X: 0, Y: 1})
 	child := w.SpawnAt("child", need.Neutral(), entity.Pos{X: 0, Y: 1})
 	for _, a := range []*entity.Agent{adult, elder, child} {
-		a.Vitality, a.Health = 1, 1
+		a.Body, a.Mind = entity.Ordinary()
+		a.Health = 1
 	}
 	adult.Born = w.Tick - entity.Prime + 1
 	elder.Born = w.Tick - entity.Lifespan

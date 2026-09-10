@@ -40,6 +40,14 @@ import (
 // at a time. See core/entity/learn.go. It moves every settlement from the
 // first lesson given.
 //
+// Retaken before that for bodies and minds: what an agent burns, what cold it can stand,
+// how fast it takes to a craft, how firmly it decides and how far it will go
+// were one number apiece for the whole population and are now drawn per agent
+// and inherited. Five more draws at every spawn move the world's chance from
+// the first tick, so these had to move whatever the traits did. The land did
+// not: all six map hashes are as they were, because a world is made before
+// anybody is put on it. See entity.Body.
+//
 // Retaken for the rivers: a channel now cuts the outside of its own bends and
 // walks sideways across its valley, and what an age of weather takes off a
 // tile is divided by the rock under it, so soft beds go and hard ones are
@@ -56,9 +64,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "8f12847549a8c28d",
-	3: "91ff41ce678372a5",
-	9: "9e0e050d8ecb5b01",
+	1: "8aa33eadcc8df282",
+	3: "1ef92b91de88c1e0",
+	9: "776392b0999ce705",
 }
 
 // digest is the hash the golden numbers are of.

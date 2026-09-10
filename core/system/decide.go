@@ -180,7 +180,7 @@ func recognised(a *entity.Agent, w *world.World, cs []action.Candidate, chosen i
 		eff[i] = cs[i].Fit
 	}
 	intensity := Intensity(a)
-	chance := habit.Softmax(eff, w.Rules.Temperature/intensity)
+	chance := habit.Softmax(eff, Temper(w, a))
 	d := &world.Deliberation{
 		Tick: w.Tick, Agent: a.ID, Rule: "fit",
 		Intensity: intensity, Entropy: entropy,
@@ -262,12 +262,25 @@ func recognise(a *entity.Agent, w *world.World, r *world.Router) ([]action.Candi
 	for i := range cs {
 		eff[i] = cs[i].Fit
 	}
-	temp := w.Rules.Temperature / Intensity(a)
+	temp := Temper(w, a)
 	// The draw comes from the agent's own luck, not the world's one stream,
 	// so what it settles on does not depend on who else was deciding beside
 	// it. See entity.Agent.Luck.
 	i := habit.Sample(a.Luck, eff, temp)
 	return cs, i, habit.Entropy(eff, temp)
+}
+
+// Temper is the temperature an agent settles a moment at: the world's base
+// sharpened by how pressing the moment is, and again by how decided a mind
+// this is. The first is the day and is the same for anyone having it; the
+// second is the person, and is why one agent takes the best fit it can see
+// while another beside it is talked round by a near second.
+//
+// It is one function because it is asked twice - once to draw the choice and
+// once to write down what the chances were for somebody watching - and those
+// two must never be able to disagree.
+func Temper(w *world.World, a *entity.Agent) float64 {
+	return w.Rules.Temperature / (Intensity(a) * a.Mind.Decides())
 }
 
 // Intensity is how pressing an agent's moment is: the sum of its urgencies

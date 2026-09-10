@@ -83,7 +83,10 @@ func Practise(a *entity.Agent, i int) {
 		return
 	}
 	Imprint(a)
-	a.Reach[i] = min(1, a.Reach[i]+PractisedReach)
+	// How much a turn at the work brings it within reach is the learner's
+	// own. Everyone climbed the same ladder at the same rate before this,
+	// so who ended up a mason was whoever happened to lay the first stone.
+	a.Reach[i] = min(1, a.Reach[i]+PractisedReach*a.Mind.Learns())
 }
 
 // Broaden is what study does to reach: every gated action comes a little

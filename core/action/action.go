@@ -185,8 +185,17 @@ func Index(d *Def) int {
 	return -1
 }
 
-// searchRadius bounds how far agents look for a suitable tile.
+// searchRadius bounds how far agents look for a suitable tile. It is the
+// ordinary reach; how far this particular one will go is ranging.
 const searchRadius = 40
+
+// ranging is how far this agent looks for ground worth having. A homebody
+// breaks its field beside the house it has; one with a wider horizon walks
+// past a poor field for a better one, and founds the edge of a settlement
+// doing it. See entity.Mind.
+func ranging(a *entity.Agent) int {
+	return int(searchRadius * a.Mind.Reaches())
+}
 
 func always(*entity.Agent, *world.World) bool { return true }
 
@@ -444,7 +453,7 @@ func fieldSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	if a.HasHome {
 		anchor = a.Home
 	}
-	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool {
+	return w.Grid.Nearest(anchor, ranging(a), func(_ entity.Pos, t *world.Tile) bool {
 		return t.Buildable() && t.Fertility >= fieldSoil
 	})
 }
@@ -605,13 +614,13 @@ func shelterGain(a *entity.Agent, w *world.World) float64 {
 // own ground around it. A settlement that builds wall to wall has nowhere
 // left to put a street, so a plot is looked for first and open ground only
 // taken as it comes when the neighbourhood has run out of room.
-func plotNear(w *world.World, anchor entity.Pos) (entity.Pos, bool) {
-	if p, ok := w.Grid.Nearest(anchor, searchRadius, func(p entity.Pos, _ *world.Tile) bool {
+func plotNear(a *entity.Agent, w *world.World, anchor entity.Pos) (entity.Pos, bool) {
+	if p, ok := w.Grid.Nearest(anchor, ranging(a), func(p entity.Pos, _ *world.Tile) bool {
 		return w.Grid.RoomToBuild(p)
 	}); ok {
 		return p, true
 	}
-	return w.Grid.Nearest(anchor, searchRadius, func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
+	return w.Grid.Nearest(anchor, ranging(a), func(_ entity.Pos, t *world.Tile) bool { return t.Buildable() })
 }
 
 // buildSite is the agent's house, or the best plot it knows of.
@@ -632,8 +641,8 @@ func buildSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 
 // roomNearby reports whether a plot with its own ground around it is still
 // to be had within reach of p.
-func roomNearby(w *world.World, p entity.Pos) bool {
-	_, ok := w.Grid.Nearest(p, searchRadius, func(q entity.Pos, _ *world.Tile) bool {
+func roomNearby(a *entity.Agent, w *world.World, p entity.Pos) bool {
+	_, ok := w.Grid.Nearest(p, ranging(a), func(q entity.Pos, _ *world.Tile) bool {
 		return w.Grid.RoomToBuild(q)
 	})
 	return ok
@@ -663,7 +672,7 @@ var BuildShelter = &Def{
 			// Somebody may have built next door during the walk over. Go
 			// looking again rather than raise a wall against theirs, unless
 			// there is no plot left within reach to go looking for.
-			if !w.Grid.RoomToBuild(a.Pos) && roomNearby(w, a.Pos) {
+			if !w.Grid.RoomToBuild(a.Pos) && roomNearby(a, w, a.Pos) {
 				return
 			}
 			w.Grid.Build(a.Pos, world.House)
