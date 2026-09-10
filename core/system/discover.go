@@ -162,9 +162,9 @@ var Discoveries = []Discovery{
 		// it in the year they have been.
 		Signature: habit.Signature{habit.Hunger: 1, habit.Industry: 0.8},
 		Cost:      2 * pressYear,
-		Condition: func(w *world.World) bool { return w.Has("agriculture") && fieldsWorn(w) },
+		Condition: func(w *world.World) bool { return w.Has("agriculture") && fieldsDry(w) },
 		Effect:    func(w *world.World) { w.Mods.FarmYield *= 1.2 },
-		Text:      "with the fields gone poor, farmers cut channels from the river",
+		Text:      "with the fields out of the river's reach, farmers cut channels to them",
 		Opens:     []string{"irrigate"},
 	},
 	{
@@ -413,20 +413,81 @@ func waterNear(w *world.World) bool {
 	return n > 0
 }
 
-// fieldsWorn reports whether the fields near the market have gone poor.
-func fieldsWorn(w *world.World) bool {
-	fert, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) }, func(t *world.Tile) float64 { return t.Fertility })
-	return n >= 3 && fert < 0.45
+// driestField is the dampness below which the ground a settlement is farming
+// is out of the river's reach. Damp runs from 1 on the valley floor to 0 at
+// FloodDepth above it; settlements pick good land and farm at a median of
+// 0.64 to 0.83, so this is the ground a people have been pushed onto rather
+// than the ground they would choose.
+const driestField = 0.65
+
+// fieldsDry reports whether the fields near the market stand too far above
+// the water to be fed by it.
+//
+// This asked whether the fields had gone poor, and it was never once true in
+// sixty years on any seed. That was not a threshold set wrong: fields do not
+// wear. Fertility is restored toward Rich by Fallow faster than farming
+// takes it, so the mean fertility of a settlement's fields sits between 0.94
+// and 1.00 of what the ground can hold, for the whole of a run. A condition
+// asking for 0.45 was asking for a thing this world does not do, and
+// irrigation was therefore unreachable from the day it was written.
+//
+// That fields do not wear may itself be worth changing - land that pushes
+// back is most of what makes a settlement move on - but it is a change to
+// what the ground does and not to what a discovery asks of it, and it wants
+// a batch of its own.
+//
+// So irrigation answers the other thing irrigation is actually for. A field
+// high above the river is dry whatever its soil is worth, and cutting a
+// channel to it is the answer to that and to nothing else. It is a fact
+// about where a settlement was pushed to farm rather than about how hard it
+// has farmed, which also makes it a pressure that can come and go as the
+// holding spreads uphill.
+func fieldsDry(w *world.World) bool {
+	damp, n := meanOf(w, func(t *world.Tile) bool { return t.Is(ontology.Field) },
+		func(t *world.Tile) float64 { return max(0, min(1, 1-t.Drain/world.FloodDepth)) })
+	return n >= 3 && damp < driestField
 }
 
 // forestGone reports whether the settlement has cleared much of the forest
 // it was founded among.
+// clearedShare is how bare a settlement's own ground must be beside the
+// country at large before it counts as having cleared the woods it was
+// founded among. Seven tenths: the settlements probed sat between a third
+// and one and a fifth of the ambient, so this picks out the ones that have
+// actually eaten into their surroundings and leaves the ones that settled
+// somewhere sparse and changed nothing.
+const clearedShare = 0.7
+
+// forestGone reports whether the settlement has cleared the forest it was
+// founded among.
+//
+// It used to ask whether the map had lost two fifths of its forest, which
+// one settlement cannot do and never did: over sixty years the whole-map
+// share bottomed out between 0.61 and 1.00 against a bar of 0.60, so
+// forestry was as good as unreachable. Every other pressure in this file
+// reads the ground near the market, for the reason usedForest gives - the
+// woods a settlement lives off are the few tiles nearest it, and the country
+// beyond stays full whatever it does. This one was reading the country.
+//
+// It reads the settlement's own ground against the country now, which is
+// scale-free: a people who have cleared their surroundings stand out however
+// wooded or bare the map they were dropped on, and a people who settled in a
+// clearing and cut nothing do not.
 func forestGone(w *world.World) bool {
-	if w.Forest0 == 0 {
+	if len(w.Grid.Tiles) == 0 {
 		return false
 	}
-	now := w.Grid.Forest()
-	return float64(now) < 0.6*float64(w.Forest0)
+	ambient := float64(w.Grid.Forest()) / float64(len(w.Grid.Tiles))
+	if ambient < 0.01 {
+		return false // no woods anywhere; nothing to have cleared
+	}
+	near, n := meanOf(w, func(*world.Tile) bool { return true }, func(t *world.Tile) float64 {
+		if t.Is(ontology.Wood) {
+			return 1
+		}
+		return 0
+	})
+	return n > 0 && near < clearedShare*ambient
 }
 
 // rockNear reports whether there is stone to cut near the market.
