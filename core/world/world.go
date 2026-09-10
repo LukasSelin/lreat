@@ -1,9 +1,10 @@
 // Package world holds the complete simulation state.
 //
 // Exactly one goroutine may drive a World. The sim package enforces that;
-// everything else assumes it. Within a tick, deciding is spread over several
-// goroutines - it only reads - while everything that changes the world runs
-// one at a time.
+// everything else assumes it. Within a tick the passes that only read are
+// spread over several goroutines - agents deciding, the day's walk over the
+// ground, and what the day's ruin works out - while everything that changes
+// the world runs one at a time. See parallel.go for the rule they keep.
 //
 // Randomness flows through World.RNG, except for what an agent draws while
 // deciding, which comes from that agent's own Luck. Both are seeded from the
@@ -179,6 +180,9 @@ type World struct {
 	// ways is this tick's reading of the worn ground, kept between ticks so
 	// that taking it again writes into the same buffers.
 	ways *Ways
+	// ruin is the working memory of what nobody is left to keep, kept
+	// between ticks so that the day's ruin allocates nothing. See Ruin.
+	ruin Ruin
 }
 
 // Config is the terms a world is made on: how big the ground is and what

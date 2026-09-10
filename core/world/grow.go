@@ -206,6 +206,25 @@ var befalling = func() (b [Tavern + 1][Rock + 1][2]*ontology.Transform) {
 	return b
 }()
 
+// befalls is whether anything at all becomes of this kind of ground on its
+// own, kept or unkept. It is the two entries above read as one question, so
+// that ground nothing can befall either way is passed over before anybody
+// asks whose it is - which is most of the ground in a settled chunk, and
+// the asking is a look into the population by a number off the tile.
+var befalls = func() (b [Tavern + 1][Rock + 1]bool) {
+	for s := range b {
+		for t := range b[s] {
+			b[s][t] = befalling[s][t][0] != nil || befalling[s][t][1] != nil
+		}
+	}
+	return b
+}()
+
+// Befalls reports whether anything can become of this ground on its own,
+// whoever is or is not keeping it. Where it is false Befalling is nil both
+// ways, so nothing follows from asking.
+func (t *Tile) Befalls() bool { return befalls[t.Structure][t.Terrain] }
+
 // Befalling is what becomes of this tile on its own, given whether whoever
 // was keeping it is gone. Nil where nothing does.
 func (t *Tile) Befalling(unkept bool) *ontology.Transform {

@@ -79,11 +79,19 @@ func TestDecidingConcurrentlyIsRaceFree(t *testing.T) {
 }
 
 // The passes over the ground are spread over goroutines too, and they are
-// the ones that grow with the map rather than with the people: see
-// world.EachActiveOver. Only a map of some size takes that path - the
-// default valley is two chunks and is always walked whole - so these run a
-// country instead, and hold every tile of it against the same seed walked
-// one chunk at a time.
+// the ones that grow with the map rather than with the people: the day's
+// growing and fading, the reading of the case for a road, and what the day's
+// ruin works out. See world.EachActiveOver.
+//
+// The ruin is the one with the world's chance in it, and the chance is drawn
+// in a second walk that no goroutine touches. If the spreading were ever to
+// move a draw, or lose a tile, or find one twice, a settlement would come out
+// different - so what is compared here is every tile of the ground, which is
+// what the ruin razes and what the growing writes.
+//
+// Only a map of some size takes the parallel path - the default valley is two
+// chunks and is always walked whole - so these run a country instead, and
+// hold every tile of it against the same seed walked one chunk at a time.
 func runCountry(t *testing.T, seed uint64, workers, ticks int) (string, int) {
 	t.Helper()
 	was := world.Workers

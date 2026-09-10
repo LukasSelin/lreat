@@ -184,8 +184,19 @@ func (w *World) refile(a *entity.Agent, c int32) {
 }
 
 // Freeze says whether the file may be put right by readers. It is frozen
-// while agents decide side by side.
-func (w *World) Freeze(frozen bool) { w.frozen = frozen }
+// while a pass reads the world on several goroutines at once: putting the
+// file right is a write, and a reader that did it would be writing where
+// the others are looking.
+//
+// Freezing puts it right first, so that what the readers are held to is a
+// file that answers for the population as it now stands. Whoever unfreezes
+// hands the world back as they found it.
+func (w *World) Freeze(frozen bool) {
+	if frozen {
+		w.whole()
+	}
+	w.frozen = frozen
+}
 
 // Find returns the agent with the given id, or nil.
 func (w *World) Find(id entity.ID) *entity.Agent {
