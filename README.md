@@ -12,6 +12,24 @@ are the ways to watch a settlement and to judge whether a change to it helped.
 
 Go 1.27 or newer. No dependencies beyond the terminal library.
 
+The day's pass over the ground can be done four tiles at a time on a
+processor with AVX2, through Go's experimental vector packages. They exist
+only when the go command is asked for them, so the build has to be asked
+too:
+
+```bash
+GOEXPERIMENT=simd go run ./cmd/watch
+```
+
+(In PowerShell, `$env:GOEXPERIMENT = 'simd'` first.) What a settlement does
+is the same either way, to the last bit; a test holds the vector arithmetic
+to the tile-by-tile statement of it, and the golden numbers and the batch
+come out identical. What it changes is how long a day takes, and so far on
+the machine it was measured on that is nothing worth having: the arithmetic
+over a row of ground is twice as quick, but a day spends its time reading
+the tiles and drawing the hedges, not on the arithmetic. It is there for
+when that is no longer true.
+
 Watch a settlement develop live:
 
 ```bash

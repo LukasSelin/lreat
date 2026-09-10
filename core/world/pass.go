@@ -7,10 +7,13 @@ package world
 // same arithmetic done to a run of tiles at once, a layer at a time, so
 // that the pass streams the layers rather than picking each tile's numbers
 // out of the map: the kind of every tile in the run is read off the map
-// once into a byte, and everything after that is a loop over one slice
-// asking that byte whether the tile is the kind it is looking for. It is
-// the shape the pass has to be in before the arithmetic can be done several
-// tiles at a time.
+// once into a word, and everything after that is a loop over one slice
+// asking that word whether the tile is the kind it is looking for. It is
+// the shape the pass has to be in for the arithmetic to be done several
+// tiles at a time, which is what pass_simd_amd64.go does with it where
+// the build and the processor allow; pass_noasm.go is the same loops one
+// tile at a time, and the helpers here are the tails of the runs either
+// way.
 //
 // Nothing here changes a result to the last bit. Each tile is given the
 // same operations on the same operands in the same order as Ripen and
@@ -24,33 +27,44 @@ package world
 // fuse it now, and would be off by a last bit from itself. See
 // core/system/golden_test.go.
 
-// kinds is how many kinds of ground the pass tells apart: what stands on a
-// tile and what it is made of, since between them they say what grows on
-// it and what comes back to it. It is asked to fit in a byte.
-const kinds = int(Tavern+1) * int(TerrainCount)
-
-var _ [255 - kinds]struct{} // a kind has to fit in a byte
+// A kind is what stands on a tile and what it is made of, as one word:
+// the structure in the high byte and the terrain in the low, so that the
+// terrain alone can be read back off it with a mask. It is a word rather
+// than a byte because the pass compares it lane for lane against the
+// numbers it gates, and the numbers are eight bytes wide.
+const (
+	kindShift = 8
+	kindMask  = 1<<kindShift - 1
+	// kindSpan is one more than the largest kind, for the tables by kind.
+	kindSpan = int(Tavern)<<kindShift | int(Rock) + 1
+)
 
 // kindOf is the kind of a tile.
-func kindOf(t *Tile) uint8 {
-	return uint8(int(t.Structure)*int(TerrainCount) + int(t.Terrain))
+func kindOf(t *Tile) int64 {
+	return int64(t.Structure)<<kindShift | int64(t.Terrain)
 }
 
 // ages is which kinds of ground carry something growing, and so get older
 // with the weather: the alive table read by kind. isWater and isField are
 // which kinds are water and which are field, whatever stands on them, which
-// is the question Replenish asks.
-var ages, isWater, isField = func() (a, w, f [kinds]bool) {
+// is the question Replenish asks. aging is the kinds that age listed out,
+// for a pass that asks the question of several tiles at once.
+var ages, isWater, isField [kindSpan]bool
+var aging []int64
+
+func init() {
 	for s := 0; s <= int(Tavern); s++ {
 		for t := 0; t < int(TerrainCount); t++ {
-			k := s*int(TerrainCount) + t
-			a[k] = alive[s][t]
-			w[k] = Terrain(t) == Water
-			f[k] = Terrain(t) == Field
+			k := kindOf(&Tile{Structure: Structure(s), Terrain: Terrain(t)})
+			ages[k] = alive[s][t]
+			isWater[k] = Terrain(t) == Water
+			isField[k] = Terrain(t) == Field
+			if ages[k] {
+				aging = append(aging, k)
+			}
 		}
 	}
-	return
-}()
+}
 
 // stocking is one process that fills a stock on one kind of ground: which
 // kind, how long the process takes in full, how much of the stock a growing
@@ -58,9 +72,12 @@ var ages, isWater, isField = func() (a, w, f [kinds]bool) {
 // kind beside it and its span worked out, so that the pass asks the
 // ontology nothing.
 type stocking struct {
-	kind       uint8
+	kind       int64
 	full, rate float64
-	stock      func(*Grid) []float64
+	// spanned is whether the process takes any time at all - full over
+	// nought - settled here so that the pass need not compare it.
+	spanned bool
+	stock   func(*Grid) []float64
 }
 
 // stocked is every process that fills a stock, by kind and then in the
@@ -73,7 +90,11 @@ var stocked = func() (out []stocking) {
 					continue
 				}
 				out = append(out, stocking{
-					kind: uint8(s*int(TerrainCount) + t), full: f.p.Full(), rate: f.p.Rate, stock: f.stock,
+					kind:    kindOf(&Tile{Structure: Structure(s), Terrain: Terrain(t)}),
+					full:    f.p.Full(),
+					rate:    f.p.Rate,
+					spanned: f.p.Full() > 0,
+					stock:   f.stock,
 				})
 			}
 		}
@@ -87,10 +108,7 @@ var stocked = func() (out []stocking) {
 // share of one - so ground with none on it is left with none, and there is
 // nothing to ask before multiplying.
 func (g *Grid) FadeWear(lo, hi int, by float64) {
-	wear := g.Traffic[lo:hi]
-	for i := range wear {
-		wear[i] *= by
-	}
+	fade(g.Traffic[lo:hi], by)
 }
 
 // Grow gives the tiles [lo, hi) k of growing weather: what grows on them
@@ -103,7 +121,7 @@ func (g *Grid) Grow(lo, hi int, k float64) {
 	fishBy, fallowBy := FishRegrowth*k, Fallow*k
 	for lo < hi {
 		n := min(ChunkSide, hi-lo)
-		var kind [ChunkSide]uint8
+		var kind [ChunkSide]int64
 		tiles := g.Tiles[lo : lo+n]
 		for j := range tiles {
 			kind[j] = kindOf(&tiles[j])
@@ -112,41 +130,71 @@ func (g *Grid) Grow(lo, hi int, k float64) {
 		// A stand ages by the weather it gets, not by the calendar; see
 		// Ripen. The age is put on before anything reads it.
 		age := g.Age[lo : lo+n]
-		for j, kk := range ks {
-			if ages[kk] {
-				age[j] += k
-			}
-		}
+		grow(age, ks, k)
 		// Whatever is coming on fills a little further, bounded by the age
 		// it has had; see grown. Each filling is a pass of its own over the
 		// run, in the order the growing table has them.
 		for _, e := range stocked {
-			by := e.rate * k
-			s := e.stock(g)[lo : lo+n]
-			for j, kk := range ks {
-				if kk != e.kind {
-					continue
-				}
-				ceiling := 1.0
-				if e.full > 0 {
-					ceiling = clamp01(age[j] / e.full)
-				}
-				s[j] = grown(s[j], ceiling, by)
-			}
+			fill(e.stock(g)[lo:lo+n], age, ks, e.kind, e.spanned, e.full, e.rate*k)
 		}
 		// And what comes back that is not a stand coming on; see Replenish.
-		fish := g.Fish[lo : lo+n]
-		for j, kk := range ks {
-			if isWater[kk] {
-				fish[j] = min(1, fish[j]+fishBy)
-			}
-		}
-		fert, rich := g.Fertility[lo:lo+n], g.Rich[lo:lo+n]
-		for j, kk := range ks {
-			if isField[kk] {
-				fert[j] = min(rich[j], fert[j]+fallowBy)
-			}
-		}
+		shoal(g.Fish[lo:lo+n], ks, fishBy)
+		rest(g.Fertility[lo:lo+n], g.Rich[lo:lo+n], ks, fallowBy)
 		lo += n
+	}
+}
+
+// The passes one tile at a time. They are the whole of the pass where the
+// arithmetic is not done several tiles at once, and the tail of every run
+// where it is, and each is the statement in grow.go with the tile's kind
+// read off ks rather than off the tile.
+
+// fadeScalar is FadeWear over a run.
+func fadeScalar(wear []float64, by float64) {
+	for i := range wear {
+		wear[i] *= by
+	}
+}
+
+// growScalar puts k of weather on the age of every tile that has something
+// growing on it.
+func growScalar(age []float64, ks []int64, k float64) {
+	for j, kk := range ks {
+		if ages[kk] {
+			age[j] += k
+		}
+	}
+}
+
+// fillScalar fills the stock s on every tile of the given kind by what by
+// puts on, up to what its age over full accounts for; see grown and Grown.
+func fillScalar(s, age []float64, ks []int64, kind int64, full, by float64) {
+	for j, kk := range ks {
+		if kk != kind {
+			continue
+		}
+		ceiling := 1.0
+		if full > 0 {
+			ceiling = clamp01(age[j] / full)
+		}
+		s[j] = grown(s[j], ceiling, by)
+	}
+}
+
+// shoalScalar puts the fish back in the water, up to full.
+func shoalScalar(fish []float64, ks []int64, by float64) {
+	for j, kk := range ks {
+		if isWater[kk] {
+			fish[j] = min(1, fish[j]+by)
+		}
+	}
+}
+
+// restScalar rests the fields, up to what the ground can hold.
+func restScalar(fert, rich []float64, ks []int64, by float64) {
+	for j, kk := range ks {
+		if isField[kk] {
+			fert[j] = min(rich[j], fert[j]+by)
+		}
 	}
 }

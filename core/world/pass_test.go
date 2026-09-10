@@ -1,6 +1,7 @@
 package world
 
 import (
+	"math"
 	"slices"
 	"testing"
 
@@ -8,19 +9,24 @@ import (
 )
 
 // varied is a generated map with every kind of ground laid along its first
-// row, with something on every layer of those tiles: ages before and past
-// anything a stand takes, stocks part full, fields part worn. Laying tiles
-// by hand puts the chunk counts out, and nothing here reads them.
+// two rows, with something on every layer of those tiles: ages before and
+// past anything a stand takes, and a negative nought, which nothing that
+// happens on a map ever writes but which a clamp written two ways would
+// disagree on; stocks part full, empty and over full; fields part worn.
+// Laying tiles by hand puts the chunk counts out, and nothing here reads
+// them.
 func varied() *Grid {
 	g := New(5).Grid
 	i := 0
 	for s := 0; s <= int(Tavern); s++ {
 		for t := 0; t < int(TerrainCount); t++ {
-			g.Tiles[i].Structure, g.Tiles[i].Terrain = Structure(s), Terrain(t)
-			g.Age[i] = float64(i-15) * 200
-			g.Wood[i], g.Wild[i], g.Fish[i] = 0.1*float64(i%7), 0.05*float64(i%9), 0.2*float64(i%5)
-			g.Rich[i], g.Fertility[i] = 0.6, 0.1*float64(i%6)
-			i++
+			for _, age := range []float64{float64(i-15) * 200, math.Copysign(0, -1)} {
+				g.Tiles[i].Structure, g.Tiles[i].Terrain = Structure(s), Terrain(t)
+				g.Age[i] = age
+				g.Wood[i], g.Wild[i], g.Fish[i] = 0.1*float64(i%7), 0.05*float64(i%9), 0.2*float64(i%5)
+				g.Rich[i], g.Fertility[i] = 0.6, 0.1*float64(i%6)
+				i++
+			}
 		}
 	}
 	return g
@@ -59,7 +65,7 @@ func same(t *testing.T, what string, a, b *Grid) {
 // over a day's weather and a season's at once, over runs of any length and
 // alignment, and over and over so that the ceilings on the stocks bite.
 func TestGrowIsRipenAndReplenishTileByTile(t *testing.T) {
-	for _, k := range []float64{0.37, 0.8 * float64(clock.Season)} {
+	for _, k := range []float64{0, 0.37, 0.8 * float64(clock.Season)} {
 		flat := varied()
 		byTile := flat.Clone()
 		for round := 0; round < 4; round++ {
@@ -96,4 +102,15 @@ func TestFadeWearIsTheBranchedFade(t *testing.T) {
 		}
 	}
 	same(t, "fading", flat, byTile)
+}
+
+// How long the day's pass takes over one chunk's width of varied ground,
+// for holding the arithmetic done four tiles at once against the same
+// done one at a time: run it with and without GOEXPERIMENT=simd.
+func BenchmarkGrowRow(b *testing.B) {
+	g := varied()
+	for range b.N {
+		g.FadeWear(0, ChunkSide, Fade)
+		g.Grow(0, ChunkSide, 0.37)
+	}
 }
