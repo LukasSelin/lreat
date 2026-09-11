@@ -17,11 +17,47 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. All eight came through, one is down to four souls,
-and one grew past four hundred; that is the globe's ecology as it stands,
+one side or another. Two of the eight came to nothing and three grew past two hundred;
+that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
+
+Taken on the commit that put the rivers where water would actually put them.
+Two readings were wrong: `Grid.Aspect` took the lowest neighbour rather than
+the steepest fall, so on evenly falling ground the water always left
+cornerways and the plains were ruled with parallel lines at forty-five
+degrees; and a river was picked by how much water crossed it alone, so the
+heads of them were never in the hills. Rain is heavier on high ground now and
+none falls on the sea, a channel is picked by the water against the fall, and
+each is laid from its head the whole way to the sea so a trunk on its own flood
+plain is still a river. See "What the last change did" in
+[baseline.md](baseline.md), where the same change is set out against the
+valley.
+
+```
+before the rivers: gates: fed 0.69 safe 0.56 held 0.73 all 0.309 food 8.98 | lasted 7/8 extinct 0 mean 163.6 median 159
+after the rivers:  gates: fed 0.69 safe 0.42 held 0.62 all 0.234 food 7.06 | lasted 6/8 extinct 1 mean 191.9 median 209
+```
+
+This is a worse run and it should be said plainly rather than absorbed. `safe`
+fell 0.14 and `gates all` 0.075, both well past what the valley's table calls
+noise, and one settlement died where none had. Seed 1 came out with nobody at
+all and seed 7 with two souls; the other six are healthy and three of them are
+the best this preset has produced.
+
+The obvious explanation is wrong. It would be that the new drainage left those
+two markets dry, and it did not: both have water one tile from the square, both
+sit wholly on flood plain, and their ground is the most fertile of the eight -
+0.97 and 0.90 against a 0.72 for the seed that grew to five hundred. Whatever
+killed them, it was not the water or the soil.
+
+So this is recorded and not explained. Eight seeds can say that something moved
+and cannot say what, and the next thing worth doing is to run the two dead
+seeds and watch them rather than to guess again and put another unmeasured
+change on top of this one.
+
+## Before that
 
 Taken on the commit that made a globe out of its own history rather than
 drawing it. The crust breaks into pieces that drift, weld when two continents
@@ -104,14 +140,14 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1   72   190    181     15     44 |  0.67  0.53  0.48  0.36  0.19 |  1.00
-   2    4    53     37      3      4 |  0.43  0.61  0.94  0.24  0.00 |  1.00
-   3   70    34     84     15      4 |  0.72  0.45  0.90  0.34  0.13 |  1.00
-   4  284   321    218    181    150 |  0.61  0.62  0.70  0.24  0.10 |  1.00
-   5  114   175    137     46     58 |  0.68  0.57  0.48  0.22  0.01 |  1.00
-   6  406   280    114    102    225 |  0.68  0.51  0.61  0.58  0.01 |  1.00
-   7  159   169    148     34    171 |  0.68  0.55  0.67  0.39  0.13 |  1.00
-   8  200    91     72      5     90 |  0.74  0.54  0.49  0.32  0.19 |  1.00
+   1    0    22      2      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   2  249   201    203    143    160 |  0.67  0.64  0.66  0.07  0.00 |  1.00
+   3  549   216    145     56    221 |  0.70  0.51  0.65  0.18  0.18 |  1.00
+   4   88   144     57     35     61 |  0.69  0.48  0.61  0.58  0.04 |  1.00
+   5  209   180    106     44    123 |  0.76  0.50  0.46  0.62  0.09 |  1.00
+   6   80   159    111     16    112 |  0.65  0.52  0.67  0.17  0.05 |  1.00
+   7    2    24      6      2      2 |  0.97  0.43  0.00  0.01  0.00 |  0.00
+   8  358    84    106     62    238 |  0.77  0.54  0.50  0.21  0.09 |  1.00
 
 dwell/rest                         1416252  37.5%
 take/berries@wood                   654753  17.3%

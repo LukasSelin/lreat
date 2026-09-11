@@ -40,30 +40,30 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  105   138     29     71      9 |  0.64  0.58  0.40  0.05  0.12 |  0.99
-   2   96   262     26     32     74 |  0.57  0.52  0.46  0.20  0.02 |  1.00
-   3  141   402     18     50    140 |  0.66  0.57  0.49  0.19  0.10 |  1.00
-   4   44   156     33     26     11 |  0.51  0.60  0.57  0.16  0.13 |  0.96
-   5   35   174     24     20     11 |  0.58  0.49  0.61  0.19  0.00 |  0.99
-   6  175   330     29     86     38 |  0.69  0.64  0.46  0.21  0.06 |  1.00
-   7  248   297     41    104     54 |  0.62  0.50  0.36  0.04  0.02 |  0.99
-   8   76   134     16     24     26 |  0.56  0.53  0.54  0.43  0.10 |  1.00
-   9  198   210     22     22     61 |  0.68  0.48  0.56  0.23  0.14 |  1.00
-  10  626   299     27     90    151 |  0.66  0.55  0.55  0.30  0.09 |  1.00
-  11   53   171     34     13     48 |  0.72  0.58  0.55  0.26  0.20 |  1.00
-  12   98   209     39     38     28 |  0.62  0.56  0.41  0.19  0.07 |  1.00
-  13  283   273     34    149    115 |  0.63  0.58  0.29  0.07  0.05 |  0.98
-  14  280   327     35     95    181 |  0.60  0.54  0.55  0.24  0.02 |  1.00
-  15  174   282     40     28     90 |  0.67  0.60  0.66  0.31  0.15 |  1.00
-  16   28   119     33     11     27 |  0.59  0.52  0.40  0.32  0.00 |  1.00
-  17   90   156     32     40     83 |  0.62  0.54  0.49  0.15  0.10 |  1.00
-  18  129   228     26     35     98 |  0.61  0.52  0.41  0.10  0.09 |  1.00
-  19   40   164     20     19     40 |  0.64  0.63  0.55  0.20  0.07 |  1.00
-  20   15   108     39     14      7 |  0.84  0.70  0.47  0.03  0.04 |  0.83
-  21  189   438     33     84     53 |  0.58  0.54  0.45  0.13  0.08 |  1.00
-  22  148   377     34     65     70 |  0.56  0.52  0.49  0.21  0.06 |  1.00
-  23  139   144     32     52    100 |  0.59  0.51  0.77  0.09  0.10 |  1.00
-  24  251   438     41     96    160 |  0.60  0.55  0.39  0.20  0.03 |  1.00
+   1   37    84      9     17     30 |  0.67  0.59  0.31  0.39  0.06 |  1.00
+   2   93   222     38     57     39 |  0.57  0.56  0.45  0.09  0.07 |  0.99
+   3  140   229     28     80     73 |  0.59  0.57  0.43  0.13  0.01 |  0.99
+   4  117   244     37     23     74 |  0.66  0.52  0.60  0.30  0.06 |  1.00
+   5   41    75     17     23     13 |  0.59  0.53  0.41  0.27  0.08 |  0.99
+   6  149   206     47     68     44 |  0.62  0.62  0.45  0.12  0.07 |  1.00
+   7  325   409     27    128     69 |  0.66  0.48  0.39  0.08  0.00 |  1.00
+   8   66   241     41     29     36 |  0.67  0.58  0.59  0.06  0.10 |  1.00
+   9   72   203     28     29     53 |  0.69  0.52  0.64  0.26  0.02 |  0.99
+  10  598   379     23    129    120 |  0.59  0.45  0.39  0.34  0.02 |  1.00
+  11  168   292     35     59     40 |  0.65  0.50  0.35  0.07  0.02 |  1.00
+  12  271   352     30     77    129 |  0.69  0.57  0.44  0.10  0.08 |  1.00
+  13   98   235     25     23     74 |  0.66  0.56  0.57  0.20  0.12 |  1.00
+  14   30    91     34      9     25 |  0.62  0.57  0.61  0.33  0.11 |  0.99
+  15    3    54     20      2      0 |  0.30  0.33  0.43  0.13  0.00 |  0.17
+  16  106   173     26     37     32 |  0.55  0.58  0.57  0.15  0.06 |  1.00
+  17  238   262     35    133    101 |  0.58  0.60  0.50  0.21  0.03 |  1.00
+  18  306   181     27    111    158 |  0.62  0.50  0.45  0.16  0.06 |  1.00
+  19  152   482     38     85     85 |  0.61  0.62  0.52  0.10  0.05 |  1.00
+  20    6    45     20      2      5 |  0.66  0.47  0.88  0.22  0.07 |  0.89
+  21  147   154     23     49     87 |  0.61  0.52  0.61  0.43  0.06 |  1.00
+  22  175   403     63     91      3 |  0.58  0.59  0.46  0.07  0.04 |  1.00
+  23  192   311     31    103     48 |  0.66  0.55  0.39  0.09  0.06 |  0.99
+  24  196   184     20     63     74 |  0.59  0.55  0.48  0.25  0.10 |  1.00
 
 dwell/rest                         3418055  31.7%
 take/berries@wood                  2079692  19.3%
@@ -98,10 +98,58 @@ raise/timber+stone>market@open          95   0.0%
 move@dwelling                           79   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.59 safe 0.51 held 0.69 all 0.256 food 4.02 hungry-with-food 0.27 | lasted 23/24 extinct 0 mean 152.5 median 139 | phys 0.63 safe 0.55 belng 0.50 estm 0.19
+gates: fed 0.57 safe 0.50 held 0.69 all 0.245 food 5.28 hungry-with-food 0.29 | lasted 22/24 extinct 0 mean 155.2 median 147 | phys 0.61 safe 0.54 belng 0.50 estm 0.19
 ```
 
 ## What the last change did
+
+Two readings of where water goes were wrong, and both moved every river on the
+map.
+
+`Grid.Aspect` took the lowest neighbour rather than the steepest fall. A
+diagonal neighbour is half again as far off, so on ground that falls evenly it
+sits lower and won - and the same diagonal won every time, because the first
+direction offered takes a tie. Two river tiles in three left their tile
+cornerways, and what that drew was a set of parallel lines at forty-five
+degrees ruled across every plain on the map. It is a quarter of them now.
+`Grid.Slope`, three functions above it, had been dividing the drop by the
+distance all along; `Aspect` was the one reading of the same eight neighbours
+that did not.
+
+And a river was picked out by how much water crossed it and nothing else, so
+the head of one sat wherever a catchment had gathered enough - which on flat
+country is nowhere in particular and never in the hills. Three things answer
+that. Rain is heavier on high ground and none of it falls on the sea. A channel
+is picked by the water against the fall rather than by the water alone, because
+steep ground needs less of a catchment to cut one. And a channel is then laid
+from its head the whole way down to the sea, so that a trunk crossing its own
+flood plain - all the water on the map and no fall at all - is still a river.
+
+The high fifth of a valley held none of its river tiles, one, and none over
+three seeds. It holds fifteen, twenty-nine and fifteen.
+
+```
+before: gates: fed 0.59 safe 0.51 held 0.69 all 0.256 food 4.02 | lasted 23/24 extinct 0 mean 152.5 median 139
+after:  gates: fed 0.57 safe 0.50 held 0.69 all 0.245 food 5.28 | lasted 22/24 extinct 0 mean 155.2 median 147
+```
+
+The gates are where they were - 0.256 to 0.245 is half of what the table above
+asks for before a move is worth believing - and so is the tally, at one
+settlement either way. The one figure outside noise is `food`, up by a third.
+A settlement lives on its flood plain and moving the rivers moved the flood
+plains; whether a third more food on hand is that or the draw wants a batch
+that could carry the question, and twenty-four seeds cannot.
+
+The golden numbers moved, and had to: the rivers are in different places, so
+the soil is, so the fields are.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the unreachable pressures did
 
 Irrigation and forestry were unreachable, and had been since they were
 written. The pressure spike made it visible - a zero standing in `w.Pressed`
@@ -193,12 +241,6 @@ more people.
 The golden numbers did not move. Forestry arrives at year six at the
 earliest and the golden run is fifteen hundred days, so nothing this changed
 happens inside it.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What pressing toward the land's answers did
 

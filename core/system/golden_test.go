@@ -31,7 +31,25 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for the land's answers being worked toward rather than handed
+// Retaken for where the water goes. Two readings of the ground were wrong and
+// both moved every river on the map. Grid.Aspect took the lowest neighbour
+// rather than the steepest fall, and a diagonal neighbour is half again as far
+// off, so on evenly falling ground it was lower and won - the same diagonal
+// every time, because the first offered wins a tie. Two river tiles in three
+// left their tile cornerways. And a river was picked out by how much water
+// crossed it and nothing else, so the heads of them sat wherever a catchment
+// happened to have gathered enough, which on flat country is nowhere in
+// particular and never in the hills. Rain is now heavier on high ground and
+// none of it falls on the sea; a channel is picked by the water against the
+// fall rather than the water alone, and is then laid from its head down to the
+// sea so that a trunk crossing its own flood plain is still a river. See
+// Grid.Aspect, channelFall and Grid.carve in core/world/relief.go.
+//
+// All three seeds move, and they move because the ground under them is
+// differently drained: the rivers are in different places, so the soil is, so
+// the fields are.
+//
+// Retaken before that for the land's answers being worked toward rather than handed
 // over. Each carries a direction in habit space and a cost in pressure-days
 // now, and what advances it is the projection of the worst-off person's own
 // situation onto that direction - so a settlement arrives at fishing in the
@@ -87,9 +105,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "85aec2b23412fa07",
-	3: "74fcf6fd0048f38d",
-	9: "39d590378ddae2f9",
+	1: "b01e1ba99783cfa1",
+	3: "39aeaac0963f7c16",
+	9: "7eceba49756b697f",
 }
 
 // digest is the hash the golden numbers are of.
