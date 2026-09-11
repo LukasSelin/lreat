@@ -25,11 +25,43 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. Two of the eight came to nothing and one grew past nine hundred;
+one side or another. Two of the eight came to nothing and one grew past five hundred;
 that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
+
+Taken on the commit that gave the mountain flanks their spurs and hollows.
+
+A belt of country raised smoothly is an inclined plane, and an inclined plane
+drains in parallel lines - every tile on it sends its water the same way, so
+the rills run side by side down the flank and no two of them ever meet. The
+mountainsides came out combed: even, parallel streams at a tile's spacing
+running straight into the sea. Ground steeper than 0.3 had three or more
+neighbours draining into it on four tiles in a thousand, against twenty-seven
+in a thousand on gentle ground; the flanks had no hollows for water to gather
+in. With the spurs, the streams on steep ground join at twenty-four in a
+hundred where they joined at eight. See beltGrain in core/world/history.go.
+
+How rough to make them was settled by this batch and not by the look of it,
+because rough flanks are ground nobody can build on or plough. Twenty-four
+seeds:
+
+	flank roughness   extinct  lasted  gates all  held  median
+	none                6/24    17/24    0.202    0.62    127
+	a tenth             7/24    16/24    0.189    0.55     60
+	a quarter           7/24    11/24    0.145    0.48     17
+
+A quarter is the better-looking map and it takes six settlements off the batch.
+A tenth keeps nearly all of the joining - twenty-four in a hundred against
+twenty-seven - and comes back to within a settlement and a hundredth and a half
+of where the globe stood, which is inside what this batch can see.
+
+The eight-seed batch on the quarter reported nought extinct and looked healthy.
+It took twenty-four seeds to find the eleven. That is the second time the note
+above has earned itself in as many changes.
+
+## Before that
 
 Taken on the commit that tightened how far a great river's flood reaches: onto
 the ground no higher than the water, where it used to take every neighbour
@@ -271,47 +303,45 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   2   47    34     61     25     46 |  0.65  0.62  0.79  0.37  0.00 |  1.00
-   3   36    75     82      2     29 |  0.67  0.50  0.69  0.38  0.06 |  1.00
-   4  358   418    194    221    444 |  0.61  0.57  0.57  0.16  0.04 |  1.00
-   5    0    35     15      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   6  127   105    126     55     75 |  0.69  0.55  0.60  0.24  0.03 |  1.00
-   7  191   149     73     59    145 |  0.62  0.50  0.61  0.34  0.11 |  1.00
-   8  981   811    200    501    918 |  0.67  0.55  0.49  0.18  0.10 |  1.00
+   1  266   101     68     71     99 |  0.63  0.48  0.50  0.24  0.01 |  1.00
+   2    0    30     10      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   3  542   255     82     73    263 |  0.73  0.57  0.65  0.42  0.27 |  1.00
+   4    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   5    5    99     84      0      8 |  0.81  0.47  0.75  0.66  0.00 |  0.98
+   6  112   353    128     54    124 |  0.82  0.54  0.69  0.15  0.03 |  1.00
+   7  124   160     92     48    123 |  0.65  0.50  0.52  0.21  0.08 |  1.00
+   8   83    86     59     43     63 |  0.66  0.59  0.38  0.15  0.15 |  0.99
 
-consume/provision                  1056097  28.3%
-dwell/rest                          800336  21.4%
-take/berries@wood                   585484  15.7%
-dwell/guard@market                  325780   8.7%
-take/fish@water                     297271   8.0%
-dwell/meet@tavern>neighbour         186857   5.0%
-take/grain@field                     89544   2.4%
-transfer/provision>needy             85550   2.3%
-take/timber@wood                     72951   2.0%
-pass/practice>pupil                  44829   1.2%
-pass/practice>self                   34927   0.9%
-tend/plant@open                      34016   0.9%
-exchange/coin>provision@market       25055   0.7%
-transfer/material>requester          22521   0.6%
-raise/timber>dwelling@open           15457   0.4%
-exchange/material>coin@market        14736   0.4%
-make/timber>tool@bench               10461   0.3%
-take/game@wood                        8615   0.2%
-dwell/look                            6579   0.2%
-transfer/provision<holder             4320   0.1%
-strike/person>wrongdoer               4057   0.1%
-tend/clear@open                       2934   0.1%
-raise/timber>road@ground              2923   0.1%
-tend/water@field                       744   0.0%
-make/provision+timber>meal@hearth       92   0.0%
-take/stone@outcrop                      72   0.0%
-move@dwelling                           30   0.0%
-raise/timber>tavern@open                17   0.0%
-raise/timber+stone>market@open           2   0.0%
-make/stone+timber>tool@forge             1   0.0%
-raise/timber+stone>granary@open          1   0.0%
+dwell/rest                         1253886  38.3%
+take/berries@wood                   619951  19.0%
+consume/provision                   508060  15.5%
+dwell/guard@market                  340553  10.4%
+dwell/meet@tavern>neighbour         134041   4.1%
+take/fish@water                      65631   2.0%
+dwell/look                           45708   1.4%
+take/grain@field                     41125   1.3%
+exchange/coin>provision@market       40617   1.2%
+transfer/material>requester          38809   1.2%
+take/timber@wood                     38014   1.2%
+tend/plant@open                      29106   0.9%
+pass/practice>self                   27422   0.8%
+exchange/material>coin@market        26012   0.8%
+transfer/provision>needy             22601   0.7%
+pass/practice>pupil                  14807   0.5%
+raise/timber>dwelling@open            7993   0.2%
+make/timber>tool@bench                7157   0.2%
+take/game@wood                        4294   0.1%
+tend/clear@open                       1582   0.0%
+transfer/provision<holder             1348   0.0%
+strike/person>wrongdoer                676   0.0%
+raise/timber>road@ground               478   0.0%
+tend/water@field                       387   0.0%
+make/provision+timber>meal@hearth      268   0.0%
+move@dwelling                           61   0.0%
+raise/timber>tavern@open                19   0.0%
+take/stone@outcrop                       5   0.0%
+raise/timber+stone>market@open           1   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.60 safe 0.42 held 0.65 all 0.220 food 13.27 hungry-with-food 0.27 | lasted 6/8 extinct 2 mean 217.5 median 127 | phys 0.65 safe 0.55 belng 0.62 estm 0.28
+gates: fed 0.67 safe 0.42 held 0.61 all 0.232 food 10.28 hungry-with-food 0.23 | lasted 5/8 extinct 2 mean 141.5 median 112 | phys 0.72 safe 0.52 belng 0.58 estm 0.31
 ```

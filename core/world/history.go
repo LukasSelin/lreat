@@ -111,6 +111,45 @@ const (
 	// that reads as drawn. Varied, a range is broad here and narrow there,
 	// with high ground where the two plates are biting and passes where they
 	// are not.
+	//
+	// It runs down to a ninth of that, three or four tiles, and the finest
+	// octave is not decoration. A belt raised smoothly is an inclined plane,
+	// and an inclined plane drains in parallel lines: every tile on it sends
+	// its water the same way, so the rills run side by side down the flank and
+	// no two of them can ever meet. Counted on a globe, ground steeper than
+	// 0.3 had convergence - three or more neighbours draining into a tile - on
+	// four tiles in a thousand against twenty-seven in a thousand on gentle
+	// ground, and the mountainsides came out combed: even, parallel streams at
+	// a tile's spacing running straight into the sea.
+	//
+	// Water has to have somewhere to gather. With the spurs and hollows this
+	// puts on a flank, the streams on steep ground join at twenty-four in a
+	// hundred where they joined at eight, and a quarter of the river tiles up
+	// there go away with the comb, because they were the same water drawn over
+	// and over in parallel.
+	//
+	// A tenth of the way and not a quarter, which was tried first and is the
+	// better-looking map. Rough flanks are ground nobody can build on or
+	// plough, and the globe paid for them: over twenty-four seeds a quarter
+	// took the settlements that held their founding size from seventeen to
+	// eleven, the gate a birth has to pass from 0.202 to 0.145, and the
+	// middling settlement from a hundred and twenty-seven people to seventeen.
+	// At a tenth the joining is twenty-four in a hundred against the quarter's
+	// twenty-seven - nearly all of it - and the batch comes back to sixteen
+	// settlements held and 0.189, which is inside the noise of where it stood.
+	// The eight-seed batch on the quarter said nought extinct and looked well;
+	// it took twenty-four to see the eleven. See the note on batch size in
+	// docs/baseline-globe.md.
+	//
+	// Routing the water differently does not answer this, which was tried
+	// before any of it. D-infinity - the water leaving across the steepest of
+	// the eight triangles round a tile, shared between the two neighbours it
+	// falls between, after Tarboton - is the published answer to parallel flow
+	// and it moved the joining from eight in a hundred to nine. It cannot do
+	// more: a plane drains in parallel because it is a plane, and that is
+	// correct drainage of the wrong ground. With the flanks given their spurs,
+	// the plain single steepest step joined at twenty-seven in a hundred and
+	// D-infinity at twenty-three, so it was taken out again.
 	beltGrain = 30.0
 	beltVary  = 0.55
 	// arcGap is how far behind the trench the arc stands, in tiles. The
@@ -685,7 +724,7 @@ func (w *World) bow(g *Grid) []float64 {
 }
 
 // grain is how hard a seam is working at each place along it, in [1-beltVary,
-// 1+beltVary]. Like the warp it is drawn once for a world and stays where it
+// 1+beltVary], down to the spurs and hollows of a single flank. Like the warp it is drawn once for a world and stays where it
 // is, so a range keeps the same shape age after age instead of shimmering
 // between them, and two seams that cross the same ground are strong and weak
 // in the same places - which is what an inherited weakness in the crust
@@ -693,10 +732,11 @@ func (w *World) bow(g *Grid) []float64 {
 func (w *World) grain(g *Grid) []float64 {
 	coarse := w.lattice(g, beltGrain)
 	fine := w.lattice(g, beltGrain/3)
+	spur := w.lattice(g, beltGrain/9)
 	out := make([]float64, len(g.Tiles))
 	for i := range out {
-		v := (coarse[i] - 0.5) + 0.5*(fine[i]-0.5)
-		out[i] = 1 + beltVary*v/0.75
+		v := (coarse[i] - 0.5) + 0.5*(fine[i]-0.5) + 0.10*(spur[i]-0.5)
+		out[i] = 1 + beltVary*v/0.80
 	}
 	return out
 }
