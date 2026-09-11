@@ -36,6 +36,7 @@ func main() {
 	epochs := flag.Int("epochs", 0, "ages of the earth to run before the world is handed over: 0 draws the land, anything else makes it out of its own history")
 	ticks := flag.Int("ticks", 50*clock.Year, "days to simulate")
 	agents := flag.Int("agents", 20, "starting population")
+	deer := flag.Int("deer", 0, "deer put down in the woods around the settlement (none: the runs a settlement is measured on have no creatures in them)")
 	ceiling := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world (0 takes it off, and the land is then the only thing stopping the settlement)")
 	every := flag.Int("every", 5*clock.Year, "report interval in days")
 	showMap := flag.Bool("map", false, "print the map at each report")
@@ -85,12 +86,14 @@ func main() {
 			cfg.Epochs = *epochs
 		}
 	})
+	cfg.Deer = *deer
 	w := world.NewWith(*seed, cfg)
 	w.Rules.Fit = !*value
 	w.Rules.Temperature = *temp
 	for i := 0; i < *agents; i++ {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
+	w.Populate()
 
 	fmt.Fprintf(out, "%6s %4s %4s | %5s %5s %5s %5s %5s | %5s %5s %4s | %5s %5s %6s | %4s %4s %4s %4s | %4s %4s | %5s %5s %5s | %-18s %5s | %s\n",
 		"day", "pop", "died", "phys", "safe", "belng", "estm", "actl", "hlth", "age", "eld", "gini", "price", "knowl", "hous", "road", "fild", "wood", "frnd", "feud", "reach", "sprd", "open", "date", "deg", "doing")
@@ -143,6 +146,7 @@ func main() {
 // it was taken.
 func score(rep *report.Run, s observe.Snapshot) {
 	rep.Score("pop", float64(s.Population))
+	rep.Score("deer", float64(s.Creatures))
 	rep.Score("died", float64(s.Deaths))
 	rep.Score("phys", s.MeanNeeds[0])
 	rep.Score("safe", s.MeanNeeds[1])

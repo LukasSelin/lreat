@@ -107,6 +107,9 @@ func bestKnown(a *entity.Agent, w *world.World, s entity.Skill) entity.ID {
 func Requests(w *world.World) {
 	expire(w)
 	for _, a := range w.Agents {
+		if !a.Species().Settles {
+			continue
+		}
 		if w.HasRequestFrom(a.ID) || w.RNG.Float64() >= AskChance {
 			continue
 		}

@@ -31,6 +31,10 @@ func TestNothingAnActDoesReachesPastAnIsland(t *testing.T) {
 		"scoutRange":        scoutRange,
 		"waterReach":        waterReach,
 		"reachRadius":       reachRadius,
+		"alarmRadius":       alarmRadius,
+		"herdRadius":        herdRadius,
+		"fleeRange":         fleeRange,
+		"roamStep":          2 * roamStep,
 		"world.Window":      world.Window,
 		"world.NearbyLimit": world.NearbyLimit,
 	}

@@ -33,6 +33,9 @@ type Mark struct {
 	ID     entity.ID
 	Pos    entity.Pos
 	Action string
+	// Kind is what kind of creature stands here, by its species' name, so
+	// that a map can draw a deer as a deer.
+	Kind string
 }
 
 // MapView is a copy of the grid plus where everyone is.
@@ -61,9 +64,13 @@ type Snapshot struct {
 	// calendar date. Everything a settlement does is easier to read against
 	// the second than the first: a famine in the winter of year nine means
 	// something, and a famine at tick 3140 does not.
-	Tick       int
-	Date       clock.Date
+	Tick int
+	Date clock.Date
+	// Population is the people: everyone who settles. Creatures is
+	// everything else alive on the map, which is on the settlement's map
+	// and not on its books, so none of the means below count it.
 	Population int
+	Creatures  int
 	MeanNeeds  need.Levels
 	// MeanHealth is the population's average condition. It moves slowly, so
 	// a settlement that is wearing its people down shows here long before it
@@ -164,7 +171,7 @@ func Take(w *world.World) Snapshot {
 	s := Snapshot{
 		Tick:       w.Tick,
 		Date:       clock.At(w.Tick),
-		Population: len(w.Agents),
+		Population: w.People(),
 		Knowledge:  w.Knowledge,
 		Techs:      w.Techs(),
 		Worked:     worked(w),
@@ -219,12 +226,16 @@ func Take(w *world.World) Snapshot {
 	wg.Wait()
 	w.Freeze(false)
 
-	n := float64(len(w.Agents))
 	m.Agents = c.marks
+	s.Creatures = c.creatures
+	if c.people == 0 {
+		return s
+	}
+	n := float64(c.people)
 	s.MeanNeeds = c.needs
 	s.MeanNorms = c.norms
 	s.MeanHealth, s.MeanShelter, s.MeanFood = c.health/n, c.shelter/n, c.food/n
-	s.MeanAge = clock.Years(c.age / len(w.Agents))
+	s.MeanAge = clock.Years(c.age / c.people)
 	s.Starving, s.Children, s.Bearing, s.Elders = c.starving, c.children, c.bearing, c.elders
 	s.Friendships, s.Feuds, s.Hearsay = c.friendships, c.feuds, c.hearsay
 	for t := range s.MeanNeeds {
@@ -268,6 +279,7 @@ type census struct {
 	elders                int
 	friendships, feuds    int
 	hearsay               int
+	people, creatures     int
 	marks                 []Mark
 	wealth                []float64
 	counts                map[string]int
@@ -283,6 +295,18 @@ func count(w *world.World) census {
 		wealth: make([]float64, 0, len(w.Agents)),
 	}
 	for _, a := range w.Agents {
+		mark := Mark{ID: a.ID, Pos: a.Pos, Kind: a.Species().Name}
+		if a.Plan != nil {
+			mark.Action = a.Plan.Action
+		}
+		c.marks = append(c.marks, mark)
+		// A creature is on the map and nowhere else: nothing about it
+		// enters what is said of the people.
+		if !a.Species().Settles {
+			c.creatures++
+			continue
+		}
+		c.people++
 		for t := range c.needs {
 			c.needs[t] += a.Needs[t]
 		}
@@ -305,12 +329,9 @@ func count(w *world.World) census {
 		default:
 			c.elders++
 		}
-		mark := Mark{ID: a.ID, Pos: a.Pos}
 		if a.Plan != nil {
 			c.counts[a.Plan.Action]++
-			mark.Action = a.Plan.Action
 		}
-		c.marks = append(c.marks, mark)
 		c.wealth = append(c.wealth, a.Wealth)
 
 		for i := range a.Bonds {
@@ -348,10 +369,13 @@ func count(w *world.World) census {
 // see World.Room - because growing it is a write, and this runs beside the
 // other two passes a snapshot makes.
 func habits(w *world.World) (spread, mean, gated float64) {
-	n := float64(len(w.Agents))
+	n := float64(w.People())
 	if n == 0 {
 		return 0, 0, 0
 	}
+	// The people's acts, over the people: a creature's slots are empty in
+	// everybody's tables and a creature holds nothing on the people's.
+	mine := action.For(entity.Human)
 	var gatedN float64
 	// Each act is measured in two passes over the population rather than
 	// from a table of every unit signature: the centre first, then how far
@@ -359,9 +383,13 @@ func habits(w *world.World) (spread, mean, gated float64) {
 	// that, which is cheaper than keeping thirty of them per agent per tick
 	// and adds the same numbers in the same order, so the measure is the
 	// one it always was.
-	for i, d := range action.Catalog {
+	for _, i := range mine {
+		d := action.Catalog[i]
 		var centre habit.Signature
 		for _, a := range w.Agents {
+			if !a.Species().Settles {
+				continue
+			}
 			h, r := d.Prior, max(d.Reach0, w.ReachFloor[i])
 			if a.Imprinted {
 				h, r = a.Habits[i], max(a.Reach[i], w.ReachFloor[i])
@@ -377,6 +405,9 @@ func habits(w *world.World) (spread, mean, gated float64) {
 			}
 		}
 		for _, a := range w.Agents {
+			if !a.Species().Settles {
+				continue
+			}
 			h := d.Prior
 			if a.Imprinted {
 				h = a.Habits[i]
@@ -389,11 +420,11 @@ func habits(w *world.World) (spread, mean, gated float64) {
 			spread += habit.Norm(diff)
 		}
 	}
-	mean /= n * float64(action.Count)
+	mean /= n * float64(len(mine))
 	if gatedN > 0 {
 		gated /= gatedN
 	}
-	spread /= n * float64(action.Count)
+	spread /= n * float64(len(mine))
 	return spread, mean, gated
 }
 

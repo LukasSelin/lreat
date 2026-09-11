@@ -228,6 +228,10 @@ type Config struct {
 	// handed over: 0 draws the land, and anything else makes it out of its
 	// own history. See history.go.
 	Epochs int
+	// Deer is how many deer are put down in the woods around the settlement
+	// once it is founded; see Populate. None, unless somebody asks: the
+	// runs a settlement is measured on have no creatures in them.
+	Deer int
 }
 
 // DefaultConfig is the valley every settlement was founded in before there
@@ -385,6 +389,7 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 	a := &entity.Agent{
 		ID:          w.nextID,
 		Name:        name,
+		Kind:        entity.Human,
 		Luck:        rand.New(rand.NewPCG(w.RNG.Uint64(), w.RNG.Uint64())),
 		Born:        w.Tick - entity.Maturity - w.RNG.IntN((entity.Prime-entity.Maturity)/3),
 		Pos:         pos,
@@ -407,6 +412,49 @@ func (w *World) SpawnAt(name string, p need.Weights, pos entity.Pos) *entity.Age
 	w.enroll(a)
 	a.Room()
 	return a
+}
+
+// SpawnKind adds a creature of some other kind at a position: grown, of an
+// assorted age as a founder is, with the wants its species is born with and
+// a body and mind drawn around its species' own. It holds no values, no
+// temperament, no belief in any craft and nothing in its arms, because a
+// creature that does not settle has none of those to hold. It is never
+// called for a person, and a world with no such creatures in it never
+// calls it, so a settlement's chance is drawn exactly as it always was.
+func (w *World) SpawnKind(sp *entity.Species, name string, p need.Weights, pos entity.Pos) *entity.Agent {
+	life := sp.Life
+	a := &entity.Agent{
+		ID:          w.nextID,
+		Name:        name,
+		Kind:        sp,
+		Luck:        rand.New(rand.NewPCG(w.RNG.Uint64(), w.RNG.Uint64())),
+		Born:        w.Tick - life.Maturity - w.RNG.IntN(max(1, (life.Prime-life.Maturity)/3)),
+		Pos:         pos,
+		Needs:       sp.Needs,
+		Personality: p,
+		Body:        w.RandomBodyOf(sp),
+		Mind:        w.RandomMindOf(sp),
+		Health:      0.9,
+	}
+	w.nextID++
+	w.Agents = append(w.Agents, a)
+	w.enroll(a)
+	a.Room()
+	return a
+}
+
+// People is how many of those here settle: the population as the settlement
+// counts it, which is everyone but the creatures. It is counted when asked
+// rather than kept, because everything that asks is already walking the
+// agents or is asked a few times a day.
+func (w *World) People() int {
+	n := 0
+	for _, a := range w.Agents {
+		if a.Species().Settles {
+			n++
+		}
+	}
+	return n
 }
 
 // RandomPersonality draws per-tier weights around neutral. This is the main
@@ -460,6 +508,26 @@ func (w *World) RandomMind() entity.Mind {
 		Resolve:    w.RandomTrait(),
 		Horizon:    w.RandomTrait(),
 	}
+}
+
+// RandomBodyOf and RandomMindOf draw a creature of some kind: the same
+// draw as a person's, scaled by what an ordinary one of that kind is. A
+// person's kind is the ordinary measure, so for a person they are
+// RandomBody and RandomMind exactly.
+func (w *World) RandomBodyOf(sp *entity.Species) entity.Body {
+	b := w.RandomBody()
+	b.Vitality *= sp.Body.Frame()
+	b.Metabolism *= sp.Body.Burn()
+	b.Hardiness *= sp.Body.Hardy()
+	return b
+}
+
+func (w *World) RandomMindOf(sp *entity.Species) entity.Mind {
+	m := w.RandomMind()
+	m.Plasticity *= sp.Mind.Learns()
+	m.Resolve *= sp.Mind.Decides()
+	m.Horizon *= sp.Mind.Reaches()
+	return m
 }
 
 // InheritBody and InheritMind are a child's, drifted from its parent's.

@@ -189,11 +189,15 @@ func landWorth(w *world.World, p entity.Pos) float64 {
 // to be steeper than the walk it is set against, or nobody at the edge of the
 // map ever has a reason to come home.
 func companyWorth(w *world.World, p entity.Pos) float64 {
-	if len(w.Agents) == 0 {
+	people := w.People()
+	if people == 0 {
 		return 0
 	}
 	share := 0.0
 	for _, o := range w.Agents {
+		if !o.Species().Settles {
+			continue
+		}
 		// Where somebody lives, or where they are if they live nowhere yet.
 		// Their door is the honest reading: an agent is out at the treeline
 		// half its life and is not thereby a neighbour of the treeline. The
@@ -206,7 +210,7 @@ func companyWorth(w *world.World, p entity.Pos) float64 {
 		}
 		share += 1 / (1 + float64(w.Grid.Dist(at, p))/neighbourReach)
 	}
-	return neighbourly * share / float64(len(w.Agents))
+	return neighbourly * share / float64(people)
 }
 
 // LandWorth is the whole appraisal as it stands right now: the ground, and

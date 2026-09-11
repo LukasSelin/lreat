@@ -35,7 +35,7 @@ func (c Intend) Apply(w *world.World) {
 		return
 	}
 	d := action.ByName(c.Action)
-	if d == nil {
+	if d == nil || !action.Owns(a.Species(), d) {
 		return
 	}
 	target, ok := d.Target(a, w)

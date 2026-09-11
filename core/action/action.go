@@ -9,6 +9,7 @@ package action
 
 import (
 	"math"
+	"sync"
 
 	"lreat/core/entity"
 	"lreat/core/event"
@@ -26,6 +27,10 @@ type Def struct {
 	Key   string
 	Name  string
 	Ticks int
+	// Actor is who does it, as the ontology has it: nil for a person, and
+	// the creature's class for anything else. An agent weighs, imprints and
+	// hands down only the acts of its own kind; see For.
+	Actor *ontology.Class
 	// Available reports whether the agent can start the action now.
 	Available func(a *entity.Agent, w *world.World) bool
 	// Target says where the action must be performed. ok is false when no
@@ -125,6 +130,12 @@ var mechanics = map[string]*Def{
 	"pass/practice>self":                Study,
 	"strike/person>wrongdoer":           Retaliate,
 	"move@dwelling":                     MoveHouse,
+
+	"deer:take/browse@wood":  Browse,
+	"deer:dwell/rest":        BedDown,
+	"deer:dwell/flee":        Flee,
+	"deer:dwell/herd>fellow": Herd,
+	"deer:dwell/roam":        Roam,
 }
 
 func init() {
@@ -147,12 +158,72 @@ func init() {
 			panic("action: " + d.Name + " bound twice, to " + d.Key + " and " + in.Key)
 		}
 		d.Key = in.Key
+		d.Actor = in.Actor
 		if habit.Register(in.Key) != len(Catalog) {
 			panic("action: slot for " + in.Key + " is not its catalog position")
 		}
 		Catalog = append(Catalog, d)
 	}
 	Count = len(Catalog)
+}
+
+// actors is who acts in the ontology for each kind of creature. It is
+// kept here and not on the species because the species cannot see the
+// ontology, which names skills from entity.
+var actors = map[*entity.Species]*ontology.Class{
+	entity.Human: ontology.Person,
+	entity.Deer:  ontology.Deer,
+}
+
+// actorOf is the class that acts for a species; an unknown kind acts as
+// a person does, as an agent of no stated kind is a person.
+func actorOf(sp *entity.Species) *ontology.Class {
+	if c, ok := actors[sp]; ok {
+		return c
+	}
+	return ontology.Person
+}
+
+// Owns reports whether d is an act creatures of kind sp do.
+func Owns(sp *entity.Species, d *Def) bool {
+	actor := d.Actor
+	if actor == nil {
+		actor = ontology.Person
+	}
+	return actor == actorOf(sp)
+}
+
+// acts is the catalog positions each kind of creature has an act in,
+// in catalog order, rebuilt whenever the catalog has grown. It is what
+// every walk over "the acts this agent could take" walks, so that a
+// person never weighs, seeds or drifts a slot that is a deer's, and draws
+// exactly the chance it drew before there were deer.
+var acts struct {
+	sync.Mutex
+	built int
+	by    map[*entity.Species][]int
+}
+
+// For is the catalog positions of every act creatures of kind sp do, in
+// catalog order. For a person that is every act a person ever had, in
+// the order it always had them.
+func For(sp *entity.Species) []int {
+	acts.Lock()
+	defer acts.Unlock()
+	if acts.built != len(Catalog) {
+		acts.by = map[*entity.Species][]int{}
+		for s := range actors {
+			var slots []int
+			for i, d := range Catalog {
+				if Owns(s, d) {
+					slots = append(slots, i)
+				}
+			}
+			acts.by[s] = slots
+		}
+		acts.built = len(Catalog)
+	}
+	return acts.by[sp]
 }
 
 // ByKey returns the action with that key, or nil.

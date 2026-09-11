@@ -68,6 +68,11 @@ const (
 // know that a day costs what the population squared costs.
 var MaxPopulation = 5000
 
+// MaxCreatures is the same guard for everything that is not a person. A
+// herd with nothing hunting it is bounded by its browse and by nothing
+// else, and this is here for the day the browse is not enough.
+var MaxCreatures = 500
+
 // Room says whether the settlement may take one more. An unset ceiling - zero
 // or below - is no ceiling: nothing but the world stands between a fertile
 // pair and a child.
@@ -87,10 +92,16 @@ func Population(w *world.World) {
 	w.Vitals.Born, w.Vitals.Died, w.Vitals.Gates = 0, 0, [world.GateCount]int{}
 	alive := w.Agents[:0]
 	for _, a := range w.Agents {
+		// The settlement's record is of its people. A creature dies the
+		// same two ways and is written down the same way, and is on no
+		// other books.
+		settles := a.Species().Settles
 		if a.Starving > Starvation {
-			w.Deaths++
-			w.Vitals.Starved++
-			w.Vitals.Died++
+			if settles {
+				w.Deaths++
+				w.Vitals.Starved++
+				w.Vitals.Died++
+			}
 			w.Emit(event.Died, a.ID, 0, "%s starved", a.Name)
 			continue
 		}
@@ -98,10 +109,12 @@ func Population(w *world.World) {
 		// worn down by hunger and bad housing gives out sooner than a kept
 		// one of the same years.
 		age := a.Age(w.Tick)
-		if w.RNG.Float64() < entity.Frailty(age)*(1.5-need.Clamp(a.Health)) {
-			w.Deaths++
-			w.Vitals.Failed++
-			w.Vitals.Died++
+		if w.RNG.Float64() < a.Species().Life.Frailty(age)*(1.5-need.Clamp(a.Health)) {
+			if settles {
+				w.Deaths++
+				w.Vitals.Failed++
+				w.Vitals.Died++
+			}
 			w.Emit(event.Died, a.ID, 0, "%s died of old age at %d", a.Name, clock.Years(age))
 			continue
 		}
@@ -110,13 +123,31 @@ func Population(w *world.World) {
 	w.Agents = alive
 	w.Reindex()
 
+	// The people are counted apart from the creatures: the ceiling is on
+	// the settlement, the funnel is the settlement's, and a creature is
+	// walked past to its own bearing. What is born during the walk counts
+	// toward the ceiling as it always did, and nothing born today is walked.
 	n := len(w.Agents)
+	people := w.People()
+	creatures := n - people
+	were, seen, crowded := people, 0, false
 	for i := 0; i < n; i++ {
 		a := w.Agents[i]
-		if !Room(len(w.Agents)) {
-			w.Vitals.Gates[world.Crowded] += n - i
-			break
+		if !a.Species().Settles {
+			if bear(a, w, creatures) {
+				creatures++
+			}
+			continue
 		}
+		if crowded {
+			continue
+		}
+		if !Room(people) {
+			w.Vitals.Gates[world.Crowded] += were - seen
+			crowded = true
+			continue
+		}
+		seen++
 		// Every agent is counted under the first thing standing between it
 		// and a child, in the order the conditions are checked, so that the
 		// gates add up to the population and can be read as a funnel.
@@ -147,6 +178,7 @@ func Population(w *world.World) {
 		}
 		w.Vitals.Births++
 		w.Vitals.Born++
+		people++
 		child := w.SpawnAt(fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
 		child.Born = w.Tick
 		child.Inventory[entity.Food] = 1
@@ -184,4 +216,34 @@ func Population(w *world.World) {
 		}
 		w.Emit(event.Born, child.ID, a.ID, "%s was born to %s", child.Name, a.Name)
 	}
+}
+
+// bear is a creature's chance of young today, and the young if it has any.
+// It is the same ladder a person climbs - grown, fed, safe, in company, and
+// then the draw - at the species' own chance, and the young is of the
+// parent's kind, with its body, its mind and its habits drifted a little,
+// as a child's are. It holds nothing else, because its kind holds nothing
+// else. Nothing here is counted in the settlement's vitals.
+func bear(a *entity.Agent, w *world.World, creatures int) bool {
+	sp := a.Species()
+	if creatures >= MaxCreatures || !sp.Life.Fertile(a.Age(w.Tick)) {
+		return false
+	}
+	if a.Needs[need.Physiological] < 0.7 || a.Needs[need.Safety] < 0.6 || a.Needs[need.Belonging] < 0.6 {
+		return false
+	}
+	if w.RNG.Float64() >= sp.Bears {
+		return false
+	}
+	child := w.SpawnKind(sp, fmt.Sprintf("%s-%d", a.Name, w.Tick), w.Mutate(a.Personality), a.Pos)
+	child.Born = w.Tick
+	child.Body = w.InheritBody(a.Body)
+	child.Mind = w.InheritMind(a.Mind)
+	if w.Rules.Fit {
+		action.Inherit(child, a, w, w.RNG)
+	} else {
+		action.Inherit(child, a, w, nil)
+	}
+	w.Emit(event.Born, child.ID, a.ID, "%s was born to %s", child.Name, a.Name)
+	return true
 }

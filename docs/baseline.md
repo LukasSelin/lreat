@@ -103,6 +103,45 @@ gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 hungry-with-food 0.27 | 
 
 ## What the last change did
 
+Deer. A second kind of agent lives in the woods around the settlement now, on
+the same psychology the people run on - the same needs, the same reading of a
+moment as a point in habit space, the same recognition of an act, the same
+walking - and differs from them by its species: how long it lives and when it
+bears, the body and mind it hands its young, what it wants at birth and how
+fast each want returns, and what it finds on the coordinates a person reads.
+See core/entity/species.go, core/action/deer.go, and the README.
+
+**It changes nothing a settlement is measured on.** No run the batch takes has
+a deer in it, and the whole of the work was written so that a world with none
+draws exactly the chance it always drew: every act a person does keeps its
+slot in the catalog, because the acts are ordered by their actor before their
+key and deer come after people; a person never seeds, drifts or weighs a
+deer's slot, because seeding draws luck for every coordinate of every slot it
+seeds; a person's neighbour, witness and stranger are asked for among people;
+and the settlement's books - its population, its means, its funnel, the market's
+middle, what its scholars count - are of the people. The batch above was taken
+again on the tree with the deer in it and came out the same to the digit, and
+the three golden seeds did not move.
+
+What a herd does when it is let in is not measured here and there is no
+baseline for it yet. On one seed, ten founders and twenty deer over twenty
+years, the herd grew to about sixty-five and the brush in the wood fell from
+three hundred units to a hundred and twenty, which is the herd finding the
+wood's limit: a browse takes what a forage takes, so a deer and a forager are
+in plain competition for the same brush. Three things had to be found out on
+the way, each by watching a herd do something absurd. A bed must restore
+next to nothing, or a deer never eats: a person's rest gives a little more
+than a day burns, which a person walks and works off, and a herd of five
+hundred lay in the wood with full bellies and the brush untouched. Fear must
+fall on the safety tier at once, not at the tenth a day a roof does, or the
+one coordinate that carries the alarm never out-fits bedding down. And a deer
+standing in its herd must be fed belonging by standing there, or the tier
+drains to nothing and no fawn is ever born.
+
+## Earlier changes
+
+### What the flood was let rise to
+
 A great river spreads onto the ground beside it that is no higher than the
 water. It used to take every neighbour standing up to a metre above its
 channel, while the line of comment above it said "no higher" - the comment and
@@ -164,7 +203,6 @@ next change to the ground - which is exactly what it did, one commit later. A
 bar set at what was measured is a bar that fails half the time. They ask sixty
 worlds now and the bars sit at about half.
 
-## Earlier changes
 
 What the changes before this one did, each measured against the master of its
 own day. They are kept for the method rather than for the numbers: none of

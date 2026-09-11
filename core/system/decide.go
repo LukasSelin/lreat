@@ -47,7 +47,8 @@ func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*act
 	urgency := need.Urgencies(a.Needs)
 	best, bestPos, bestScore := action.Rest, a.Pos, math.Inf(-1)
 	var weighed []world.Weighed
-	for i, d := range action.Catalog {
+	for _, i := range action.For(a.Species()) {
+		d := action.Catalog[i]
 		if !d.Available(a, w) {
 			continue
 		}
@@ -380,6 +381,9 @@ func act(w *world.World, is world.Island) {
 		if a.Plan == nil {
 			continue
 		}
+		// A creature wears no way and remembers no ground: nothing it
+		// walks is a case for a road, and it sites nothing.
+		settles := a.Species().Settles
 		if a.Pos != a.Plan.Target {
 			// A plan made by deciding already knows its way, or knows there
 			// was none and is dropped here without looking twice - unless the
@@ -416,6 +420,9 @@ func act(w *world.World, is world.Island) {
 				a.Pos = step
 				w.Moved(a)
 				a.Plan.Route = a.Plan.Route[1:]
+				if !settles {
+					continue
+				}
 				w.Grid.Tread(step, world.Hauled(a))
 				// Walking is how anybody learns what the country is like.
 				// There is no survey and nobody is told: an agent knows the
@@ -426,7 +433,9 @@ func act(w *world.World, is world.Island) {
 			continue
 		}
 		a.Travel = 0
-		action.Notice(a, w)
+		if settles {
+			action.Notice(a, w)
+		}
 		a.Plan.Remaining--
 		if a.Plan.Remaining > 0 {
 			continue

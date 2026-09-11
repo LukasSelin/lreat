@@ -145,6 +145,7 @@ func GoodOf(m *ontology.Class) (entity.Good, bool) {
 var stocks = map[*ontology.Class]func(*Grid) []float64{
 	ontology.Berries: func(g *Grid) []float64 { return g.Wild },
 	ontology.Game:    func(g *Grid) []float64 { return g.Wild },
+	ontology.Browse:  func(g *Grid) []float64 { return g.Wild },
 	ontology.Timber:  func(g *Grid) []float64 { return g.Wood },
 	ontology.Fish:    func(g *Grid) []float64 { return g.Fish },
 }

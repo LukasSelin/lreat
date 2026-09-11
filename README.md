@@ -197,6 +197,31 @@ All three take `-seed` and `-agents`, and count in ticks, which are days: the
 defaults above are fifty and sixty years. A seed plus a command log reproduces a
 run exactly, however the goroutines happen to interleave.
 
+All three take `-deer`, which puts that many deer down in the woods around
+the settlement once it is founded. A deer is an agent like anybody else -
+the same needs, the same reading of a moment as a point in habit space, the
+same recognition of an act as belonging to it, the same walking - and what
+makes it a deer is its species: how long it lives and when it bears, the body
+and mind it hands its young, what it wants at birth and how fast each want
+returns, and what it finds on the coordinates a person reads. A deer reads
+the trees over it where a settler reads a roof, the herd where a settler reads
+neighbours, and a person in earshot where a settler reads whether anybody
+keeps order; it holds nothing to be right and has learned no reprisal. It has
+five acts of its own, kept in slots after everything a person does so that no
+person's habit moves for a deer having been thought of: it browses the same
+brush the foragers pick and the trappers hunt over, so a herd near the
+square thins what its people find in the wood; it beds down; it runs from
+anybody who comes near; it goes to the nearest of its kind when it has lost
+the herd; and it rambles toward the trees. Fawns are born to fed, safe, herded
+does, take their mother's body, mind and habits with drift, and are deer. The
+settlement's books never count one - its population, its means and its
+fertility funnel are of the people - and the map draws each as a `d`.
+`watch` puts a dozen down unasked, and its menu has a line for them;
+`headless` and `tune` put none, because the runs a settlement is measured on
+have no creatures in them. See core/entity/species.go for what a species is,
+core/action/deer.go for what a deer does and senses, and the `deer:` acts in
+core/ontology/verb.go for how they enter the catalog.
+
 `headless` and `tune` also take `-preset ancient`, which makes the default
 valley out of its own history instead of drawing it. A world starts molten,
 with no rigid crust and nothing that forms outlasting the forming of it; the

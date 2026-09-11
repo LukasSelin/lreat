@@ -79,7 +79,7 @@ func craft(s entity.Skill) *entity.Skill { return &s }
 func adept(w *world.World, s entity.Skill, t entity.Tier, done int) int {
 	n := 0
 	for _, a := range w.Agents {
-		if entity.TierOf(a.Skills[s]) >= t && a.Practice[s] >= done {
+		if a.Species().Settles && entity.TierOf(a.Skills[s]) >= t && a.Practice[s] >= done {
 			n++
 		}
 	}
@@ -212,7 +212,7 @@ var Discoveries = []Discovery{
 		// settlement of hermits never builds one however much grain it has.
 		Signature: habit.Signature{habit.Lonely: 1, habit.Company: 0.5},
 		Cost:      pressYear,
-		Condition: func(w *world.World) bool { return len(w.Agents) >= 12 && w.Market.Stock[entity.Food] >= 5 },
+		Condition: func(w *world.World) bool { return w.People() >= 12 && w.Market.Stock[entity.Food] >= 5 },
 		Text:      "with grain to spare, somebody opened a tavern",
 		Opens:     []string{"build tavern"},
 		Effect:    func(*world.World) {},
@@ -322,16 +322,17 @@ const (
 // pressure of the moment like the rest of them, not a fact about the map:
 // the same settlement is exposed in February and not in June.
 func exposed(w *world.World) bool {
-	if len(w.Agents) == 0 || w.Climate.Chill() < coldBites {
+	people := w.People()
+	if people == 0 || w.Climate.Chill() < coldBites {
 		return false
 	}
 	n := 0
 	for _, a := range w.Agents {
-		if a.Shelter < poorRoof {
+		if a.Species().Settles && a.Shelter < poorRoof {
 			n++
 		}
 	}
-	return float64(n) >= exposedShare*float64(len(w.Agents))
+	return float64(n) >= exposedShare*float64(people)
 }
 
 // Pressures a settlement can be under, which is what the later discoveries
@@ -502,7 +503,7 @@ func rockNear(w *world.World) bool {
 func tooled(w *world.World) int {
 	n := 0
 	for _, a := range w.Agents {
-		if a.Inventory[entity.Tools] >= 0.5 {
+		if a.Species().Settles && a.Inventory[entity.Tools] >= 0.5 {
 			n++
 		}
 	}
@@ -537,6 +538,9 @@ func pressing(w *world.World, d *Discovery, shared []habit.Signature) (float64, 
 	}
 	best, by := 0.0, (*entity.Agent)(nil)
 	for i, a := range w.Agents {
+		if !a.Species().Settles {
+			continue
+		}
 		// Ties go to the earliest born, which is what keeps a run
 		// reproducible: agents are walked in birth order and a later one
 		// has to beat what it finds, not equal it.

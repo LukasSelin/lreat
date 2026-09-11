@@ -150,18 +150,33 @@ func RenderWindow(m *observe.MapView, view View, win Window) [][]Cell {
 	// first agent anywhere in it stands for the rest, which is the question
 	// a map at that scale is being asked: where the people are, not which
 	// tile each of them is standing on.
+	//
+	// The people are drawn first and the creatures after, so that where a
+	// person and a deer share a cell it is the person who shows: a deer is
+	// part of the country and a person is what the map is being watched
+	// for.
 	seen := make(map[[2]int]bool, len(m.Agents))
-	for _, a := range m.Agents {
-		x, y, ok := win.Screen(m, a.Pos)
-		if !ok {
-			continue
+	for pass := 0; pass < 2; pass++ {
+		for _, a := range m.Agents {
+			creature := a.Kind != "" && a.Kind != "human"
+			if creature != (pass == 1) {
+				continue
+			}
+			x, y, ok := win.Screen(m, a.Pos)
+			if !ok {
+				continue
+			}
+			key := [2]int{x, y}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			if creature {
+				rows[y][x] = Cell{Ch: 'd', Color: AgentDeer}
+				continue
+			}
+			rows[y][x] = Cell{Ch: '@', Color: AgentColor(a.Action)}
 		}
-		key := [2]int{x, y}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		rows[y][x] = Cell{Ch: '@', Color: AgentColor(a.Action)}
 	}
 	return rows
 }

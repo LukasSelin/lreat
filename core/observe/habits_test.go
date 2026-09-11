@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"lreat/core/action"
+	"lreat/core/entity"
 	"lreat/core/habit"
 	"lreat/core/system"
 	"lreat/core/world"
@@ -13,16 +14,21 @@ import (
 // agent's unit signature for every act, read twice. Kept here so that the
 // measure without the table can be shown to be the same measure.
 func habitsByTable(w *world.World) (spread, mean, gated float64) {
-	n := float64(len(w.Agents))
+	n := float64(w.People())
 	if n == 0 {
 		return 0, 0, 0
 	}
+	mine := action.For(entity.Human)
 	units := make([][]habit.Signature, action.Count)
 	var gatedN float64
 	w.Room()
-	for i, d := range action.Catalog {
+	for _, i := range mine {
+		d := action.Catalog[i]
 		units[i] = make([]habit.Signature, 0, len(w.Agents))
 		for _, a := range w.Agents {
+			if !a.Species().Settles {
+				continue
+			}
 			h, r := d.Prior, max(d.Reach0, w.ReachFloor[i])
 			if a.Imprinted {
 				h, r = a.Habits[i], max(a.Reach[i], w.ReachFloor[i])
@@ -35,11 +41,11 @@ func habitsByTable(w *world.World) (spread, mean, gated float64) {
 			}
 		}
 	}
-	mean /= n * float64(action.Count)
+	mean /= n * float64(len(mine))
 	if gatedN > 0 {
 		gated /= gatedN
 	}
-	for i := range units {
+	for _, i := range mine {
 		var centre habit.Signature
 		for _, u := range units[i] {
 			for k := range centre {
@@ -54,7 +60,7 @@ func habitsByTable(w *world.World) (spread, mean, gated float64) {
 			spread += habit.Norm(d)
 		}
 	}
-	spread /= n * float64(action.Count)
+	spread /= n * float64(len(mine))
 	return spread, mean, gated
 }
 
