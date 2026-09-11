@@ -13,3 +13,4 @@ func fill(s, age []float64, ks []int64, kind int64, _ bool, full, by float64) {
 }
 func shoal(fish []float64, ks []int64, by float64)      { shoalScalar(fish, ks, by) }
 func rest(fert, rich []float64, ks []int64, by float64) { restScalar(fert, rich, ks, by) }
+func meadow(sward []float64, ks []int64, by float64)    { meadowScalar(sward, ks, by) }

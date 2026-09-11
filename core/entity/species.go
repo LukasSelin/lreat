@@ -103,6 +103,17 @@ type Species struct {
 	// deer keeps to the bank, so a river is the edge of its country and a
 	// herd on one side of it is not the herd on the other.
 	Swims bool
+	// Wary is how many tiles off a person is noticed, and Herds how near
+	// another of the kind must stand to be company. Both are read by the
+	// creature's senses and its acts, and neither may reach past
+	// world.NearbyLimit; a person has neither, since a person's company and
+	// order are read otherwise.
+	Wary, Herds int
+	// Edge is what standing in the open beside a wood is worth to this
+	// kind as cover, in [0,1]: nothing to a deer, which is as plain in a
+	// field beside the trees as in the middle of it, and most of a wood to
+	// a hare, which lives in the hedge.
+	Edge float64
 	// Settles says whether this is the kind of creature that holds values,
 	// learns crafts, keeps a house and a purse, trades, asks and is asked,
 	// and discovers things: the whole of a settlement's life above the
@@ -127,11 +138,14 @@ var Human = &Species{
 	Settles: true,
 }
 
-// Deer is the first creature that is not a person. It is quick, hardy, and
-// slow to take to anything; it lives a dozen years and bears every spring or
-// so. It feels hunger, danger and the want of a herd, and a little of the
-// pull to range; it has no standing to win and so that tier is born met and
-// never drains.
+// The creatures. Each feels hunger, danger and the want of its own kind, and
+// a little of the pull to range; none has standing to win, so that tier is
+// born met and never drains. What tells them apart is the body, the span,
+// how often they bear, how far off they notice a person, and what they eat,
+// which is on their acts.
+
+// Deer is the first creature that is not a person: quick, hardy, slow to
+// take to anything, a dozen years long, and shy of anybody six tiles off.
 var Deer = &Species{
 	Name:  "deer",
 	Life:  Life{Maturity: 3 * clock.Year / 2, Prime: 8 * clock.Year, Lifespan: 14 * clock.Year},
@@ -140,7 +154,44 @@ var Deer = &Species{
 	Needs: need.Levels{0.7, 0.5, 0.5, 1, 0.5},
 	Decay: [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Actualization: 0.001},
 	Bears: 0.5 / clock.Year,
+	Wary:  6,
+	Herds: 8,
 }
+
+// Boar is heavier and bolder: it burns more, stands the cold, lets a person
+// come nearer before it bolts, and keeps a tighter sounder. It lives on
+// what a deer lives on and on the fields besides.
+var Boar = &Species{
+	Name:  "boar",
+	Life:  Life{Maturity: clock.Year, Prime: 6 * clock.Year, Lifespan: 10 * clock.Year},
+	Body:  Body{Vitality: 1.2, Metabolism: 1.3, Hardiness: 1.3},
+	Mind:  Mind{Plasticity: 0.3, Resolve: 1, Horizon: 1},
+	Needs: need.Levels{0.7, 0.5, 0.5, 1, 0.5},
+	Decay: [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Actualization: 0.001},
+	Bears: 0.6 / clock.Year,
+	Wary:  4,
+	Herds: 6,
+}
+
+// Hare is the quick, short-lived, many-bearing thing of the open ground: it
+// grazes the sward at the edge of the wood, lives a few years, and bears
+// several times a year.
+var Hare = &Species{
+	Name:  "hare",
+	Life:  Life{Maturity: clock.Year / 2, Prime: 3 * clock.Year, Lifespan: 5 * clock.Year},
+	Body:  Body{Vitality: 1.8, Metabolism: 1, Hardiness: 1},
+	Mind:  Mind{Plasticity: 0.2, Resolve: 1, Horizon: 0.6},
+	Needs: need.Levels{0.7, 0.5, 0.5, 1, 0.5},
+	Decay: [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Actualization: 0.001},
+	Bears: 1.5 / clock.Year,
+	Wary:  5,
+	Herds: 4,
+	Edge:  0.8,
+}
+
+// Creatures is every kind that is not a person, in the order they were
+// thought of, which is the order they are put down in and shown in.
+var Creatures = []*Species{Deer, Boar, Hare}
 
 // Species is what kind of creature this agent is. One that was never told is
 // a person, which is what a test that builds an agent by hand means.

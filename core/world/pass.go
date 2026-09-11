@@ -48,11 +48,12 @@ func kindOf(t *Tile) int64 {
 }
 
 // ages is which kinds of ground carry something growing, and so get older
-// with the weather: the alive table read by kind. isWater and isField are
-// which kinds are water and which are field, whatever stands on them, which
-// is the question Replenish asks. aging is the kinds that age listed out,
-// for a pass that asks the question of several tiles at once.
-var ages, isWater, isField [kindSpan]bool
+// with the weather: the alive table read by kind. isWater, isField and
+// isGrass are which kinds are water, field and open ground, whatever stands
+// on them, which is the question Replenish asks. aging is the kinds that
+// age listed out, for a pass that asks the question of several tiles at
+// once.
+var ages, isWater, isField, isGrass [kindSpan]bool
 var aging []int64
 
 func init() {
@@ -62,6 +63,7 @@ func init() {
 			ages[k] = alive[s][t]
 			isWater[k] = Terrain(t) == Water
 			isField[k] = Terrain(t) == Field
+			isGrass[k] = Terrain(t) == Grass
 			if ages[k] {
 				aging = append(aging, k)
 			}
@@ -134,6 +136,7 @@ func (g *Grid) Grow(lo, hi int, k float64) {
 	// And what comes back that is not a stand coming on; see Replenish.
 	shoal(g.Fish[lo:hi], ks, FishRegrowth*k)
 	rest(g.Fertility[lo:hi], g.Rich[lo:hi], ks, Fallow*k)
+	meadow(g.Sward[lo:hi], ks, SwardRegrowth*k)
 }
 
 // The passes one tile at a time. They are the whole of the pass where the
@@ -187,6 +190,15 @@ func restScalar(fert, rich []float64, ks []int64, by float64) {
 	for j, kk := range ks {
 		if isField[kk] {
 			fert[j] = min(rich[j], fert[j]+by)
+		}
+	}
+}
+
+// meadowScalar puts the grass back on open ground, up to full.
+func meadowScalar(sward []float64, ks []int64, by float64) {
+	for j, kk := range ks {
+		if isGrass[kk] {
+			sward[j] = min(1, sward[j]+by)
 		}
 	}
 }

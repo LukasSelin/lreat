@@ -31,12 +31,17 @@ func TestNothingAnActDoesReachesPastAnIsland(t *testing.T) {
 		"scoutRange":        scoutRange,
 		"waterReach":        waterReach,
 		"reachRadius":       reachRadius,
-		"alarmRadius":       alarmRadius,
-		"herdRadius":        herdRadius,
 		"fleeRange":         fleeRange,
 		"roamStep":          2 * roamStep,
 		"world.Window":      world.Window,
 		"world.NearbyLimit": world.NearbyLimit,
+	}
+	for _, sp := range entity.Creatures {
+		radii[sp.Name+".Wary"] = sp.Wary
+		radii[sp.Name+".Herds"] = sp.Herds
+		if sp.Wary > world.NearbyLimit || sp.Herds > world.NearbyLimit {
+			t.Errorf("%s notices or herds past world.NearbyLimit, which the file will not answer", sp.Name)
+		}
 	}
 	for name, r := range radii {
 		if r > world.IslandReach {

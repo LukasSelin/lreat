@@ -53,6 +53,19 @@ var golden = map[string]string{
 	"deer:dwell/flee":        "flee",
 	"deer:dwell/herd>fellow": "herd",
 	"deer:dwell/roam":        "roam",
+
+	"boar:take/browse@wood":  "root",
+	"boar:take/grain@field":  "raid",
+	"boar:dwell/rest":        "wallow",
+	"boar:dwell/flee":        "bolt",
+	"boar:dwell/herd>fellow": "sounder",
+	"boar:dwell/roam":        "range",
+
+	"hare:take/sward@open":   "graze",
+	"hare:dwell/rest":        "crouch",
+	"hare:dwell/flee":        "dash",
+	"hare:dwell/herd>fellow": "warren",
+	"hare:dwell/roam":        "lope",
 }
 
 // TestInstantiateMatchesCatalog is the golden test: the trees entail

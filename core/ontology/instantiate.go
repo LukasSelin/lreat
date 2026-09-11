@@ -102,7 +102,7 @@ func bind(sc *Schema, obj, site *Class) Instance {
 	}
 	in.Key = key(sc, obj, site)
 	in.Prior = Compose(sc, obj, site)
-	if sc.Verb == Take {
+	if sc.Verb == Take && sc.Actor == nil {
 		if d, ok := takeDetail[obj]; ok {
 			in.Skill, in.Skilled, in.Reach0, in.Ticks, in.Tech = d.Skill, d.Skilled, d.Reach0, d.Ticks, d.Tech
 			add(&in.Prior, d.Prior, 1)

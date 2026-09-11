@@ -151,7 +151,7 @@ const HerdComfort = 0.012
 // keeping order for it, and nothing anybody has learned comes between it
 // and the cold.
 func weather(a *entity.Agent, w *world.World) {
-	cover := action.Cover(w, a.Pos)
+	cover := action.Cover(a, w)
 	exposure := w.ChillAt(a.Pos) * (1 - cover) / a.Body.Hardy()
 	a.Needs.Add(need.Physiological, -ColdDrain*exposure)
 	condition := 0.35 + 0.45*need.Clamp(a.Needs[need.Physiological]) + 0.2*cover - ColdCondition*exposure

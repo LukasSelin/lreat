@@ -26,6 +26,7 @@ func varied() *Grid {
 				g.Age[i] = age
 				g.Wood[i], g.Wild[i], g.Fish[i] = 0.1*float64(i%7), 0.05*float64(i%9), 0.2*float64(i%5)
 				g.Rich[i], g.Fertility[i] = 0.6, 0.1*float64(i%6)
+				g.Sward[i] = 0.15 * float64(i%8)
 				i++
 			}
 		}
@@ -71,7 +72,7 @@ func layers(g *Grid) []struct {
 		v    []float64
 	}{
 		{"traffic", g.Traffic}, {"age", g.Age}, {"fish", g.Fish}, {"wood", g.Wood},
-		{"wild", g.Wild}, {"fertility", g.Fertility}, {"rich", g.Rich},
+		{"wild", g.Wild}, {"fertility", g.Fertility}, {"rich", g.Rich}, {"sward", g.Sward},
 	}
 }
 

@@ -269,12 +269,45 @@ var Schemas = []Schema{
 	// is also what a deer caught in the open does about it.
 	{Verb: Dwell, Actor: Deer, Name: "roam", Ticks: 1, Reach0: reachEveryday,
 		Prior: habit.Signature{habit.Curious: 0.6, habit.Hunger: -0.3, habit.Shelter: -0.4}},
+
+	// What a boar does: a deer's life, and the fields besides. A raid is a
+	// taking of grain off a field, and the ontology composes it as it does
+	// a harvest less what a harvest is to a farmer - see takeDetail, which
+	// is a person's - so it is the hungry, near, warm-half moment of there
+	// being grain standing.
+	{Verb: Take, Actor: Boar, Object: Browse, Site: Wood, Ticks: 1, Reach0: reachEveryday},
+	{Verb: Take, Actor: Boar, Object: Grain, Site: Field, Ticks: 1, Reach0: reachEveryday},
+	{Verb: Dwell, Actor: Boar, Name: "rest", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{
+			habit.Hunger: -1, habit.Unsafe: -0.6, habit.Lonely: -0.6,
+			habit.Unproven: -0.4, habit.Curious: -0.4,
+		}},
+	{Verb: Dwell, Actor: Boar, Name: "flee", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Unsafe: 1, habit.Order: -1}},
+	{Verb: Dwell, Actor: Boar, Name: "herd", Role: &Fellow, Ticks: 2, Reach0: reachEveryday},
+	{Verb: Dwell, Actor: Boar, Name: "roam", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Curious: 0.6, habit.Hunger: -0.3, habit.Shelter: -0.4}},
+
+	// What a hare does: the same life on the open ground, off the sward.
+	{Verb: Take, Actor: Hare, Object: Sward, Site: Open, Ticks: 1, Reach0: reachEveryday},
+	{Verb: Dwell, Actor: Hare, Name: "rest", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{
+			habit.Hunger: -1, habit.Unsafe: -0.6, habit.Lonely: -0.6,
+			habit.Unproven: -0.4, habit.Curious: -0.4,
+		}},
+	{Verb: Dwell, Actor: Hare, Name: "flee", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Unsafe: 1, habit.Order: -1}},
+	{Verb: Dwell, Actor: Hare, Name: "herd", Role: &Fellow, Ticks: 2, Reach0: reachEveryday},
+	{Verb: Dwell, Actor: Hare, Name: "roam", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Curious: 0.6, habit.Hunger: -0.3, habit.Shelter: -0.4}},
 }
 
 // takeDetail is what differs between takings of different things: the
 // skill drawn on, the reach at birth, how long it takes, and what the
 // taking itself is like beyond wanting the thing. Anything afforded but
-// unlisted takes the schema's defaults.
+// unlisted takes the schema's defaults. It is a person's: a boar in a
+// field of grain draws on no skill, waits for no trapping, and is not
+// carrying on a tradition.
 var takeDetail = map[*Class]struct {
 	Skill   entity.Skill
 	Skilled bool

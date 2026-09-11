@@ -30,11 +30,13 @@ import (
 type setup struct {
 	seed   uint64
 	agents int
-	// deer is how many deer are put down in the woods around the
+	// deer, boar and hare are how many of each are put down around the
 	// settlement. Watching is the one place a run has them unasked: a
 	// deer in the wood is what the wood is for, and nothing that has to
 	// be reproduced is founded here.
 	deer   int
+	boar   int
+	hare   int
 	width  int
 	height int
 	// snug takes the map's size off the terminal instead of the width and
@@ -89,7 +91,7 @@ func (s *setup) config() world.Config {
 	if !cfg.Wrap {
 		cfg.Width, cfg.Height = s.width, s.height
 	}
-	cfg.Deer = s.deer
+	cfg.Deer, cfg.Boar, cfg.Hare = s.deer, s.boar, s.hare
 	return cfg
 }
 
@@ -131,6 +133,8 @@ func defaults() setup {
 		seed:   1,
 		agents: 20,
 		deer:   12,
+		boar:   6,
+		hare:   12,
 		// The width and height stand behind the fitting as what a map is
 		// when somebody takes it off the window's hands.
 		width:  world.DefaultWidth,
@@ -212,6 +216,20 @@ func options() []option {
 		show:   func(s *setup) string { return fmt.Sprintf("%d", s.deer) },
 		step:   func(s *setup, d int) { s.deer = clampInt(s.deer+d, 0, 500) },
 		digits: func(s *setup, n uint64) { s.deer = clampInt(int(n), 0, 500) },
+	}, {
+		group:  "the people",
+		name:   "boar",
+		help:   "how many boar are put down in the woods; they root for the same brush the deer browse and raid the fields, trampling the crop",
+		show:   func(s *setup) string { return fmt.Sprintf("%d", s.boar) },
+		step:   func(s *setup, d int) { s.boar = clampInt(s.boar+d, 0, 500) },
+		digits: func(s *setup, n uint64) { s.boar = clampInt(int(n), 0, 500) },
+	}, {
+		group:  "the people",
+		name:   "hares",
+		help:   "how many hares are put down on the open ground at the edge of the woods; they graze the sward and breed fast",
+		show:   func(s *setup) string { return fmt.Sprintf("%d", s.hare) },
+		step:   func(s *setup, d int) { s.hare = clampInt(s.hare+d, 0, 500) },
+		digits: func(s *setup, n uint64) { s.hare = clampInt(int(n), 0, 500) },
 	}, {
 		group: "the world",
 		name:  "map",

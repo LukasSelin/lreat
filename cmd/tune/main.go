@@ -60,6 +60,8 @@ func main() {
 	ticks := flag.Int("ticks", 60*clock.Year, "days per run")
 	agents := flag.Int("agents", 20, "starting population")
 	deer := flag.Int("deer", 0, "deer put down in the woods around each settlement (none: the baseline has no creatures in it)")
+	boar := flag.Int("boar", 0, "boar put down in the woods around each settlement")
+	hare := flag.Int("hare", 0, "hares put down at the edge of the woods around each settlement")
 	value := flag.Bool("value", false, "use the value rule")
 	born := flag.Float64("born", action.BornNoise, "drift on a founder's habits")
 	inherit := flag.Float64("inherit", action.InheritNoise, "drift on a child's habits")
@@ -87,7 +89,7 @@ func main() {
 			cfg.Wrap = *wrap
 		}
 	})
-	cfg.Deer = *deer
+	cfg.Deer, cfg.Boar, cfg.Hare = *deer, *boar, *hare
 	action.BornNoise = *born
 	action.InheritNoise = *inherit
 	system.MaxPopulation = *cap

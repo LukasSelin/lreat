@@ -31,7 +31,16 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for how far a great river's flood reaches. It took every neighbour
+// Retaken for the sward: the grass standing on open ground, a stock beside
+// the map for a grazing creature to draw down and the growing weather to
+// put back. Nothing a settlement does reads it, and no run these numbers
+// are taken on has a creature in it, so it stands at one on every open
+// tile from the first day to the last; the numbers moved because there is
+// one more value in the line being hashed. Proved the way the plate and
+// the epoch were: the digest without the sward, run on the tree with it,
+// came to the three numbers before. See world.Layers.Sward.
+//
+// Retaken before that for how far a great river's flood reaches. It took every neighbour
 // standing up to a metre above its channel, while the line above it said "no
 // higher" - the comment and the code had disagreed since it was written. A
 // metre is a great deal of flood plain on flat ground, and it went unnoticed
@@ -125,9 +134,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "105630ba8851b9d5",
-	3: "36130a462e31a175",
-	9: "68af616b6df4af2f",
+	1: "b78250435e54287a",
+	3: "f505ea355edac99e",
+	9: "0b6fed292e3ce53f",
 }
 
 // digest is the hash the golden numbers are of.
@@ -143,10 +152,10 @@ func digest(w *world.World) string {
 	g := w.Grid
 	for i := range g.Tiles {
 		t := &g.Tiles[i]
-		fmt.Fprintf(h, "{%v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v}",
+		fmt.Fprintf(h, "{%v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v %v}",
 			t.Terrain, t.Structure, t.Owner, g.Fertility[i], g.Rich[i], g.Wood[i], g.Wild[i], g.Fish[i],
 			t.Height, t.Flow, t.Drain, t.Bedrock, t.Sand, t.Clay, t.Plate, t.Formed,
-			g.Age[i], t.Fenced, g.Traffic[i])
+			g.Age[i], t.Fenced, g.Traffic[i], g.Sward[i])
 	}
 	fmt.Fprintf(h, "%d", w.Log.Len())
 	return hex.EncodeToString(h.Sum(nil))[:16]

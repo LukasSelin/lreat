@@ -103,6 +103,20 @@ gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 hungry-with-food 0.27 | 
 
 ## What the last change did
 
+Boar and hares, after the deer. A boar is a deer that lets a person come
+nearer and raids the fields; a hare grazes the sward, which is new: the grass
+standing on open ground, a stock beside the map like the fish, drawn down by
+grazing and put back by the growing weather. **The sward moved the three
+golden numbers and nothing else.** No run a settlement is measured on has a
+creature in it, so the sward stands at one on every open tile from the first
+day to the last and nothing a settlement does reads it; the numbers moved
+because there is one more value in the line being hashed, and it was proved
+the way the plate and the epoch were, by running the digest without the sward
+on the tree with it and getting the three numbers before. The batch is not
+retaken for it: what a batch measures does not read the sward.
+
+### Deer, and what they did not do
+
 Deer. A second kind of agent lives in the woods around the settlement now, on
 the same psychology the people run on - the same needs, the same reading of a
 moment as a point in habit space, the same recognition of an act, the same

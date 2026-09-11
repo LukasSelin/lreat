@@ -197,8 +197,9 @@ All three take `-seed` and `-agents`, and count in ticks, which are days: the
 defaults above are fifty and sixty years. A seed plus a command log reproduces a
 run exactly, however the goroutines happen to interleave.
 
-All three take `-deer`, which puts that many deer down in the woods around
-the settlement once it is founded. A deer is an agent like anybody else -
+All three take `-deer`, `-boar` and `-hare`, which put that many of each
+down around the settlement once it is founded: deer and boar in the woods,
+hares on the open ground at the edge of them. A deer is an agent like anybody else -
 the same needs, the same reading of a moment as a point in habit space, the
 same recognition of an act as belonging to it, the same walking - and what
 makes it a deer is its species: how long it lives and when it bears, the body
@@ -215,11 +216,20 @@ anybody who comes near; it goes to the nearest of its kind when it has lost
 the herd; and it rambles toward the trees. Fawns are born to fed, safe, herded
 does, take their mother's body, mind and habits with drift, and are deer. The
 settlement's books never count one - its population, its means and its
-fertility funnel are of the people - and the map draws each as a `d`.
-`watch` puts a dozen down unasked, and its menu has a line for them;
-`headless` and `tune` put none, because the runs a settlement is measured on
-have no creatures in them. See core/entity/species.go for what a species is,
-core/action/deer.go for what a deer does and senses, and the `deer:` acts in
+fertility funnel are of the people - and the map draws each as a `d`. A boar
+is a deer that lets a person come nearer, roots for the same brush, and raids
+the fields: a sounder in a strip in ear eats the grain and tramples what it
+does not eat, so the strip is worn and the crop set back; the map draws one as
+a `b`. A hare grazes the sward, which is the grass standing on open ground - a
+stock the day's pass puts back like the fish, that nobody but a grazing
+creature takes - and lives in the hedge at the wood's edge, breeding several
+times a year; it is an `h`. None of them swims, so a river is the edge of a
+herd's country. `watch` puts a dozen deer, half a dozen boar and a dozen hares
+down unasked, and its menu has a line for each; `headless` and `tune` put
+none, because the runs a settlement is measured on have no creatures in them.
+See core/entity/species.go for what a species is, core/action/creature.go for
+what a creature does and senses and deer.go, boar.go and hare.go for each
+kind's acts, and the `deer:`, `boar:` and `hare:` acts in
 core/ontology/verb.go for how they enter the catalog.
 
 `headless` and `tune` also take `-preset ancient`, which makes the default

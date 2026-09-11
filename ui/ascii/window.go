@@ -259,20 +259,24 @@ func builtRank(t *world.Tile) int {
 func Creature(a observe.Mark) bool { return a.Kind != "" && a.Kind != "human" }
 
 // Glyph is the character a mark is drawn as: a person is an @, as a person
-// always was, and a deer a d. What a creature is is the whole of what a map
-// has to say of it, so the glyph carries the kind and the colour the same.
+// always was, and a creature the letter of its kind. What a creature is is
+// the whole of what a map has to say of it, so the glyph carries the kind
+// and the colour is the creatures' one.
 func Glyph(a observe.Mark) rune {
-	if Creature(a) {
-		return 'd'
+	if !Creature(a) {
+		return '@'
 	}
-	return '@'
+	if g, ok := glyphs[a.Kind]; ok {
+		return g
+	}
+	return 'c'
 }
 
 // Tint is the colour a mark is drawn in: a person by what it is doing, a
 // creature by what it is, between errands as much as on one.
 func Tint(a observe.Mark) Color {
 	if Creature(a) {
-		return AgentDeer
+		return AgentCreature
 	}
 	return AgentColor(a.Action)
 }

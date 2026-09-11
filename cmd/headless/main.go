@@ -37,6 +37,8 @@ func main() {
 	ticks := flag.Int("ticks", 50*clock.Year, "days to simulate")
 	agents := flag.Int("agents", 20, "starting population")
 	deer := flag.Int("deer", 0, "deer put down in the woods around the settlement (none: the runs a settlement is measured on have no creatures in them)")
+	boar := flag.Int("boar", 0, "boar put down in the woods around the settlement")
+	hare := flag.Int("hare", 0, "hares put down on the open ground at the edge of the woods")
 	ceiling := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world (0 takes it off, and the land is then the only thing stopping the settlement)")
 	every := flag.Int("every", 5*clock.Year, "report interval in days")
 	showMap := flag.Bool("map", false, "print the map at each report")
@@ -86,7 +88,7 @@ func main() {
 			cfg.Epochs = *epochs
 		}
 	})
-	cfg.Deer = *deer
+	cfg.Deer, cfg.Boar, cfg.Hare = *deer, *boar, *hare
 	w := world.NewWith(*seed, cfg)
 	w.Rules.Fit = !*value
 	w.Rules.Temperature = *temp
@@ -146,7 +148,7 @@ func main() {
 // it was taken.
 func score(rep *report.Run, s observe.Snapshot) {
 	rep.Score("pop", float64(s.Population))
-	rep.Score("deer", float64(s.Creatures))
+	rep.Score("wild", float64(s.Creatures))
 	rep.Score("died", float64(s.Deaths))
 	rep.Score("phys", s.MeanNeeds[0])
 	rep.Score("safe", s.MeanNeeds[1])

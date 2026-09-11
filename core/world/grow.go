@@ -184,6 +184,11 @@ func (g *Grid) Green(i int) float64 {
 const (
 	FishRegrowth = 0.0012
 	Fallow       = 0.0006
+	// SwardRegrowth is how much of a full sward a growing day puts back on
+	// open ground. Grass is the quickest thing the year makes: a lawn
+	// grazed to nothing is most of the way back within a year. It is the
+	// whole of what bounds a warren where nothing hunts it.
+	SwardRegrowth = 0.0015
 )
 
 // Replenish is what k of growing weather puts back on tile i that is not a
@@ -194,6 +199,8 @@ func (g *Grid) Replenish(i int, k float64) {
 		g.Fish[i] = min(1, g.Fish[i]+FishRegrowth*k)
 	case Field:
 		g.Fertility[i] = min(g.Rich[i], g.Fertility[i]+Fallow*k)
+	case Grass:
+		g.Sward[i] = min(1, g.Sward[i]+SwardRegrowth*k)
 	}
 }
 
@@ -256,11 +263,12 @@ var BareBefalls = func() bool {
 
 // Recovers reports whether ground of this kind puts something back on its
 // own when it is left alone, besides what grows on it by its age: the fish
-// in the water, the rest a worn field gets. See Replenish, which is where
-// the pace is; an outcrop is stone and does not grow, and that is meant.
+// in the water, the rest a worn field gets, the grass on open ground. See
+// Replenish, which is where the pace is; an outcrop is stone and does not
+// grow, and that is meant.
 func (k Terrain) Recovers() bool {
 	switch k {
-	case Water, Field:
+	case Water, Field, Grass:
 		return true
 	}
 	return false

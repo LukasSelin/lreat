@@ -33,6 +33,13 @@ type Layers struct {
 	// ground could have at best: worked ground wears down toward nothing
 	// and rests back up toward Rich. See grow.go.
 	Fertility, Rich []float64
+	// Sward is the grass standing on open ground, which nobody takes but a
+	// grazing creature: full on a map as it is made, drawn down by grazing,
+	// and put back by the growing weather like the fish. It is read only
+	// where the ground is open, and it is not a crop - open grass carries
+	// nothing anybody can take, which is what Green says of it - so it is
+	// a stock beside the map like the others and not a process.
+	Sward []float64
 	// Kinds is what each tile is, as the one word the day's pass gates its
 	// arithmetic on: the structure and the terrain together, see kindOf in
 	// pass.go. It is a reading of the tile kept beside it, so that the pass
@@ -52,8 +59,18 @@ func NewLayers(n int) Layers {
 		Wild:      make([]float64, n),
 		Fertility: make([]float64, n),
 		Rich:      make([]float64, n),
+		Sward:     full(n),
 		Kinds:     make([]int64, n),
 	}
+}
+
+// full is a layer of n at one: the grass a map is made with is standing.
+func full(n int) []float64 {
+	s := make([]float64, n)
+	for i := range s {
+		s[i] = 1
+	}
+	return s
 }
 
 // Copy is a copy of every layer, for a snapshot. It is not called Clone so
@@ -67,6 +84,7 @@ func (l Layers) Copy() Layers {
 		Wild:      slices.Clone(l.Wild),
 		Fertility: slices.Clone(l.Fertility),
 		Rich:      slices.Clone(l.Rich),
+		Sward:     slices.Clone(l.Sward),
 		Kinds:     slices.Clone(l.Kinds),
 	}
 }
@@ -74,13 +92,13 @@ func (l Layers) Copy() Layers {
 // Readings is what the layers hold of one tile, gathered up so that two maps
 // can be compared tile by tile. It is for that and for nothing the day does.
 type Readings struct {
-	Traffic, Age, Fish, Wood, Wild, Fertility, Rich float64
+	Traffic, Age, Fish, Wood, Wild, Fertility, Rich, Sward float64
 }
 
 // Read is what the layers hold of tile i.
 func (l Layers) Read(i int) Readings {
 	return Readings{
 		Traffic: l.Traffic[i], Age: l.Age[i], Fish: l.Fish[i], Wood: l.Wood[i],
-		Wild: l.Wild[i], Fertility: l.Fertility[i], Rich: l.Rich[i],
+		Wild: l.Wild[i], Fertility: l.Fertility[i], Rich: l.Rich[i], Sward: l.Sward[i],
 	}
 }

@@ -146,6 +146,26 @@ func shoal(fish []float64, ks []int64, by float64) {
 	shoalScalar(fish[n:], ks[n:], by)
 }
 
+// meadow is shoal for the grass: the same sum and the same clamp, gated on
+// open ground rather than water.
+func meadow(sward []float64, ks []int64, by float64) {
+	if !vector {
+		meadowScalar(sward, ks, by)
+		return
+	}
+	n := len(sward) &^ (lanes - 1)
+	byv, one := archsimd.BroadcastFloat64x4(by), archsimd.BroadcastFloat64x4(1)
+	low, grass := archsimd.BroadcastInt64x4(kindMask), archsimd.BroadcastInt64x4(int64(Grass))
+	for j := 0; j < n; j += lanes {
+		m := archsimd.LoadInt64x4(ks[j : j+lanes]).And(low).Equal(grass)
+		f := archsimd.LoadFloat64x4(sward[j : j+lanes])
+		sum := f.Add(byv)
+		sum.IfElse(sum.Less(one), one).IfElse(m, f).Store(sward[j : j+lanes])
+	}
+	archsimd.ClearAVXUpperBits()
+	meadowScalar(sward[n:], ks[n:], by)
+}
+
 func rest(fert, rich []float64, ks []int64, by float64) {
 	if !vector {
 		restScalar(fert, rich, ks, by)

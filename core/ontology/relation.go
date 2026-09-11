@@ -18,6 +18,7 @@ import "lreat/core/clock"
 // outliving the tick) are, and what a candidate recomputed from truth is not.
 var Affords = map[*Class][]*Class{
 	Wood:    {Berries, Game, Timber, Browse},
+	Open:    {Sward},
 	Water:   {Fish},
 	Outcrop: {Stone},
 	Field:   {Grain},

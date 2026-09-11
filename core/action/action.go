@@ -136,6 +136,19 @@ var mechanics = map[string]*Def{
 	"deer:dwell/flee":        Flee,
 	"deer:dwell/herd>fellow": Herd,
 	"deer:dwell/roam":        Roam,
+
+	"boar:take/browse@wood":  Root,
+	"boar:take/grain@field":  Raid,
+	"boar:dwell/rest":        Wallow,
+	"boar:dwell/flee":        Bolt,
+	"boar:dwell/herd>fellow": Sounder,
+	"boar:dwell/roam":        Range,
+
+	"hare:take/sward@open":   Graze,
+	"hare:dwell/rest":        Crouch,
+	"hare:dwell/flee":        Dash,
+	"hare:dwell/herd>fellow": Warren,
+	"hare:dwell/roam":        Lope,
 }
 
 func init() {
@@ -173,6 +186,8 @@ func init() {
 var actors = map[*entity.Species]*ontology.Class{
 	entity.Human: ontology.Person,
 	entity.Deer:  ontology.Deer,
+	entity.Boar:  ontology.Boar,
+	entity.Hare:  ontology.Hare,
 }
 
 // actorOf is the class that acts for a species; an unknown kind acts as

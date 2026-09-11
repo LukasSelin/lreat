@@ -116,6 +116,8 @@ func main() {
 	seed := flag.Uint64("seed", d.seed, "world seed")
 	agents := flag.Int("agents", d.agents, "starting population")
 	deer := flag.Int("deer", d.deer, "deer put down in the woods around the settlement")
+	boar := flag.Int("boar", d.boar, "boar put down in the woods around the settlement")
+	hare := flag.Int("hare", d.hare, "hares put down on the open ground at the edge of the woods")
 	tps := flag.Float64("tps", d.tps, "initial ticks per second")
 	width := flag.Int("width", d.width, "map width")
 	height := flag.Int("height", d.height, "map height")
@@ -131,7 +133,7 @@ func main() {
 		os.Exit(2)
 	}
 	s := setup{
-		seed: *seed, agents: *agents, deer: *deer, tps: *tps,
+		seed: *seed, agents: *agents, deer: *deer, boar: *boar, hare: *hare, tps: *tps,
 		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp, preset: *preset,
 		ceiling: *ceiling,
@@ -664,26 +666,26 @@ func (v *view) choose(id entity.ID) {
 }
 
 var palette = map[ascii.Color]tcell.Style{
-	ascii.Default:     tcell.StyleDefault,
-	ascii.Water:       tcell.StyleDefault.Foreground(tcell.ColorBlue),
-	ascii.Ice:         tcell.StyleDefault.Foreground(tcell.PaletteColor(195)),
-	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),
-	ascii.FieldFenced: tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
-	ascii.House:       tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
-	ascii.Market:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
-	ascii.Road:        tcell.StyleDefault.Foreground(tcell.Color137),
-	ascii.Rock:        tcell.StyleDefault.Foreground(tcell.ColorGray),
-	ascii.RockHigh:    tcell.StyleDefault.Foreground(tcell.PaletteColor(250)),
-	ascii.Granary:     tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
-	ascii.Tavern:      tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
-	ascii.AgentFood:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
-	ascii.AgentBuild:  tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
-	ascii.AgentTrade:  tcell.StyleDefault.Foreground(tcell.ColorLime).Bold(true),
-	ascii.AgentGuard:  tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true),
-	ascii.AgentSocial: tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
-	ascii.AgentStudy:  tcell.StyleDefault.Foreground(tcell.ColorAqua).Bold(true),
-	ascii.AgentIdle:   tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
-	ascii.AgentDeer:   tcell.StyleDefault.Foreground(tcell.PaletteColor(173)).Bold(true),
+	ascii.Default:       tcell.StyleDefault,
+	ascii.Water:         tcell.StyleDefault.Foreground(tcell.ColorBlue),
+	ascii.Ice:           tcell.StyleDefault.Foreground(tcell.PaletteColor(195)),
+	ascii.Field:         tcell.StyleDefault.Foreground(tcell.ColorYellow),
+	ascii.FieldFenced:   tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
+	ascii.House:         tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
+	ascii.Market:        tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
+	ascii.Road:          tcell.StyleDefault.Foreground(tcell.Color137),
+	ascii.Rock:          tcell.StyleDefault.Foreground(tcell.ColorGray),
+	ascii.RockHigh:      tcell.StyleDefault.Foreground(tcell.PaletteColor(250)),
+	ascii.Granary:       tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
+	ascii.Tavern:        tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
+	ascii.AgentFood:     tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
+	ascii.AgentBuild:    tcell.StyleDefault.Foreground(tcell.ColorOrange).Bold(true),
+	ascii.AgentTrade:    tcell.StyleDefault.Foreground(tcell.ColorLime).Bold(true),
+	ascii.AgentGuard:    tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true),
+	ascii.AgentSocial:   tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
+	ascii.AgentStudy:    tcell.StyleDefault.Foreground(tcell.ColorAqua).Bold(true),
+	ascii.AgentIdle:     tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
+	ascii.AgentCreature: tcell.StyleDefault.Foreground(tcell.PaletteColor(173)).Bold(true),
 
 	// The two ramps: open country and woodland, valley floor to skyline. The
 	// land is what most of the screen is, so these are most of what the map
@@ -878,7 +880,7 @@ func (v *view) draw() {
 	// lining a run up against a log.
 	put(bold, "%-20s pop %-5d %s", s.Date, s.Population, state)
 	if s.Creatures > 0 {
-		put(dim, "day %d  deer %d", s.Tick, s.Creatures)
+		put(dim, "day %d  wild %d", s.Tick, s.Creatures)
 	} else {
 		put(dim, "day %d", s.Tick)
 	}

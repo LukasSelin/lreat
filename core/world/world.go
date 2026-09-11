@@ -228,10 +228,24 @@ type Config struct {
 	// handed over: 0 draws the land, and anything else makes it out of its
 	// own history. See history.go.
 	Epochs int
-	// Deer is how many deer are put down in the woods around the settlement
-	// once it is founded; see Populate. None, unless somebody asks: the
-	// runs a settlement is measured on have no creatures in them.
-	Deer int
+	// Deer, Boar and Hare are how many of each are put down around the
+	// settlement once it is founded, each in its own habitat; see Populate.
+	// None, unless somebody asks: the runs a settlement is measured on have
+	// no creatures in them.
+	Deer, Boar, Hare int
+}
+
+// Of is how many of a kind the terms ask for.
+func (c Config) Of(sp *entity.Species) int {
+	switch sp {
+	case entity.Deer:
+		return c.Deer
+	case entity.Boar:
+		return c.Boar
+	case entity.Hare:
+		return c.Hare
+	}
+	return 0
 }
 
 // DefaultConfig is the valley every settlement was founded in before there

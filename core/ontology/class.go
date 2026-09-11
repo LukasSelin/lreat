@@ -254,6 +254,8 @@ var (
 	// Person on purpose: acts are ordered by their actor before their key,
 	// and everything a person does has to keep the slot it has.
 	Deer = New("deer", Thing, 0, habit.Signature{})
+	Boar = New("boar", Thing, 0, habit.Signature{})
+	Hare = New("hare", Thing, 0, habit.Signature{})
 	// Browse is the brush a deer lives on: the same stand of it a forager
 	// picks and a trapper hunts over, which is why the world keeps one
 	// count for all three. It is a thing and not a material, because a
@@ -262,6 +264,10 @@ var (
 	// deer's food has to stand outside that or every settler would be
 	// entailed a browsing.
 	Browse = lack(New("browse", Thing, Edible, habit.Signature{}), 0.8)
+	// Sward is the grass standing on open ground, which a grazing creature
+	// lives on and nobody else takes. Like the brush it is a thing and not
+	// a material, and for the same reason.
+	Sward = lack(New("sward", Thing, Edible, habit.Signature{}), 0.8)
 	// Practice is an act itself as the object of another: what is taught
 	// and studied. The ontology contains its own catalog.
 	Practice = New("practice", Thing, 0, habit.Signature{})

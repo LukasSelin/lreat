@@ -35,9 +35,10 @@ const (
 	AgentSocial
 	AgentStudy
 	AgentIdle
-	// AgentDeer is a deer at whatever it is doing: a creature is one
-	// colour, since what it is is the whole of what a map has to say of it.
-	AgentDeer
+	// AgentCreature is any creature at whatever it is doing: the creatures
+	// are one colour and a glyph apiece, since what one is is the whole of
+	// what a map has to say of it.
+	AgentCreature
 	// Ground and Wood are open country and woodland, each in Bands steps
 	// from the valley floor to the skyline. They must stay contiguous and in
 	// order; Ground and Wood below index them.
@@ -289,10 +290,22 @@ func AgentColor(action string) Color {
 		return AgentSocial
 	case "study":
 		return AgentStudy
-	case "browse", "bed down", "flee", "herd", "roam":
-		return AgentDeer
+	}
+	if _, creature := glyphs[actionKinds[action]]; creature {
+		return AgentCreature
 	}
 	return AgentIdle
+}
+
+// glyphs is the character each kind of creature is drawn as; a kind with
+// none is drawn as a c. actionKinds is which kind each creature's act is
+// done by, so that an act's colour can be read as everyone else's is.
+var glyphs = map[string]rune{"deer": 'd', "boar": 'b', "hare": 'h'}
+
+var actionKinds = map[string]string{
+	"browse": "deer", "bed down": "deer", "flee": "deer", "herd": "deer", "roam": "deer",
+	"root": "boar", "raid": "boar", "wallow": "boar", "bolt": "boar", "sounder": "boar", "range": "boar",
+	"graze": "hare", "crouch": "hare", "dash": "hare", "warren": "hare", "lope": "hare",
 }
 
 // Group is a kind of work, the unit the activity graph stacks by. Which
