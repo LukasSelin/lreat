@@ -78,6 +78,25 @@ const (
 	uplandSpan = DefaultWidth
 )
 
+// UplandLattice is how far apart the corners of the mask that says where the
+// high country stands are. It is the geometric mean of the map's own span and
+// the span that mask was drawn at, halved: on a map of the quoted width it is
+// exactly the half-span it always was, and on a bigger one the regions of high
+// country grow with the map but slower than it does, so a wider world gets
+// more mountain ranges as well as larger ones.
+//
+// Taken as a plain half-span, a globe a thousand tiles across drew the whole
+// of its topography from a lattice two corners round and three deep - six
+// numbers deciding where every mountain on a planet went. What came out was
+// not a world but a tilt: over three seeds the mean height of row twenty ran
+// 41, 422 and 974 metres against a row-256 of 131, 32 and 44, so one
+// hemisphere was a plateau and the other a plain, differently each time and
+// for no reason the map could show. At the square root the same globe draws
+// from eight corners round and five deep, which is continents.
+func (g *Grid) UplandLattice() float64 {
+	return math.Sqrt(float64(g.Span())*uplandSpan) / 2
+}
+
 // Span is how many tiles across the map is at its widest. It is what the
 // shape of the land is measured in: the octaves start at half of it, the high
 // country is masked at half of it, and the mountains rise in proportion to it.
@@ -333,7 +352,7 @@ func (w *World) relief(g *Grid) []float64 {
 	// Where the high country stands. One lattice far coarser than anything in
 	// the octaves above, so that upland is a region of the map rather than a
 	// speckle through it.
-	where := w.lattice(g, float64(g.Span())/2)
+	where := w.lattice(g, g.UplandLattice())
 	rise := g.UplandRise()
 	h := make([]float64, len(g.Tiles))
 	q := quantiles(where, 1-uplandShare, 1)
@@ -533,19 +552,40 @@ func (g *Grid) spread(v []float64) []float64 {
 	return out
 }
 
+// outlet reports whether water leaves the map at a tile: the edge of a
+// valley, and on a globe nothing at all, because a globe has no edge to leave
+// by. Its water leaves at the sea, which fill already starts from.
+//
+// The poles used to count. They are the two rows a cylinder stops at, so they
+// looked like edges and were treated as ones - which made every tile of them
+// a drain a thousand tiles long, pinned to its own height, never filling and
+// never holding a lake, with the whole of the map's drainage biased toward
+// whichever of them was nearer. The sea was put in to stop rivers running to
+// a pole and cutting the country in two; this stops them wanting to.
+//
+// A globe with no sea has nowhere else for its water to go, and a map with no
+// outlet anywhere cannot be filled at all - every tile would be raised to the
+// height of the highest ground on it. So that map, and only that map, still
+// drains at its poles.
+func (g *Grid) outlet(x, y int) bool {
+	if !g.Wrap {
+		return x == 0 || y == 0 || x == g.W-1 || y == g.H-1
+	}
+	return g.sea < 0 && (y == 0 || y == g.H-1)
+}
+
 // fill raises every hollow to the level at which it would spill, so that all
 // ground drains somewhere and water is never asked to run uphill. It works
-// inward from the edges of the map, always from the lowest ground reached so
-// far, which is the order water itself would fill a landscape in.
+// inward from the sea and from the edges of the map, always from the lowest
+// ground reached so far, which is the order water itself would fill a
+// landscape in.
 func (g *Grid) fill() {
 	filled := make([]float64, len(g.Tiles))
 	done := make([]bool, len(g.Tiles))
 	q := &heightQueue{}
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
-			// On a globe only the poles are an edge: water leaves the map
-			// there and nowhere else.
-			edge := y == 0 || y == g.H-1 || (!g.Wrap && (x == 0 || x == g.W-1))
+			edge := g.outlet(x, y)
 			i := y*g.W + x
 			if !edge && !g.underSea(i) {
 				continue
@@ -801,6 +841,66 @@ func lower(a, b heightNode) bool {
 // with no sea has a sea level below all its ground.
 func (g *Grid) underSea(i int) bool {
 	return g.sea >= 0 && g.Tiles[i].Height <= g.sea
+}
+
+// seaNear is, for each tile, how much of the country within reach of it lies
+// under the sea, in [0,1]: nothing deep inside a continent, a half on an even
+// coast, nearly all of it on a rock in the open ocean. It is the reading the
+// frost takes of the water - see Maritime - and it is a share of a square
+// window rather than a distance because what warms a place is how much sea is
+// about it and not how few steps to the nearest drop of it.
+//
+// It is summed once over the whole map and then read off in constant time
+// per tile, so a window sixty-four tiles wide costs no more than one four
+// tiles wide. The window goes round the seam and is clipped at the poles,
+// where there is nothing beyond to count.
+func (g *Grid) seaNear(reach int) []float64 {
+	stride := g.W + 1
+	sum := make([]float64, stride*(g.H+1))
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			v := 0.0
+			if g.underSea(y*g.W + x) {
+				v = 1
+			}
+			sum[(y+1)*stride+x+1] = v + sum[y*stride+x+1] + sum[(y+1)*stride+x] - sum[y*stride+x]
+		}
+	}
+	// box is how many tiles of the sea lie in the inclusive rectangle, whose
+	// columns must already be on the map.
+	box := func(x0, x1, y0, y1 int) float64 {
+		return sum[(y1+1)*stride+x1+1] - sum[y0*stride+x1+1] - sum[(y1+1)*stride+x0] + sum[y0*stride+x0]
+	}
+	near := make([]float64, len(g.Tiles))
+	g.EachRow(func(y int) {
+		y0, y1 := max(0, y-reach), min(g.H-1, y+reach)
+		rows := y1 - y0 + 1
+		for x := 0; x < g.W; x++ {
+			var wet float64
+			var n int
+			switch {
+			case !g.Wrap:
+				x0, x1 := max(0, x-reach), min(g.W-1, x+reach)
+				wet, n = box(x0, x1, y0, y1), (x1-x0+1)*rows
+			case 2*reach+1 >= g.W:
+				// A window wider than the map reads each column once.
+				wet, n = box(0, g.W-1, y0, y1), g.W*rows
+			default:
+				x0, x1 := x-reach, x+reach
+				switch {
+				case x0 < 0:
+					wet = box(0, x1, y0, y1) + box(x0+g.W, g.W-1, y0, y1)
+				case x1 >= g.W:
+					wet = box(x0, g.W-1, y0, y1) + box(0, x1-g.W, y0, y1)
+				default:
+					wet = box(x0, x1, y0, y1)
+				}
+				n = (2*reach + 1) * rows
+			}
+			near[y*g.W+x] = wet / float64(n)
+		}
+	})
+	return near
 }
 
 // flood puts the lowest share of the ground under the sea, and reads the

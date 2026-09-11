@@ -95,7 +95,7 @@ func TestTheViewStopsAtAValleysEdge(t *testing.T) {
 	for i := 0; i < 40; i++ {
 		look(v, 'l')
 	}
-	mw, _ := mapArea(m, 120, 40)
+	mw, _ := mapArea(m, 120, 40, v.cam.scale())
 	if v.cam.x != m.W-mw {
 		t.Fatalf("the window stopped at %d going east, want the last screenful at %d", v.cam.x, m.W-mw)
 	}
@@ -139,7 +139,7 @@ func TestTheSettlementIsAlwaysOnePressAway(t *testing.T) {
 	m.Market = entity.Pos{X: 300, Y: 120}
 	v, _ := watching(t, m, 120, 40)
 	look(v, 'l', 'l', 'j', 'j', 'c')
-	mw, mh := mapArea(m, 120, 40)
+	mw, mh := mapArea(m, 120, 40, v.cam.scale())
 	if _, _, ok := v.cam.window(m, mw, mh).Screen(m, m.Market); !ok {
 		t.Fatalf("c left the settlement off the screen: the window is at %d,%d", v.cam.x, v.cam.y)
 	}
@@ -156,7 +156,7 @@ func TestFollowingKeepsTheFigureOnTheScreen(t *testing.T) {
 	v.sel = 3
 	v.cam.lock = true
 	v.draw()
-	mw, mh := mapArea(m, 120, 40)
+	mw, mh := mapArea(m, 120, 40, v.cam.scale())
 	if _, _, ok := v.cam.window(m, mw, mh).Screen(m, m.Agents[0].Pos); !ok {
 		t.Fatal("the figure being followed is off the screen")
 	}
@@ -197,7 +197,7 @@ func TestTheFirstFrameLooksAtTheSettlement(t *testing.T) {
 	m := ground(512, 200, true)
 	m.Market = entity.Pos{X: 88, Y: 140}
 	v, _ := watching(t, m, 120, 40)
-	mw, mh := mapArea(m, 120, 40)
+	mw, mh := mapArea(m, 120, 40, v.cam.scale())
 	if _, _, ok := v.cam.window(m, mw, mh).Screen(m, m.Market); !ok {
 		t.Fatalf("the first frame is looking at %d,%d, with the settlement off the screen", v.cam.x, v.cam.y)
 	}
@@ -244,7 +244,7 @@ func TestAWrappedWorldIsWatchedThroughAWindow(t *testing.T) {
 	}
 	// Straddle the seam and draw again: the column east of the last one is
 	// the first one, and there is ground in every cell of the window.
-	mw, mh := mapArea(s.Map, 100, 30)
+	mw, mh := mapArea(s.Map, 100, 30, v.cam.scale())
 	v.cam.x, v.cam.y, v.cam.placed = s.Map.W-mw/2, 10, true
 	v.draw()
 	cells, width, _ := sc.GetContents()

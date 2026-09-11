@@ -42,14 +42,21 @@ func (w *World) Generate(cfg Config) {
 	g.drain()
 	g.carve(w.RNG)
 	g.height()
-	// The heights are settled, so where the ground is too cold to grow
-	// anything can be written down. It is read by the woods below, by the
-	// tree line seed falls on for the rest of the run, and by anybody asking
-	// what a tile is; see Grid.Frozen.
-	g.frost = make([]float64, g.H)
-	for y := range g.frost {
-		g.frost[y] = w.Climate.frostline(y)
-	}
+	// The heights are settled and the coast is where it is going to be, so
+	// where the ground is too cold to grow anything can be written down: the
+	// year's mean at that latitude, warmed by how much sea lies round the
+	// tile. It is read by the woods below, by the tree line seed falls on
+	// for the rest of the run, and by anybody asking what a tile is; see
+	// Grid.Frozen and Maritime.
+	sea := g.seaNear(g.Span() / maritimeSpan)
+	g.frost = make([]float64, len(g.Tiles))
+	g.EachRow(func(y int) {
+		for i := y * width; i < (y+1)*width; i++ {
+			g.frost[i] = w.Climate.frostlineAt(y, maritime(sea[i]))
+		}
+	})
+	// And with it, where the sea itself never thaws. See Grid.freeze.
+	g.freeze()
 
 	// Woods stand where the ground is damp enough to grow them and gentle
 	// enough to hold soil: the valley sides above the flood, not the crown of

@@ -63,7 +63,7 @@ func main() {
 	born := flag.Float64("born", action.BornNoise, "drift on a founder's habits")
 	inherit := flag.Float64("inherit", action.InheritNoise, "drift on a child's habits")
 	temp := flag.Float64("temp", world.DefaultRules().Temperature, "recognition temperature")
-	cap := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world")
+	cap := flag.Int("cap", system.MaxPopulation, "population ceiling; the guard on the machine, not a fact about the world (0 takes it off, and a runaway seed then runs as long as the machine bears it)")
 	quiet := flag.Bool("quiet", false, "summary only")
 	preset := flag.String("preset", "", "the terms to found each world on: valley (the default map), globe, or ancient (a valley made out of its own history); -width, -height and -wrap override it")
 	width := flag.Int("width", world.DefaultWidth, "map width")

@@ -18,6 +18,7 @@ type Color uint8
 const (
 	Default Color = iota
 	Water
+	Ice
 	Field
 	FieldFenced
 	House
@@ -209,6 +210,10 @@ type scene struct {
 // default is a tile quietly drawn as open grass on every map from then on.
 var ground = [world.TerrainCount]func(scene) Cell{
 	world.Water: func(scene) Cell { return Cell{Ch: '~', Color: Water} },
+
+	// A frozen sea. It is drawn flat rather than as waves, because that is
+	// what it is and because it is ground somebody can walk over.
+	world.Ice: func(scene) Cell { return Cell{Ch: '=', Color: Ice} },
 
 	// A wood is drawn by how much of it is left to cut, and coloured by how
 	// high it stands.

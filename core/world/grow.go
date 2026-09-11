@@ -16,7 +16,7 @@ import "lreat/core/ontology"
 // once from the same bindings rather than asked of the ontology again. Every
 // tile on the map is asked whether it is alive on every tick, and gathering
 // the processes that run on it to answer allocates the gathering.
-var alive = func() (a [Tavern + 1][Rock + 1]bool) {
+var alive = func() (a [Tavern + 1][TerrainCount]bool) {
 	for s := range a {
 		for t := range a[s] {
 			tile := Tile{Structure: Structure(s), Terrain: Terrain(t)}
@@ -85,7 +85,7 @@ type filling struct {
 	stock func(*Grid) []float64
 }
 
-var growing = func() (g [Tavern + 1][Rock + 1][]filling) {
+var growing = func() (g [Tavern + 1][TerrainCount][]filling) {
 	for s := range g {
 		for t := range g[s] {
 			tile := Tile{Structure: Structure(s), Terrain: Terrain(t)}
@@ -201,7 +201,7 @@ func (g *Grid) Replenish(i int, k float64) {
 // once in the same way as growing. Asking the ontology walks the class up
 // its parents and the transforms along, and this is asked of every awake
 // tile on every day.
-var befalling = func() (b [Tavern + 1][Rock + 1][2]*ontology.Transform) {
+var befalling = func() (b [Tavern + 1][TerrainCount][2]*ontology.Transform) {
 	for s := range b {
 		for t := range b[s] {
 			tile := Tile{Structure: Structure(s), Terrain: Terrain(t)}
@@ -217,7 +217,7 @@ var befalling = func() (b [Tavern + 1][Rock + 1][2]*ontology.Transform) {
 // that ground nothing can befall either way is passed over before anybody
 // asks whose it is - which is most of the ground in a settled chunk, and
 // the asking is a look into the population by a number off the tile.
-var befalls = func() (b [Tavern + 1][Rock + 1]bool) {
+var befalls = func() (b [Tavern + 1][TerrainCount]bool) {
 	for s := range b {
 		for t := range b[s] {
 			b[s][t] = befalling[s][t][0] != nil || befalling[s][t][1] != nil

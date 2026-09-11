@@ -27,9 +27,12 @@
 //
 // A map the terminal cannot hold whole — a globe is sixteen chunks round and
 // no terminal is — is looked at through a window that moves over it, and the
-// arrows move it. Everything else here is written as though the map were the
-// screen because for a valley it still is: the window is the whole map, and
-// the keys that move it have nowhere to go. See camera.go.
+// arrows move it. Z draws it at twice as much ground to the cell and Z back
+// in again, up to the scale that holds the whole world: panning answers
+// where else to look and only zooming answers what shape the place is.
+// Everything else here is written as though the map were the screen because
+// for a valley it still is: the window is the whole map at the only scale it
+// has, and the keys that move it have nowhere to go. See camera.go.
 //
 // The arrows are given to whichever of the two the page has. Over a map with
 // somewhere to look they look, and the graphs answer to pgup and pgdn; on a
@@ -39,7 +42,8 @@
 //
 // Keys: space pauses, + and - change speed, . steps once while paused,
 // m turns the map to the next reading of the land and M to the last,
-// the arrows (or hjkl) look around a map larger than the screen, c comes
+// the arrows (or hjkl) look around a map larger than the screen, z and Z
+// draw it at more and less ground to the cell (as does the wheel), c comes
 // back to the settlement and f keeps the view on whoever is being followed,
 // r lays streets through the settlement, tab and shift-tab pick an agent
 // (or click one), pgup and pgdn open a graph out, esc backs off the graph
@@ -61,6 +65,7 @@ import (
 	"lreat/core/need"
 	"lreat/core/observe"
 	"lreat/core/sim"
+	"lreat/core/system"
 	"lreat/core/world"
 	"lreat/report"
 	"lreat/ui/ascii"
@@ -104,6 +109,7 @@ func main() {
 	width := flag.Int("width", d.width, "map width")
 	height := flag.Int("height", d.height, "map height")
 	value := flag.Bool("value", false, "agents choose by expected value, the original rule, instead of by recognition")
+	ceiling := flag.Int("cap", d.ceiling, "how many people this program will carry: a guard on the machine, not a fact about the world (0 takes it off and lets the land do the stopping)")
 	temp := flag.Float64("temp", d.temp, "base temperature of recognition; 0 always takes the best fit")
 	snug := flag.Bool("fit", d.snug, "size the map to the terminal; -fit=false takes -width and -height instead")
 	preset := flag.String("preset", d.preset, "which world: valley, a map with edges; ancient, that valley made out of its own history; or globe, a cylinder with no edges")
@@ -117,6 +123,7 @@ func main() {
 		seed: *seed, agents: *agents, tps: *tps,
 		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp, preset: *preset,
+		ceiling: *ceiling,
 	}
 	s.snug = snugFrom(*snug, given("width") || given("height"), given("fit"))
 
@@ -185,6 +192,7 @@ func run(screen tcell.Screen, s setup) {
 	screen.Clear()
 	puts(screen, 0, 0, tcell.StyleDefault, fmt.Sprintf("raising the %s: %d by %d...", s.world(), s.width, s.height))
 	screen.Show()
+	system.MaxPopulation = s.ceiling
 	w := world.NewWith(s.seed, s.config())
 	w.Rules.Fit = s.fit
 	w.Rules.Temperature = s.temp
@@ -451,6 +459,16 @@ func (v *view) handleKey(r *sim.Runner, ev *tcell.EventKey) bool {
 			dy = 1
 		}
 		v.pan(dx, dy)
+	case ev.Rune() == 'z':
+		// Out: twice as much ground to the cell. A globe is sixteen chunks
+		// round and panning over it a third of a screen at a time never
+		// shows anybody the shape of it.
+		v.zoom(1)
+	case ev.Rune() == 'Z':
+		// And back in, to the tile-for-a-cell map the settlement is watched
+		// on. The pair go the way m and M do: the small letter forward
+		// through the scales, the capital back.
+		v.zoom(-1)
 	case ev.Rune() == 'c':
 		// Back to the settlement. On a globe it is a fifth of a per cent of
 		// the map and the only part of it anybody is watching; without a way
@@ -505,11 +523,41 @@ func (v *view) onMap(f func(m *observe.MapView, w, h int)) {
 		return
 	}
 	sw, sh := v.screen.Size()
-	w, h := mapArea(v.snap.Map, sw, sh)
+	w, h := mapArea(v.snap.Map, sw, sh, v.cam.scale())
 	if w < minMapW || h < minMapH {
 		return
 	}
 	f(v.snap.Map, w, h)
+}
+
+// zoom draws the map at the next scale out or in, keeping the middle of the
+// window where it is. What the eye is holding when the key goes down is
+// whatever is in the middle of the screen, and a zoom that moves it is a
+// zoom that has to be panned back afterwards.
+//
+// It lets go of whoever is being followed for the same reason panning does
+// not: zooming out to see the coast and having the view snatched back to a
+// figure on the next tick is the view refusing the question. Following is
+// one press of f away again.
+func (v *view) zoom(by int) {
+	if v.snap == nil || v.screen == nil {
+		return
+	}
+	m := v.snap.Map
+	sw, sh := v.screen.Size()
+	z := v.cam.scale()
+	w, h := mapArea(m, sw, sh, z)
+	if w < minMapW || h < minMapH {
+		return
+	}
+	next, ok := zoomed(m, sw, sh, z, by)
+	if !ok {
+		return
+	}
+	mid := entity.Pos{X: v.cam.x + w*z/2, Y: v.cam.y + h*z/2}
+	v.cam.z, v.cam.lock = next, false
+	nw, nh := mapArea(m, sw, sh, next)
+	v.cam.center(m, mid, nw, nh)
 }
 
 // handleMouse picks the figure under a click. It is the shortest way from
@@ -517,19 +565,37 @@ func (v *view) onMap(f func(m *observe.MapView, w, h int)) {
 // cells and the figures are on the ground, so it goes back through the
 // window the ground is being drawn in: on a globe the cell in the corner of
 // the screen is not tile 0,0 and need not even be east of it.
+//
+// The wheel zooms, which is the one thing a wheel does on every map anybody
+// has ever used.
 func (v *view) handleMouse(ev *tcell.EventMouse) {
-	if ev.Buttons()&tcell.Button1 == 0 || v.snap == nil {
+	if v.snap == nil {
+		return
+	}
+	switch {
+	case ev.Buttons()&tcell.WheelDown != 0:
+		v.zoom(1)
+		v.draw()
+		return
+	case ev.Buttons()&tcell.WheelUp != 0:
+		v.zoom(-1)
+		v.draw()
+		return
+	case ev.Buttons()&tcell.Button1 == 0:
 		return
 	}
 	x, y := ev.Position()
 	v.onMap(func(m *observe.MapView, w, h int) {
 		win := v.cam.window(m, w, h)
-		p, on := win.Tile(m, x, y)
-		if !on {
+		if _, on := win.Tile(m, x, y); !on {
 			return
 		}
+		// Whoever is drawn in the cell that was clicked, which zoomed out is
+		// whoever is anywhere in the block of ground under it. Asking the
+		// window where each figure is drawn rather than which tile the click
+		// was of is the same question put the way the picture answers it.
 		for _, mark := range m.Agents {
-			if mark.Pos == p {
+			if mx, my, ok := win.Screen(m, mark.Pos); ok && mx == x && my == y {
 				v.choose(mark.ID)
 				v.draw()
 				return
@@ -579,6 +645,7 @@ func (v *view) choose(id entity.ID) {
 var palette = map[ascii.Color]tcell.Style{
 	ascii.Default:     tcell.StyleDefault,
 	ascii.Water:       tcell.StyleDefault.Foreground(tcell.ColorBlue),
+	ascii.Ice:         tcell.StyleDefault.Foreground(tcell.PaletteColor(195)),
 	ascii.Field:       tcell.StyleDefault.Foreground(tcell.ColorYellow),
 	ascii.FieldFenced: tcell.StyleDefault.Foreground(tcell.ColorYellow).Bold(true),
 	ascii.House:       tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
@@ -712,7 +779,7 @@ func (v *view) draw() {
 	// and no terminal is — is drawn through a window that moves. What the
 	// view refuses now is a screen with no room for a map at all, rather
 	// than every screen too small to hold the whole of one.
-	mw, mh := mapArea(s.Map, sw, sh)
+	mw, mh := mapArea(s.Map, sw, sh, v.cam.scale())
 	if mw < minMapW || mh < minMapH {
 		need := minMapW + panelWidth
 		puts(sc, 0, 0, tcell.StyleDefault, fmt.Sprintf("terminal too small: need %dx%d, have %dx%d", need, minMapH+graphHeight+3, sw, sh))
@@ -757,8 +824,13 @@ func (v *view) draw() {
 	// anything. The line about looking around is only there when there is
 	// somewhere else to look, which on a map drawn whole there is not.
 	keys := []string{"space pause  +/- speed  . step", "m map  r pave  q quit"}
-	if mw < s.Map.W || mh < s.Map.H {
+	if v.looking() {
 		keys = append(keys, "arrows look  c settlement  f follow")
+	}
+	// The scales are worth naming wherever there is one to step to, which on
+	// a globe zoomed all the way out is inward and nowhere else.
+	if _, out := zoomed(s.Map, sw, sh, v.cam.scale(), 1); out || v.cam.scale() > 1 {
+		keys = append(keys, "z/Z zoom out and in")
 	}
 	keys = append(keys, "tab pick  d vitals  w world", v.graphKeys())
 
@@ -889,8 +961,15 @@ func (v *view) draw() {
 	// reader who cannot say which corner of the world is on the screen
 	// cannot come back to it either.
 	puts(sc, 0, mh+1+graphHeight, dim, span)
-	if mw < s.Map.W || mh < s.Map.H {
-		at := fmt.Sprintf("looking at %d,%d of %dx%d", win.X+mw/2, win.Y+mh/2, s.Map.W, s.Map.H)
+	if z := v.cam.scale(); z > 1 || mw < s.Map.W || mh < s.Map.H {
+		at := fmt.Sprintf("looking at %d,%d of %dx%d", win.X+mw*z/2, win.Y+mh*z/2, s.Map.W, s.Map.H)
+		// The scale, whenever it is not the one everything else assumes. A
+		// map drawn at eight tiles to the cell and one drawn at one look
+		// alike, and a reader who takes the second for the first has the
+		// world eight times the size it is.
+		if z > 1 {
+			at += fmt.Sprintf(" at %d tiles to the cell", z)
+		}
 		if v.cam.lock && v.sel != 0 {
 			at += " (following)"
 		}

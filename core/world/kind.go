@@ -57,6 +57,12 @@ var terrains = [TerrainCount]terrain{
 	Water:  {name: "water", class: ontology.Water, wet: true, hold: 1},
 	Field:  {name: "field", class: ontology.Field, hold: 1},
 	Rock:   {name: "outcrop", class: ontology.Outcrop, hold: 0.15},
+	// Ice is wet: it is the sea, and the map-maker's questions about water
+	// all have the sea's answer here. Nothing grows on it, nothing settles
+	// on it, and it stands above nothing, so it has no drain. What it does
+	// not share with open water is that somebody can walk on it; that is
+	// Tile.Deep, which is the walker's question and not the map-maker's.
+	Ice: {name: "ice", class: ontology.Ice, wet: true, hold: 1},
 }
 
 // String is what this ground is called.

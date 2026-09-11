@@ -251,9 +251,85 @@ func (w *World) GrowthAt(p entity.Pos) float64 { return growthOf(w.TempAt(p)) }
 // ChillAt is Chill at p.
 func (w *World) ChillAt(p entity.Pos) float64 { return chillOf(w.TempAt(p)) }
 
+// SeaFreeze is the temperature the sea stops being water at, in degrees.
+// Salt water freezes below fresh, and minus one and eight tenths is the real
+// figure.
+//
+// It was not asked before. The frost had nothing to say about water at all -
+// Grid.Frozen gave up on anything wet, because "what a frozen sea is belongs
+// to the sea, and nothing here has an answer for it yet" - so the pole came
+// out as open ocean lying against permafrost, and not merely open: flood
+// gives every sea tile its fish, so row zero of a globe was 440 tiles of
+// water carrying an average of 0.85 fish each, at eleven degrees below
+// freezing. The best fishing on the map was on the ice cap.
+const SeaFreeze = -1.8
+
+// Icefall is how much higher than the frostline a place has to stand for its
+// water, and not merely its ground, to be frozen the year round: the fall
+// from Frost down to SeaFreeze, written as a height. Ground stops growing
+// well before water stops flowing, so the ice is always the smaller cap, and
+// a globe has a broad belt of bare rock with unfrozen water running through
+// it before it has any ice at all.
+const Icefall = (Frost - SeaFreeze) / Lapse
+
 // frostline is the height at which the year's mean on row y falls to Frost:
 // the height above which the ground never thaws. It is a constant of the map
 // rather than of the day, because the year's mean is - the drift and the
 // spell wander around it and average out. Where the row is warm enough that
 // no ground on any map could be that high, it is simply a great height.
-func (c Climate) frostline(y int) float64 { return (c.MeanAt(y) - Frost) / Lapse }
+func (c Climate) frostline(y int) float64 { return c.frostlineAt(y, 0) }
+
+// frostlineAt is the frostline on row y for ground the sea is worth warm
+// degrees to. See Maritime.
+func (c Climate) frostlineAt(y int, warm float64) float64 {
+	return (c.MeanAt(y) + warm - Frost) / Lapse
+}
+
+// The sea's moderation. Water is a store of heat that land is not, so ground
+// with a lot of sea about it does not freeze as readily as ground the same
+// distance from the equator but deep inside a continent. It is why the tree
+// line in the real world follows a coast rather than a parallel.
+//
+// Without it the frost was a ruled line, and the same ruled line on every
+// seed. The lowland is Relief tall - sixty metres - while a single row of a
+// globe five hundred deep is worth some twenty-four metres of frostline in
+// the latitudes the ice edge falls in, so the line swept through the entire
+// height of ordinary ground in four rows: row 86 came out 45 per cent rock
+// and 0 per cent grass, row 90 nothing but grass and forest, and 377 of a
+// thousand columns turned green on one single row. Maritime is what gives the
+// edge something to be ragged about, and what it is ragged about is the
+// shape of the sea, which is different on every map.
+//
+// It is read as a share of the country round a place rather than as the
+// distance to the nearest water, because that is the difference between a
+// spit of land in the open ocean and the head of a long inlet reaching into
+// a continent: the two are equally near the sea and are not equally warmed by
+// it. Taken as a distance the ice edge still began at one fixed latitude on
+// every seed, because there is coast at every latitude on a globe and every
+// yard of it was worth the same.
+//
+// It moderates what freezes and not what grows: Climate.TempAt is the weather
+// of a latitude at a height and is read every tick by everything alive, and
+// the sea is a fact about where the permafrost stops. A map with no sea - the
+// valley, and every map measured on it - is untouched to the bit, because
+// there is no water anywhere near to be warmed by.
+const (
+	// Maritime is what ground the sea surrounds entirely would be worth, in
+	// degrees. An even coast, half land and half water within reach of it,
+	// gets half.
+	Maritime = 6.0
+	// maritimeSpan is the fraction of the map across that counts as within
+	// reach. How far off the sea is still felt depends on how big the land
+	// is, which follows the size of the map, so the reach is quoted as a
+	// share of it rather than in tiles. A sixth is continental: it is the
+	// scale at which one part of a world is oceanic and another is not, and
+	// narrowing it to a sixteenth put the frost back on one row in more than
+	// half a thousand columns of the worst of five seeds, against two hundred
+	// at a sixth.
+	maritimeSpan = 6
+)
+
+// maritime is what having share of the country round a place under the sea
+// adds to the year's mean there. On a map with no sea the share is zero and
+// so is this, exactly.
+func maritime(share float64) float64 { return Maritime * share }

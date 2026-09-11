@@ -31,7 +31,16 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for what a discovery asks of a settlement: a technology used to be
+// Retaken for the land's answers being worked toward rather than handed
+// over. Each carries a direction in habit space and a cost in pressure-days
+// now, and what advances it is the projection of the worst-off person's own
+// situation onto that direction - so a settlement arrives at fishing in the
+// years somebody is actually hungry by the water, and a comfortable one
+// never arrives at all. Only seed 1 moved: the other two get no land answer
+// inside fifteen hundred days, which is most of what this test can see of
+// the change. See system.pressing.
+//
+// Retaken before that for what a discovery asks of a settlement: a technology used to be
 // unlocked by a count of people over a level, and is now unlocked by people
 // who have both reached a tier and done the work the tier is in. Agriculture
 // asked for two people at a fifth of farming, in settlements whose best
@@ -78,7 +87,7 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "1a4878c5c4fec607",
+	1: "85aec2b23412fa07",
 	3: "74fcf6fd0048f38d",
 	9: "39d590378ddae2f9",
 }

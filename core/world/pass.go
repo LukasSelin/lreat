@@ -39,7 +39,7 @@ const (
 	kindShift = 8
 	kindMask  = 1<<kindShift - 1
 	// kindSpan is one more than the largest kind, for the tables by kind.
-	kindSpan = int(Tavern)<<kindShift | int(Rock) + 1
+	kindSpan = int(Tavern)<<kindShift | int(TerrainCount-1) + 1
 )
 
 // kindOf is the kind of a tile.
