@@ -45,20 +45,45 @@ func herdOf(w *world.World) []*entity.Agent {
 }
 
 func TestDeerKeepToTheWoodsAndEatThem(t *testing.T) {
+	// Where a herd stands after six years is read over four valleys, not
+	// one: a herd that a party happens to spook onto open ground stays
+	// out a while, and on any one seed the share under trees swings
+	// between two thirds and nearly all of them with nothing changed but
+	// which of two ways of the same cost somebody walked.
+	inWood, herdSize := 0, 0
+	for seed := uint64(1); seed <= 4; seed++ {
+		w := herdWorld(seed, 20, 20)
+		Run(w, 2000)
+		for _, d := range herdOf(w) {
+			herdSize++
+			if w.Grid.At(d.Pos).Is(ontology.Wood) {
+				inWood++
+			}
+		}
+	}
+	if inWood*5 < herdSize*4 {
+		t.Errorf("%d of %d deer stand under trees over four valleys; deer keep to the woods", inWood, herdSize)
+	}
 	w := herdWorld(3, 20, 20)
 	Run(w, 2000)
 	herd := herdOf(w)
 	if len(herd) == 0 {
 		t.Fatal("the herd died out inside six years")
 	}
-	inWood := 0
+	// A deer never swims: nothing it has planned takes it through deep
+	// water, and none stands in any.
 	for _, d := range herd {
-		if w.Grid.At(d.Pos).Is(ontology.Wood) {
-			inWood++
+		if w.Grid.At(d.Pos).Deep() {
+			t.Errorf("%s stands in deep water", d.Name)
 		}
-	}
-	if inWood*5 < len(herd)*4 {
-		t.Errorf("%d of %d deer stand under trees; deer keep to the woods", inWood, len(herd))
+		if d.Plan != nil {
+			for _, p := range d.Plan.Route {
+				if w.Grid.At(p).Deep() {
+					t.Errorf("%s is routed through deep water", d.Name)
+					break
+				}
+			}
+		}
 	}
 	browsed := 0
 	for _, e := range w.Log.All() {

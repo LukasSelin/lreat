@@ -123,7 +123,12 @@ merged:  gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 | lasted 24/24 
 
 Nothing is past a threshold. The golden numbers were retaken on the merged
 tree, both sides having moved every seed on their own; the deer moved none,
-as their own account says.
+as their own account says, and the batch came out to the same line before
+and after the deer were kept to the bank. The one test that moved was the
+herd's: whether four fifths of a herd stand under trees after six years
+swings between two thirds and nearly all on any one seed - master's own
+seed 4 sits under the bar - with nothing changed but which of two ways of
+the same cost somebody walked, so it now reads the share over four valleys.
 
 ## Earlier changes
 
