@@ -25,11 +25,39 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. Three of the eight came to nothing and one grew past three hundred;
+one side or another. Two of the eight came to nothing and one grew past nine hundred;
 that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
+
+Taken on the commit that tightened how far a great river's flood reaches: onto
+the ground no higher than the water, where it used to take every neighbour
+standing up to a metre above the channel. See "What the last change did" in
+[baseline.md](baseline.md).
+
+This is the other half of the bank correction, and it gives back most of what
+that correction cost. Twenty-four seeds, one variable at a time, which is the
+size those two readings need:
+
+	tree                                    extinct  lasted  gates all  safe  median
+	rivers, before the slope-area law         3/24   20/24     0.219    0.41    124
+	slope-area law, flood rising a metre      9/24   13/24     0.185    0.32     47
+	slope-area law, flood no higher           6/24   17/24     0.202    0.39    127
+
+The middling settlement is back where it was before any of it - a hundred and
+twenty-seven against a hundred and twenty-four - and `safe` within two
+hundredths. Three of the six extra deaths come back and three do not, which is
+the standing price of theta at one, recorded as such and deliberately paid: the
+mountains are worth it on a preset whose settlements are not yet what is being
+tuned.
+
+Three of the eight above came to nothing and one grew past nine hundred, which
+is the widest spread this preset has shown. On eight seeds that is two
+extinctions; on twenty-four it is six. Take the twenty-four before believing
+either.
+
+## Before that
 
 Taken on the commit that put the slope-area law on its published form: a
 channel is where A·S^theta is greatest, with theta one rather than a half,
@@ -243,47 +271,47 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1   15    42     37      7     19 |  0.68  0.58  0.49  0.48  0.00 |  1.00
-   2    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   3  112   146     84     36    110 |  0.81  0.50  0.65  0.31  0.12 |  0.99
-   4   46   192    113     25     26 |  0.64  0.53  0.69  0.24  0.05 |  0.99
-   5    0    39     19      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   6   56    69     86     10     23 |  0.77  0.46  0.77  0.20  0.08 |  1.00
-   7    0    21      1      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   8  376   291    161    180    181 |  0.71  0.55  0.66  0.15  0.01 |  1.00
+   1    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   2   47    34     61     25     46 |  0.65  0.62  0.79  0.37  0.00 |  1.00
+   3   36    75     82      2     29 |  0.67  0.50  0.69  0.38  0.06 |  1.00
+   4  358   418    194    221    444 |  0.61  0.57  0.57  0.16  0.04 |  1.00
+   5    0    35     15      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   6  127   105    126     55     75 |  0.69  0.55  0.60  0.24  0.03 |  1.00
+   7  191   149     73     59    145 |  0.62  0.50  0.61  0.34  0.11 |  1.00
+   8  981   811    200    501    918 |  0.67  0.55  0.49  0.18  0.10 |  1.00
 
-dwell/rest                         1416252  37.5%
-take/berries@wood                   654753  17.3%
-consume/provision                   648057  17.1%
-pass/practice>pupil                 374915   9.9%
-dwell/guard@market                  256471   6.8%
-dwell/meet@tavern>neighbour          94983   2.5%
-transfer/provision>needy             64412   1.7%
-take/grain@field                     62911   1.7%
-take/timber@wood                     58430   1.5%
-take/fish@water                      53683   1.4%
-pass/practice>self                   26049   0.7%
-raise/timber>dwelling@open           15538   0.4%
-exchange/material>coin@market        12941   0.3%
-dwell/look                           11015   0.3%
-tend/plant@open                       9632   0.3%
-exchange/coin>provision@market        5239   0.1%
-make/timber>tool@bench                2531   0.1%
-raise/timber>road@ground              2418   0.1%
-tend/clear@open                       2407   0.1%
-transfer/provision<holder             2230   0.1%
-transfer/material>requester           2086   0.1%
-take/game@wood                        1927   0.1%
-tend/water@field                       952   0.0%
-make/provision+timber>meal@hearth      319   0.0%
-strike/person>wrongdoer                288   0.0%
-move@dwelling                          226   0.0%
-take/stone@outcrop                     115   0.0%
-raise/timber>tavern@open                34   0.0%
-make/stone+timber>tool@forge            19   0.0%
-raise/timber+stone>granary@open          6   0.0%
-raise/timber+stone>market@open           3   0.0%
+consume/provision                  1056097  28.3%
+dwell/rest                          800336  21.4%
+take/berries@wood                   585484  15.7%
+dwell/guard@market                  325780   8.7%
+take/fish@water                     297271   8.0%
+dwell/meet@tavern>neighbour         186857   5.0%
+take/grain@field                     89544   2.4%
+transfer/provision>needy             85550   2.3%
+take/timber@wood                     72951   2.0%
+pass/practice>pupil                  44829   1.2%
+pass/practice>self                   34927   0.9%
+tend/plant@open                      34016   0.9%
+exchange/coin>provision@market       25055   0.7%
+transfer/material>requester          22521   0.6%
+raise/timber>dwelling@open           15457   0.4%
+exchange/material>coin@market        14736   0.4%
+make/timber>tool@bench               10461   0.3%
+take/game@wood                        8615   0.2%
+dwell/look                            6579   0.2%
+transfer/provision<holder             4320   0.1%
+strike/person>wrongdoer               4057   0.1%
+tend/clear@open                       2934   0.1%
+raise/timber>road@ground              2923   0.1%
+tend/water@field                       744   0.0%
+make/provision+timber>meal@hearth       92   0.0%
+take/stone@outcrop                      72   0.0%
+move@dwelling                           30   0.0%
+raise/timber>tavern@open                17   0.0%
+raise/timber+stone>market@open           2   0.0%
+make/stone+timber>tool@forge             1   0.0%
+raise/timber+stone>granary@open          1   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.68 safe 0.51 held 0.66 all 0.272 food 14.06 hungry-with-food 0.22 | lasted 6/8 extinct 1 mean 254.9 median 124 | phys 0.68 safe 0.58 belng 0.72 estm 0.78
+gates: fed 0.60 safe 0.42 held 0.65 all 0.220 food 13.27 hungry-with-food 0.27 | lasted 6/8 extinct 2 mean 217.5 median 127 | phys 0.65 safe 0.55 belng 0.62 estm 0.28
 ```

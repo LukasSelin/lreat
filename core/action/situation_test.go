@@ -213,14 +213,20 @@ func TestDishonestyMakesTheftFitBetter(t *testing.T) {
 }
 
 func TestSatedCuriousAgentStudiesWhenItIsInReach(t *testing.T) {
-	// Asked of twenty worlds rather than of one. What an agent ranks depends
-	// on the habits it was imprinted with, and those are drawn from the
-	// world's own stream after the ground has been drawn from it - so a single
-	// world seed is a single draw, and this held on seventeen of twenty when
-	// it was counted. Pinned to one of them it says nothing about the
-	// behaviour and everything about which seed was picked.
+	// Asked of sixty worlds rather than of one. What an agent ranks depends on
+	// the habits it was imprinted with, and those are drawn from the world's
+	// own stream after the ground has been drawn from it - so a single world
+	// seed is a single draw, and pinned to one of them this says nothing about
+	// the behaviour and everything about which seed was picked.
+	//
+	// The bar is well under the rate and not at it. Over sixty worlds the
+	// curious moment calls for study on sixty-eight of a hundred, and the
+	// first attempt at fixing this counted twenty worlds, saw seventeen, and
+	// asked for fifteen - which is above the rate, so it failed on the very
+	// next change to the ground. A bar set at what was measured is a bar that
+	// fails half the time by construction.
 	held := 0
-	const worlds = 20
+	const worlds = 60
 	for seed := uint64(1); seed <= worlds; seed++ {
 		w := world.New(seed)
 		a := blank(w, "a")
@@ -237,7 +243,7 @@ func TestSatedCuriousAgentStudiesWhenItIsInReach(t *testing.T) {
 			held++
 		}
 	}
-	if held < 15 {
+	if held < 30 {
 		t.Fatalf("the curious moment called for study on %d worlds of %d", held, worlds)
 	}
 }

@@ -186,17 +186,25 @@ func TestSoilGoesWithTheGround(t *testing.T) {
 	for age := 0; age < 40; age++ {
 		w.Erode()
 	}
-	// Only the ground that is still a slope at the end. A river wanders
-	// across its own valley now - see meander.go - so some of what started
-	// above the flood plain is under one by the fortieth age, and ground the
-	// river has reached is ground the river has fed. That is the flood plain
-	// doing its work rather than this claim failing, and counting it here
-	// turned the reading the other way: the whole set came out richer than it
-	// started while the ground that stayed a hillside was poorer, which is
-	// both halves of what the weather does said at once.
+	// Only the ground that is still a slope at the end, and slope is asked of
+	// the fall and not of the height above a river. A river wanders across its
+	// own valley now - see meander.go - so some of what started above the
+	// flood plain is under one by the fortieth age, and ground the river has
+	// reached is ground the river has fed; that is the flood plain doing its
+	// work rather than this claim failing.
+	//
+	// Standing above the flood by FloodDepth was how that was asked at first,
+	// and it is not the same question. Drain is the height above the nearest
+	// water, so what counts as "off the flood plain" moves whenever the amount
+	// of water on the map moves - and when the banks of the great rivers were
+	// tightened, ground that the river still feeds stopped clearing the line
+	// and stayed in the reckoning. The whole set then came out richer while
+	// every part of it that was really a hillside came out poorer: over a
+	// tenth of a fall, 0.150 to 0.054; over a fifth, 0.150 to 0.027; and at
+	// twice FloodDepth, 0.150 to 0.141. The fall is what a slope is.
 	var before, after, kept float64
 	for _, i := range slopes {
-		if g.Tiles[i].Terrain == Water || g.Tiles[i].Drain <= FloodDepth {
+		if g.Tiles[i].Terrain == Water || g.Slope(g.PosOf(i)) <= 0.10 {
 			continue
 		}
 		before += was[i]
@@ -204,7 +212,7 @@ func TestSoilGoesWithTheGround(t *testing.T) {
 		kept++
 	}
 	if len(slopes) == 0 || kept == 0 {
-		t.Fatal("the map has no slopes above the flood plain")
+		t.Fatal("the map has no ground that is still a hillside")
 	}
 	b, a := before/kept, after/kept
 	if a >= b {

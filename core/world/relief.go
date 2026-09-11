@@ -225,6 +225,38 @@ const (
 // would have been incoherent on a field whose A and S pointed different ways.
 const channelTheta = 1.0
 
+// bankRise is how far above its own channel a great river's flood reaches, in
+// metres. Nothing: a river spreads onto the ground beside it that is no higher
+// than the water, and no further.
+//
+// It was a metre, and the line above it said "no higher" - the comment and the
+// code had disagreed since it was written, and the code was the generous one.
+// A metre is a great deal of flood plain when the ground is flat, and it went
+// unnoticed for as long as the reading that picks a great river was wrong,
+// because a river picked by how hard it was cutting is a rill near a ridge and
+// a rill near a ridge has no flat ground beside it to give away. Corrected to
+// read off the flow, the rule began firing where it should - on flood plains,
+// which is where the markets are - and took an eighth of a settlement's
+// building ground with it.
+//
+// Counted within ten tiles of a market over eight globes, by how far the flood
+// is let rise:
+//
+//	rise    water   fish   fertility   buildable   river, share of map
+//	1.00    149.5   127.3    232.2       240.4           7.18%
+//	0.50    146.0   124.6    237.8       244.1           7.05%
+//	0.25    142.5   121.2    242.1       247.9           6.85%
+//	0.00    130.1   111.2    254.2       256.4           5.68%
+//
+// Nothing gives back half of the ground the correction cost - 240 to 256,
+// against 272 when the rule was firing on ridges - while still leaving a
+// settlement more water and more fish than it had then. It also brings the
+// share of a map that comes out as watercourse back toward the waterShare it
+// asks for: the banks are laid after the channels are counted, so whatever
+// they add is over the top of it, and at a metre they were adding two thirds
+// again.
+const bankRise = 0.0
+
 // FloodDepth is how far above its river ground stops being valley floor, in
 // metres. Below it the soil is what the water left; above it the ground is
 // what the weather gives it.
@@ -999,7 +1031,8 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		}
 		lay(int(nd.idx))
 	}
-	// The great rivers spread onto whatever beside them is no higher.
+	// The great rivers spread onto the ground beside them that the flood
+	// reaches: see bankRise.
 	for i := range g.Tiles {
 		if g.Tiles[i].Flow < big {
 			continue
@@ -1007,7 +1040,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
 		for _, off := range dirs {
 			c := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
-			if g.In(c) && g.Height(c) <= g.Height(p)+1 {
+			if g.In(c) && g.Height(c) <= g.Height(p)+bankRise {
 				wet[g.Index(c)] = true
 			}
 		}
