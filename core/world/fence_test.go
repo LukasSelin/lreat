@@ -217,3 +217,52 @@ func TestFencingTheFieldsIsFencingAllTheGround(t *testing.T) {
 	strips(150)
 	same("given up and broken again")
 }
+
+// On a map with hundreds of patches of fields the fields are found by
+// several goroutines at once and the blocks read off them in turn. However
+// many goroutines, the hedges must be the ones walking all the ground
+// would raise, and the ones one goroutine raises.
+func TestFindingTheFieldsSideBySideRaisesTheSameHedges(t *testing.T) {
+	was := Workers
+	defer func() { Workers = was }()
+	hedges := func(workers int) []bool {
+		Workers = workers
+		g := NewGrid(512, 256)
+		strips := rand.New(rand.NewPCG(5, 6))
+		for k := 0; k < 6000; k++ {
+			p := entity.Pos{X: strips.IntN(g.W), Y: strips.IntN(g.H)}
+			if g.At(p).Buildable() {
+				g.Turn(p, Field)
+				g.Claim(p, entity.ID(1+k%9))
+			}
+		}
+		g.Fence()
+		want := hedgesWalkingAllTheGround(g)
+		out := make([]bool, len(g.Tiles))
+		for i := range g.Tiles {
+			out[i] = g.Tiles[i].Fenced
+			if out[i] != want[i] {
+				t.Fatalf("%d workers: tile %d fenced %v, walking all the ground says %v", workers, i, out[i], want[i])
+			}
+		}
+		return out
+	}
+	alone := hedges(1)
+	fenced := 0
+	for _, f := range alone {
+		if f {
+			fenced++
+		}
+	}
+	if fenced == 0 {
+		t.Fatal("nothing was hedged; this exercised nothing")
+	}
+	for _, workers := range []int{2, 8, 24} {
+		got := hedges(workers)
+		for i := range alone {
+			if got[i] != alone[i] {
+				t.Fatalf("%d workers: tile %d fenced %v, one worker says %v", workers, i, got[i], alone[i])
+			}
+		}
+	}
+}

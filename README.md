@@ -229,7 +229,14 @@ on it and nobody across it lately sleeps: the day's passes skip it and it is
 caught up in one go when it wakes, which on the default map never happens,
 so nothing measured there moves. `headless -timing` says what each report
 interval spent on each phase of the day, how much of the ground was awake
-and why, and how many plans found no way; `-cpuprofile` writes a profile.
+and why, how many islands the day's acting was cut into and how much of the
+population the biggest held, and how many plans found no way; `-cpuprofile`
+writes a profile. The islands are the pieces of the population that cannot
+touch each other's ground in a day - parties living further apart than
+anybody walks, looks or routes - and each acts on a goroutine of its own,
+with what it does to the settlement as a whole put together afterwards in
+one order; a world whose people all live in one place is one island and is
+acted on as it always was. See `core/world/island.go`.
 What the globe batch prints is checked in at
 [docs/baseline-globe.md](docs/baseline-globe.md), taken on eight seeds, and
 it is a different settlement from the valley's in every number.
