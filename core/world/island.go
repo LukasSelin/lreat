@@ -65,6 +65,10 @@ type isles struct {
 	out     []Island
 	views   []*isleView
 	streams map[int]*rand.Rand
+	// slack is the landmarks' slack as it stood when the views were made,
+	// so that what each view added can be read off as a difference after
+	// the others have already been put in. See Landmarks.
+	slack []float64
 }
 
 // IsleCount is how the last day's acting was cut, for anybody timing a run.
@@ -197,6 +201,8 @@ func (w *World) EachIsland(f func(w *World, is Island)) {
 	// the one goroutine: the water's labels, which routing reads.
 	w.Grid.Regions()
 	before, ground := *w, *w.Grid
+	w.isles.slack = append(w.isles.slack[:0], w.Grid.landmarks.slack...)
+	ground.landmarks.slack = w.isles.slack
 	views := make([]*isleView, len(isles))
 	for k, is := range isles {
 		views[k] = w.view(k, is)
@@ -223,6 +229,9 @@ type isleView struct {
 	routers  []*Router
 	requests []*entity.Request
 	markets  []entity.Pos
+	// slack is the view's own copy of the landmarks' slack: what its people
+	// build today is added up here, and put in with the rest afterwards.
+	slack []float64
 }
 
 // view makes island k's view of the world for today.
@@ -234,6 +243,8 @@ func (w *World) view(k int, is Island) *isleView {
 	v := s.views[k]
 	v.g = *w.Grid
 	v.g.islanded = true
+	v.slack = append(v.slack[:0], w.Grid.landmarks.slack...)
+	v.g.landmarks.slack = v.slack
 	if v.router == nil {
 		v.router = &Router{}
 	}
@@ -325,6 +336,17 @@ func (w *World) merge(v *isleView, before *World, ground *Grid) {
 	if ig.regionsStale {
 		w.Grid.regionsStale = true
 	}
+	// What the island built that made its ground cheaper goes on the
+	// tables' slack; islands are chunks apart, so no chunk hears from two.
+	for c := range w.Grid.landmarks.slack {
+		w.Grid.landmarks.slack[c] += ig.landmarks.slack[c] - ground.landmarks.slack[c]
+	}
+	if !ig.landmarks.ladenOK {
+		w.Grid.landmarks.ladenOK = false
+	}
+	if ig.landmarks.stale {
+		w.Grid.landmarks.stale = true
+	}
 	v.routers = iw.routers
 }
 
@@ -368,6 +390,7 @@ var islandPolicy = map[string]string{
 	"regions": "read", "regionStack": "read", "regionsStale": "own", "waters": "own",
 	"fenceSeen": "read", "fenceGen": "read", "fenceBlock": "read", "fenceStack": "read",
 	"fencePatches": "read", "fenceFields": "read", "router": "scratch", "islanded": "read",
+	"landmarks": "own",
 }
 
 // sameGround reports whether two grids are the same map: the one map, or a

@@ -51,6 +51,9 @@ type Routes struct {
 	cost         []float64
 	prev         []int32
 	rank         []int8 // rank of the first step of this tile's route, for tie-breaks
+	// limit is the cost the search was told not to go past: a tile it
+	// reached at that cost or more it did not settle, and does not report.
+	limit float64
 }
 
 // slot is where the tile at map position x,y is kept, and whether it is in
@@ -139,6 +142,22 @@ func (g *Grid) Holding(id entity.ID) *Router {
 // Router returns a router over this grid, for a caller that needs its own.
 func (g *Grid) Router() *Router { return &Router{g: g} }
 
+// Within tells the router how far the walker of the next route is prepared
+// to go, in ticks of walking: the search stops as soon as everything left
+// to open is at least that far, and a destination at least that far reads
+// as having no way to it. It holds for the next route this router runs and
+// no longer, like Carrying. Zero is any distance.
+func (r *Router) Within(limit float64) *Router {
+	r.limit = limit
+	return r
+}
+
+// Within routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) Within(limit float64) *Router {
+	return g.ownRouter().Within(limit)
+}
+
 // Reset puts the router back as it was before its last search: no survey
 // standing, nothing carried, nothing owed. For after a search that did not
 // finish, and before a decision that is to be charged from nothing.
@@ -164,6 +183,11 @@ func (r *Router) Routes(from entity.Pos) *Routes {
 func (g *Grid) Routes(from entity.Pos) *Routes {
 	return g.ownRouter().Routes(from)
 }
+
+// activeLandmarks is how many landmarks a guided search reads at every
+// step: the ones that bound the walk best from where it starts. Two of
+// eight keep nearly all of what eight give, at a quarter of the reading.
+const activeLandmarks = 2
 
 // minMoveCost is the cheapest a tile can be to enter. Routing to a known
 // destination uses it to see how far the destination could possibly still be,
@@ -218,7 +242,7 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 		f.gen = 0
 	}
 	from = g.Norm(from)
-	f.g, f.from, f.gen = g, from, f.gen+1
+	f.g, f.from, f.gen, f.limit = g, from, f.gen+1, limit
 	f.x0, f.y0, f.span = from.X-Window, from.Y-Window, span
 	if !g.In(from) {
 		return f
@@ -231,7 +255,6 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 	// rest could cost. Without one the search simply spreads outward. A
 	// destination outside the window is out of reach, and the search does
 	// not start.
-	var sx, sy int
 	stopSlot := int32(-1)
 	if guided {
 		stop = g.Norm(stop)
@@ -239,7 +262,7 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 		if !ok {
 			return f
 		}
-		sx, sy, stopSlot = stop.X, stop.Y, s
+		stopSlot = s
 		// A laden walker cannot leave the ground it stands on except into
 		// the tile it is going to, so between two pieces of ground there
 		// is no way, and the search that would say so is not run. See
@@ -248,24 +271,21 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 			return f
 		}
 	}
+	// What the search knows of the walk that is left from any tile, and
+	// whether the landmarks say the destination cannot be reached at all,
+	// in which case there is nothing to open. See guess.
+	var known guess
+	if guided {
+		var none bool
+		if known, none = r.guessFor(from, stop, laden, f.x0, f.y0, span); none {
+			return f
+		}
+	}
 	toGo := func(x, y int) float64 {
 		if !guided {
 			return 0
 		}
-		dx, dy := x-sx, y-sy
-		if dx < 0 {
-			dx = -dx
-		}
-		if dy < 0 {
-			dy = -dy
-		}
-		if g.Wrap && g.W-dx < dx {
-			dx = g.W - dx // the short way round
-		}
-		if dy > dx {
-			dx = dy
-		}
-		return minMoveCost * float64(dx)
+		return known.at(x, y)
 	}
 	prefer = g.Norm(prefer)
 
@@ -286,7 +306,10 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 		if top.idx == stopSlot {
 			break
 		}
-		if here >= limit {
+		// Everything still to open is at least as far as this, and what
+		// is left to go is never overstated, so nothing nearer than the
+		// limit remains to be found.
+		if top.cost >= limit {
 			break
 		}
 		r.Work++
@@ -333,7 +356,11 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 				continue
 			}
 			f.seen[j], f.cost[j], f.prev[j], f.rank[j] = f.gen, cost, top.idx, rank
-			q = append(q, routeNode{cost: cost + toGo(cx, cy), rank: rank, idx: j})
+			left := toGo(cx, cy)
+			if math.IsInf(left, 1) {
+				continue // no way on from there, so nothing to open it for
+			}
+			q = append(q, routeNode{cost: cost + left, rank: rank, idx: j})
 			siftUp(q, len(q)-1)
 		}
 	}
@@ -448,7 +475,7 @@ func (f *Routes) reached(p entity.Pos) (int32, bool) {
 	}
 	p = f.g.Norm(p)
 	i, ok := f.slot(p.X, p.Y)
-	if !ok || f.seen[i] != f.gen {
+	if !ok || f.seen[i] != f.gen || f.cost[i] >= f.limit {
 		return 0, false
 	}
 	return i, true

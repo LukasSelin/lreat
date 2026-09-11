@@ -62,6 +62,29 @@ var habitats = map[*entity.Species]struct {
 }
 
 func TestCreaturesKeepToTheirGroundAndEatIt(t *testing.T) {
+	// Where a kind stands after six years is read over four valleys, not
+	// one: a herd that a party happens to spook onto open ground stays
+	// out a while, and on any one seed the share on its ground swings
+	// with nothing changed but which of two ways of the same cost
+	// somebody walked.
+	at, of := map[*entity.Species]int{}, map[*entity.Species]int{}
+	for seed := uint64(1); seed <= 4; seed++ {
+		w := wildWorld(seed, 20, 20)
+		Run(w, 2000)
+		for _, sp := range entity.Creatures {
+			for _, a := range kindOf(w, sp) {
+				of[sp]++
+				if habitats[sp].ground(w.Grid.At(a.Pos)) {
+					at[sp]++
+				}
+			}
+		}
+	}
+	for _, sp := range entity.Creatures {
+		if h := habitats[sp]; at[sp]*10 < of[sp]*h.inTen {
+			t.Errorf("%d of %d %s stand on their ground over four valleys; want %d in ten", at[sp], of[sp], sp.Name, h.inTen)
+		}
+	}
 	w := wildWorld(3, 20, 20)
 	Run(w, 2000)
 	fed := map[string]int{}
@@ -77,11 +100,7 @@ func TestCreaturesKeepToTheirGroundAndEatIt(t *testing.T) {
 			continue
 		}
 		h := habitats[sp]
-		at := 0
 		for _, a := range kind {
-			if h.ground(w.Grid.At(a.Pos)) {
-				at++
-			}
 			// No creature swims: none stands in deep water and none is
 			// routed through any.
 			if w.Grid.At(a.Pos).Deep() {
@@ -95,9 +114,6 @@ func TestCreaturesKeepToTheirGroundAndEatIt(t *testing.T) {
 					}
 				}
 			}
-		}
-		if at*10 < len(kind)*h.inTen {
-			t.Errorf("%d of %d %s stand on their ground; want %d in ten", at, len(kind), sp.Name, h.inTen)
 		}
 		if fed[h.feeds] == 0 {
 			t.Errorf("no %s ever fed by %s", sp.Name, h.feeds)

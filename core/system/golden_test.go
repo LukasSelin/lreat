@@ -18,6 +18,10 @@ import (
 // and the merged tree came to the same three numbers. The full batch in docs/baseline.md is the proof; this is the
 // check that runs in seconds.
 //
+// Retaken on the merged tree: the landmarks and the walking limit brought
+// together with master's islands, mountains and roads. Both sides moved
+// every seed on their own; see below and master's own account.
+//
 // A change meant to alter what a settlement does must retake these three
 // numbers in the commit that makes it, and say so. A change that was not
 // meant to and moves them was not what it was meant to be.
@@ -37,8 +41,9 @@ import (
 // are taken on has a creature in it, so it stands at one on every open
 // tile from the first day to the last; the numbers moved because there is
 // one more value in the line being hashed. Proved the way the plate and
-// the epoch were: the digest without the sward, run on the tree with it,
-// came to the three numbers before. See world.Layers.Sward.
+// the epoch were: the digest without the sward, run on the tree with it -
+// the tree with the landmarks and the walking limit merged in - came to
+// the three numbers that merge had taken. See world.Layers.Sward.
 //
 // Retaken before that for how far a great river's flood reaches. It took every neighbour
 // standing up to a metre above its channel, while the line above it said "no
@@ -133,10 +138,22 @@ import (
 // Retaken before that for the lapse rate: the weather falls with the height
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
+//
+// Retaken for the walking limit: a scout whose way round is more than three
+// times the distance meant now has no way, where before it had a long one,
+// and the search stops as soon as the landmarks say the rest is too far.
+// Only seed 9 sends anybody that far within fifteen hundred days.
+//
+// Retaken before that for the landmarks: a guided search now bounds the walk that is
+// left off a few landmark tables as well as the straight line, so it opens
+// fewer tiles and settles the destination at the same cost by the same
+// first step - but among routes of exactly the same cost it can settle on
+// a different one, and the one walked is where the wear falls and the
+// roads come. See world.Landmarks.
 var golden = map[uint64]string{
-	1: "b78250435e54287a",
-	3: "f505ea355edac99e",
-	9: "0b6fed292e3ce53f",
+	1: "8e133e8f1c69a39b",
+	3: "1e03746c8fbe145f",
+	9: "e65c15e4490b7fe0",
 }
 
 // digest is the hash the golden numbers are of.

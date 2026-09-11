@@ -27,6 +27,14 @@ type Def struct {
 	Key   string
 	Name  string
 	Ticks int
+	// Walk is the most ticks of walking a plan for this action may set out
+	// on, or 0 for any distance. A target that is further than that by
+	// the way round is treated as having no way to it, and the search
+	// for the way stops as soon as it knows the way is at least that
+	// long rather than opening everything it could reach. It is for acts
+	// whose target is chosen by the crow's flight - scouting - where the
+	// way round the water can be many times the distance meant.
+	Walk int
 	// Actor is who does it, as the ontology has it: nil for a person, and
 	// the creature's class for anything else. An agent weighs, imprints and
 	// hands down only the acts of its own kind; see For.
