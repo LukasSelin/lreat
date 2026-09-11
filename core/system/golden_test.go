@@ -31,7 +31,18 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for where the water goes. Two readings of the ground were wrong and
+// Retaken for the slope-area law. Which tiles are river was read as the water
+// times the square root of the fall; it is the water times the fall now, which
+// is A·S, the stream power index, and the bottom of the range the channel
+// initiation literature quotes. The heads of the rivers climb: the high fifth
+// of the default valley held eight river tiles in a hundred and holds sixteen.
+// And whether a river is great enough to flood its banks is read off how much
+// water it carries again, rather than off how hard it is cutting - those point
+// opposite ways, and read off the cutting nine tenths of the flooding on a
+// globe was happening on mountainsides. See channelTheta in
+// core/world/relief.go.
+//
+// Retaken before that for where the water goes. Two readings of the ground were wrong and
 // both moved every river on the map. Grid.Aspect took the lowest neighbour
 // rather than the steepest fall, and a diagonal neighbour is half again as far
 // off, so on evenly falling ground it was lower and won - the same diagonal
@@ -105,9 +116,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "b01e1ba99783cfa1",
-	3: "39aeaac0963f7c16",
-	9: "7eceba49756b697f",
+	1: "22516bd2f02b15ed",
+	3: "9653863a5241f177",
+	9: "73ca28e029876f5c",
 }
 
 // digest is the hash the golden numbers are of.

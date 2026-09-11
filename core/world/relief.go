@@ -172,37 +172,58 @@ const (
 // headwater has a handful of tiles above it whatever falls on them, against
 // the thousand above a tile down on the floor, so the catchment wins however
 // wet the mountain is. What actually puts a river's head in the high ground
-// is channelFall, below. This is here because it is true and because the sea
+// is channelTheta, below. This is here because it is true and because the sea
 // was wrong, and not because it did the work.
 const (
 	rainFlat = 1.0
 	rainHigh = 3.0
 )
 
-// channelFall is how much of a say the steepness of the ground has in whether
-// the water running over it has cut a channel, against how much water there
-// is. A river is where flow times the square root of the fall is greatest,
-// and not where flow alone is greatest.
+// channelTheta is how much of a say the fall of the ground has in whether the
+// water running over it has cut a channel, against how much water there is. A
+// river is where A·S^θ is greatest and not where A alone is: the slope-area
+// law, which is how channel initiation is read in the literature it is taken
+// from (Montgomery and Dietrich, Science, 1992; Tarboton and others, 1991).
 //
-// Water needs less of a catchment to cut a channel on a steep hillside than
-// on a flat one, because the same water moving down a steeper slope carries
-// more. That is why a mountain has streams within a few hundred metres of its
-// ridge while a plain gathers for miles before anything shows, and it is the
-// reading that puts the head of a river in the high ground - see rainHigh,
-// which cannot.
+// Water needs less of a catchment to cut a channel on a steep hillside than on
+// a flat one, because the same water moving down a steeper slope carries more.
+// That is why a mountain has streams within a few hundred metres of its ridge
+// while a plain gathers for miles before anything shows, and it is the reading
+// that puts the head of a river in the high ground - see rainHigh, which
+// cannot.
 //
-// Taken on flow alone, the high fifth of the default valley held none of its
-// river tiles, one, and none over three seeds; with the fall spoken for it
-// holds fifteen, twenty-nine and fifteen of them, out of about two hundred.
-// The rivers head in the hills and come down, which is the way round they
-// were always meant to be.
+// One, which is the bottom of the published range and is the stream power
+// index exactly: A·S, a named quantity rather than a number somebody liked.
+// Swept over the default valley and a quarter globe, three seeds each, this is
+// what it buys and what it costs:
 //
-// A half, which is the usual exponent and is gentle enough that it reorders
-// the map rather than replacing it: the great rivers of a map are still its
-// great rivers, because a trunk carrying a tenth of the world beats a rill on
-// a mountainside by four orders of magnitude and a square root of slope is
-// worth one.
-const channelFall = 0.5
+//	θ     valley upland   globe upland   pieces, globe   median river flow
+//	0.50      8.3%           43.8%            50            3.75e-02
+//	0.75     13.6%           44.9%            39            2.37e-02
+//	1.00     16.1%           45.3%            34            1.85e-02
+//	1.25     18.8%           45.1%            31            1.48e-02
+//	1.50     20.1%           45.2%            31            1.21e-02
+//
+// "Upland" is the share of a map's river tiles standing in its high fifth,
+// which is the thing raising θ is for; "pieces" is how many separate networks
+// the globe comes out with, and fewer is better because a river should reach
+// the sea. The globe has all it is going to get by one. The valley goes on
+// gaining past that, but the gain is bought with the size of its rivers - at
+// one and a half the middling river carries a third of what it did - and there
+// is nothing in the sources that says one and a half rather than one.
+//
+// It was a half before, chosen because it reordered the map without replacing
+// it, and it sat in a constant that nothing referenced: the reading hardcoded
+// math.Sqrt and this said 0.5 beside it, so the two could have drifted apart
+// without a word. Taken on flow alone, at θ of nothing, the high fifth of the
+// valley held none of its river tiles, one, and none over three seeds.
+//
+// S here is Grid.Slope, and that it is the along-flow gradient is not an
+// accident worth leaving unsaid: Grid.Aspect picks the direction of the
+// steepest run-corrected fall and Slope is the size of that same fall, so they
+// share an argmax. They did not before Aspect was fixed to do so, and this law
+// would have been incoherent on a field whose A and S pointed different ways.
+const channelTheta = 1.0
 
 // FloodDepth is how far above its river ground stops being valley floor, in
 // metres. Below it the soil is what the water left; above it the ground is
@@ -627,10 +648,29 @@ const Incise = 12.0
 // heights are settled again afterwards, because ground that has moved drains
 // differently.
 //
-// The cut is charged as the root of how much water crosses a tile, which is
-// the usual reading and the one erode.go already takes: a gully cuts nearly
-// as deep as the river it feeds, and the difference between a great river and
-// a small one is far less than the difference in what they carry.
+// The cut is charged as the root of how much water crosses a tile: a gully
+// cuts nearly as deep as the river it feeds, and the difference between a
+// great river and a small one is far less than the difference in what they
+// carry.
+//
+// There is no fall in that and there should not be, which is worth setting
+// down because it looks like an omission and is not. The erosion in erode.go
+// is E = K·A^m·S^n, the stream power law, with m a half and n one - see wear -
+// and this is the same water on the same ground and takes only the A of it.
+// The difference is that wear runs an age at a time, over and over, and this
+// runs once. Stream power says how fast a channel is cutting now; a channel on
+// its own flood plain, carrying everything and falling nowhere, is cutting
+// nothing now and still lies at the bottom of a valley, because it spent ages
+// getting there. What this pass wants is the depth at the end of that and not
+// the rate at the start of it.
+//
+// Measured rather than argued: giving this the S term takes the mean cut on
+// the low half of a default valley from 2.49 metres to 0.60 and puts it on the
+// top fifth instead, from 1.42 to 2.83; and the valley's own trunk - the tile
+// where the river leaves the map, whose fall is exactly zero because there is
+// nothing below it - goes from 26.7 metres of cut to 0.03. The valley the
+// settlement lives in stops existing. A globe does the same, harder: 0.78 to
+// 0.10 on the low half and 1.22 to 4.96 on the top fifth.
 //
 // It is then spread over the ground either side before it is taken off, which
 // is what makes this a valley and not a trench. Applied where it was
@@ -860,17 +900,26 @@ func (g *Grid) rainfall() []float64 {
 // river that swallowed the market would be the end of a run rather than an
 // event in it.
 func (g *Grid) carve(rng interface{ Float64() float64 }) {
-	// What the water has done here, which is what it carries times how fast
-	// it is going: see channelFall. The share of the map that comes out as
-	// river is the share it always was - this changes which tiles those are,
+	// What the water has done here, which is what it carries against how fast
+	// it is going: see channelTheta. The share of the map that comes out as
+	// river is the share it always was - this decides which tiles those are,
 	// and not how many.
 	cutting := make([]float64, len(g.Tiles))
+	flows := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
-		cutting[i] = g.Tiles[i].Flow * math.Sqrt(math.Max(0, g.Slope(g.PosOf(i))))
+		cutting[i] = g.Tiles[i].Flow * math.Pow(g.Slope(g.PosOf(i)), channelTheta)
+		flows[i] = g.Tiles[i].Flow
 	}
-	work := append([]float64(nil), cutting...)
-	q := quantiles(work, 1-waterShare, 1-waterShare/4)
-	cut, big := q[0], q[1]
+	cut := quantile(append([]float64(nil), cutting...), 1-waterShare)
+	// Whether a river is great enough to spread onto its banks is a question
+	// about how much water it is carrying and not about how hard it is
+	// cutting, so it is read off the flow and not off the work. They are not
+	// the same question and the answers point opposite ways: the hardest
+	// cutting on a map is a steep rill near a ridge, which carries nothing.
+	// Read off the work, nine tenths of the tiles allowed to flood their banks
+	// on a globe stood in the top fifth of the ground - mountainsides in
+	// flood, with the flood plains dry.
+	big := quantile(flows, 1-waterShare/4)
 
 	// Hysteresis, which is what cut/2 below is for. Ground becomes river when
 	// the water really gathers there, and stops being river only when the
@@ -952,7 +1001,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 	}
 	// The great rivers spread onto whatever beside them is no higher.
 	for i := range g.Tiles {
-		if cutting[i] < big {
+		if g.Tiles[i].Flow < big {
 			continue
 		}
 		p := entity.Pos{X: i % g.W, Y: i / g.W}

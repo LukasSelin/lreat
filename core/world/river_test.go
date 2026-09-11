@@ -104,10 +104,12 @@ func TestRiversHeadInTheHighGround(t *testing.T) {
 		if wet == 0 {
 			t.Fatalf("seed %d has no rivers", seed)
 		}
-		// Over three seeds this runs between a fifteenth and an eighth of the
-		// network; the line is under the worst of them. What is being caught
-		// is a map whose high country is dry, which is what this was.
-		if share := float64(up) / float64(wet); share < 0.04 {
+		// Over five seeds this runs from an eighth to a fifth of the network -
+		// 17.0, 19.2, 11.6, 18.9 and 17.4 per cent - and the line is under the
+		// worst of them. What is being caught is a map whose high country is
+		// dry, which is what this was: on flow alone it was none, one and none.
+		// See channelTheta, which is what moved it.
+		if share := float64(up) / float64(wet); share < 0.08 {
 			t.Errorf("seed %d: %.1f%% of the river is in the high fifth of the map",
 				seed, 100*share)
 		}

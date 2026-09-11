@@ -17,11 +17,63 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. Two of the eight came to nothing and three grew past two hundred;
+one side or another. Three of the eight came to nothing and one grew past three hundred;
 that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
+
+Taken on the commit that put the slope-area law on its published form: a
+channel is where A·S^theta is greatest, with theta one rather than a half,
+which makes the reading A·S - the stream power index. See "What the last
+change did" in [baseline.md](baseline.md), where the same change is set out
+against the valley, and channelTheta in core/world/relief.go.
+
+```
+before: gates: fed 0.69 safe 0.42 held 0.62 all 0.234 food 7.06 | lasted 6/8 extinct 1 mean 191.9 median 209
+after:  gates: fed 0.67 safe 0.36 held 0.59 all 0.196 food 12.99 | lasted 4/8 extinct 3 mean 75.6 median 46
+```
+
+This is worse again, and worse in the same direction as the batch before it.
+Three settlements of eight died where one did; the mean population is a
+hundred and sixteen down on a hundred and ninety-two. Over the three changes
+on this branch the globe has gone 0.309, 0.234, 0.196 on the gate a birth has
+to pass, and 0, 1, 3 on the extinctions. Three points is a trend or it is three
+draws, and eight seeds cannot tell which.
+
+What is known is that the ground and the dying do not line up. Measuring the
+fertility and the flood-plain tiles within ten of each market, before this
+change and after:
+
+	seed 1      fertility -0.8%   flood plain  -4.3%   lived
+	seed 2 died fertility  0.0%   flood plain   0.0%
+	seed 3      fertility  0.0%   flood plain   0.0%   lived
+	seed 4      fertility -5.4%   flood plain  -4.0%   lived
+	seed 5 died fertility -14.3%  flood plain -15.4%
+	seed 6      fertility  0.0%   flood plain   0.0%   lived
+	seed 7 died fertility -1.9%   flood plain  -2.7%
+	seed 8      fertility -7.2%   flood plain  -3.6%   lived, and largest
+
+Seed 2 died on ground that did not move by a thousandth, and seed 7 on ground
+that moved by two per cent. Seed 8 lost seven per cent of its fertility and
+grew larger than anything else in the batch. Only seed 5 lost enough to argue
+about. Whatever is killing these settlements, it is not mainly what happened to
+the ground under them.
+
+What did move is who the founders are. The world's own stream is drawn from for
+the ground before it is drawn from for the people - carve takes a number from
+it for the fish on every tile that becomes water - so any change to how many
+tiles are river deals every founder a different hand. Three tests in
+core/action fell over on exactly this at the same time, and one of them turned
+out to have been passing on a coin toss for as long as it had existed. A globe
+batch is eight seeds, and eight settlements founded by eight differently drawn
+sets of people is an eight-sample lottery on top of whatever the terrain did.
+
+So a bigger batch is what settles it, and a bigger batch is what should be run
+before anyone concludes the rivers are starving the globe. Until then this is
+recorded as what it is: a worse run, of a size that cannot say why.
+
+## Before that
 
 Taken on the commit that put the rivers where water would actually put them.
 Two readings were wrong: `Grid.Aspect` took the lowest neighbour rather than
@@ -140,14 +192,14 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1    0    22      2      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   2  249   201    203    143    160 |  0.67  0.64  0.66  0.07  0.00 |  1.00
-   3  549   216    145     56    221 |  0.70  0.51  0.65  0.18  0.18 |  1.00
-   4   88   144     57     35     61 |  0.69  0.48  0.61  0.58  0.04 |  1.00
-   5  209   180    106     44    123 |  0.76  0.50  0.46  0.62  0.09 |  1.00
-   6   80   159    111     16    112 |  0.65  0.52  0.67  0.17  0.05 |  1.00
-   7    2    24      6      2      2 |  0.97  0.43  0.00  0.01  0.00 |  0.00
-   8  358    84    106     62    238 |  0.77  0.54  0.50  0.21  0.09 |  1.00
+   1   15    42     37      7     19 |  0.68  0.58  0.49  0.48  0.00 |  1.00
+   2    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   3  112   146     84     36    110 |  0.81  0.50  0.65  0.31  0.12 |  0.99
+   4   46   192    113     25     26 |  0.64  0.53  0.69  0.24  0.05 |  0.99
+   5    0    39     19      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   6   56    69     86     10     23 |  0.77  0.46  0.77  0.20  0.08 |  1.00
+   7    0    21      1      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   8  376   291    161    180    181 |  0.71  0.55  0.66  0.15  0.01 |  1.00
 
 dwell/rest                         1416252  37.5%
 take/berries@wood                   654753  17.3%
