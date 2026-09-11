@@ -25,11 +25,52 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. Two of the eight came to nothing and one grew past five hundred;
+one side or another. Three of the eight came to nothing and one grew past five hundred;
 that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
+
+Taken on the commit that stopped a history paving itself in basalt.
+
+Every scrap of basalt on a made world came from melt at a rifting axis, and
+melt was kept as a running total. A rift axis drifts, so a tile that was ever
+near one accrued a sum nothing else could outweigh and could never lose again -
+and the longer a history ran the more of its continent turned to ocean floor. A
+made valley came out fifteen parts in a hundred basalt after one epoch and
+fifty-four after sixteen, with its granite falling from forty-nine to five,
+which is the opposite of what running a history longer should do. Melt is the
+deepest single flooring now and not the sum of all of them, because flooring
+ground twice leaves it floored and not floored twice as much; and nothing
+remakes a tile until fifteen metres of ground have moved, where the fill has
+always had such a bar and the fire and the crushing had none. On a made valley
+the basalt falls from fifty-four in a hundred to twenty-four and no rock owns
+the map. See madeEnough in core/world/history.go.
+
+The globe was never the case that was wrong - its plates are large enough that
+the seams do not sweep it - and its basalt only goes from ten parts in a
+hundred to five. What moved here is the settlements, and not by way of the
+ground: the land's slope reads identically to three figures before and after,
+median 0.017 and ninetieth 0.657, on rock four per cent softer. It is the soil,
+which is read off the bedrock, and the founders, who are dealt again whenever
+anything at all about the water changes.
+
+	                     extinct  lasted  gates all  held  median
+	before                 7/24   16/24     0.189    0.55    60
+	after                  7/24   13/24     0.165    0.51    40
+
+Both moves are inside what this batch is allowed to see - the table in
+baseline.md asks for 0.05 on the gate and five settlements of twenty-four - and
+both go the same way as every change on this branch has. That is worth setting
+down on its own. Across the five commits the globe has gone 0.214, 0.219,
+0.202, 0.189, 0.165 on the gate a birth has to pass, each step inside the noise
+and the whole of it, 0.049, sitting exactly on the line where a move starts
+being worth believing. Nothing here says which step did it, or whether five
+reshuffles of who the founders are would have done as much on their own. A
+batch that could tell would be the same twenty-four seeds run on two trees that
+differ only in the world's luck, and it has not been run.
+
+## Before that
 
 Taken on the commit that gave the mountain flanks their spurs and hollows.
 
@@ -303,45 +344,47 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  266   101     68     71     99 |  0.63  0.48  0.50  0.24  0.01 |  1.00
-   2    0    30     10      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   3  542   255     82     73    263 |  0.73  0.57  0.65  0.42  0.27 |  1.00
+   1  156    33     81     20     96 |  0.68  0.49  0.72  0.66  0.09 |  1.00
+   2    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
+   3  546   394    114    110    349 |  0.66  0.49  0.57  0.30  0.04 |  1.00
    4    0    20      0      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   5    5    99     84      0      8 |  0.81  0.47  0.75  0.66  0.00 |  0.98
-   6  112   353    128     54    124 |  0.82  0.54  0.69  0.15  0.03 |  1.00
-   7  124   160     92     48    123 |  0.65  0.50  0.52  0.21  0.08 |  1.00
-   8   83    86     59     43     63 |  0.66  0.59  0.38  0.15  0.15 |  0.99
+   5   40   224    174     21     32 |  0.84  0.65  0.80  0.26  0.08 |  1.00
+   6   24    77     81     11     19 |  0.69  0.54  0.74  0.09  0.00 |  0.98
+   7  100    57     58     22     38 |  0.71  0.48  0.49  0.60  0.04 |  1.00
+   8    0    21      1      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
 
-dwell/rest                         1253886  38.3%
-take/berries@wood                   619951  19.0%
-consume/provision                   508060  15.5%
-dwell/guard@market                  340553  10.4%
-dwell/meet@tavern>neighbour         134041   4.1%
-take/fish@water                      65631   2.0%
-dwell/look                           45708   1.4%
-take/grain@field                     41125   1.3%
-exchange/coin>provision@market       40617   1.2%
-transfer/material>requester          38809   1.2%
-take/timber@wood                     38014   1.2%
-tend/plant@open                      29106   0.9%
-pass/practice>self                   27422   0.8%
-exchange/material>coin@market        26012   0.8%
-transfer/provision>needy             22601   0.7%
-pass/practice>pupil                  14807   0.5%
-raise/timber>dwelling@open            7993   0.2%
-make/timber>tool@bench                7157   0.2%
-take/game@wood                        4294   0.1%
-tend/clear@open                       1582   0.0%
-transfer/provision<holder             1348   0.0%
-strike/person>wrongdoer                676   0.0%
-raise/timber>road@ground               478   0.0%
-tend/water@field                       387   0.0%
-make/provision+timber>meal@hearth      268   0.0%
-move@dwelling                           61   0.0%
-raise/timber>tavern@open                19   0.0%
-take/stone@outcrop                       5   0.0%
-raise/timber+stone>market@open           1   0.0%
+dwell/rest                          620911  27.9%
+take/berries@wood                   457267  20.5%
+dwell/guard@market                  380549  17.1%
+consume/provision                   339575  15.3%
+dwell/meet@tavern>neighbour          84491   3.8%
+transfer/material>requester          44467   2.0%
+take/timber@wood                     41220   1.9%
+take/grain@field                     40517   1.8%
+take/fish@water                      38049   1.7%
+transfer/provision>needy             33723   1.5%
+exchange/coin>provision@market       26840   1.2%
+tend/plant@open                      22681   1.0%
+exchange/material>coin@market        21840   1.0%
+pass/practice>self                   16520   0.7%
+pass/practice>pupil                  13578   0.6%
+take/game@wood                       13220   0.6%
+dwell/look                           12695   0.6%
+make/timber>tool@bench                8171   0.4%
+raise/timber>dwelling@open            5171   0.2%
+transfer/provision<holder             1606   0.1%
+tend/clear@open                       1338   0.1%
+strike/person>wrongdoer               1301   0.1%
+raise/timber>road@ground               540   0.0%
+tend/water@field                       308   0.0%
+take/stone@outcrop                      63   0.0%
+raise/timber>tavern@open                23   0.0%
+move@dwelling                           14   0.0%
+make/provision+timber>meal@hearth       10   0.0%
+make/stone+timber>tool@forge             9   0.0%
+raise/timber+stone>granary@open          2   0.0%
+raise/timber+stone>market@open           2   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.67 safe 0.42 held 0.61 all 0.232 food 10.28 hungry-with-food 0.23 | lasted 5/8 extinct 2 mean 141.5 median 112 | phys 0.72 safe 0.52 belng 0.58 estm 0.31
+gates: fed 0.58 safe 0.31 held 0.49 all 0.171 food 9.33 hungry-with-food 0.26 | lasted 5/8 extinct 3 mean 108.2 median 40 | phys 0.72 safe 0.53 belng 0.66 estm 0.38
 ```

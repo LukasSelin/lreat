@@ -284,6 +284,23 @@ const historySea = 0.35
 // Which of the two a fill makes is settled by the sand in it against the
 // clay, which is the sorting asked the only question it can answer: what
 // stopped here, and what went on past.
+// madeEnough is how much has to have happened to a tile before what happened
+// to it decides what it is made of, in metres of ground moved.
+//
+// The fill has always had one - see fillEnough - and the fire and the crushing
+// had none, so any trace of either beat a continent: a seam that brushed past
+// a tile once, raising it by a hand's breadth, made that tile igneous forever.
+// Fifteen metres is about one epoch of a rift working at its full rate, which
+// is the scale at which something has actually happened to the ground rather
+// than merely happened near it.
+//
+// It is the second half of what stopped a made world paving itself. With melt
+// taken as a level rather than a total the basalt on a made valley falls from
+// fifty-four parts in a hundred to thirty-four; with this as well it falls to
+// twenty-four, and the sandstone, the shale and the schist all rise. No rock
+// owns the map and all six are on it in quantity.
+const madeEnough = 15.0
+
 const (
 	marineMud  = 0.5
 	fillEnough = 3.0
@@ -518,6 +535,18 @@ type record struct {
 	// different rock, which is the whole reason for keeping them apart: what
 	// reaches the air is basalt, and what stops on the way is the granite
 	// that a few million years of weather then lays bare.
+	//
+	// melt is the deepest single flooring and not the sum of all of them,
+	// which is the one of these four that is not a thickness. Crust is
+	// thickened by a collision and a basin is filled by a river, and both of
+	// those add up; ground is floored by a rift, and flooring it twice leaves
+	// it floored, not floored twice as much. Added up it ran away: a rift axis
+	// drifts across the map, so a tile that was ever near one accrued a total
+	// nothing else could outweigh and could never lose again. A made valley
+	// came out fifteen per cent basalt after one epoch and fifty-four after
+	// sixteen, with its granite falling from forty-nine to five - the longer
+	// the history ran the more of the continent it turned to ocean floor,
+	// which is the opposite of what running it longer should do.
 	melt   float64
 	pluton float64
 	crush  float64 // metres raised by two plates meeting, and cooked doing it
@@ -1008,7 +1037,7 @@ func (w *World) tectonics(g *Grid, plates []Plate, book []record, epoch int, gap
 					book[i].crush += math.Abs(by) / 3
 					book[i].pluton += 2 * math.Abs(by) / 3
 				case melt:
-					book[i].melt += math.Abs(by)
+					book[i].melt = math.Max(book[i].melt, math.Abs(by))
 				}
 				if s.makes != nothing {
 					t.Formed = uint8(epoch)
@@ -1367,10 +1396,10 @@ func (g *Grid) settleRock(book []record, plates []Plate, epochs int) {
 		b := book[i]
 		fill := carrying(b.laid)
 		switch {
-		case b.melt > b.crush && b.melt > b.pluton && b.melt > fill:
+		case b.melt > madeEnough && b.melt > b.crush && b.melt > b.pluton && b.melt > fill:
 			// It came up and cooled in the air.
 			t.Bedrock = Basalt
-		case b.pluton > b.crush && b.pluton > fill:
+		case b.pluton > madeEnough && b.pluton > b.crush && b.pluton > fill:
 			// It melted under an arc and cooled at depth, and the weather has
 			// since taken off what stood over it. This is where granite comes
 			// from, and saying so is what gave the rock a place on the map at
@@ -1378,7 +1407,7 @@ func (g *Grid) settleRock(book []record, plates []Plate, epochs int) {
 			// it never came up once in sixteen epochs, because something
 			// happens to everything.
 			t.Bedrock = Granite
-		case b.crush > fill && b.crush > 0:
+		case b.crush > madeEnough && b.crush > fill:
 			t.Bedrock = Schist
 		case fill > fillEnough && b.laid[Sand]/fill >= coarse:
 			// Coarse fill: the near end of a basin, where what came off the
@@ -1394,10 +1423,22 @@ func (g *Grid) settleRock(book []record, plates []Plate, epochs int) {
 			t.Bedrock = Limestone
 		case plates[t.Plate].Ocean:
 			// Ocean floor nothing ever happened to is the basalt it cooled
-			// as, and the oldest rock on the map.
+			// as, and the oldest rock on the map. It is ground a young world
+			// still has: on two epochs it is a seventh of a made valley, on
+			// four a fortieth, and on sixteen there is none of it left,
+			// because by then the seams have been everywhere.
 			t.Bedrock = Basalt
 		default:
 			// The old body of a continent, showing through.
+			//
+			// It has never once been reached, on any history from one epoch to
+			// sixteen and at any setting of madeEnough. Over an age every tile
+			// is remade, or buried, or spends half its life under the sea this
+			// history floods itself to, and lands on one of the cases above.
+			// It is left standing as the statement of what the leftover is,
+			// and it should be read as an admission: a continental shield
+			// showing through is a thing this model cannot make, and letting
+			// old crust survive an age is the change that would.
 			t.Bedrock = Granite
 		}
 	}
