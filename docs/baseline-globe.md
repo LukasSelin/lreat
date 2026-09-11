@@ -17,11 +17,47 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. All eight came through, two are under a hundred souls,
-and one grew past five hundred; that is the globe's ecology as it stands,
+one side or another. All eight came through, one is down to four souls,
+and one grew past four hundred; that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
+
+Taken on the commit that made a globe out of its own history rather than
+drawing it. The crust breaks into pieces that drift, weld when two continents
+have driven into each other for long enough, rift when one grows too big to
+have anything happening inside it, and are taken into their neighbours when
+they are ground down too small to be plates; the boundaries between them are
+bent off the straight line they used to run in. A globe breaks into sixty-four
+pieces and ends with about thirty. See the block above rangeSpan in
+core/world/relief.go for the mountains and the one above plateWarp in
+core/world/history.go for the crust.
+
+It costs fourteen seconds a world against one, and the batch is 3m41s against
+2m55s.
+
+```
+drawn:  gates: fed 0.69 safe 0.56 held 0.69 all 0.299 food 15.32 | lasted 8/8 extinct 0 mean 206.9 median 127
+run:    gates: fed 0.62 safe 0.52 held 0.73 all 0.309 food 8.98 | lasted 7/8 extinct 0 mean 163.6 median 159
+```
+
+The gate a birth has to pass is where it was - 0.299 to 0.309 is nothing - and
+so is the tally: nobody more died out and one settlement fewer held its
+founding size, which is one settlement. What is not nothing is `food`, which
+has fallen by two fifths, and `fed` with it by 0.07. A made globe feeds a
+settlement worse than a drawn one, and by enough to say so.
+
+The reason is not mysterious and is not settled either. A made world puts its
+high ground at the boundaries of its plates, and the boundary of a continental
+plate is its coast, so a founding party set down on a coast - which is where
+the globe puts them, see above - is set down under a mountain far more often
+than on a drawn map, with less wild ground within reach of it. Whether the
+answer is to found them elsewhere, or to give plate interiors relief so that
+the coast stops being the only high ground, is the next thing to find out. It
+is recorded here rather than fixed because eight seeds of a batch this size
+can say that something moved and cannot say what.
+
+## Before that
 
 Taken on the commit that gave the globe mountains instead of blobs: the
 ridges, the mask that says where the high country stands, and the height it
@@ -41,6 +77,7 @@ between.
 before the mountains: gates: fed 0.68 safe 0.51 held 0.66 all 0.272 food 14.06 | lasted 6/8 extinct 1 mean 254.9 median 124
 after the mountains:  gates: fed 0.69 safe 0.56 held 0.69 all 0.299 food 15.32 | lasted 8/8 extinct 0 mean 206.9 median 127
 ```
+
 
 Nothing here is outside what eight seeds will do on their own, and it is not
 claimed that the mountains fed anybody. `lasted` went 6/8 to 8/8 and the one
@@ -67,14 +104,14 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  461   227    130    122    265 |  0.69  0.56  0.68  0.29  0.17 |  1.00
-   2   34    63     77     17     26 |  0.70  0.63  0.45  0.35  0.02 |  1.00
-   3  261   251    151    134    236 |  0.68  0.59  0.68  0.27  0.11 |  1.00
-   4   64    43     60     20     68 |  0.68  0.46  0.63  0.36  0.02 |  1.00
-   5   78   348    123     39     24 |  0.69  0.59  0.52  0.62  0.16 |  1.00
-   6  127   221     68     67     87 |  0.84  0.56  0.69  0.18  0.04 |  1.00
-   7  540   439    210    439     26 |  0.71  0.66  0.58  0.06  0.03 |  0.99
-   8   90    44     37     19     85 |  0.66  0.50  0.72  0.33  0.02 |  1.00
+   1   72   190    181     15     44 |  0.67  0.53  0.48  0.36  0.19 |  1.00
+   2    4    53     37      3      4 |  0.43  0.61  0.94  0.24  0.00 |  1.00
+   3   70    34     84     15      4 |  0.72  0.45  0.90  0.34  0.13 |  1.00
+   4  284   321    218    181    150 |  0.61  0.62  0.70  0.24  0.10 |  1.00
+   5  114   175    137     46     58 |  0.68  0.57  0.48  0.22  0.01 |  1.00
+   6  406   280    114    102    225 |  0.68  0.51  0.61  0.58  0.01 |  1.00
+   7  159   169    148     34    171 |  0.68  0.55  0.67  0.39  0.13 |  1.00
+   8  200    91     72      5     90 |  0.74  0.54  0.49  0.32  0.19 |  1.00
 
 dwell/rest                         1416252  37.5%
 take/berries@wood                   654753  17.3%

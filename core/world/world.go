@@ -232,8 +232,19 @@ func DefaultConfig() Config {
 // chunks round and eight down, a third of it sea, cold at the poles and
 // warm at the middle. Nothing measured on the default map is measured on
 // this; it has a baseline of its own.
+//
+// It is made out of its own history rather than drawn, which the default
+// valley is not. A valley is two kilometres of country and you see one corner
+// of one plate boundary on it, so drawing the ground is as true as running
+// for it and costs a fiftieth as much. A globe is the whole diagram at once,
+// and a drawn one shows it: the eye picks out the lattice the mountains were
+// masked in with, however carefully that mask is shaped. Run instead, the
+// coasts are where continents ended up, the ranges are where they met, and
+// the rock in them is what the meeting made. It costs about fourteen seconds
+// a world against a second, which is a price worth paying once at the start
+// of a game and not worth paying for a valley. See history.go.
 func Globe() Config {
-	return Config{Width: 1024, Height: 512, Wrap: true, SeaShare: 0.3, Settlements: 4, LogCapacity: 200_000}
+	return Config{Width: 1024, Height: 512, Wrap: true, SeaShare: 0.3, Settlements: 4, LogCapacity: 200_000, Epochs: 16}
 }
 
 // Ancient is the default valley made out of its own history rather than

@@ -110,7 +110,13 @@ func TestAGlobeHasASeaItsRiversReach(t *testing.T) {
 	default:
 		t.Fatal("the pole is not bare")
 	}
-	if made > 5*time.Second {
+	// A globe is made out of its own history now, which is sixteen epochs of
+	// plates, weather and drainage over half a million tiles - see Globe. It
+	// is about fourteen seconds on the machine this was written on against
+	// about one for a drawn map, and the budget is set well above that
+	// because what it is for is catching something that has gone quadratic,
+	// not policing a second either way.
+	if made > 40*time.Second {
 		t.Fatalf("the globe took %v to make", made)
 	}
 	t.Logf("a globe of %d tiles, %d sea, %d forest, made in %v; market at %v", len(g.Tiles), sea, g.Forest(), made, w.MarketPos)
@@ -142,7 +148,14 @@ func TestTheUplandMaskIsFinerThanTheMap(t *testing.T) {
 	// thousand metres and any row through one cleared a hundred metres of
 	// spread while saying nothing at all about where the high ground was.
 	// What is wanted is that a row is not the unit the ground varies in.
-	g := NewWith(1, Globe()).Grid
+	// Drawn and not run: what is being read here is the mask the drawn
+	// generator lays its high ground with, and the preset runs a history over
+	// that and leaves little of it to read. It also saves the test the
+	// fourteen seconds a history costs, for a reading the history would only
+	// muddy.
+	drawn := Globe()
+	drawn.Epochs = 0
+	g := NewWith(1, drawn).Grid
 	along := make([]float64, g.H)
 	across := make([]float64, g.H)
 	for y := 0; y < g.H; y++ {
