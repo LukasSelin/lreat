@@ -18,6 +18,15 @@
 // says a settlement has stopped; those two say why, and they are the reason
 // a run that ends is worth reading rather than restarting.
 //
+// At the foot of the panel is the one block here that is not about the
+// settlement: what the run is costing the machine. A world that has slowed
+// to a third of the speed it was asked for looks exactly like a quiet one —
+// the map still moves and the day count still climbs — and the speed at the
+// top of the panel goes on reporting what was asked for rather than what is
+// being had. So the rate actually managed is down there beside what a tick
+// takes, what a frame takes, and what the process is using to do it. See
+// load.go.
+//
 // Every page here shows a dozen measurements at once and squeezes each of
 // them into a row or a band. The arrows step through whatever the page has
 // and open the one stepped onto out over the page's largest space, scaled to
@@ -57,6 +66,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 
@@ -217,6 +227,7 @@ func run(screen tcell.Screen, s setup) {
 		follow: func(id entity.ID) {
 			runner.Send(sim.Func(func(w *world.World) { w.Watch(id) }))
 		},
+		load: runner.Load,
 	}
 	// However the run ends, it says how it went on the way out — and it is
 	// registered before the screen is handed back, so that, deferred calls
@@ -323,6 +334,14 @@ type view struct {
 	// this frame would be replaced before it could be read and is not drawn
 	// at all. Nil in tests, which draw whenever they say to.
 	busy func() bool
+
+	// load asks the simulation goroutine what the run is costing it, and
+	// gauge is what the view itself is costing, kept on this side because
+	// drawing is this side's work. Both feed the block at the foot of the
+	// panel; load is nil in tests, which have no runner behind them and
+	// show the machine's half alone. See load.go.
+	load  func() sim.Load
+	gauge gauge
 
 	// vitals swaps the map for the settlement's demographic record and
 	// world for what became of the ground it stands on. The history behind
@@ -752,8 +771,12 @@ var palette = map[ascii.Color]tcell.Style{
 
 func (v *view) draw() {
 	if v.busy != nil && v.busy() {
+		// Counted rather than passed over: how often this happens is half
+		// of how old what is on the screen is. See load.go.
+		v.gauge.dropped()
 		return // whatever comes next will draw, and this frame is already old
 	}
+	defer v.gauge.drew(time.Now())
 	sc := v.screen
 	sc.Clear()
 	if v.snap == nil {
@@ -895,6 +918,15 @@ func (v *view) draw() {
 	// settlement's, and the growth figure says what the season is doing to
 	// the land.
 	put(tcell.StyleDefault, "%-7s %+5.1f deg  growth %.2f", s.Date.Season, s.Temp, s.Growth)
+	// What the run is costing the machine it is running on is the one thing
+	// on this panel that is not about the settlement at all, and it is
+	// anchored at the foot of the panel rather than laid down in the flow
+	// of it: it is read by glancing, and a figure that sits in a different
+	// place depending on how many technologies have been worked out has to
+	// be found before it can be read. Everything above it is drawn to
+	// foot - 1, so the block takes its height off the technologies and the
+	// card rather than off the bottom of the screen. See load.go.
+	foot := sh - len(keys) - loadRows
 	// What the settlement has worked out, one to a line, with the year it
 	// came to it and the year it first had a master of the craft. It used
 	// to be a single line of names, which at eleven technologies was a
@@ -911,7 +943,7 @@ func (v *view) draw() {
 		put(tcell.StyleDefault.Dim(true), "worked out: nothing yet")
 	} else {
 		put(tcell.StyleDefault, "worked out:")
-		room := max(1, (sh-len(keys)-1-line)/2)
+		room := max(1, (foot-1-line)/2)
 		shown := 0
 		for i := len(s.Worked) - 1; i >= 0 && shown < room; i-- {
 			f := s.Worked[i]
@@ -928,8 +960,17 @@ func (v *view) draw() {
 	}
 	line++
 	if v.sel != 0 {
-		v.drawCard(px, &line, sh-len(keys)-1)
+		v.drawCard(px, &line, foot-1)
 	}
+	// The machine's own half of the block is read here rather than in the
+	// runner: it is about this process, and it is sampled a couple of times
+	// a second however often the screen is drawn. See load.go.
+	v.gauge.machine()
+	var load sim.Load
+	if v.load != nil {
+		load = v.load()
+	}
+	v.drawLoad(px, foot, load, s.Map.W*s.Map.H)
 	// What everyone is doing goes under the map rather than in the panel:
 	// given the map's whole width it is hundreds of ticks of history at
 	// once, and the eye reads a weave of bands widening and giving way far
