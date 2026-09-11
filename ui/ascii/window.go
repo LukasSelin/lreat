@@ -170,7 +170,7 @@ func RenderWindow(m *observe.MapView, view View, win Window) [][]Cell {
 				continue
 			}
 			seen[key] = true
-			rows[y][x] = Cell{Ch: Glyph(a), Color: AgentColor(a.Action)}
+			rows[y][x] = Cell{Ch: Glyph(a), Color: Tint(a)}
 		}
 	}
 	return rows
@@ -266,4 +266,13 @@ func Glyph(a observe.Mark) rune {
 		return 'd'
 	}
 	return '@'
+}
+
+// Tint is the colour a mark is drawn in: a person by what it is doing, a
+// creature by what it is, between errands as much as on one.
+func Tint(a observe.Mark) Color {
+	if Creature(a) {
+		return AgentDeer
+	}
+	return AgentColor(a.Action)
 }

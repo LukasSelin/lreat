@@ -94,6 +94,18 @@ func (g *Grid) Saving(p entity.Pos) float64 {
 // shape of a settlement's roads show up in how tired its people are.
 const roadDrain = 0.7
 
+// Load is what the router is told a walker carries: what is in its arms,
+// or, for a kind of creature that never takes to the water, more than the
+// water allows, so that the one question everything asks of a load - may
+// this walker swim - is answered for the creature as its kind answers it.
+// A person's load is its arms and nothing else, as it always was.
+func Load(a *entity.Agent) float64 {
+	if !a.Species().Swims {
+		return SwimLoad + 1
+	}
+	return a.Load()
+}
+
 // SwimLoad is the most a walker may be carrying and still take to the water.
 // It is not a heavy pack; it is nothing at all, near enough. People are poor
 // swimmers with both arms free, and a person holding a sack of grain over a

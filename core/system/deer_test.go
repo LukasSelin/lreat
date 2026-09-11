@@ -60,6 +60,21 @@ func TestDeerKeepToTheWoodsAndEatThem(t *testing.T) {
 	if inWood*5 < len(herd)*4 {
 		t.Errorf("%d of %d deer stand under trees; deer keep to the woods", inWood, len(herd))
 	}
+	// A deer never swims: nothing it has planned takes it through deep
+	// water, and none stands in any.
+	for _, d := range herd {
+		if w.Grid.At(d.Pos).Deep() {
+			t.Errorf("%s stands in deep water", d.Name)
+		}
+		if d.Plan != nil {
+			for _, p := range d.Plan.Route {
+				if w.Grid.At(p).Deep() {
+					t.Errorf("%s is routed through deep water", d.Name)
+					break
+				}
+			}
+		}
+	}
 	browsed := 0
 	for _, e := range w.Log.All() {
 		if e.Kind == event.Acted && e.Act == "deer:take/browse@wood" {

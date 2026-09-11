@@ -98,6 +98,11 @@ type Species struct {
 	Decay [need.Count]float64
 	// Bears is the daily chance one whose lower tiers are met has young.
 	Bears float64
+	// Swims says whether this kind takes to deep water when it is carrying
+	// nothing. A person does, and is kept out of it only by an armful; a
+	// deer keeps to the bank, so a river is the edge of its country and a
+	// herd on one side of it is not the herd on the other.
+	Swims bool
 	// Settles says whether this is the kind of creature that holds values,
 	// learns crafts, keeps a house and a purse, trades, asks and is asked,
 	// and discovers things: the whole of a settlement's life above the
@@ -118,6 +123,7 @@ var Human = &Species{
 	// Safety is not listed: it tracks the agent's circumstances instead.
 	Decay:   [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Esteem: 0.004, need.Actualization: 0.003},
 	Bears:   1.0 / clock.Year,
+	Swims:   true,
 	Settles: true,
 }
 

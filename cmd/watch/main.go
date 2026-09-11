@@ -839,7 +839,7 @@ func (v *view) draw() {
 	for _, m := range s.Map.Agents {
 		if m.ID == v.sel {
 			if x, y, ok := win.Screen(s.Map, m.Pos); ok {
-				sc.SetContent(x, y, ascii.Glyph(m), nil, palette[ascii.AgentColor(m.Action)].Reverse(true))
+				sc.SetContent(x, y, ascii.Glyph(m), nil, palette[ascii.Tint(m)].Reverse(true))
 			}
 			break
 		}
