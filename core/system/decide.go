@@ -363,8 +363,20 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 const Exertion = 0.006
 
 // Act moves agents toward their targets, then advances and applies plans.
+//
+// It acts island by island - see world.Islands - each island on a
+// goroutine of its own where the people live apart, and the world itself
+// in agent order where they do not. Within an island the order is agent
+// order, as it always was: acting is the one phase whose order is a fact
+// about the settlement, since the last unit of food goes to whoever acted
+// first, and an island keeps it.
 func Act(w *world.World) {
-	for _, a := range w.Agents {
+	w.EachIsland(act)
+}
+
+// act is one island's day of acting.
+func act(w *world.World, is world.Island) {
+	for _, a := range is.Agents {
 		if a.Plan == nil {
 			continue
 		}

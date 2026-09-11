@@ -207,6 +207,11 @@ type Grid struct {
 	// callers routing one after another; anything routing at the same time as
 	// something else needs a Router of its own.
 	router *Router
+
+	// islanded is set on a view of the map an island acts on for a day,
+	// which mends no reading of its own - the water's labels are read as
+	// they stood when the day's acting began. See island.go.
+	islanded bool
 }
 
 // ownRouter is the grid's router, made on first use. It is not safe to reach

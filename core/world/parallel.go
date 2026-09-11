@@ -25,6 +25,12 @@ import (
 // each body in system.Decay, everybody's situation in system.Discover; and
 // the finding of the fields in Fence. Each is held against a run of the
 // same seed that spread over nothing.
+//
+// The one pass that changes the world from several goroutines at once is
+// the day's acting, and it keeps the rule another way: the people are cut
+// into islands that cannot touch the same ground, and what any island does
+// to the settlement as a whole is taken down apart and put together
+// afterwards in one order. See island.go.
 
 // Workers is how many goroutines the read-only passes of a day may spread
 // over: the deciding, which is the bulk of a day where there are people,

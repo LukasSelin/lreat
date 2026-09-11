@@ -189,6 +189,14 @@ type World struct {
 	Stuck int
 	Awake AwakeCount
 
+	// seed is what the world was made from, kept for the streams of chance
+	// the islands draw on; see island.go.
+	seed uint64
+	// isles is the working memory of cutting the population into islands
+	// and acting on them, and Isles how the last day's acting was cut.
+	isles isles
+	Isles IsleCount
+
 	// routers is the working memory deciding routes on, one per goroutine.
 	routers []*Router
 	// ways is this tick's reading of the worn ground, kept between ticks so
@@ -277,6 +285,7 @@ func NewWith(seed uint64, cfg Config) *World {
 		panic("world: a globe must be a whole number of chunks round")
 	}
 	w := &World{
+		seed:    seed,
 		RNG:     rand.New(rand.NewPCG(seed, seed*0x9E3779B97F4A7C15+1)),
 		Mods:    DefaultModifiers(),
 		Rules:   DefaultRules(),
@@ -513,7 +522,7 @@ func (w *World) Routers(n int) []*Router {
 // Agents deciding side by side must not, so it is taken for them before they
 // start - see action.Ready.
 func (w *World) Ways() *Ways {
-	if w.ways != nil && w.ways.stamp == w.Tick+1 && w.ways.g == w.Grid {
+	if w.ways != nil && w.ways.stamp == w.Tick+1 && sameGround(w.ways.g, w.Grid) {
 		return w.ways
 	}
 	w.ways = w.Grid.readWays(w.ways, w.Tick)
