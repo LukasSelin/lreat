@@ -55,9 +55,9 @@ func choose(a *entity.Agent, w *world.World, r *world.Router, record bool) (*act
 		if !ok {
 			continue
 		}
-		travel := r.Carrying(a.Load()).Holding(a.ID).TravelCost(a.Pos, target)
+		travel := r.Carrying(a.Load()).Holding(a.ID).Within(float64(d.Walk)).TravelCost(a.Pos, target)
 		if math.IsInf(travel, 1) {
-			continue // no way there from here with what it is carrying
+			continue // no way there from here with what it is carrying, or none near enough
 		}
 		cost := float64(d.Ticks) + travel/a.Vigor(w.Tick)
 		// Conscience sits beside need rather than inside it. It is not scaled
@@ -324,14 +324,14 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 	// finding it out opened everything the walker could reach.
 	laden := a.Load() > world.SwimLoad
 	p.Waters = w.Grid.Waters()
-	if m := a.NoWay; m.Known && m.From == a.Pos && m.To == target && m.Laden == laden && m.Waters == p.Waters {
+	if m := a.NoWay; m.Known && m.From == a.Pos && m.To == target && m.Laden == laden && m.Waters == p.Waters && m.Walk == d.Walk {
 		p.NoWay = true
 		return p
 	}
-	p.Route = r.Carrying(a.Load()).Holding(a.ID).Path(a.Pos, target)
+	p.Route = r.Carrying(a.Load()).Holding(a.ID).Within(float64(d.Walk)).Path(a.Pos, target)
 	if len(p.Route) == 0 {
 		p.NoWay = true
-		a.NoWay = entity.Impasse{From: a.Pos, To: target, Laden: laden, Waters: w.Grid.Waters(), Known: true}
+		a.NoWay = entity.Impasse{From: a.Pos, To: target, Laden: laden, Waters: w.Grid.Waters(), Walk: d.Walk, Known: true}
 	}
 	return p
 }

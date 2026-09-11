@@ -381,6 +381,9 @@ func (a *Agent) Holds(p Pos) bool {
 type Impasse struct {
 	From, To Pos
 	Laden    bool
+	// Walk is how far the way was allowed to be when it was looked for:
+	// see action.Def.Walk. A longer allowance is a different question.
+	Walk int
 	// Waters is the water as it was when the way was looked for; see
 	// world.Grid.Waters. A bridge since changes the answer.
 	Waters int

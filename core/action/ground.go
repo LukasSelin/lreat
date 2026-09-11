@@ -444,6 +444,11 @@ func clampInt(v, lo, hi int) int {
 
 var Scout = &Def{
 	Name: "scout", Ticks: 1, Available: worthLooking, Target: scoutSite,
+	// A scout aims scoutRange out as the crow flies. Three times that is a
+	// generous way round; further than that is not the errand meant, and
+	// finding out that the lake goes on for eighty tiles costs more than
+	// the looking is worth.
+	Walk: 3 * scoutRange,
 	Expect: func(*entity.Agent, *world.World, entity.Pos) need.Levels {
 		// Only the value rule reads this. Under recognition an act is chosen
 		// by the moment it belongs to and learned from what actually

@@ -51,6 +51,9 @@ type Routes struct {
 	cost         []float64
 	prev         []int32
 	rank         []int8 // rank of the first step of this tile's route, for tie-breaks
+	// limit is the cost the search was told not to go past: a tile it
+	// reached at that cost or more it did not settle, and does not report.
+	limit float64
 }
 
 // slot is where the tile at map position x,y is kept, and whether it is in
@@ -139,6 +142,22 @@ func (g *Grid) Holding(id entity.ID) *Router {
 // Router returns a router over this grid, for a caller that needs its own.
 func (g *Grid) Router() *Router { return &Router{g: g} }
 
+// Within tells the router how far the walker of the next route is prepared
+// to go, in ticks of walking: the search stops as soon as everything left
+// to open is at least that far, and a destination at least that far reads
+// as having no way to it. It holds for the next route this router runs and
+// no longer, like Carrying. Zero is any distance.
+func (r *Router) Within(limit float64) *Router {
+	r.limit = limit
+	return r
+}
+
+// Within routes on the grid's own router, for callers working one at a
+// time.
+func (g *Grid) Within(limit float64) *Router {
+	return g.ownRouter().Within(limit)
+}
+
 // Reset puts the router back as it was before its last search: no survey
 // standing, nothing carried, nothing owed. For after a search that did not
 // finish, and before a decision that is to be charged from nothing.
@@ -223,7 +242,7 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 		f.gen = 0
 	}
 	from = g.Norm(from)
-	f.g, f.from, f.gen = g, from, f.gen+1
+	f.g, f.from, f.gen, f.limit = g, from, f.gen+1, limit
 	f.x0, f.y0, f.span = from.X-Window, from.Y-Window, span
 	if !g.In(from) {
 		return f
@@ -287,7 +306,10 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 		if top.idx == stopSlot {
 			break
 		}
-		if here >= limit {
+		// Everything still to open is at least as far as this, and what
+		// is left to go is never overstated, so nothing nearer than the
+		// limit remains to be found.
+		if top.cost >= limit {
 			break
 		}
 		r.Work++
@@ -453,7 +475,7 @@ func (f *Routes) reached(p entity.Pos) (int32, bool) {
 	}
 	p = f.g.Norm(p)
 	i, ok := f.slot(p.X, p.Y)
-	if !ok || f.seen[i] != f.gen {
+	if !ok || f.seen[i] != f.gen || f.cost[i] >= f.limit {
 		return 0, false
 	}
 	return i, true

@@ -48,60 +48,98 @@ seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
    6  201   317     28     93     62 |  0.62  0.60  0.46  0.17  0.05 |  1.00
    7  397   327     32    100    141 |  0.70  0.49  0.48  0.09  0.06 |  0.98
    8  199   140     13     51     73 |  0.55  0.50  0.48  0.41  0.08 |  1.00
-   9  318   273     24     27    115 |  0.67  0.48  0.66  0.17  0.14 |  1.00
-  10  348   243     37    101    114 |  0.60  0.55  0.51  0.26  0.08 |  1.00
-  11   90   247     33     22     39 |  0.73  0.53  0.59  0.13  0.09 |  0.98
+   9   98   126     23     33     36 |  0.72  0.54  0.48  0.17  0.15 |  1.00
+  10  111   185     34     41     29 |  0.58  0.54  0.56  0.21  0.08 |  1.00
+  11  108   193     17     30     70 |  0.73  0.57  0.49  0.16  0.17 |  1.00
   12   64   161     25     40     28 |  0.54  0.63  0.53  0.17  0.05 |  1.00
   13  547   282     23    256    201 |  0.66  0.54  0.35  0.13  0.04 |  1.00
   14  251   211     23    106    260 |  0.65  0.56  0.50  0.27  0.02 |  1.00
   15  189   249     30     58     44 |  0.70  0.59  0.57  0.28  0.08 |  1.00
   16   50    88     17     12     24 |  0.71  0.46  0.65  0.44  0.08 |  1.00
-  17   69   139     21     11     54 |  0.61  0.53  0.49  0.22  0.10 |  0.99
+  17   41   178     20     20     43 |  0.70  0.61  0.52  0.32  0.15 |  1.00
   18  234   228     21     47    207 |  0.67  0.54  0.51  0.19  0.13 |  1.00
   19   56   210     20     25     43 |  0.63  0.58  0.60  0.12  0.05 |  1.00
-  20   63   174     37     49     25 |  0.62  0.66  0.38  0.12  0.15 |  0.99
+  20   93   279     29     64     49 |  0.53  0.56  0.54  0.07  0.03 |  1.00
   21  123   287     33     55     27 |  0.64  0.55  0.55  0.15  0.11 |  1.00
-  22  120   265     31     44     76 |  0.62  0.49  0.47  0.18  0.03 |  1.00
+  22  104   430     32     40     57 |  0.64  0.52  0.56  0.21  0.05 |  1.00
   23  235   276     33     96    159 |  0.53  0.50  0.58  0.08  0.07 |  0.99
   24  168   215     26     68    101 |  0.60  0.56  0.42  0.22  0.07 |  1.00
 
-dwell/rest                         3417774  29.8%
-take/berries@wood                  2570319  22.4%
-consume/provision                  1953901  17.1%
-dwell/guard@market                 1143534  10.0%
-take/fish@water                     543410   4.7%
-dwell/meet@tavern>neighbour         475472   4.2%
-take/timber@wood                    231481   2.0%
-transfer/material>requester         148723   1.3%
-exchange/coin>provision@market      144467   1.3%
-pass/practice>self                  122398   1.1%
-tend/plant@open                     109098   1.0%
-take/grain@field                    108962   1.0%
-pass/practice>pupil                 101232   0.9%
-exchange/material>coin@market        94829   0.8%
-transfer/provision>needy             79449   0.7%
-raise/timber>dwelling@open           62983   0.5%
-take/game@wood                       57601   0.5%
-make/timber>tool@bench               37147   0.3%
-transfer/provision<holder            16475   0.1%
-take/stone@outcrop                   13207   0.1%
-strike/person>wrongdoer              11312   0.1%
-tend/clear@open                       4598   0.0%
-tend/water@field                      2696   0.0%
-raise/timber>road@ground              2688   0.0%
-raise/timber+stone>granary@open        803   0.0%
-make/stone+timber>tool@forge           674   0.0%
-raise/timber>tavern@open               262   0.0%
-dwell/look                             256   0.0%
-make/provision+timber>meal@hearth      248   0.0%
-raise/timber+stone>market@open          90   0.0%
-move@dwelling                           83   0.0%
+dwell/rest                         3114880  28.6%
+take/berries@wood                  2495764  22.9%
+consume/provision                  1913696  17.6%
+dwell/guard@market                 1120698  10.3%
+take/fish@water                     525322   4.8%
+dwell/meet@tavern>neighbour         453977   4.2%
+take/timber@wood                    228127   2.1%
+exchange/coin>provision@market      136735   1.3%
+transfer/material>requester         122778   1.1%
+pass/practice>self                  110590   1.0%
+tend/plant@open                     102290   0.9%
+pass/practice>pupil                  97390   0.9%
+take/grain@field                     95766   0.9%
+exchange/material>coin@market        83374   0.8%
+transfer/provision>needy             69614   0.6%
+raise/timber>dwelling@open           61684   0.6%
+take/game@wood                       55859   0.5%
+make/timber>tool@bench               37893   0.3%
+transfer/provision<holder            16949   0.2%
+take/stone@outcrop                   12953   0.1%
+strike/person>wrongdoer              11519   0.1%
+tend/clear@open                       4579   0.0%
+tend/water@field                      2683   0.0%
+raise/timber>road@ground              2427   0.0%
+raise/timber+stone>granary@open        820   0.0%
+make/stone+timber>tool@forge           659   0.0%
+dwell/look                             271   0.0%
+make/provision+timber>meal@hearth      266   0.0%
+raise/timber>tavern@open               258   0.0%
+raise/timber+stone>market@open          91   0.0%
+move@dwelling                           84   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.58 safe 0.53 held 0.70 all 0.259 food 4.22 hungry-with-food 0.28 | lasted 24/24 extinct 0 mean 177.7 median 168 | phys 0.63 safe 0.55 belng 0.52 estm 0.20
+gates: fed 0.58 safe 0.52 held 0.69 all 0.252 food 4.03 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 158.8 median 117 | phys 0.64 safe 0.55 belng 0.52 estm 0.20
 ```
 
 ## What the last change did
+
+A scout aims fourteen tiles out as the crow flies, and where the water lay
+between, the way round could be many times that or run out of the search's
+window altogether - and the search opened everything it could reach to
+find that out, for every scout on that shore, every day. `action.Def.Walk`
+now bounds how far a plan may set out on, and only scouting sets it, at
+three times its range; `Router.Within` carries it into the search, which
+stops as soon as the landmark bound says the rest is too far. A scout
+whose way round is longer than that has no way, where before it had a
+long one, so more plans come back with no way and fewer people walk
+round lakes.
+
+**On the batch it is a draw.**
+
+```
+master:    gates: fed 0.59 safe 0.51 held 0.69 all 0.256 food 4.02 | lasted 23/24 mean 152.5 median 139
+landmarks: gates: fed 0.58 safe 0.53 held 0.70 all 0.259 food 4.22 | lasted 24/24 mean 177.7 median 168
+walk:      gates: fed 0.58 safe 0.52 held 0.69 all 0.252 food 4.03 | lasted 24/24 mean 158.8 median 117
+```
+
+Nothing is past a threshold against either the landmarks batch it follows
+or master: `fed`, `safe` and `held` are within 0.01 of both, `all` within
+0.007, one more settlement lasted than on master, and the population is
+back to within six of master's after the landmarks batch had it up 25 -
+which is the swing three batches of master show with no change at all.
+`food` went up 0.20 with the landmarks and came back down 0.19 here, so
+neither move was the code's doing.
+
+Only golden seed 9 moved: the other two send nobody that far round within
+fifteen hundred days.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the landmarks did
 
 A guided search now bounds the walk that is left off landmark tables as well
 as the straight line (`world.Landmarks`, core/world/landmark.go), so it
@@ -132,12 +170,6 @@ people, and the batch says the people did not notice.
 
 The golden numbers moved, for the reason above: a run walks a different
 route of the same cost within its first fifteen hundred days.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What reaching the land's last answers did
 

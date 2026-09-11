@@ -87,7 +87,12 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 //
-// Retaken for the landmarks: a guided search now bounds the walk that is
+// Retaken for the walking limit: a scout whose way round is more than three
+// times the distance meant now has no way, where before it had a long one,
+// and the search stops as soon as the landmarks say the rest is too far.
+// Only seed 9 sends anybody that far within fifteen hundred days.
+//
+// Retaken before that for the landmarks: a guided search now bounds the walk that is
 // left off a few landmark tables as well as the straight line, so it opens
 // fewer tiles and settles the destination at the same cost by the same
 // first step - but among routes of exactly the same cost it can settle on
@@ -96,7 +101,7 @@ import (
 var golden = map[uint64]string{
 	1: "e20c27975e30f20b",
 	3: "157fc671075eeb69",
-	9: "130a5c9d123ce5a1",
+	9: "91a97b13482436fa",
 }
 
 // digest is the hash the golden numbers are of.

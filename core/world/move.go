@@ -192,6 +192,7 @@ func (g *Grid) MoveDrain(p entity.Pos) float64 {
 func (r *Router) StepToward(from, to entity.Pos) entity.Pos {
 	g := r.g
 	if from == to || !g.In(to) {
+		r.load, r.limit = 0, 0
 		return from
 	}
 	return r.route(&r.scratch, from, to, true, g.Toward(from, to)).Step(to)
@@ -209,6 +210,7 @@ func (g *Grid) StepToward(from, to entity.Pos) entity.Pos {
 func (r *Router) Path(from, to entity.Pos) []entity.Pos {
 	g := r.g
 	if from == to || !g.In(to) {
+		r.load, r.limit = 0, 0
 		return nil
 	}
 	return r.route(&r.scratch, from, to, true, g.Toward(from, to)).Path(to)
@@ -226,16 +228,20 @@ func (g *Grid) Path(from, to entity.Pos) []entity.Pos {
 func (r *Router) TravelCost(from, to entity.Pos) float64 {
 	g := r.g
 	if from == to {
-		r.load = 0
+		r.load, r.limit = 0, 0
 		return 0
 	}
 	if !g.In(to) {
-		r.load = 0
+		r.load, r.limit = 0, 0
 		return math.Inf(1)
 	}
 	if r.surveyed && from == r.spreadFrom && (r.load > SwimLoad) == r.spreadLaden && r.holder == r.spreadHolder {
-		r.load = 0
-		return r.fromSurvey(to)
+		limit := r.limit
+		r.load, r.limit = 0, 0
+		if c := r.fromSurvey(to); limit <= 0 || c < limit {
+			return c
+		}
+		return math.Inf(1)
 	}
 	return r.route(&r.scratch, from, to, true, g.Toward(from, to)).Cost(to)
 }
