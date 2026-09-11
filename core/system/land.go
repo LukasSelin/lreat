@@ -102,10 +102,17 @@ func Land(w *world.World) {
 		if !g.HoldsWood(p) {
 			continue
 		}
+		// And it takes among shoots. Ground a warren keeps grazed has
+		// none, and the seed is lost there before any chance is spent on
+		// it - which on ground nobody grazes never happens, so a world
+		// with no creatures in it draws what it always drew.
+		i := g.Index(p)
+		if !g.SeedTakes(i) {
+			continue
+		}
 		// Seed falls in the growing season, not on frozen ground.
 		if w.RNG.Float64() < reseedChance*w.GrowthAt(p) {
 			g.Turn(p, world.Forest)
-			i := g.Index(p)
 			g.Wood[i], g.Wild[i] = 0, 0
 			g.Sow(i) // a seedling wood, with nothing on it yet
 			// Seed that falls on sleeping ground is owed nothing of the

@@ -103,6 +103,16 @@ gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 hungry-with-food 0.26 | 
 
 ## What the last change did
 
+What the creatures do to the country: a browsing sets a young stand back, a
+wood's seed takes only among shoots so a grazed meadow stays open, a grazing
+manures the ground, and a boar turns the soil and now and then plants a wood
+beside it. None of it is read by a run with no creatures in it - the one
+line in the settlement's own passes, the seed asking the sward before any
+chance is spent on it, never fires on ground nobody grazes - so the golden
+numbers and the batch stand where the merge below left them.
+
+### Boar and hares
+
 Boar and hares, after the deer. A boar is a deer that lets a person come
 nearer and raids the fields; a hare grazes the sward, which is new: the grass
 standing on open ground, a stock beside the map like the fish, drawn down by

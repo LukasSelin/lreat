@@ -59,6 +59,26 @@ const (
 	fleeGain = 0.2
 	herdGain = 0.15
 	roamGain = 0.1
+
+	// What a feeding leaves behind it, besides less to eat.
+	//
+	// browseSetback is how many growing days a browsing sets a stand that
+	// is still coming on back by. An old wood does not mind a herd; a
+	// thicket browsed every day never comes on to timber, and a clearing
+	// with a heavy herd in it stays a clearing. It is a stand's age and
+	// not the calendar that is set back, so a felled wood the deer keep
+	// down is exactly a wood that has had less growing weather.
+	browseSetback = 20
+	// dung is what a grazing leaves in the ground: open ground a warren
+	// keeps creeps up toward the best soil there is, so the meadows a herd
+	// has kept for years are the strips a settlement breaks next.
+	dung = 0.01
+	// rootTurns is what rooting does to the soil under the trees, turned
+	// over and lifted the same way; rootPlant is the chance that a rooting
+	// beside open ground plants a wood there, since a boar carries acorns
+	// and buries most of them.
+	rootTurns = 0.01
+	rootPlant = 0.05
 	// roamSpan is how many days a creature keeps a bearing before turning,
 	// and roamStep how far along it it looks for the next cover.
 	roamSpan = 30
@@ -134,8 +154,9 @@ func senseWary(a *entity.Agent, w *world.World) habit.Signature {
 // feeding is a creature eating what stands on a kind of ground: the nearest
 // stand of it worth going to, which is very often the tile it stands on,
 // and a little off the count the ground keeps, into the belly rather than
-// into any pack. Ground with something built on it is not grazed.
-func feeding(name string, of, site *ontology.Class) *Def {
+// into any pack. Ground with something built on it is not grazed. What the
+// feeding leaves behind it on the ground is the kind's, in leaves.
+func feeding(name string, of, site *ontology.Class, leaves func(w *world.World, i int)) *Def {
 	held := world.StockOf(of)
 	kinds := world.KindsOf(site)
 	return &Def{
@@ -157,7 +178,55 @@ func feeding(name string, of, site *ontology.Class) *Def {
 			take := min(browseTake, max(0, *s))
 			*s -= take
 			a.Needs.Add(need.Physiological, browseGain*take/browseTake)
+			if leaves != nil && take > 0 {
+				leaves(w, w.Grid.Index(a.Pos))
+			}
 		},
+	}
+}
+
+// browsed is what a herd's browsing leaves a wood: a stand still coming on
+// is set back, and an old wood is left alone.
+func browsed(w *world.World, i int) {
+	g := w.Grid
+	if g.Along(i, ontology.Timbering) < 1 {
+		g.Age[i] = max(0, g.Age[i]-browseSetback)
+	}
+}
+
+// manured is what a grazing leaves open ground: a little richer.
+func manured(w *world.World, i int) { enrich(w.Grid, i, dung) }
+
+// enrich lifts what the ground could grow at best, and what it has in it,
+// by d, up to the most any ground has.
+func enrich(g *world.Grid, i int, d float64) {
+	g.Rich[i] = min(1, g.Rich[i]+d)
+	g.Fertility[i] = min(g.Rich[i], g.Fertility[i]+d)
+}
+
+// rooted is what a boar's rooting leaves a wood: the stand set back as a
+// browsing sets it, the soil under it turned and lifted, and, now and
+// then, a wood planted on the open ground beside it. The ground it takes
+// on is the first, by the scout's bearings, that would hold a wood; the
+// chance is the world's, as every act's is, and is spent only where there
+// is such ground.
+func rooted(w *world.World, i int) {
+	g := w.Grid
+	browsed(w, i)
+	enrich(g, i, rootTurns)
+	p := g.PosOf(i)
+	for _, b := range bearings {
+		q := g.Norm(entity.Pos{X: p.X + b.X, Y: p.Y + b.Y})
+		if !g.In(q) || !g.At(q).Buildable() || !g.HoldsWood(q) {
+			continue
+		}
+		if w.RNG.Float64() < rootPlant {
+			j := g.Index(q)
+			g.Turn(q, world.Forest)
+			g.Wood[j], g.Wild[j] = 0, 0
+			g.Sow(j) // a seedling wood, with nothing on it yet
+		}
+		return
 	}
 }
 

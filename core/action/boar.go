@@ -8,12 +8,14 @@ import (
 	"lreat/core/world"
 )
 
-// A boar roots in the wood for the same brush a deer browses, and raids the
-// fields: a sounder in a strip in ear takes the grain and tramples what it
-// does not take. It wallows, bolts from anybody near - though not from as
-// far off as a deer does - keeps to its sounder, and ranges.
+// A boar roots in the wood for the same brush a deer browses, turning the
+// soil as it goes and now and then planting a wood on the open ground
+// beside it, and raids the fields: a sounder in a strip in ear takes the
+// grain and tramples what it does not take. It wallows, bolts from anybody
+// near - though not from as far off as a deer does - keeps to its sounder,
+// and ranges.
 var (
-	Root    = feeding("root", ontology.Browse, ontology.Wood)
+	Root    = feeding("root", ontology.Browse, ontology.Wood, rooted)
 	Wallow  = bedding("wallow")
 	Bolt    = fleeing("bolt")
 	Sounder = herding("sounder")

@@ -53,10 +53,11 @@ func (g *Grid) Reached(i int, ph ontology.Phase) bool {
 }
 
 // Grown is how far along what grows on tile i is, in [0,1], against the
-// time such a thing takes to come on. It only rises: a wood that has made
-// its timber holds it, and a stand does not go over and take the wood with
-// it. What starts it again is the ground being cleared and something else
-// sown on it.
+// time such a thing takes to come on. The weather only raises it: a wood
+// that has made its timber holds it, and a stand does not go over and take
+// the wood with it. What sets it back is something eating what is coming
+// on - a sounder in a strip, a herd browsing a thicket - and what starts it
+// again is the ground being cleared and something else sown on it.
 func (g *Grid) Grown(i int, full float64) float64 {
 	if full <= 0 {
 		return 1
@@ -189,7 +190,17 @@ const (
 	// grazed to nothing is most of the way back within a year. It is the
 	// whole of what bounds a warren where nothing hunts it.
 	SwardRegrowth = 0.0015
+	// SeedTakes is how much sward open ground must carry for a wood's seed
+	// to take in it. A seed takes among shoots, and ground grazed below
+	// this has none: a warren at the edge of a wood holds the meadow open,
+	// and the wood comes back over it when the warren is gone.
+	SeedTakes = 0.5
 )
+
+// SeedTakes reports whether a wood's seed would take on tile i: whether
+// there are shoots enough for it. Ground nobody grazes always has them,
+// since nothing but a grazing creature draws the sward down.
+func (g *Grid) SeedTakes(i int) bool { return g.Sward[i] >= SeedTakes }
 
 // Replenish is what k of growing weather puts back on tile i that is not a
 // stand coming on: the fish in the water and the rest a worn field gets.

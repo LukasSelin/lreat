@@ -224,7 +224,21 @@ a `b`. A hare grazes the sward, which is the grass standing on open ground - a
 stock the day's pass puts back like the fish, that nobody but a grazing
 creature takes - and lives in the hedge at the wood's edge, breeding several
 times a year; it is an `h`. None of them swims, so a river is the edge of a
-herd's country. `watch` puts a dozen deer, half a dozen boar and a dozen hares
+herd's country.
+
+What they eat shapes the country. A browsing sets a stand that is still
+coming on back by a few weeks of growing weather, so a thicket a heavy herd
+browses every day never comes on to timber and a felled clearing with deer in
+it stays a clearing, while an old wood does not mind a herd. A wood's seed
+takes only among shoots, so a warren that keeps a meadow grazed keeps it
+open, and the wood comes back over it when the warren is gone. What grazes
+manures: open ground a warren keeps creeps up toward the best soil there is,
+and the meadows a herd has kept for years are the strips a settlement breaks
+next. And a boar turns the soil as it roots, lifting the ground under the
+trees the same way, and now and then plants a wood on the open ground beside
+it, since a boar carries acorns and buries most of them. So the tree line
+and the field ground are the outcome of who lives there: hares hold an edge
+open, boar push it out, and the balance is set by which kind is thriving. `watch` puts a dozen deer, half a dozen boar and a dozen hares
 down unasked, and its menu has a line for each; `headless` and `tune` put
 none, because the runs a settlement is measured on have no creatures in them.
 See core/entity/species.go for what a species is, core/action/creature.go for
