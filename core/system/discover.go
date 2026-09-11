@@ -525,26 +525,53 @@ const pressYear = float64(clock.Year)
 // out by the person it is happening to hardest, and a settlement of five
 // hundred comfortable people with one desperate one in it is a settlement
 // where somebody is about to think of something. A mean would drown them.
-func pressing(w *world.World, d *Discovery) (float64, *entity.Agent) {
+//
+// Everybody's situation is handed in rather than read here, because it is
+// the same situation whichever discovery is asking and reading it is
+// nearly the whole cost - it looks up who is standing beside each person.
+// See situations.
+func pressing(w *world.World, d *Discovery, shared []habit.Signature) (float64, *entity.Agent) {
 	dir := habit.Unit(d.Signature)
 	if habit.Norm(dir) < habit.Epsilon {
 		return 0, nil
 	}
 	best, by := 0.0, (*entity.Agent)(nil)
-	for _, a := range w.Agents {
+	for i, a := range w.Agents {
 		// Ties go to the earliest born, which is what keeps a run
 		// reproducible: agents are walked in birth order and a later one
 		// has to beat what it finds, not equal it.
-		if p := habit.Dot(action.Shared(a, w), dir); p > best {
+		if p := habit.Dot(shared[i], dir); p > best {
 			best, by = p, a
 		}
 	}
 	return best, by
 }
 
+// situations is everybody's situation today, the part of it that is the
+// same whatever is being weighed - see action.Shared - read for everybody
+// at once over goroutines. Reading one only looks at the world and at the
+// person, and draws no chance, so it comes out the same read side by side
+// as in turn. Indexed like w.Agents.
+func situations(w *world.World) []habit.Signature {
+	n := len(w.Agents)
+	shared := make([]habit.Signature, n)
+	w.Freeze(true)
+	world.InParallel(n, world.WorkersOver(n), func(i, _ int) {
+		shared[i] = action.Shared(w.Agents[i], w)
+	})
+	w.Freeze(false)
+	return shared
+}
+
 // Discover unlocks any technology whose conditions the world now meets, and
 // notes the ones the settlement has since become master of.
 func Discover(w *world.World) {
+	// Everybody's situation, read the first time a discovery asks how hard
+	// somebody is feeling it and kept for the rest that ask today. Let go
+	// after anything is unlocked: nothing a discovery does changes what a
+	// situation reads, but that is a fact about today's catalog, and the
+	// next one to ask after a change is cheap enough to read afresh.
+	var shared []habit.Signature
 	for _, d := range Discoveries {
 		if w.Has(d.Tech) {
 			// Held already: the only thing left to happen to it is that
@@ -571,7 +598,10 @@ func Discover(w *world.World) {
 		// enough. A Cost of zero is the old behaviour and is had at once.
 		var by *entity.Agent
 		if d.Cost > 0 {
-			push, who := pressing(w, &d)
+			if shared == nil {
+				shared = situations(w)
+			}
+			push, who := pressing(w, &d, shared)
 			if w.Press(d.Tech, push) < d.Cost {
 				continue
 			}
@@ -580,6 +610,7 @@ func Discover(w *world.World) {
 		w.Unlock(d.Tech)
 		d.Effect(w)
 		w.Room()
+		shared = nil
 		for _, name := range d.Opens {
 			if i := action.Index(action.ByName(name)); i >= 0 {
 				w.ReachFloor[i] = max(w.ReachFloor[i], action.Opened)

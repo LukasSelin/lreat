@@ -196,10 +196,12 @@ type Grid struct {
 	// fenceSeen, fenceBlock and fenceStack are the working memory the daily
 	// walk of the fields runs on, kept here so that reading the enclosures
 	// allocates nothing. See fence.go.
-	fenceSeen  []uint32
-	fenceGen   uint32
-	fenceBlock []int32
-	fenceStack []int32
+	fenceSeen    []uint32
+	fenceGen     uint32
+	fenceBlock   []int32
+	fenceStack   []int32
+	fencePatches []int32
+	fenceFields  [][]int32
 
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as

@@ -40,9 +40,25 @@ func Beliefs(w *world.World) {
 // contagion spreads values between neighbors. Nobody argues anybody into
 // anything; people simply come to resemble those they stand next to, and
 // districts end up with characters their founders never chose.
+//
+// Who is standing next to whom is looked up for everybody at once, over
+// goroutines, and the values are spread afterwards one agent at a time in
+// agent order. The lookup only reads where people stand, which nothing here
+// moves, so it answers the same side by side as in turn; the spreading is
+// not so - what an agent takes on is read off a neighbour who may already
+// have taken something on today - and it stays in the one order it always
+// had. Looking was nearly the whole cost of the day's beliefs on a crowded
+// map, and the spreading is a few multiplications each.
 func contagion(w *world.World) {
-	for _, a := range w.Agents {
-		o := w.Neighbor(a, TalkRadius)
+	n := len(w.Agents)
+	near := make([]*entity.Agent, n)
+	w.Freeze(true)
+	world.InParallel(n, world.WorkersOver(n), func(i, _ int) {
+		near[i] = w.Neighbor(w.Agents[i], TalkRadius)
+	})
+	w.Freeze(false)
+	for i, a := range w.Agents {
+		o := near[i]
 		if o == nil {
 			continue
 		}

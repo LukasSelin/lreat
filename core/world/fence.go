@@ -74,15 +74,41 @@ func (g *Grid) Fence() {
 		g.fenceGen = 1
 	}
 	gen, seen := g.fenceGen, g.fenceSeen
-	block := g.fenceBlock[:0]
-	stack := g.fenceStack[:0]
+	// The patches with any field on awake ground, in patch order, and then
+	// the fields of each in the order the patch is walked in. Finding them
+	// is a walk over every tile of every such patch for the few that are
+	// fields, and was nearly the whole cost of the day's fences; it reads
+	// the ground and writes a list of its own patch, so the patches are
+	// found side by side. The blocks are then read off the lists in the
+	// one order the walk always took.
+	patches := g.fencePatches[:0]
 	for pi := range g.patches {
 		if g.patches[pi][Field] == 0 || !g.Awake(g.chunkOfPatch(pi)) {
 			continue
 		}
+		patches = append(patches, int32(pi))
+	}
+	g.fencePatches = patches
+	if len(g.fenceFields) != len(g.patches) {
+		g.fenceFields = make([][]int32, len(g.patches))
+	}
+	fields := g.fenceFields
+	InParallel(len(patches), WorkersFor(len(patches)/fencePatchesEach), func(k, _ int) {
+		pi := int(patches[k])
+		found := fields[pi][:0]
 		g.eachInPatch(pi, func(i int, t *Tile) {
-			if t.Terrain != Field || seen[i] == gen {
-				return // not a field, or already answered for with the rest of its block
+			if t.Terrain == Field {
+				found = append(found, int32(i))
+			}
+		})
+		fields[pi] = found
+	})
+	block := g.fenceBlock[:0]
+	stack := g.fenceStack[:0]
+	for _, pi := range patches {
+		for _, i := range fields[pi] {
+			if seen[i] == gen {
+				continue // already answered for with the rest of its block
 			}
 			// Everything that lies with this strip, found in a fixed order so
 			// that the same map always gives the same blocks.
@@ -110,10 +136,16 @@ func (g *Grid) Fence() {
 			for _, j := range block {
 				g.Tiles[j].Fenced = enclosed
 			}
-		})
+		}
 	}
 	g.fenceBlock, g.fenceStack = block[:0], stack[:0]
 }
+
+// fencePatchesEach is how many patches of fields each goroutine finding
+// them is worth: a patch is walked in about a microsecond, and handing one
+// out costs a few, so a valley's dozen are found in turn and a globe's
+// hundreds are dealt out.
+const fencePatchesEach = 16
 
 // fenceCost is what crossing the line between two tiles costs. It is paid
 // where one side is inside a fence and the other is not, and it is not paid
