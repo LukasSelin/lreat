@@ -37,30 +37,29 @@ const TileSpan = 25.0
 const Relief = 60.0
 
 // Upland is how far the high country stands above the valley it stands in,
-// on a map of the default width, and uplandShare is how much of a map it
-// covers. Two hundred and sixty metres is a wall rather than a slope: ground
-// a route goes round because going over it costs twenty tiles of climbing,
-// and that is the whole difference between a map with somewhere on it and a
-// map without.
+// and uplandShare is how much of a map it covers. Two hundred and sixty
+// metres is a wall rather than a slope: ground a route goes round because
+// going over it costs twenty tiles of climbing, and that is the whole
+// difference between a map with somewhere on it and a map without.
 //
-// It is quoted at a width and scaled to the map being made - see
-// Grid.UplandRise - because a height spread over more ground is a gentler
-// thing. Held at a fixed two hundred and sixty metres, a map three times as
-// wide put the same mountains over three times the distance and the steep
-// tenth of the ground went from a slope of 0.45 to one of 0.22: the peaks
-// were still the same height and there was nothing steep anywhere, which is
-// the gentle bowl this was all meant to stop being. Scaled, that tenth holds
-// between 0.45 and 0.42 from eighty tiles wide to two hundred and forty, and
-// a bigger map is a bigger country at the same ruggedness rather than the
-// same country drawn larger.
+// It is quoted here and scaled to the ground the high country is spread over
+// rather than to the width of the map - see Grid.UplandRise - because what
+// makes a mountain a mountain is the slope and not the number on top of it,
+// and a rise spread over more ground is a gentler thing. Scaled to the map, as
+// it was, a globe sixteen chunks round raised its high country three thousand
+// three hundred metres: ground a tenth of which fell more than a metre for
+// every metre crossed, which is not a mountainside but a cliff, and all of it
+// in four or five domes with a dead flat plain between them. Scaled to the
+// range, a map with room for a whole range gets a whole range, and a map with
+// room for one mountainside gets the mountainside it always had.
 //
-// Relief is deliberately not scaled with it. The lowland is where a
-// settlement lives, and what makes it liveable is measured in metres and not
-// in tiles: FloodDepth says the valley floor is the ground within fourteen
-// metres of its river, and the soil reads off that. Stretching the lowland to
-// match a wider map would put most of it above the flood and take its soil
-// down to the floor of 0.15, which is the thing that went wrong when the
-// valley and the mountains were one field scaled together.
+// Relief is deliberately not scaled with it. The lowland is where a settlement
+// lives, and what makes it liveable is measured in metres and not in tiles:
+// FloodDepth says the valley floor is the ground within fourteen metres of its
+// river, and the soil reads off that. Stretching the lowland to match a wider
+// map would put most of it above the flood and take its soil down to the floor
+// of 0.15, which is the thing that went wrong when the valley and the
+// mountains were one field scaled together.
 //
 // The share is what keeps a map habitable, and it is a share rather than a
 // height for the reason everything else here is: how much of a map comes out
@@ -73,37 +72,66 @@ const (
 	// uplandMass is how much of the rise is the bulk of the high country and
 	// how much is the ridges standing on it.
 	uplandMass = 0.45
-	// uplandSpan is the map width Upland is quoted at, which is the width a
-	// settlement is founded on unless somebody says otherwise.
+	// uplandSpan is the map width the default valley is founded on unless
+	// somebody says otherwise, and the width the rest of this was measured at.
 	uplandSpan = DefaultWidth
 )
 
-// UplandLattice is how far apart the corners of the mask that says where the
-// high country stands are. It is the geometric mean of the map's own span and
-// the span that mask was drawn at, halved: on a map of the quoted width it is
-// exactly the half-span it always was, and on a bigger one the regions of high
-// country grow with the map but slower than it does, so a wider world gets
-// more mountain ranges as well as larger ones.
+// rangeSpan is how far apart the ridges of a range stand, and rangeFoot is how
+// much ground the range itself covers: a kilometre between the ridges and
+// three between the feet of the thing, so that a range is several summits with
+// saddles between them and not one hill.
 //
-// Taken as a plain half-span, a globe a thousand tiles across drew the whole
-// of its topography from a lattice two corners round and three deep - six
-// numbers deciding where every mountain on a planet went. What came out was
-// not a world but a tilt: over three seeds the mean height of row twenty ran
-// 41, 422 and 974 metres against a row-256 of 131, 32 and 44, so one
-// hemisphere was a plateau and the other a plain, differently each time and
-// for no reason the map could show. At the square root the same globe draws
-// from eight corners round and five deep, which is continents.
+// They are lengths on the ground and not shares of the map, and that is the
+// whole of what was wrong. Every octave here used to start at half the map's
+// own width - on the default eighty tiles that is rangeSpan exactly, and on a
+// globe it is five hundred. The coarsest octave of a ridged field carries most
+// of its height, so a globe drew every mountain it had off a lattice two
+// corners round and three deep: one ridge the size of a hemisphere. The mask
+// that says where the high country stands went the same way, at the square
+// root of the map and the quoted span, and set that ridge in a round
+// two-hundred-tile blank. What came out was the complaint - one blob, too
+// round, too high, over far too much ground, with nothing in it.
+//
+// Held at the size of a range, a wider map gets more ranges rather than one
+// range drawn wider, and the grain inside each of them is the grain the
+// valley's own high ground has. The foot is three ridges across because a
+// massif drawn at the span of its own ridges holds one crest and is a cone
+// again.
+const (
+	rangeSpan = uplandSpan / 2
+	rangeFoot = 3 * rangeSpan
+)
+
+// UplandLattice is how far apart the corners of the mask that says where the
+// high country stands are: the foot of a range, or half the map where the map
+// is smaller than that, which the default valley is. A valley is one
+// mountainside seen close to; it has no room for a whole range and never had.
+//
+// A corner's width is the mountainside, because the whole of the high
+// country's rise happens across one of them - which is why this is held to the
+// size of a range and not to the size of the world. Scaled with the world, as
+// it was, a globe spread the same rise over two hundred tiles and got a slope
+// of four in a hundred: a swell so broad that standing on it you would not
+// know.
 func (g *Grid) UplandLattice() float64 {
-	return math.Sqrt(float64(g.Span())*uplandSpan) / 2
+	return math.Min(float64(g.Span())/2, rangeFoot)
 }
 
-// Span is how many tiles across the map is at its widest. It is what the
-// shape of the land is measured in: the octaves start at half of it, the high
-// country is masked at half of it, and the mountains rise in proportion to it.
+// Span is how many tiles across the map is at its widest. It is what the lie
+// of the land is measured in - the octaves of the broad swell start at half of
+// it - and it is the ceiling on everything else, because no feature can be
+// wider than the map it is drawn on. The mountains themselves are measured in
+// their own lengths instead: see rangeSpan.
 func (g *Grid) Span() int { return max(g.W, g.H) }
 
-// UplandRise is how far this map's high country stands above its valley.
-func (g *Grid) UplandRise() float64 { return Upland * float64(g.Span()) / uplandSpan }
+// UplandRise is how far this map's high country stands above its valley: the
+// quoted rise, in proportion to how much ground that country is spread over.
+// A range with three times the footing stands three times as tall and its
+// flanks come out at the same slope either way, which is the point of it - a
+// mountain is known by how steeply it goes up and not by the number on top.
+// On a map too small to hold a whole range it is Upland exactly.
+func (g *Grid) UplandRise() float64 { return Upland * g.UplandLattice() / (uplandSpan / 2) }
 
 // Skyline is the top of the map: the valley's own relief plus the high
 // country standing on it.
@@ -346,13 +374,13 @@ func (w *World) raise(g *Grid) {
 // against: a made world says where its high ground is, and this says how high
 // a map's ground is spread. See Grid.normalise in history.go.
 func (w *World) relief(g *Grid) []float64 {
-	lie := w.fold(g, false)
-	crest := w.fold(g, true)
+	// The lie of the land is drawn at the size of the map, because a swell is
+	// whatever the country it lies on is; the ridges are drawn at the size of
+	// a mountain range, because a range is not.
+	lie := w.fold(g, float64(g.Span())/2, false)
+	crest := w.fold(g, math.Min(float64(g.Span())/2, rangeSpan), true)
 
-	// Where the high country stands. One lattice far coarser than anything in
-	// the octaves above, so that upland is a region of the map rather than a
-	// speckle through it.
-	where := w.lattice(g, g.UplandLattice())
+	where := w.upland(g)
 	rise := g.UplandRise()
 	h := make([]float64, len(g.Tiles))
 	q := quantiles(where, 1-uplandShare, 1)
@@ -378,12 +406,45 @@ func (w *World) relief(g *Grid) []float64 {
 	return h
 }
 
-// fold sums the octaves, in [0,1] before it is scaled. Folded, each octave is
-// turned inside out at its middle and weighted by how high the coarser ones
-// left it, which is what puts the fine detail on the flanks of the big ridges
-// instead of spreading it evenly over everything: a mountain gets gullies and
-// a plain stays a plain.
-func (w *World) fold(g *Grid, ridged bool) []float64 {
+// upland is where the high country stands: a mask far coarser than anything in
+// the octaves above, so that upland is a region of the map rather than a
+// speckle through it, taken down in halves to the span of a ridge so that the
+// region has an outline.
+//
+// The outline is the whole of the finer octaves' work. Drawn from one lattice
+// the mask is a bilinear blend of a few corners and what it lets through is a
+// disc: a round massif with a smooth edge the whole way round and one summit
+// in the middle, which is the blob a globe kept coming out as. The octaves
+// under it put arms on that, and saddles in it, and outlying hills beside it,
+// so that what stands above the line is a range with a shape rather than a
+// hill with a radius.
+//
+// It stops at the ridges because below that the ridges are already saying
+// where the peaks are, and a mask any finer would only argue with them. On a
+// map too small to hold a whole range the first octave is already that fine,
+// and this is the single lattice it always was.
+func (w *World) upland(g *Grid) []float64 {
+	out := make([]float64, len(g.Tiles))
+	amp := 1.0
+	for span := g.UplandLattice(); ; span, amp = span/2, amp/2 {
+		l := w.lattice(g, span)
+		g.EachRow(func(y int) {
+			for i := y * g.W; i < (y+1)*g.W; i++ {
+				out[i] += amp * l[i]
+			}
+		})
+		if span/2 < rangeSpan {
+			return out
+		}
+	}
+}
+
+// fold sums the octaves, the coarsest of them span tiles across, in [0,1]
+// before it is scaled. Folded, each octave is turned inside out at its middle
+// and weighted by how high the coarser ones left it, which is what puts the
+// fine detail on the flanks of the big ridges instead of spreading it evenly
+// over everything: a mountain gets gullies and a plain stays a plain.
+func (w *World) fold(g *Grid, span float64, ridged bool) []float64 {
 	out := make([]float64, len(g.Tiles))
 	carry := make([]float64, len(g.Tiles))
 	for i := range carry {
@@ -391,9 +452,9 @@ func (w *World) fold(g *Grid, ridged bool) []float64 {
 	}
 	// The octaves run until they are finer than a tile rather than for a
 	// fixed count, so that a bigger map gets more detail rather than the same
-	// detail stretched over it. On the default eighty tiles that is five of
-	// them, which is what it always was.
-	amp, step := 1.0, float64(g.Span())/2
+	// detail stretched over it. From forty tiles down that is five of them,
+	// which is what the default valley always had.
+	amp, step := 1.0, span
 	for step >= 2 {
 		lattice := w.lattice(g, step)
 		g.EachRow(func(y int) {
@@ -417,10 +478,10 @@ func (w *World) fold(g *Grid, ridged bool) []float64 {
 	for _, v := range out {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
-	span := math.Max(1e-9, hi-lo)
+	reach := math.Max(1e-9, hi-lo)
 	g.EachRow(func(y int) {
 		for i := y * g.W; i < (y+1)*g.W; i++ {
-			out[i] = (out[i] - lo) / span
+			out[i] = (out[i] - lo) / reach
 		}
 	})
 	return out

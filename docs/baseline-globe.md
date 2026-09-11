@@ -17,34 +17,45 @@ This is not the valley's baseline and none of its numbers compare to
 [baseline.md](baseline.md). The world is a cylinder a thousand tiles round,
 a third of it sea, cold at the poles and warm at the middle, and a founding
 party is set down on a coast where a laden walker is cut off by water on
-one side or another. One of the eight died out, one is down to three souls,
-and three grew past five hundred; that is the globe's ecology as it stands,
+one side or another. All eight came through, two are under a hundred souls,
+and one grew past five hundred; that is the globe's ecology as it stands,
 before the settlements to come have bounded land of their own, and it is what
 a change to the globe is held against. Everything that is measured on the valley is
 measured on the valley still, and is unchanged by any of this.
 
-Taken on the commit that gave the rivers a shape: a channel cuts the outside
-of its own bends and walks across its valley, and how fast it cuts is divided
-by the rock it is cutting. See "What the last change did" in
-[baseline.md](baseline.md).
+Taken on the commit that gave the globe mountains instead of blobs: the
+ridges, the mask that says where the high country stands, and the height it
+stands to are all measured in the length of a mountain range now, and not in
+the width of the map. A globe's high ground was four or five smooth domes two
+hundred tiles across and three thousand three hundred metres high, with slopes
+a walker could not stand on and nothing on them to see; it is a dozen ranges
+of eight hundred metres with summits and saddles in them. See rangeSpan in
+core/world/relief.go. The valley is untouched by all of it - its heights hash
+the same tile for tile - so [baseline.md](baseline.md) still stands.
 
 Like the batch before it, this is a measurement of that change and of nothing
 else: it was taken on the commit immediately previous, with nothing in
 between.
 
 ```
-before the rivers: gates: fed 0.70 safe 0.52 held 0.62 all 0.257 food 22.36 | lasted 6/8 extinct 0 mean 133.2 median 90
-after the rivers:  gates: fed 0.68 safe 0.51 held 0.66 all 0.272 food 14.06 | lasted 6/8 extinct 1 mean 254.9 median 124
+before the mountains: gates: fed 0.68 safe 0.51 held 0.66 all 0.272 food 14.06 | lasted 6/8 extinct 1 mean 254.9 median 124
+after the mountains:  gates: fed 0.69 safe 0.56 held 0.69 all 0.299 food 15.32 | lasted 8/8 extinct 0 mean 206.9 median 127
 ```
 
-Eight seeds is too small a batch to believe, and this one shows why: the mean
-population has doubled, one settlement has died where none did, and the food
-on hand has fallen by a third - three readings pointing three ways. What is
-worth noting is `food`, which is the one figure here far outside anything the
-valley's thresholds would call noise: 22.4 to 14.1. On a globe a settlement
-lives off wild ground far more than a valley one does, and rivers that move
-are rivers that drown and re-make the ground it forages. Whether that is the
-change or the draw wants a batch that could carry the question.
+Nothing here is outside what eight seeds will do on their own, and it is not
+claimed that the mountains fed anybody. `lasted` went 6/8 to 8/8 and the one
+extinction went away, which is the right direction and is one settlement
+either way; `gates all` moved 0.027, half of what the valley's table asks for
+before a move is worth believing. The reading that matters is that a change
+this large to the shape of the ground moved the settlements hardly at all -
+they live on the lowland, and the lowland is the one part of the height field
+this did not touch.
+
+The batch before this one is kept for the same reason it always was:
+
+```
+before the rivers: gates: fed 0.70 safe 0.52 held 0.62 all 0.257 food 22.36 | lasted 6/8 extinct 0 mean 133.2 median 90
+```
 
 The cost of a day was measured on `a49cf5f` and has not been taken again: on
 an idle machine of twenty-four cores a day here with forty people cost four to
@@ -56,14 +67,14 @@ eight seeds, sixty years each - took 2m38s.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1   45   132    157     24     62 |  0.65  0.59  0.74  0.76  0.17 |  1.00
-   2   28   189    137     19     47 |  0.80  0.67  0.80  0.73  0.09 |  0.97
-   3  124   112     75     51     78 |  0.66  0.48  0.61  0.84  0.03 |  1.00
-   4  772   121    144    336    407 |  0.67  0.53  0.54  0.67  0.03 |  1.00
-   5    0    25      5      0      0 |  0.00  0.00  0.00  0.00  0.00 |  0.00
-   6  515   329    133    270    471 |  0.68  0.55  0.70  0.69  0.07 |  0.99
-   7  552   164    136    207    256 |  0.65  0.50  0.65  0.82  0.06 |  1.00
-   8    3    23      6      3      6 |  0.62  0.74  0.99  0.99  0.21 |  0.89
+   1  461   227    130    122    265 |  0.69  0.56  0.68  0.29  0.17 |  1.00
+   2   34    63     77     17     26 |  0.70  0.63  0.45  0.35  0.02 |  1.00
+   3  261   251    151    134    236 |  0.68  0.59  0.68  0.27  0.11 |  1.00
+   4   64    43     60     20     68 |  0.68  0.46  0.63  0.36  0.02 |  1.00
+   5   78   348    123     39     24 |  0.69  0.59  0.52  0.62  0.16 |  1.00
+   6  127   221     68     67     87 |  0.84  0.56  0.69  0.18  0.04 |  1.00
+   7  540   439    210    439     26 |  0.71  0.66  0.58  0.06  0.03 |  0.99
+   8   90    44     37     19     85 |  0.66  0.50  0.72  0.33  0.02 |  1.00
 
 dwell/rest                         1416252  37.5%
 take/berries@wood                   654753  17.3%

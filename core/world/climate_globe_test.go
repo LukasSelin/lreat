@@ -117,7 +117,7 @@ func TestAGlobeHasASeaItsRiversReach(t *testing.T) {
 }
 
 // The mask that says where the high country stands has to have enough
-// corners in it to say anything. On a map of the width it was drawn at it is
+// corners in it to say anything. On a map smaller than a whole range it is
 // the half-span it always was; on a globe it is far finer than that, and the
 // difference shows up as ground that varies along a row instead of a row that
 // is all one height. See Grid.UplandLattice.
@@ -135,19 +135,36 @@ func TestTheUplandMaskIsFinerThanTheMap(t *testing.T) {
 		t.Skip("a globe takes a second or two to make")
 	}
 	// Along a row of a globe the ground rises and falls, because the high
-	// country is a region of it and not a band across it. Taken at a plain
-	// half-span this row was flat to within a few metres either side.
+	// country is a region of it and not a band across it. The reading is the
+	// spread along a row set against the spread between the rows, and not a
+	// height, because a height is a statement about how tall this map's
+	// mountains happen to be: at a plain half-span the mountains were three
+	// thousand metres and any row through one cleared a hundred metres of
+	// spread while saying nothing at all about where the high ground was.
+	// What is wanted is that a row is not the unit the ground varies in.
 	g := NewWith(1, Globe()).Grid
-	for _, y := range []int{20, 100, 400} {
+	along := make([]float64, g.H)
+	across := make([]float64, g.H)
+	for y := 0; y < g.H; y++ {
 		var sum, sq float64
 		for x := 0; x < g.W; x++ {
 			h := g.At(entity.Pos{X: x, Y: y}).Height
 			sum, sq = sum+h, sq+h*h
 		}
 		n := float64(g.W)
-		if sd := math.Sqrt(sq/n - (sum/n)*(sum/n)); sd < 100 {
-			t.Errorf("row %d varies by %.0f metres along its length: it is a band, not a country", y, sd)
-		}
+		across[y] = sum / n
+		along[y] = math.Sqrt(math.Max(0, sq/n-(sum/n)*(sum/n)))
+	}
+	var sum, sq float64
+	for _, m := range across {
+		sum, sq = sum+m, sq+m*m
+	}
+	n := float64(len(across))
+	between := math.Sqrt(math.Max(0, sq/n-(sum/n)*(sum/n)))
+	within := quantile(along, 0.5)
+	if within < between {
+		t.Errorf("the ground varies by %.0f metres along the middling row and the rows differ by %.0f: "+
+			"the high country is a band of latitude, not a country", within, between)
 	}
 }
 
