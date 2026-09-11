@@ -3,6 +3,7 @@ package world
 import (
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 // Reading the world on several goroutines at once.
@@ -17,10 +18,19 @@ import (
 // only where no other worker looks, nothing a worker writes is read until
 // every worker has finished, and no worker draws the world's chance. What
 // comes out lands in a slice indexed by the work, and the world is changed
-// from it afterwards, in one order, on one goroutine. Two passes are spread
-// this way - agents deciding, in system.Decide, and the passes over the
-// ground, in EachActiveOver - and both are held against a run of the same
-// seed that spread over nothing.
+// from it afterwards, in one order, on one goroutine. The passes spread
+// this way are agents deciding, in system.Decide; the passes over the
+// ground, in EachActiveOver and EachActiveRow; the cheap passes over the
+// population - who stands beside whom in system.Beliefs, the wearing of
+// each body in system.Decay, everybody's situation in system.Discover; and
+// the finding of the fields in Fence. Each is held against a run of the
+// same seed that spread over nothing.
+//
+// The one pass that changes the world from several goroutines at once is
+// the day's acting, and it keeps the rule another way: the people are cut
+// into islands that cannot touch the same ground, and what any island does
+// to the settlement as a whole is taken down apart and put together
+// afterwards in one order. See island.go.
 
 // Workers is how many goroutines the read-only passes of a day may spread
 // over: the deciding, which is the bulk of a day where there are people,
@@ -42,12 +52,16 @@ func WorkersFor(n int) int {
 }
 
 // InParallel runs f for every index below n, spread over workers goroutines,
-// and returns when the last of them is done. Index i is worked by i%workers,
-// so work that lies together is dealt out between the workers rather than
-// landing on one of them.
+// and returns when the last of them is done. The indices are dealt out one
+// at a time to whichever worker is free, rather than cut into stripes
+// beforehand: the work is not all the same size - one agent's deciding can
+// cost a hundred others' - and a stripe that happened to hold the dear
+// pieces held the day up while the other workers stood idle.
 //
 // f must not write anything another call to f can see; results belong in a
-// slice indexed by i.
+// slice indexed by i. Which worker gets which index is not a fact about
+// anything, and nothing may depend on it; the worker is passed so that f
+// can use scratch that is that worker's own.
 func InParallel(n, workers int, f func(i, worker int)) {
 	if workers <= 1 {
 		for i := 0; i < n; i++ {
@@ -55,18 +69,36 @@ func InParallel(n, workers int, f func(i, worker int)) {
 		}
 		return
 	}
+	var next atomic.Int64
 	var wg sync.WaitGroup
 	for k := 0; k < workers; k++ {
 		wg.Add(1)
 		go func(k int) {
 			defer wg.Done()
-			for i := k; i < n; i += workers {
+			for {
+				i := int(next.Add(1)) - 1
+				if i >= n {
+					return
+				}
 				f(i, k)
 			}
 		}(k)
 	}
 	wg.Wait()
 }
+
+// spreadAgents is how many people a pass over the population is worth a
+// goroutine for. Deciding is one agent to a goroutine, because a decision
+// costs far more than handing one over; a look at who is standing beside
+// somebody costs a few hundred nanoseconds, and handing two hundred of
+// those to twenty-four goroutines cost the valley more than doing them
+// in turn.
+const spreadAgents = 64
+
+// WorkersOver is how many goroutines to spread a cheap pass over n people
+// over: one for every spreadAgents of them, and never more than Workers.
+// Under spreadAgents it is one, and the pass is done in turn.
+func WorkersOver(n int) int { return WorkersFor(n / spreadAgents) }
 
 // spreadTiles is how much ground a pass has to cover before it is worth
 // handing to goroutines. The default valley is under three thousand tiles

@@ -150,6 +150,13 @@ type Agent struct {
 	// Luck covers choosing, while acting on the choice still draws on the
 	// world.
 	Luck *rand.Rand
+	// Toil is what the last decision cost in looking: the tiles the router
+	// opened working out where to go. It says nothing about the agent and
+	// changes nothing it does; it is read only to deal the deciding out,
+	// dearest first, so that the one scout whose search runs to the limit
+	// is started before the hundred whose errands are next door. See
+	// system.Decide.
+	Toil int
 
 	Needs       need.Levels
 	Personality need.Weights

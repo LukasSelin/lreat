@@ -92,6 +92,9 @@ type decision struct {
 	// it was worked out, so that watching an agent cannot change what a run
 	// does or when it does it.
 	thought *world.Deliberation
+	// toil is what the deciding cost in looking, for dealing out the next
+	// day's; see Decide.
+	toil int
 }
 
 // Decide gives every idle agent a plan, by value or by fit as the world's
@@ -100,6 +103,14 @@ type decision struct {
 // goroutines, while the plans - and the tally of how undecided the settlement
 // was - land in a fixed order out of a slice indexed by agent. That is what
 // keeps a run the same however the goroutines are scheduled.
+//
+// The deciding is dealt out dearest first, by what each agent's last
+// decision cost in looking. A few decisions on any day cost more than all
+// the rest together - a scout whose search runs to its limit - and one of
+// those started last is a worker finishing alone after the others are done.
+// Started first, it is finished while the rest are still being dealt out.
+// The order only says which worker gets which agent, which nothing depends
+// on; the plans are still committed in agent order.
 func Decide(w *world.World) {
 	w.Choices, w.Entropy = 0, 0
 	idle := make([]*entity.Agent, 0, len(w.Agents))
@@ -112,6 +123,11 @@ func Decide(w *world.World) {
 		return
 	}
 	out := make([]decision, len(idle))
+	order := make([]int, len(idle))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(a, b int) bool { return idle[order[a]].Toil > idle[order[b]].Toil })
 	// One agent to a goroutine. A decision costs far more than handing one
 	// over, and batching them up only leaves cores idle: insisting on four
 	// agents per worker cost a third of the speedup when this was measured.
@@ -121,11 +137,15 @@ func Decide(w *world.World) {
 	w.Grid.RefreshLandmarks(w.Tick)
 	action.Ready(w)
 	w.Freeze(true)
-	world.InParallel(len(idle), len(routers), func(i, worker int) {
-		out[i] = decide(idle[i], w, routers[worker])
+	world.InParallel(len(idle), len(routers), func(k, worker int) {
+		i, r := order[k], routers[worker]
+		opened := r.Work
+		out[i] = decide(idle[i], w, r)
+		out[i].toil = r.Work - opened
 	})
 	w.Freeze(false)
 	for i, a := range idle {
+		a.Toil = out[i].toil
 		if out[i].plan == nil {
 			continue
 		}
@@ -346,8 +366,20 @@ func newPlan(a *entity.Agent, w *world.World, r *world.Router, d *action.Def, ta
 const Exertion = 0.006
 
 // Act moves agents toward their targets, then advances and applies plans.
+//
+// It acts island by island - see world.Islands - each island on a
+// goroutine of its own where the people live apart, and the world itself
+// in agent order where they do not. Within an island the order is agent
+// order, as it always was: acting is the one phase whose order is a fact
+// about the settlement, since the last unit of food goes to whoever acted
+// first, and an island keeps it.
 func Act(w *world.World) {
-	for _, a := range w.Agents {
+	w.EachIsland(act)
+}
+
+// act is one island's day of acting.
+func act(w *world.World, is world.Island) {
+	for _, a := range is.Agents {
 		if a.Plan == nil {
 			continue
 		}

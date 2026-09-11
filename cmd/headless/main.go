@@ -119,8 +119,8 @@ func main() {
 			lastReported = w.Tick + 1
 			if *timing {
 				a := w.Awake
-				spent.awake = fmt.Sprintf("%d/%d awake (%d settled, %d beside, %d peopled, %d worn), %d plans with no way, landmarks taken %d times",
-					a.Settled+a.Beside+a.Peopled+a.Worn, a.Chunks, a.Settled, a.Beside, a.Peopled, a.Worn, w.Stuck-spent.stuck, w.Grid.LandmarkBuilds()-spent.builds)
+				spent.awake = fmt.Sprintf("%d/%d awake (%d settled, %d beside, %d peopled, %d worn), %d islands (largest %.0f%%), %d plans with no way, landmarks taken %d times",
+					a.Settled+a.Beside+a.Peopled+a.Worn, a.Chunks, a.Settled, a.Beside, a.Peopled, a.Worn, w.Isles.Islands, 100*w.Isles.Largest, w.Stuck-spent.stuck, w.Grid.LandmarkBuilds()-spent.builds)
 				spent.stuck, spent.builds = w.Stuck, w.Grid.LandmarkBuilds()
 				fmt.Fprintln(out, spent.line())
 			}

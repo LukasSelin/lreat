@@ -122,7 +122,8 @@ var (
 // takes the upper half, which is the same split the land is built on: see
 // world.Relief and world.Grid.UplandRise. The upper half is measured against
 // the map's own high country rather than a fixed height, because how far the
-// mountains rise depends on how wide the map is.
+// mountains rise depends on how much ground they are spread over, and a map
+// too small to hold a whole range holds less of one.
 //
 // A single ramp stretched over the whole range was the first try and it was
 // no good. The lowland is a fifth of the height of the map and a settlement

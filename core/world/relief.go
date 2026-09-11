@@ -37,30 +37,29 @@ const TileSpan = 25.0
 const Relief = 60.0
 
 // Upland is how far the high country stands above the valley it stands in,
-// on a map of the default width, and uplandShare is how much of a map it
-// covers. Two hundred and sixty metres is a wall rather than a slope: ground
-// a route goes round because going over it costs twenty tiles of climbing,
-// and that is the whole difference between a map with somewhere on it and a
-// map without.
+// and uplandShare is how much of a map it covers. Two hundred and sixty
+// metres is a wall rather than a slope: ground a route goes round because
+// going over it costs twenty tiles of climbing, and that is the whole
+// difference between a map with somewhere on it and a map without.
 //
-// It is quoted at a width and scaled to the map being made - see
-// Grid.UplandRise - because a height spread over more ground is a gentler
-// thing. Held at a fixed two hundred and sixty metres, a map three times as
-// wide put the same mountains over three times the distance and the steep
-// tenth of the ground went from a slope of 0.45 to one of 0.22: the peaks
-// were still the same height and there was nothing steep anywhere, which is
-// the gentle bowl this was all meant to stop being. Scaled, that tenth holds
-// between 0.45 and 0.42 from eighty tiles wide to two hundred and forty, and
-// a bigger map is a bigger country at the same ruggedness rather than the
-// same country drawn larger.
+// It is quoted here and scaled to the ground the high country is spread over
+// rather than to the width of the map - see Grid.UplandRise - because what
+// makes a mountain a mountain is the slope and not the number on top of it,
+// and a rise spread over more ground is a gentler thing. Scaled to the map, as
+// it was, a globe sixteen chunks round raised its high country three thousand
+// three hundred metres: ground a tenth of which fell more than a metre for
+// every metre crossed, which is not a mountainside but a cliff, and all of it
+// in four or five domes with a dead flat plain between them. Scaled to the
+// range, a map with room for a whole range gets a whole range, and a map with
+// room for one mountainside gets the mountainside it always had.
 //
-// Relief is deliberately not scaled with it. The lowland is where a
-// settlement lives, and what makes it liveable is measured in metres and not
-// in tiles: FloodDepth says the valley floor is the ground within fourteen
-// metres of its river, and the soil reads off that. Stretching the lowland to
-// match a wider map would put most of it above the flood and take its soil
-// down to the floor of 0.15, which is the thing that went wrong when the
-// valley and the mountains were one field scaled together.
+// Relief is deliberately not scaled with it. The lowland is where a settlement
+// lives, and what makes it liveable is measured in metres and not in tiles:
+// FloodDepth says the valley floor is the ground within fourteen metres of its
+// river, and the soil reads off that. Stretching the lowland to match a wider
+// map would put most of it above the flood and take its soil down to the floor
+// of 0.15, which is the thing that went wrong when the valley and the
+// mountains were one field scaled together.
 //
 // The share is what keeps a map habitable, and it is a share rather than a
 // height for the reason everything else here is: how much of a map comes out
@@ -73,37 +72,66 @@ const (
 	// uplandMass is how much of the rise is the bulk of the high country and
 	// how much is the ridges standing on it.
 	uplandMass = 0.45
-	// uplandSpan is the map width Upland is quoted at, which is the width a
-	// settlement is founded on unless somebody says otherwise.
+	// uplandSpan is the map width the default valley is founded on unless
+	// somebody says otherwise, and the width the rest of this was measured at.
 	uplandSpan = DefaultWidth
 )
 
-// UplandLattice is how far apart the corners of the mask that says where the
-// high country stands are. It is the geometric mean of the map's own span and
-// the span that mask was drawn at, halved: on a map of the quoted width it is
-// exactly the half-span it always was, and on a bigger one the regions of high
-// country grow with the map but slower than it does, so a wider world gets
-// more mountain ranges as well as larger ones.
+// rangeSpan is how far apart the ridges of a range stand, and rangeFoot is how
+// much ground the range itself covers: a kilometre between the ridges and
+// three between the feet of the thing, so that a range is several summits with
+// saddles between them and not one hill.
 //
-// Taken as a plain half-span, a globe a thousand tiles across drew the whole
-// of its topography from a lattice two corners round and three deep - six
-// numbers deciding where every mountain on a planet went. What came out was
-// not a world but a tilt: over three seeds the mean height of row twenty ran
-// 41, 422 and 974 metres against a row-256 of 131, 32 and 44, so one
-// hemisphere was a plateau and the other a plain, differently each time and
-// for no reason the map could show. At the square root the same globe draws
-// from eight corners round and five deep, which is continents.
+// They are lengths on the ground and not shares of the map, and that is the
+// whole of what was wrong. Every octave here used to start at half the map's
+// own width - on the default eighty tiles that is rangeSpan exactly, and on a
+// globe it is five hundred. The coarsest octave of a ridged field carries most
+// of its height, so a globe drew every mountain it had off a lattice two
+// corners round and three deep: one ridge the size of a hemisphere. The mask
+// that says where the high country stands went the same way, at the square
+// root of the map and the quoted span, and set that ridge in a round
+// two-hundred-tile blank. What came out was the complaint - one blob, too
+// round, too high, over far too much ground, with nothing in it.
+//
+// Held at the size of a range, a wider map gets more ranges rather than one
+// range drawn wider, and the grain inside each of them is the grain the
+// valley's own high ground has. The foot is three ridges across because a
+// massif drawn at the span of its own ridges holds one crest and is a cone
+// again.
+const (
+	rangeSpan = uplandSpan / 2
+	rangeFoot = 3 * rangeSpan
+)
+
+// UplandLattice is how far apart the corners of the mask that says where the
+// high country stands are: the foot of a range, or half the map where the map
+// is smaller than that, which the default valley is. A valley is one
+// mountainside seen close to; it has no room for a whole range and never had.
+//
+// A corner's width is the mountainside, because the whole of the high
+// country's rise happens across one of them - which is why this is held to the
+// size of a range and not to the size of the world. Scaled with the world, as
+// it was, a globe spread the same rise over two hundred tiles and got a slope
+// of four in a hundred: a swell so broad that standing on it you would not
+// know.
 func (g *Grid) UplandLattice() float64 {
-	return math.Sqrt(float64(g.Span())*uplandSpan) / 2
+	return math.Min(float64(g.Span())/2, rangeFoot)
 }
 
-// Span is how many tiles across the map is at its widest. It is what the
-// shape of the land is measured in: the octaves start at half of it, the high
-// country is masked at half of it, and the mountains rise in proportion to it.
+// Span is how many tiles across the map is at its widest. It is what the lie
+// of the land is measured in - the octaves of the broad swell start at half of
+// it - and it is the ceiling on everything else, because no feature can be
+// wider than the map it is drawn on. The mountains themselves are measured in
+// their own lengths instead: see rangeSpan.
 func (g *Grid) Span() int { return max(g.W, g.H) }
 
-// UplandRise is how far this map's high country stands above its valley.
-func (g *Grid) UplandRise() float64 { return Upland * float64(g.Span()) / uplandSpan }
+// UplandRise is how far this map's high country stands above its valley: the
+// quoted rise, in proportion to how much ground that country is spread over.
+// A range with three times the footing stands three times as tall and its
+// flanks come out at the same slope either way, which is the point of it - a
+// mountain is known by how steeply it goes up and not by the number on top.
+// On a map too small to hold a whole range it is Upland exactly.
+func (g *Grid) UplandRise() float64 { return Upland * g.UplandLattice() / (uplandSpan / 2) }
 
 // Skyline is the top of the map: the valley's own relief plus the high
 // country standing on it.
@@ -124,6 +152,110 @@ const (
 	rockShare   = 0.015
 	forestShare = 0.13
 )
+
+// How much rain falls on the lowest ground a map has and how much more falls
+// on its highest: three times as much on the tops. Air going up cools, and
+// cool air cannot hold what warm air was carrying, so the high ground wrings
+// the weather out and gets the most of it.
+//
+// The sea gets none. Rain on the sea is rain that has arrived; what is being
+// counted here is what still has to run somewhere, and every tile of a map -
+// ocean included - used to be given the same share of it. On a globe that put
+// a third of the world's water into the sea before the sea, which is where
+// the threshold a river is picked by was read from.
+//
+// Be clear about what the lift is worth, because it is not much and it would
+// be easy to think otherwise: on the default valley, taking it from one to
+// ten moves the median flow on a flood plain by about a third and the median
+// spring from seventeen metres to twenty-six, and the count of river tiles up
+// in the high fifth of the map from none to one. It cannot do more. A
+// headwater has a handful of tiles above it whatever falls on them, against
+// the thousand above a tile down on the floor, so the catchment wins however
+// wet the mountain is. What actually puts a river's head in the high ground
+// is channelTheta, below. This is here because it is true and because the sea
+// was wrong, and not because it did the work.
+const (
+	rainFlat = 1.0
+	rainHigh = 3.0
+)
+
+// channelTheta is how much of a say the fall of the ground has in whether the
+// water running over it has cut a channel, against how much water there is. A
+// river is where A·S^θ is greatest and not where A alone is: the slope-area
+// law, which is how channel initiation is read in the literature it is taken
+// from (Montgomery and Dietrich, Science, 1992; Tarboton and others, 1991).
+//
+// Water needs less of a catchment to cut a channel on a steep hillside than on
+// a flat one, because the same water moving down a steeper slope carries more.
+// That is why a mountain has streams within a few hundred metres of its ridge
+// while a plain gathers for miles before anything shows, and it is the reading
+// that puts the head of a river in the high ground - see rainHigh, which
+// cannot.
+//
+// One, which is the bottom of the published range and is the stream power
+// index exactly: A·S, a named quantity rather than a number somebody liked.
+// Swept over the default valley and a quarter globe, three seeds each, this is
+// what it buys and what it costs:
+//
+//	θ     valley upland   globe upland   pieces, globe   median river flow
+//	0.50      8.3%           43.8%            50            3.75e-02
+//	0.75     13.6%           44.9%            39            2.37e-02
+//	1.00     16.1%           45.3%            34            1.85e-02
+//	1.25     18.8%           45.1%            31            1.48e-02
+//	1.50     20.1%           45.2%            31            1.21e-02
+//
+// "Upland" is the share of a map's river tiles standing in its high fifth,
+// which is the thing raising θ is for; "pieces" is how many separate networks
+// the globe comes out with, and fewer is better because a river should reach
+// the sea. The globe has all it is going to get by one. The valley goes on
+// gaining past that, but the gain is bought with the size of its rivers - at
+// one and a half the middling river carries a third of what it did - and there
+// is nothing in the sources that says one and a half rather than one.
+//
+// It was a half before, chosen because it reordered the map without replacing
+// it, and it sat in a constant that nothing referenced: the reading hardcoded
+// math.Sqrt and this said 0.5 beside it, so the two could have drifted apart
+// without a word. Taken on flow alone, at θ of nothing, the high fifth of the
+// valley held none of its river tiles, one, and none over three seeds.
+//
+// S here is Grid.Slope, and that it is the along-flow gradient is not an
+// accident worth leaving unsaid: Grid.Aspect picks the direction of the
+// steepest run-corrected fall and Slope is the size of that same fall, so they
+// share an argmax. They did not before Aspect was fixed to do so, and this law
+// would have been incoherent on a field whose A and S pointed different ways.
+const channelTheta = 1.0
+
+// bankRise is how far above its own channel a great river's flood reaches, in
+// metres. Nothing: a river spreads onto the ground beside it that is no higher
+// than the water, and no further.
+//
+// It was a metre, and the line above it said "no higher" - the comment and the
+// code had disagreed since it was written, and the code was the generous one.
+// A metre is a great deal of flood plain when the ground is flat, and it went
+// unnoticed for as long as the reading that picks a great river was wrong,
+// because a river picked by how hard it was cutting is a rill near a ridge and
+// a rill near a ridge has no flat ground beside it to give away. Corrected to
+// read off the flow, the rule began firing where it should - on flood plains,
+// which is where the markets are - and took an eighth of a settlement's
+// building ground with it.
+//
+// Counted within ten tiles of a market over eight globes, by how far the flood
+// is let rise:
+//
+//	rise    water   fish   fertility   buildable   river, share of map
+//	1.00    149.5   127.3    232.2       240.4           7.18%
+//	0.50    146.0   124.6    237.8       244.1           7.05%
+//	0.25    142.5   121.2    242.1       247.9           6.85%
+//	0.00    130.1   111.2    254.2       256.4           5.68%
+//
+// Nothing gives back half of the ground the correction cost - 240 to 256,
+// against 272 when the rule was firing on ridges - while still leaving a
+// settlement more water and more fish than it had then. It also brings the
+// share of a map that comes out as watercourse back toward the waterShare it
+// asks for: the banks are laid after the channels are counted, so whatever
+// they add is over the top of it, and at a metre they were adding two thirds
+// again.
+const bankRise = 0.0
 
 // FloodDepth is how far above its river ground stops being valley floor, in
 // metres. Below it the soil is what the water left; above it the ground is
@@ -287,15 +419,38 @@ func (g *Grid) Slope(p entity.Pos) float64 {
 	return steepest
 }
 
-// Aspect is the way a slope faces: the step toward the lowest neighbour, which
-// is the way water leaves and the way the ground looks. The zero step means
-// level ground, or a hollow with nowhere lower to go.
+// Aspect is the way a slope faces: the step down the steepest fall, which is
+// the way water leaves and the way the ground looks. The zero step means level
+// ground, or a hollow with nowhere lower to go.
+//
+// The steepest fall and not the lowest neighbour, which is what this asked for
+// until it was looked at. A diagonal neighbour is half again as far off as a
+// straight one, so on ground that falls evenly it is lower by half again -
+// and picking the lowest therefore picked a diagonal every time, on every
+// even slope, and the same diagonal every time, because the first one the
+// direction list offers wins a tie. What that draws is not drainage. It is a
+// set of parallel lines at forty-five degrees, ruled across every plain on the
+// map: two river tiles in three left their tile cornerways, where an honest
+// surface gives about one in two, and the long straight rivers on the flats of
+// a globe were all of them this and none of them ground.
+//
+// Dividing the drop by the distance is what Grid.Slope has always done, three
+// functions above. This is the one reading of the same eight neighbours that
+// did not.
 func (g *Grid) Aspect(p entity.Pos) entity.Pos {
-	best, lowest := entity.Pos{}, g.Height(p)
+	h := g.Height(p)
+	best, steepest := entity.Pos{}, 0.0
 	for _, off := range dirs {
 		q := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
-		if g.In(q) && g.Height(q) < lowest {
-			best, lowest = off, g.Height(q)
+		if !g.In(q) {
+			continue
+		}
+		run := 1.0
+		if off.X != 0 && off.Y != 0 {
+			run = math.Sqrt2
+		}
+		if d := (h - g.Height(q)) / run; d > steepest {
+			best, steepest = off, d
 		}
 	}
 	return best
@@ -346,13 +501,13 @@ func (w *World) raise(g *Grid) {
 // against: a made world says where its high ground is, and this says how high
 // a map's ground is spread. See Grid.normalise in history.go.
 func (w *World) relief(g *Grid) []float64 {
-	lie := w.fold(g, false)
-	crest := w.fold(g, true)
+	// The lie of the land is drawn at the size of the map, because a swell is
+	// whatever the country it lies on is; the ridges are drawn at the size of
+	// a mountain range, because a range is not.
+	lie := w.fold(g, float64(g.Span())/2, false)
+	crest := w.fold(g, math.Min(float64(g.Span())/2, rangeSpan), true)
 
-	// Where the high country stands. One lattice far coarser than anything in
-	// the octaves above, so that upland is a region of the map rather than a
-	// speckle through it.
-	where := w.lattice(g, g.UplandLattice())
+	where := w.upland(g)
 	rise := g.UplandRise()
 	h := make([]float64, len(g.Tiles))
 	q := quantiles(where, 1-uplandShare, 1)
@@ -378,12 +533,45 @@ func (w *World) relief(g *Grid) []float64 {
 	return h
 }
 
-// fold sums the octaves, in [0,1] before it is scaled. Folded, each octave is
-// turned inside out at its middle and weighted by how high the coarser ones
-// left it, which is what puts the fine detail on the flanks of the big ridges
-// instead of spreading it evenly over everything: a mountain gets gullies and
-// a plain stays a plain.
-func (w *World) fold(g *Grid, ridged bool) []float64 {
+// upland is where the high country stands: a mask far coarser than anything in
+// the octaves above, so that upland is a region of the map rather than a
+// speckle through it, taken down in halves to the span of a ridge so that the
+// region has an outline.
+//
+// The outline is the whole of the finer octaves' work. Drawn from one lattice
+// the mask is a bilinear blend of a few corners and what it lets through is a
+// disc: a round massif with a smooth edge the whole way round and one summit
+// in the middle, which is the blob a globe kept coming out as. The octaves
+// under it put arms on that, and saddles in it, and outlying hills beside it,
+// so that what stands above the line is a range with a shape rather than a
+// hill with a radius.
+//
+// It stops at the ridges because below that the ridges are already saying
+// where the peaks are, and a mask any finer would only argue with them. On a
+// map too small to hold a whole range the first octave is already that fine,
+// and this is the single lattice it always was.
+func (w *World) upland(g *Grid) []float64 {
+	out := make([]float64, len(g.Tiles))
+	amp := 1.0
+	for span := g.UplandLattice(); ; span, amp = span/2, amp/2 {
+		l := w.lattice(g, span)
+		g.EachRow(func(y int) {
+			for i := y * g.W; i < (y+1)*g.W; i++ {
+				out[i] += amp * l[i]
+			}
+		})
+		if span/2 < rangeSpan {
+			return out
+		}
+	}
+}
+
+// fold sums the octaves, the coarsest of them span tiles across, in [0,1]
+// before it is scaled. Folded, each octave is turned inside out at its middle
+// and weighted by how high the coarser ones left it, which is what puts the
+// fine detail on the flanks of the big ridges instead of spreading it evenly
+// over everything: a mountain gets gullies and a plain stays a plain.
+func (w *World) fold(g *Grid, span float64, ridged bool) []float64 {
 	out := make([]float64, len(g.Tiles))
 	carry := make([]float64, len(g.Tiles))
 	for i := range carry {
@@ -391,9 +579,9 @@ func (w *World) fold(g *Grid, ridged bool) []float64 {
 	}
 	// The octaves run until they are finer than a tile rather than for a
 	// fixed count, so that a bigger map gets more detail rather than the same
-	// detail stretched over it. On the default eighty tiles that is five of
-	// them, which is what it always was.
-	amp, step := 1.0, float64(g.Span())/2
+	// detail stretched over it. From forty tiles down that is five of them,
+	// which is what the default valley always had.
+	amp, step := 1.0, span
 	for step >= 2 {
 		lattice := w.lattice(g, step)
 		g.EachRow(func(y int) {
@@ -417,10 +605,10 @@ func (w *World) fold(g *Grid, ridged bool) []float64 {
 	for _, v := range out {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
-	span := math.Max(1e-9, hi-lo)
+	reach := math.Max(1e-9, hi-lo)
 	g.EachRow(func(y int) {
 		for i := y * g.W; i < (y+1)*g.W; i++ {
-			out[i] = (out[i] - lo) / span
+			out[i] = (out[i] - lo) / reach
 		}
 	})
 	return out
@@ -492,10 +680,29 @@ const Incise = 12.0
 // heights are settled again afterwards, because ground that has moved drains
 // differently.
 //
-// The cut is charged as the root of how much water crosses a tile, which is
-// the usual reading and the one erode.go already takes: a gully cuts nearly
-// as deep as the river it feeds, and the difference between a great river and
-// a small one is far less than the difference in what they carry.
+// The cut is charged as the root of how much water crosses a tile: a gully
+// cuts nearly as deep as the river it feeds, and the difference between a
+// great river and a small one is far less than the difference in what they
+// carry.
+//
+// There is no fall in that and there should not be, which is worth setting
+// down because it looks like an omission and is not. The erosion in erode.go
+// is E = K·A^m·S^n, the stream power law, with m a half and n one - see wear -
+// and this is the same water on the same ground and takes only the A of it.
+// The difference is that wear runs an age at a time, over and over, and this
+// runs once. Stream power says how fast a channel is cutting now; a channel on
+// its own flood plain, carrying everything and falling nowhere, is cutting
+// nothing now and still lies at the bottom of a valley, because it spent ages
+// getting there. What this pass wants is the depth at the end of that and not
+// the rate at the start of it.
+//
+// Measured rather than argued: giving this the S term takes the mean cut on
+// the low half of a default valley from 2.49 metres to 0.60 and puts it on the
+// top fifth instead, from 1.42 to 2.83; and the valley's own trunk - the tile
+// where the river leaves the map, whose fall is exactly zero because there is
+// nothing below it - goes from 26.7 metres of cut to 0.03. The valley the
+// settlement lives in stops existing. A globe does the same, harder: 0.78 to
+// 0.10 on the low half and 1.22 to 4.96 on the top fifth.
 //
 // It is then spread over the ground either side before it is taken off, which
 // is what makes this a valley and not a trench. Applied where it was
@@ -644,10 +851,11 @@ func (g *Grid) drain() {
 			down[i] = int32(g.Index(entity.Pos{X: p.X + a.X, Y: p.Y + a.Y}))
 		}
 	})
+	rain := g.rainfall()
 	order := make([]heightNode, n)
 	for i := range order {
 		order[i] = heightNode{h: g.Tiles[i].Height, idx: int32(i)}
-		g.Tiles[i].Flow = 1 / float64(n)
+		g.Tiles[i].Flow = rain[i]
 	}
 	// Highest first, ties by position, which is a total order: every tile
 	// sits in exactly one place and no two of them may be swapped, so what
@@ -671,6 +879,49 @@ func (g *Grid) drain() {
 	}
 }
 
+// rainfall is what each tile has to send somewhere, as a share of the whole
+// map's water, so that the flows still add to one and every threshold read off
+// them means what it meant. See rainFlat.
+//
+// How high the ground stands is read against the map's own ground and not
+// against a fixed height, because this runs in the middle of a history as well
+// as at the end of one, where the heights are whatever the last epoch left and
+// not yet anything a constant would recognise. The ends are quantiles rather
+// than the lowest and highest tiles for the usual reason - the highest tile is
+// one tile, and how extreme one tile in half a million gets is a fact about
+// how many tiles there are.
+func (g *Grid) rainfall() []float64 {
+	dry := make([]float64, 0, len(g.Tiles))
+	for i := range g.Tiles {
+		if !g.underSea(i) {
+			dry = append(dry, g.Tiles[i].Height)
+		}
+	}
+	rain := make([]float64, len(g.Tiles))
+	if len(dry) == 0 {
+		// A map wholly under water: nothing runs off it, and the flows may
+		// not all be zero or every threshold read off them is meaningless.
+		for i := range rain {
+			rain[i] = 1 / float64(len(rain))
+		}
+		return rain
+	}
+	q := quantiles(dry, 0.05, 0.95)
+	foot, reach := q[0], math.Max(1e-9, q[1]-q[0])
+	total := 0.0
+	for i := range g.Tiles {
+		if g.underSea(i) {
+			continue
+		}
+		rain[i] = rainFlat + (rainHigh-rainFlat)*clamp01((g.Tiles[i].Height-foot)/reach)
+		total += rain[i]
+	}
+	for i := range rain {
+		rain[i] /= total
+	}
+	return rain
+}
+
 // carve puts the water where the flow says it goes: the wettest waterShare of
 // the map is river, and the heaviest of it spreads onto the lower bank beside
 // it, as a river does. Ground the water has left goes back to grass.
@@ -681,31 +932,107 @@ func (g *Grid) drain() {
 // river that swallowed the market would be the end of a run rather than an
 // event in it.
 func (g *Grid) carve(rng interface{ Float64() float64 }) {
+	// What the water has done here, which is what it carries against how fast
+	// it is going: see channelTheta. The share of the map that comes out as
+	// river is the share it always was - this decides which tiles those are,
+	// and not how many.
+	cutting := make([]float64, len(g.Tiles))
 	flows := make([]float64, len(g.Tiles))
 	for i := range g.Tiles {
+		cutting[i] = g.Tiles[i].Flow * math.Pow(g.Slope(g.PosOf(i)), channelTheta)
 		flows[i] = g.Tiles[i].Flow
 	}
-	q := quantiles(flows, 1-waterShare, 1-waterShare/4)
-	cut, big := q[0], q[1]
+	cut := quantile(append([]float64(nil), cutting...), 1-waterShare)
+	// Whether a river is great enough to spread onto its banks is a question
+	// about how much water it is carrying and not about how hard it is
+	// cutting, so it is read off the flow and not off the work. They are not
+	// the same question and the answers point opposite ways: the hardest
+	// cutting on a map is a steep rill near a ridge, which carries nothing.
+	// Read off the work, nine tenths of the tiles allowed to flood their banks
+	// on a globe stood in the top fifth of the ground - mountainsides in
+	// flood, with the flood plains dry.
+	big := quantile(flows, 1-waterShare/4)
 
-	// A channel does not flicker. Ground becomes river when the water really
-	// gathers there, and stops being river only when the water has largely
-	// gone - not the moment it dips below the line. Without that hysteresis a
-	// settlement wipes out its own river: it holds the ground the shifting
-	// channel wants, so the new course cannot form, while the old one dries
-	// the instant it falls under the threshold.
+	// Hysteresis, which is what cut/2 below is for. Ground becomes river when
+	// the water really gathers there, and stops being river only when the
+	// water has largely gone - not the moment it dips below the line. Without
+	// it a settlement wipes out its own river: it holds the ground the
+	// shifting channel wants, so the new course cannot form, while the old one
+	// dries the instant it falls under the threshold.
+	// A channel is laid from its head down, and goes on being a channel until
+	// it reaches the sea. Where the water has cut is read tile by tile above,
+	// and read that way alone a river comes apart: the reading is flow against
+	// fall, so a trunk crossing its own flood plain - all the water on the map
+	// and no fall at all - drops under the line its own headwaters cleared.
+	// What that draws is a mountain full of streams, a plain with nothing on
+	// it, and a scatter of blue dashes in between where the ground happened to
+	// tilt. Water does not do that; it goes somewhere.
+	//
+	// So the heads are taken hardest-working first and each is followed down
+	// to the sea, and the map is given channels until it has the share of them
+	// it is meant to have. Marking everything that cleared the line and then
+	// following all of it put nine tiles in a hundred of the default valley
+	// under water against the four and a half it asks for, because the
+	// followed-down trunks are tiles nobody counted.
 	wet := make([]bool, len(g.Tiles))
+	land := 0
 	for i := range g.Tiles {
-		if g.Tiles[i].Wet() {
-			wet[i] = g.Tiles[i].Flow >= cut/2
-		} else {
-			wet[i] = g.Tiles[i].Flow >= cut
-		}
 		if g.underSea(i) {
 			wet[i] = true
+		} else {
+			land++
 		}
 	}
-	// The great rivers spread onto whatever beside them is no higher.
+	want := int(waterShare * float64(len(g.Tiles)))
+	laid := 0
+	lay := func(from int) {
+		for j := from; !wet[j]; {
+			wet[j], laid = true, laid+1
+			a := g.Aspect(g.PosOf(j))
+			if a == (entity.Pos{}) {
+				return // a hollow: the water stands here
+			}
+			p := g.PosOf(j)
+			q := entity.Pos{X: p.X + a.X, Y: p.Y + a.Y}
+			if g.Wrap {
+				q = g.Norm(q)
+			}
+			if !g.In(q) {
+				return // off the map, which is where a valley's water goes
+			}
+			j = g.Index(q)
+		}
+	}
+	// Hardest-working first, ties by position so that the same map comes out
+	// however the sort happened to run.
+	order := make([]heightNode, 0, land)
+	for i := range g.Tiles {
+		if !g.underSea(i) {
+			order = append(order, heightNode{h: cutting[i], idx: int32(i)})
+		}
+	}
+	slices.SortFunc(order, func(a, b heightNode) int {
+		if a.h != b.h {
+			return cmp.Compare(b.h, a.h)
+		}
+		return cmp.Compare(a.idx, b.idx)
+	})
+	// A channel does not flicker, so a bed that is still being cut at half
+	// the rate keeps its water whether or not it would be chosen afresh. See
+	// the remark on hysteresis below.
+	for _, nd := range order {
+		if g.Tiles[nd.idx].Wet() && nd.h >= cut/2 {
+			lay(int(nd.idx))
+		}
+	}
+	for _, nd := range order {
+		if laid >= want {
+			break
+		}
+		lay(int(nd.idx))
+	}
+	// The great rivers spread onto the ground beside them that the flood
+	// reaches: see bankRise.
 	for i := range g.Tiles {
 		if g.Tiles[i].Flow < big {
 			continue
@@ -713,7 +1040,7 @@ func (g *Grid) carve(rng interface{ Float64() float64 }) {
 		p := entity.Pos{X: i % g.W, Y: i / g.W}
 		for _, off := range dirs {
 			c := entity.Pos{X: p.X + off.X, Y: p.Y + off.Y}
-			if g.In(c) && g.Height(c) <= g.Height(p)+1 {
+			if g.In(c) && g.Height(c) <= g.Height(p)+bankRise {
 				wet[g.Index(c)] = true
 			}
 		}

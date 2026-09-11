@@ -18,6 +18,10 @@ import (
 // and the merged tree came to the same three numbers. The full batch in docs/baseline.md is the proof; this is the
 // check that runs in seconds.
 //
+// Retaken on the merged tree: the landmarks and the walking limit brought
+// together with master's islands, mountains and roads. Both sides moved
+// every seed on their own; see below and master's own account.
+//
 // A change meant to alter what a settlement does must retake these three
 // numbers in the commit that makes it, and say so. A change that was not
 // meant to and moves them was not what it was meant to be.
@@ -31,7 +35,45 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for the land's answers being worked toward rather than handed
+// Retaken for how far a great river's flood reaches. It took every neighbour
+// standing up to a metre above its channel, while the line above it said "no
+// higher" - the comment and the code had disagreed since it was written. A
+// metre is a great deal of flood plain on flat ground, and it went unnoticed
+// while the reading that picks a great river was wrong, because the rill near
+// a ridge that reading picked has no flat ground beside it to give away. The
+// flood reaches the ground no higher than the water now, which is what the
+// comment always claimed. See bankRise in core/world/relief.go.
+//
+// Retaken before that for the slope-area law. Which tiles are river was read as the water
+// times the square root of the fall; it is the water times the fall now, which
+// is A·S, the stream power index, and the bottom of the range the channel
+// initiation literature quotes. The heads of the rivers climb: the high fifth
+// of the default valley held eight river tiles in a hundred and holds sixteen.
+// And whether a river is great enough to flood its banks is read off how much
+// water it carries again, rather than off how hard it is cutting - those point
+// opposite ways, and read off the cutting nine tenths of the flooding on a
+// globe was happening on mountainsides. See channelTheta in
+// core/world/relief.go.
+//
+// Retaken before that for where the water goes. Two readings of the ground were wrong and
+// both moved every river on the map. Grid.Aspect took the lowest neighbour
+// rather than the steepest fall, and a diagonal neighbour is half again as far
+// off, so on evenly falling ground it was lower and won - the same diagonal
+// every time, because the first offered wins a tie. Two river tiles in three
+// left their tile cornerways. And a river was picked out by how much water
+// crossed it and nothing else, so the heads of them sat wherever a catchment
+// happened to have gathered enough, which on flat country is nowhere in
+// particular and never in the hills. Rain is now heavier on high ground and
+// none of it falls on the sea; a channel is picked by the water against the
+// fall rather than the water alone, and is then laid from its head down to the
+// sea so that a trunk crossing its own flood plain is still a river. See
+// Grid.Aspect, channelFall and Grid.carve in core/world/relief.go.
+//
+// All three seeds move, and they move because the ground under them is
+// differently drained: the rivers are in different places, so the soil is, so
+// the fields are.
+//
+// Retaken before that for the land's answers being worked toward rather than handed
 // over. Each carries a direction in habit space and a cost in pressure-days
 // now, and what advances it is the projection of the worst-off person's own
 // situation onto that direction - so a settlement arrives at fishing in the
@@ -99,9 +141,9 @@ import (
 // a different one, and the one walked is where the wear falls and the
 // roads come. See world.Landmarks.
 var golden = map[uint64]string{
-	1: "e20c27975e30f20b",
-	3: "157fc671075eeb69",
-	9: "91a97b13482436fa",
+	1: "5340ff42e95b12ac",
+	3: "f5e2a20125b4b4b2",
+	9: "1ac703c5678597f1",
 }
 
 // digest is the hash the golden numbers are of.

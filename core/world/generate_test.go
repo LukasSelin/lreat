@@ -43,15 +43,23 @@ func madeOver(t *testing.T, seed uint64, cfg Config, workers int) string {
 }
 
 func TestMakingAWorldDoesNotDependOnTheGoroutines(t *testing.T) {
+	// A quarter of the globe preset's width and a quarter of its height, and
+	// everything else about it the same: wrapped, salted with a sea, and made
+	// out of sixteen epochs of its own history. What is being asked here is
+	// whether a world depends on how the work was dealt out between
+	// goroutines, and every pass that deals work out is exercised by a
+	// sixteenth of the tiles exactly as well as by all of them - while the
+	// full preset, made five times over, is a minute and a half of it.
+	small := Globe()
+	small.Width, small.Height = 256, 128
 	worlds := map[string]Config{
-		"globe":   Globe(),
+		"globe":   small,
 		"ancient": Ancient(),
 		"valley":  DefaultConfig(),
 	}
 	// Not in parallel with one another: what is being varied is a package
 	// variable, and two subtests varying it at once would be measuring each
-	// other. Making a globe five times is a few seconds, which is what this
-	// costs and what it is worth.
+	// other.
 	for name, cfg := range worlds {
 		t.Run(name, func(t *testing.T) {
 			one := madeOver(t, 1, cfg, 1)

@@ -40,68 +40,162 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  193   148     20     55     22 |  0.71  0.53  0.51  0.10  0.10 |  1.00
-   2   45   122     28     11     24 |  0.64  0.50  0.56  0.49  0.17 |  1.00
-   3  105   210     30     49     81 |  0.54  0.57  0.41  0.12  0.03 |  1.00
-   4  117   395     51     77     27 |  0.68  0.64  0.70  0.07  0.19 |  1.00
-   5   83   201     35     32     25 |  0.57  0.52  0.57  0.16  0.03 |  1.00
-   6  201   317     28     93     62 |  0.62  0.60  0.46  0.17  0.05 |  1.00
-   7  397   327     32    100    141 |  0.70  0.49  0.48  0.09  0.06 |  0.98
-   8  199   140     13     51     73 |  0.55  0.50  0.48  0.41  0.08 |  1.00
-   9   98   126     23     33     36 |  0.72  0.54  0.48  0.17  0.15 |  1.00
-  10  111   185     34     41     29 |  0.58  0.54  0.56  0.21  0.08 |  1.00
-  11  108   193     17     30     70 |  0.73  0.57  0.49  0.16  0.17 |  1.00
-  12   64   161     25     40     28 |  0.54  0.63  0.53  0.17  0.05 |  1.00
-  13  547   282     23    256    201 |  0.66  0.54  0.35  0.13  0.04 |  1.00
-  14  251   211     23    106    260 |  0.65  0.56  0.50  0.27  0.02 |  1.00
-  15  189   249     30     58     44 |  0.70  0.59  0.57  0.28  0.08 |  1.00
-  16   50    88     17     12     24 |  0.71  0.46  0.65  0.44  0.08 |  1.00
-  17   41   178     20     20     43 |  0.70  0.61  0.52  0.32  0.15 |  1.00
-  18  234   228     21     47    207 |  0.67  0.54  0.51  0.19  0.13 |  1.00
-  19   56   210     20     25     43 |  0.63  0.58  0.60  0.12  0.05 |  1.00
-  20   93   279     29     64     49 |  0.53  0.56  0.54  0.07  0.03 |  1.00
-  21  123   287     33     55     27 |  0.64  0.55  0.55  0.15  0.11 |  1.00
-  22  104   430     32     40     57 |  0.64  0.52  0.56  0.21  0.05 |  1.00
-  23  235   276     33     96    159 |  0.53  0.50  0.58  0.08  0.07 |  0.99
-  24  168   215     26     68    101 |  0.60  0.56  0.42  0.22  0.07 |  1.00
+   1   53   137     34     18     15 |  0.67  0.59  0.71  0.32  0.12 |  1.00
+   2  185   351     35     90     49 |  0.58  0.51  0.36  0.12  0.01 |  1.00
+   3  110   116     16     25     43 |  0.62  0.48  0.45  0.21  0.05 |  1.00
+   4   58   246     23     24     22 |  0.47  0.51  0.56  0.17  0.05 |  1.00
+   5  415   377     31    151     82 |  0.63  0.51  0.60  0.16  0.06 |  1.00
+   6  237   209     32     88    112 |  0.60  0.54  0.49  0.15  0.06 |  1.00
+   7  182   261     26     35     91 |  0.60  0.56  0.53  0.29  0.11 |  1.00
+   8  231   435     43     87    206 |  0.59  0.56  0.46  0.26  0.04 |  1.00
+   9  121   341     25     60     22 |  0.68  0.47  0.49  0.05  0.01 |  0.64
+  10  165   275     13     50     78 |  0.61  0.52  0.34  0.16  0.07 |  1.00
+  11   71   244     26     24     35 |  0.58  0.55  0.37  0.20  0.02 |  1.00
+  12   93   196     35     30     35 |  0.65  0.54  0.69  0.13  0.09 |  1.00
+  13  375   291     26    129    122 |  0.68  0.49  0.44  0.12  0.05 |  1.00
+  14  605   292     31     98    214 |  0.67  0.53  0.51  0.29  0.10 |  1.00
+  15   35   260     76     33     44 |  0.59  0.58  0.62  0.08  0.10 |  0.82
+  16   64   123     31     19     32 |  0.62  0.55  0.68  0.10  0.06 |  1.00
+  17  150   279     44     74    152 |  0.62  0.55  0.54  0.17  0.03 |  1.00
+  18  343   176     22    124    207 |  0.68  0.50  0.44  0.15  0.06 |  1.00
+  19  249   269     31     78     39 |  0.65  0.57  0.58  0.34  0.10 |  1.00
+  20   30   146     33     25     66 |  0.57  0.49  0.45  0.03  0.00 |  0.74
+  21  148   345     50     99    113 |  0.53  0.61  0.37  0.11  0.02 |  1.00
+  22   99   195     17     43     32 |  0.65  0.53  0.64  0.25  0.04 |  1.00
+  23  215   299     29     70     80 |  0.55  0.48  0.31  0.12  0.10 |  1.00
+  24   84   193     30     68     79 |  0.67  0.69  0.28  0.09  0.02 |  1.00
 
-dwell/rest                         3114880  28.6%
-take/berries@wood                  2495764  22.9%
-consume/provision                  1913696  17.6%
-dwell/guard@market                 1120698  10.3%
-take/fish@water                     525322   4.8%
-dwell/meet@tavern>neighbour         453977   4.2%
-take/timber@wood                    228127   2.1%
-exchange/coin>provision@market      136735   1.3%
-transfer/material>requester         122778   1.1%
-pass/practice>self                  110590   1.0%
-tend/plant@open                     102290   0.9%
-pass/practice>pupil                  97390   0.9%
-take/grain@field                     95766   0.9%
-exchange/material>coin@market        83374   0.8%
-transfer/provision>needy             69614   0.6%
-raise/timber>dwelling@open           61684   0.6%
-take/game@wood                       55859   0.5%
-make/timber>tool@bench               37893   0.3%
-transfer/provision<holder            16949   0.2%
-take/stone@outcrop                   12953   0.1%
-strike/person>wrongdoer              11519   0.1%
-tend/clear@open                       4579   0.0%
-tend/water@field                      2683   0.0%
-raise/timber>road@ground              2427   0.0%
-raise/timber+stone>granary@open        820   0.0%
-make/stone+timber>tool@forge           659   0.0%
-dwell/look                             271   0.0%
-make/provision+timber>meal@hearth      266   0.0%
-raise/timber>tavern@open               258   0.0%
-raise/timber+stone>market@open          91   0.0%
-move@dwelling                           84   0.0%
+dwell/rest                         3844063  30.0%
+take/berries@wood                  3083932  24.1%
+consume/provision                  2194965  17.1%
+dwell/guard@market                 1307284  10.2%
+take/fish@water                     533611   4.2%
+dwell/meet@tavern>neighbour         500825   3.9%
+take/timber@wood                    244903   1.9%
+exchange/coin>provision@market      170050   1.3%
+transfer/material>requester         134751   1.1%
+take/grain@field                    113941   0.9%
+pass/practice>self                  111944   0.9%
+tend/plant@open                     107648   0.8%
+pass/practice>pupil                 105403   0.8%
+exchange/material>coin@market        99396   0.8%
+transfer/provision>needy             78821   0.6%
+take/game@wood                       48825   0.4%
+raise/timber>dwelling@open           46728   0.4%
+make/timber>tool@bench               41675   0.3%
+take/stone@outcrop                   12806   0.1%
+strike/person>wrongdoer              11099   0.1%
+transfer/provision<holder             9926   0.1%
+tend/clear@open                       4957   0.0%
+raise/timber>road@ground              2500   0.0%
+tend/water@field                      2253   0.0%
+raise/timber+stone>granary@open        989   0.0%
+make/provision+timber>meal@hearth      478   0.0%
+make/stone+timber>tool@forge           340   0.0%
+dwell/look                             314   0.0%
+raise/timber>tavern@open               188   0.0%
+move@dwelling                           83   0.0%
+raise/timber+stone>market@open          62   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.58 safe 0.52 held 0.69 all 0.252 food 4.03 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 158.8 median 117 | phys 0.64 safe 0.55 belng 0.52 estm 0.20
+gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 hungry-with-food 0.26 | lasted 24/24 extinct 0 mean 179.9 median 150 | phys 0.61 safe 0.54 belng 0.50 estm 0.17
 ```
 
 ## What the last change did
+
+The landmarks and the walking limit, merged with master's islands, mountains
+and the flood's level. The landmarks bound the walk a guided search has left
+off a few tables (`world.Landmarks`), so it opens fewer tiles on its way to
+the same destination at the same cost; the walking limit lets a scout give
+up on a way round that is more than three times the distance meant, as soon
+as the landmarks say so; and the islands act on shallow copies of the map,
+so each island's view now keeps its own copy of the landmarks' slack and
+puts what it built into the tables' account afterwards. The accounts of the
+two on their own branch are below; this is the merged tree against master.
+
+**On the batch it is a draw.**
+
+```
+master:  gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 | lasted 24/24 mean 187.5 median 149
+merged:  gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 | lasted 24/24 mean 179.9 median 150
+```
+
+Nothing is past a threshold: `fed` and `safe` up 0.01, `held` where it was,
+`all` up 0.011, every settlement lasting as on master, and the population
+within eight of master's. `food` is up 0.12, the size of move it makes on
+its own from batch to batch. The golden numbers were retaken on the merged
+tree, both sides having moved every seed on their own.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the flood's level did
+
+A great river spreads onto the ground beside it that is no higher than the
+water. It used to take every neighbour standing up to a metre above its
+channel, while the line of comment above it said "no higher" - the comment and
+the code had disagreed since the day it was written, and the code was the
+generous one.
+
+It went unnoticed for as long as the reading that picks a great river was
+wrong. A river picked by how hard it is cutting is a rill near a ridge, and a
+rill near a ridge has no flat ground beside it to give away; corrected to read
+off the flow, the rule started firing on flood plains, which is where the
+markets are, and a metre of flood took an eighth of a settlement's building
+ground with it.
+
+Counted within ten tiles of a market over eight globes, by how far the flood is
+let rise:
+
+```
+rise    water   fish   fertility   buildable   river, share of map
+1.00    149.5   127.3    232.2       240.4           7.18%
+0.50    146.0   124.6    237.8       244.1           7.05%
+0.25    142.5   121.2    242.1       247.9           6.85%
+0.00    130.1   111.2    254.2       256.4           5.68%
+```
+
+Nothing gives back half the ground the correction cost, against 272 when the
+rule was firing on ridges, and still leaves a settlement more water and more
+fish than it had then. It also brings the share of a map that comes out as
+watercourse back toward the waterShare it asks for - the banks are laid after
+the channels are counted, so whatever they add is over the top of it, and at a
+metre they were adding two thirds again.
+
+```
+before: gates: fed 0.58 safe 0.51 held 0.69 all 0.247 food 3.73 | lasted 23/24 extinct 0 mean 134.4 median 97
+after:  gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 | lasted 24/24 extinct 0 mean 187.5 median 149
+```
+
+Every settlement held its founding size, which has not happened before on this
+batch, and the gate is back within a hundredth of where master had it before
+any of this branch touched the water. The mean and the median are up by half,
+which the table above says to believe never on its own.
+
+`TestSoilGoesWithTheGround` had to be re-aimed and it is worth saying why,
+because the behaviour it guards did not change. It asked for the ground that
+was still a hillside at the end, and asked it by standing more than FloodDepth
+above the nearest water. Drain is measured to the nearest water, so what counts
+as off the flood plain moves whenever the amount of water on the map moves:
+with the banks tightened, ground the river still feeds stopped clearing the
+line and stayed in the reckoning, and the whole set came out richer. Every part
+of it that is really a hillside came out poorer - over a tenth of a fall, 0.150
+to 0.054; over a fifth, 0.150 to 0.027 - so it asks the fall now. The fall is
+what a slope is.
+
+And the two tests fixed in the commit before this one had to be fixed again,
+which is the more useful lesson. They were re-aimed to ask their question of
+twenty worlds instead of one, and the bar was set at what those twenty worlds
+happened to give: seventeen. The true rate is sixty-eight in a hundred, so a
+bar at seventeen in twenty is above the rate and fails by construction on the
+next change to the ground - which is exactly what it did, one commit later. A
+bar set at what was measured is a bar that fails half the time. They ask sixty
+worlds now and the bars sit at about half.
+
+### What the walking limit did
 
 A scout aims fourteen tiles out as the crow flies, and where the water lay
 between, the way round could be many times that or run out of the search's
@@ -132,12 +226,6 @@ neither move was the code's doing.
 
 Only golden seed 9 moved: the other two send nobody that far round within
 fifteen hundred days.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What the landmarks did
 
@@ -171,7 +259,110 @@ people, and the batch says the people did not notice.
 The golden numbers moved, for the reason above: a run walks a different
 route of the same cost within its first fifteen hundred days.
 
-### What reaching the land's last answers did
+### What the slope-area law did
+
+Which tiles are river is read by the slope-area law now, properly and on a
+published exponent. A channel is where A·S^theta is greatest - the water times
+the fall, raised to a power - and theta is one, which makes the reading A·S,
+the stream power index, and is the bottom of the range the channel-initiation
+literature quotes.
+
+It was a half before, and the half sat in a constant that nothing referenced:
+`carve` hardcoded a square root and `channelFall = 0.5` stood beside it saying
+what the square root was for, so the two could have drifted apart without a
+word. The exponent is swept and the table is in the constant's comment. The
+high fifth of a valley holds sixteen river tiles in a hundred at one where it
+held eight at a half - and none at all when a river was picked by the water
+alone.
+
+Incision was left as it was, and that is a decision rather than an oversight.
+Its comment claimed to take the same reading erode.go takes, and erode.go takes
+the stream power law entire, with the fall in it. Giving incision the fall
+moves the mean cut on the low half of a valley from 2.49 metres to 0.60 and
+puts it on the top fifth instead; the valley's own trunk - the tile where the
+river leaves the map, whose fall is exactly zero - goes from 26.7 metres of cut
+to 0.03, and the valley the settlement lives in stops existing. The difference
+is that erosion runs an age at a time and incision runs once: stream power says
+how fast a channel is cutting now, and a channel on its own flood plain is
+cutting nothing now and still lies at the bottom of a valley, because it spent
+ages getting there. The comment says so now.
+
+One bug came out of the measuring. Whether a river is great enough to spread
+onto its banks had been read off the same cutting reading, and it should not
+be: how hard the water is working and how much of it there is point opposite
+ways, and the hardest-working tile on a map is a steep rill near a ridge
+carrying nothing. At theta of one, nine tenths of the bank-flooding on a globe
+was happening in the top fifth of the ground - mountainsides in flood with the
+flood plains dry. Read off the flow again, it is a seventh, and the share of
+river tiles draining onto dry ground fell from between two and seven in a
+hundred to between one and three in a thousand.
+
+```
+before: gates: fed 0.57 safe 0.50 held 0.69 all 0.245 food 5.28 | lasted 22/24 extinct 0 mean 155.2 median 147
+after:  gates: fed 0.58 safe 0.51 held 0.69 all 0.247 food 3.73 | lasted 23/24 extinct 0 mean 134.4 median 97
+```
+
+The valley did not move. Every gate is inside a hundredth, `lasted` went the
+right way by one, and `food` came back to about where master had it before the
+rivers were touched at all - which is the more likely reading of the third it
+had gained than that the rivers gave it and the channels took it away. The
+mean population fell by a fifth and the median by a third, which the table
+above says to believe on its own never.
+
+Three tests in core/action had to be fixed, and they are worth a word because
+they had nothing to do with the ground. They draw their founders from the
+world's own stream, and the ground is drawn from that stream first, so any
+change to the terrain deals every founder a different hand.
+`TestFoundersDifferFromOneAnother` asked that one founder's habits stay within
+a cosine of 0.9 of the prior; over two hundred founders that runs from 0.66 to
+0.96 with a median of 0.89, so it was a coin toss, and it cleared the bar on
+eight of twenty world seeds. It had been coming up heads. All three ask their
+question of a crowd now - two hundred founders, or twenty worlds - so the next
+change to the ground will not trip them.
+
+### What the rivers did
+
+Two readings of where water goes were wrong, and both moved every river on the
+map.
+
+`Grid.Aspect` took the lowest neighbour rather than the steepest fall. A
+diagonal neighbour is half again as far off, so on ground that falls evenly it
+sits lower and won - and the same diagonal won every time, because the first
+direction offered takes a tie. Two river tiles in three left their tile
+cornerways, and what that drew was a set of parallel lines at forty-five
+degrees ruled across every plain on the map. It is a quarter of them now.
+`Grid.Slope`, three functions above it, had been dividing the drop by the
+distance all along; `Aspect` was the one reading of the same eight neighbours
+that did not.
+
+And a river was picked out by how much water crossed it and nothing else, so
+the head of one sat wherever a catchment had gathered enough - which on flat
+country is nowhere in particular and never in the hills. Three things answer
+that. Rain is heavier on high ground and none of it falls on the sea. A channel
+is picked by the water against the fall rather than by the water alone, because
+steep ground needs less of a catchment to cut one. And a channel is then laid
+from its head the whole way down to the sea, so that a trunk crossing its own
+flood plain - all the water on the map and no fall at all - is still a river.
+
+The high fifth of a valley held none of its river tiles, one, and none over
+three seeds. It holds fifteen, twenty-nine and fifteen.
+
+```
+before: gates: fed 0.59 safe 0.51 held 0.69 all 0.256 food 4.02 | lasted 23/24 extinct 0 mean 152.5 median 139
+after:  gates: fed 0.57 safe 0.50 held 0.69 all 0.245 food 5.28 | lasted 22/24 extinct 0 mean 155.2 median 147
+```
+
+The gates are where they were - 0.256 to 0.245 is half of what the table above
+asks for before a move is worth believing - and so is the tally, at one
+settlement either way. The one figure outside noise is `food`, up by a third.
+A settlement lives on its flood plain and moving the rivers moved the flood
+plains; whether a third more food on hand is that or the draw wants a batch
+that could carry the question, and twenty-four seeds cannot.
+
+The golden numbers moved, and had to: the rivers are in different places, so
+the soil is, so the fields are.
+
+### What the unreachable pressures did
 
 Irrigation and forestry were unreachable, and had been since they were
 written. The pressure spike made it visible - a zero standing in `w.Pressed`
@@ -180,7 +371,7 @@ Both conditions asked the world for something it does not do.
 
 They were wrong in two different ways, and only one of them was a number.
 
-#### Forestry was reading the wrong ground
+### Forestry was reading the wrong ground
 
 `forestGone` asked whether the map had lost two fifths of its forest. One
 settlement cannot do that. Over sixty years the whole-map share bottomed out
@@ -201,7 +392,7 @@ the map they were dropped on, and a people who settled in a clearing and cut
 nothing do not. On six probed seeds the ratio bottomed between 0.32 and 1.18,
 so the bar separates them rather than passing or failing all of them.
 
-#### Irrigation was asking for a thing this world does not do
+### Irrigation was asking for a thing this world does not do
 
 `fieldsWorn` wanted the mean fertility of the fields near the market under
 0.45. It was never once true, on any seed, in sixty years - and that is not a
@@ -228,7 +419,7 @@ ones that chose where to be.
 It is also a better pressure than wear would have been: it can come and go as
 a holding spreads, where wear only ever accumulates.
 
-#### Where they land now
+### Where they land now
 
 Twelve seeds:
 

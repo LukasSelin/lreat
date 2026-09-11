@@ -196,10 +196,12 @@ type Grid struct {
 	// fenceSeen, fenceBlock and fenceStack are the working memory the daily
 	// walk of the fields runs on, kept here so that reading the enclosures
 	// allocates nothing. See fence.go.
-	fenceSeen  []uint32
-	fenceGen   uint32
-	fenceBlock []int32
-	fenceStack []int32
+	fenceSeen    []uint32
+	fenceGen     uint32
+	fenceBlock   []int32
+	fenceStack   []int32
+	fencePatches []int32
+	fenceFields  [][]int32
 
 	// router is the working memory the grid's own routing runs on. It serves
 	// callers routing one after another; anything routing at the same time as
@@ -209,6 +211,11 @@ type Grid struct {
 	// landmarks are the tables a guided search bounds the rest of the walk
 	// from. Taken by RefreshLandmarks; see landmark.go.
 	landmarks Landmarks
+
+	// islanded is set on a view of the map an island acts on for a day,
+	// which mends no reading of its own - the water's labels are read as
+	// they stood when the day's acting began. See island.go.
+	islanded bool
 }
 
 // ownRouter is the grid's router, made on first use. It is not safe to reach

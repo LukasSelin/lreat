@@ -286,6 +286,23 @@ type Ways struct {
 	// draw is the case for a road on each tile, and nothing on ground no road
 	// could be laid on. See Draw.
 	draw []float64
+	// drawn is which chunks have any case at all in draw, so that a chunk
+	// nobody has walked lately can be left as it is when it has none,
+	// rather than zeroed tile by tile every day.
+	drawn []bool
+}
+
+// clear takes the case off every tile of chunk c.
+func (y *Ways) clear(c int) {
+	g := y.g
+	ch := &g.Chunks[c]
+	for row := ch.Y0; row < ch.Y0+ch.H; row++ {
+		lo := row*g.W + ch.X0
+		for j := range y.draw[lo : lo+ch.W] {
+			y.draw[lo+j] = 0
+		}
+	}
+	y.drawn[c] = false
 }
 
 // readWays takes the reading, into the buffer of the last one where it fits.
@@ -294,35 +311,60 @@ func (g *Grid) readWays(y *Ways, tick int) *Ways {
 	if y == nil {
 		y = &Ways{}
 	}
-	if len(y.draw) != len(g.Tiles) {
+	if len(y.draw) != len(g.Tiles) || len(y.drawn) != len(g.Chunks) {
 		y.draw = make([]float64, len(g.Tiles))
+		y.drawn = make([]bool, len(g.Chunks))
 	}
 	y.g, y.stamp = g, tick+1
 	// Only ground anybody has walked lately, or the ground beside it, is
 	// read: the case for a road is made of wear, and where there is none
 	// within a step the case is nothing, which is what the entry says
-	// already. Ground that has fallen out of that is zeroed as it goes.
+	// already. Ground that has fallen out of that is zeroed, once, the
+	// first day it has - a chunk that has no case on it is left alone, and
+	// most of the awake ground has none most days.
 	worn := g.worn(tick)
 	// A tile's entry is made of the ground about it and of nothing that any
-	// other tile's entry is made of, so the reading is taken on goroutines;
-	// see EachActiveOver. Everything Draw reaches for - Served, Saving, the
-	// ways out of a building - only reads the map.
-	g.EachActiveOver(nil, func(i, c int, t *Tile) {
-		y.draw[i] = 0
-		if !worn[c] || !t.Pavable() {
+	// other tile's entry is made of, so the reading is taken on goroutines,
+	// a chunk to each; see EachActiveChunk. Everything Draw reaches for -
+	// Served, Saving, the ways out of a building - only reads the map.
+	//
+	// The walk over a worn chunk reads as little as it can of each tile
+	// before knowing there is no case to make: the wear and what the
+	// neighbours lend, which are a word each beside the map, before the
+	// tile itself. Most tiles of a worn chunk have never been stood on,
+	// and the reading was walking the whole map to find the few that had.
+	g.EachActiveChunk(func(c int) bool { return worn[c] || y.drawn[c] }, func(c int) {
+		if !worn[c] {
+			y.clear(c)
 			return
 		}
-		// A tile's case is its own wear and what its neighbours lend it,
-		// and a neighbour lends nothing unless something stands on it: see
-		// Draw. So a tile with no such neighbour has only its own wear to
-		// make a case of, and where that is under a road's worth on the
-		// dearest ground there is, the case is nothing and is not read.
-		if g.lenders[i] == 0 && g.Traffic[i]*maxSaving < FordEnough {
-			return
+		any := false
+		ch := &g.Chunks[c]
+		for row := ch.Y0; row < ch.Y0+ch.H; row++ {
+			lo := row*g.W + ch.X0
+			for i := lo; i < lo+ch.W; i++ {
+				if y.draw[i] != 0 {
+					y.draw[i] = 0
+				}
+				// A tile's case is its own wear and what its neighbours
+				// lend it, and a neighbour lends nothing unless something
+				// stands on it: see Draw. So a tile with no such neighbour
+				// has only its own wear to make a case of, and where that
+				// is under a road's worth on the dearest ground there is,
+				// the case is nothing and is not read.
+				if g.lenders[i] == 0 && g.Traffic[i]*maxSaving < FordEnough {
+					continue
+				}
+				if !g.Tiles[i].Pavable() {
+					continue
+				}
+				if d := g.Draw(g.PosOf(i)); d >= FordEnough {
+					y.draw[i] = d
+					any = true
+				}
+			}
 		}
-		if d := g.Draw(g.PosOf(i)); d >= FordEnough {
-			y.draw[i] = d
-		}
+		y.drawn[c] = any
 	})
 	return y
 }

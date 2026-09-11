@@ -27,7 +27,7 @@ func (g *Grid) Region(p entity.Pos) int32 {
 // Regions is the label of every tile, worked out afresh if the water has
 // moved since it was.
 func (g *Grid) Regions() []int32 {
-	if len(g.regions) != len(g.Tiles) || g.regionsStale {
+	if (len(g.regions) != len(g.Tiles) || g.regionsStale) && !g.islanded {
 		g.label()
 	}
 	return g.regions
