@@ -158,8 +158,7 @@ func RenderWindow(m *observe.MapView, view View, win Window) [][]Cell {
 	seen := make(map[[2]int]bool, len(m.Agents))
 	for pass := 0; pass < 2; pass++ {
 		for _, a := range m.Agents {
-			creature := a.Kind != "" && a.Kind != "human"
-			if creature != (pass == 1) {
+			if Creature(a) != (pass == 1) {
 				continue
 			}
 			x, y, ok := win.Screen(m, a.Pos)
@@ -171,11 +170,7 @@ func RenderWindow(m *observe.MapView, view View, win Window) [][]Cell {
 				continue
 			}
 			seen[key] = true
-			if creature {
-				rows[y][x] = Cell{Ch: 'd', Color: AgentDeer}
-				continue
-			}
-			rows[y][x] = Cell{Ch: '@', Color: AgentColor(a.Action)}
+			rows[y][x] = Cell{Ch: Glyph(a), Color: AgentColor(a.Action)}
 		}
 	}
 	return rows
@@ -258,4 +253,17 @@ func builtRank(t *world.Tile) int {
 		return 2
 	}
 	return 0
+}
+
+// Creature reports whether a mark is anything but a person.
+func Creature(a observe.Mark) bool { return a.Kind != "" && a.Kind != "human" }
+
+// Glyph is the character a mark is drawn as: a person is an @, as a person
+// always was, and a deer a d. What a creature is is the whole of what a map
+// has to say of it, so the glyph carries the kind and the colour the same.
+func Glyph(a observe.Mark) rune {
+	if Creature(a) {
+		return 'd'
+	}
+	return '@'
 }
