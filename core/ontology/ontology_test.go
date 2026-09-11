@@ -47,6 +47,12 @@ var golden = map[string]string{
 	"pass/practice>self":                "study",
 	"strike/person>wrongdoer":           "retaliate",
 	"move@dwelling":                     "move house",
+
+	"deer:take/browse@wood":  "browse",
+	"deer:dwell/rest":        "bed down",
+	"deer:dwell/flee":        "flee",
+	"deer:dwell/herd>fellow": "herd",
+	"deer:dwell/roam":        "roam",
 }
 
 // TestInstantiateMatchesCatalog is the golden test: the trees entail
@@ -91,8 +97,32 @@ func TestInstantiateIsDeterministic(t *testing.T) {
 			t.Errorf("instance %d differs between walks", i)
 		}
 	}
-	if !sort.SliceIsSorted(a, func(i, j int) bool { return a[i].Key < a[j].Key }) {
-		t.Error("instances are not sorted by key")
+	if !sort.SliceIsSorted(a, func(i, j int) bool { return ontology.Ordered(&a[i], &a[j]) }) {
+		t.Error("instances are not in catalog order")
+	}
+}
+
+// Everything a person does comes before anything any other creature does,
+// and in the order it always was: a person's acts are slots in every
+// settler's tables, and a deer being thought of must not move one.
+func TestPeopleComeFirstInTheCatalog(t *testing.T) {
+	seenOther := false
+	var lastPerson string
+	for _, in := range ontology.Instantiate() {
+		if in.Actor != nil {
+			seenOther = true
+			continue
+		}
+		if seenOther {
+			t.Fatalf("%s comes after another creature's act", in.Key)
+		}
+		if in.Key < lastPerson {
+			t.Fatalf("%s is out of key order after %s", in.Key, lastPerson)
+		}
+		lastPerson = in.Key
+	}
+	if !seenOther {
+		t.Fatal("no creature but people has any act")
 	}
 }
 

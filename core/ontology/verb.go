@@ -54,7 +54,13 @@ const (
 // verb, classes, site, and role, and should stay small; if one grows, a
 // class or trait is missing.
 type Schema struct {
-	Verb           Verb
+	Verb Verb
+	// Actor is who does the act, where that is not a person: a deer's
+	// browsing is a deer's and nobody else's. Nil is a person. It is a
+	// class so that one day a person may hunt what is here an actor, and
+	// it enters the key so that a deer's rest and a person's are two acts
+	// with two habits, as they are.
+	Actor          *Class
 	Name           string
 	Object         *Class
 	CollapseObject bool
@@ -235,6 +241,34 @@ var Schemas = []Schema{
 	// little, and agents moved house instead of living in one.
 	{Verb: Move, Site: Dwelling, Ticks: 4, Reach0: reachEveryday,
 		Prior: habit.Signature{habit.Shelter: 0.7, habit.Industry: 0.5, habit.Near: 0.4}},
+
+	// What a deer does. Five acts on the same verbs people use, and none
+	// of them gated: a deer is born knowing the whole of its life. Browsing
+	// is a taking, off a wood, of the brush; the rest are ways of being
+	// somewhere. None but the browsing names a site, because a site's At
+	// puts a nearness into the prior, and a flight or a ramble is not
+	// nearer for being to somewhere close - see the note on looking above.
+	{Verb: Take, Actor: Deer, Object: Browse, Site: Wood, Ticks: 1, Reach0: reachEveryday},
+	// Bedding down is a deer's rest: the same fallback, the same moment
+	// when nothing presses, and a habit of its own.
+	{Verb: Dwell, Actor: Deer, Name: "rest", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{
+			habit.Hunger: -1, habit.Unsafe: -0.6, habit.Lonely: -0.6,
+			habit.Unproven: -0.4, habit.Curious: -0.4,
+		}},
+	// Flight is the alarmed moment. Order is where a deer reads its alarm -
+	// the coordinate a person reads the settlement's order on, one-sided,
+	// loudest when it is worst - so an act whose moment is the alarmed one
+	// names it, the way standing guard names the ungoverned one.
+	{Verb: Dwell, Actor: Deer, Name: "flee", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Unsafe: 1, habit.Order: -1}},
+	// Herding is going to a fellow: the moment is the role's.
+	{Verb: Dwell, Actor: Deer, Name: "herd", Role: &Fellow, Ticks: 2, Reach0: reachEveryday},
+	// Roaming is the fed deer's ramble, and the little curiosity a deer
+	// has is what it spends on it. A ramble is always toward trees, so it
+	// is also what a deer caught in the open does about it.
+	{Verb: Dwell, Actor: Deer, Name: "roam", Ticks: 1, Reach0: reachEveryday,
+		Prior: habit.Signature{habit.Curious: 0.6, habit.Hunger: -0.3, habit.Shelter: -0.4}},
 }
 
 // takeDetail is what differs between takings of different things: the

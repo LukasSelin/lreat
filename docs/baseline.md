@@ -103,15 +103,16 @@ gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 hungry-with-food 0.26 | 
 
 ## What the last change did
 
-The landmarks and the walking limit, merged with master's islands, mountains
-and the flood's level. The landmarks bound the walk a guided search has left
-off a few tables (`world.Landmarks`), so it opens fewer tiles on its way to
-the same destination at the same cost; the walking limit lets a scout give
-up on a way round that is more than three times the distance meant, as soon
-as the landmarks say so; and the islands act on shallow copies of the map,
-so each island's view now keeps its own copy of the landmarks' slack and
-puts what it built into the tables' account afterwards. The accounts of the
-two on their own branch are below; this is the merged tree against master.
+The landmarks and the walking limit, merged with master's islands,
+mountains, the flood's level and the deer. The landmarks bound the walk a
+guided search has left off a few tables (`world.Landmarks`), so it opens
+fewer tiles on its way to the same destination at the same cost; the
+walking limit lets a scout give up on a way round that is more than three
+times the distance meant, as soon as the landmarks say so; and the islands
+act on shallow copies of the map, so each island's view now keeps its own
+copy of the landmarks' slack and puts what it built into the tables'
+account afterwards. The accounts of the two on their own branch are below;
+this is the merged tree against master.
 
 **On the batch it is a draw.**
 
@@ -120,80 +121,48 @@ master:  gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 | lasted 24/24 
 merged:  gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 | lasted 24/24 mean 179.9 median 150
 ```
 
-Nothing is past a threshold: `fed` and `safe` up 0.01, `held` where it was,
-`all` up 0.011, every settlement lasting as on master, and the population
-within eight of master's. `food` is up 0.12, the size of move it makes on
-its own from batch to batch. The golden numbers were retaken on the merged
-tree, both sides having moved every seed on their own.
+Nothing is past a threshold. The golden numbers were retaken on the merged
+tree, both sides having moved every seed on their own; the deer moved none,
+as their own account says.
 
 ## Earlier changes
 
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
+### What the deer did
 
-### What the flood's level did
+Deer. A second kind of agent lives in the woods around the settlement now, on
+the same psychology the people run on - the same needs, the same reading of a
+moment as a point in habit space, the same recognition of an act, the same
+walking - and differs from them by its species: how long it lives and when it
+bears, the body and mind it hands its young, what it wants at birth and how
+fast each want returns, and what it finds on the coordinates a person reads.
+See core/entity/species.go, core/action/deer.go, and the README.
 
-A great river spreads onto the ground beside it that is no higher than the
-water. It used to take every neighbour standing up to a metre above its
-channel, while the line of comment above it said "no higher" - the comment and
-the code had disagreed since the day it was written, and the code was the
-generous one.
+**It changes nothing a settlement is measured on.** No run the batch takes has
+a deer in it, and the whole of the work was written so that a world with none
+draws exactly the chance it always drew: every act a person does keeps its
+slot in the catalog, because the acts are ordered by their actor before their
+key and deer come after people; a person never seeds, drifts or weighs a
+deer's slot, because seeding draws luck for every coordinate of every slot it
+seeds; a person's neighbour, witness and stranger are asked for among people;
+and the settlement's books - its population, its means, its funnel, the market's
+middle, what its scholars count - are of the people. The batch above was taken
+again on the tree with the deer in it and came out the same to the digit, and
+the three golden seeds did not move.
 
-It went unnoticed for as long as the reading that picks a great river was
-wrong. A river picked by how hard it is cutting is a rill near a ridge, and a
-rill near a ridge has no flat ground beside it to give away; corrected to read
-off the flow, the rule started firing on flood plains, which is where the
-markets are, and a metre of flood took an eighth of a settlement's building
-ground with it.
-
-Counted within ten tiles of a market over eight globes, by how far the flood is
-let rise:
-
-```
-rise    water   fish   fertility   buildable   river, share of map
-1.00    149.5   127.3    232.2       240.4           7.18%
-0.50    146.0   124.6    237.8       244.1           7.05%
-0.25    142.5   121.2    242.1       247.9           6.85%
-0.00    130.1   111.2    254.2       256.4           5.68%
-```
-
-Nothing gives back half the ground the correction cost, against 272 when the
-rule was firing on ridges, and still leaves a settlement more water and more
-fish than it had then. It also brings the share of a map that comes out as
-watercourse back toward the waterShare it asks for - the banks are laid after
-the channels are counted, so whatever they add is over the top of it, and at a
-metre they were adding two thirds again.
-
-```
-before: gates: fed 0.58 safe 0.51 held 0.69 all 0.247 food 3.73 | lasted 23/24 extinct 0 mean 134.4 median 97
-after:  gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 | lasted 24/24 extinct 0 mean 187.5 median 149
-```
-
-Every settlement held its founding size, which has not happened before on this
-batch, and the gate is back within a hundredth of where master had it before
-any of this branch touched the water. The mean and the median are up by half,
-which the table above says to believe never on its own.
-
-`TestSoilGoesWithTheGround` had to be re-aimed and it is worth saying why,
-because the behaviour it guards did not change. It asked for the ground that
-was still a hillside at the end, and asked it by standing more than FloodDepth
-above the nearest water. Drain is measured to the nearest water, so what counts
-as off the flood plain moves whenever the amount of water on the map moves:
-with the banks tightened, ground the river still feeds stopped clearing the
-line and stayed in the reckoning, and the whole set came out richer. Every part
-of it that is really a hillside came out poorer - over a tenth of a fall, 0.150
-to 0.054; over a fifth, 0.150 to 0.027 - so it asks the fall now. The fall is
-what a slope is.
-
-And the two tests fixed in the commit before this one had to be fixed again,
-which is the more useful lesson. They were re-aimed to ask their question of
-twenty worlds instead of one, and the bar was set at what those twenty worlds
-happened to give: seventeen. The true rate is sixty-eight in a hundred, so a
-bar at seventeen in twenty is above the rate and fails by construction on the
-next change to the ground - which is exactly what it did, one commit later. A
-bar set at what was measured is a bar that fails half the time. They ask sixty
-worlds now and the bars sit at about half.
+What a herd does when it is let in is not measured here and there is no
+baseline for it yet. On one seed, ten founders and twenty deer over twenty
+years, the herd grew to about sixty-five and the brush in the wood fell from
+three hundred units to a hundred and twenty, which is the herd finding the
+wood's limit: a browse takes what a forage takes, so a deer and a forager are
+in plain competition for the same brush. Three things had to be found out on
+the way, each by watching a herd do something absurd. A bed must restore
+next to nothing, or a deer never eats: a person's rest gives a little more
+than a day burns, which a person walks and works off, and a herd of five
+hundred lay in the wood with full bellies and the brush untouched. Fear must
+fall on the safety tier at once, not at the tenth a day a roof does, or the
+one coordinate that carries the alarm never out-fits bedding down. And a deer
+standing in its herd must be fed belonging by standing there, or the tier
+drains to nothing and no fawn is ever born.
 
 ### What the walking limit did
 
@@ -258,6 +227,74 @@ people, and the batch says the people did not notice.
 
 The golden numbers moved, for the reason above: a run walks a different
 route of the same cost within its first fifteen hundred days.
+
+### What the flood was let rise to
+
+A great river spreads onto the ground beside it that is no higher than the
+water. It used to take every neighbour standing up to a metre above its
+channel, while the line of comment above it said "no higher" - the comment and
+the code had disagreed since the day it was written, and the code was the
+generous one.
+
+It went unnoticed for as long as the reading that picks a great river was
+wrong. A river picked by how hard it is cutting is a rill near a ridge, and a
+rill near a ridge has no flat ground beside it to give away; corrected to read
+off the flow, the rule started firing on flood plains, which is where the
+markets are, and a metre of flood took an eighth of a settlement's building
+ground with it.
+
+Counted within ten tiles of a market over eight globes, by how far the flood is
+let rise:
+
+```
+rise    water   fish   fertility   buildable   river, share of map
+1.00    149.5   127.3    232.2       240.4           7.18%
+0.50    146.0   124.6    237.8       244.1           7.05%
+0.25    142.5   121.2    242.1       247.9           6.85%
+0.00    130.1   111.2    254.2       256.4           5.68%
+```
+
+Nothing gives back half the ground the correction cost, against 272 when the
+rule was firing on ridges, and still leaves a settlement more water and more
+fish than it had then. It also brings the share of a map that comes out as
+watercourse back toward the waterShare it asks for - the banks are laid after
+the channels are counted, so whatever they add is over the top of it, and at a
+metre they were adding two thirds again.
+
+```
+before: gates: fed 0.58 safe 0.51 held 0.69 all 0.247 food 3.73 | lasted 23/24 extinct 0 mean 134.4 median 97
+after:  gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 | lasted 24/24 extinct 0 mean 187.5 median 149
+```
+
+Every settlement held its founding size, which has not happened before on this
+batch, and the gate is back within a hundredth of where master had it before
+any of this branch touched the water. The mean and the median are up by half,
+which the table above says to believe never on its own.
+
+`TestSoilGoesWithTheGround` had to be re-aimed and it is worth saying why,
+because the behaviour it guards did not change. It asked for the ground that
+was still a hillside at the end, and asked it by standing more than FloodDepth
+above the nearest water. Drain is measured to the nearest water, so what counts
+as off the flood plain moves whenever the amount of water on the map moves:
+with the banks tightened, ground the river still feeds stopped clearing the
+line and stayed in the reckoning, and the whole set came out richer. Every part
+of it that is really a hillside came out poorer - over a tenth of a fall, 0.150
+to 0.054; over a fifth, 0.150 to 0.027 - so it asks the fall now. The fall is
+what a slope is.
+
+And the two tests fixed in the commit before this one had to be fixed again,
+which is the more useful lesson. They were re-aimed to ask their question of
+twenty worlds instead of one, and the bar was set at what those twenty worlds
+happened to give: seventeen. The true rate is sixty-eight in a hundred, so a
+bar at seventeen in twenty is above the rate and fails by construction on the
+next change to the ground - which is exactly what it did, one commit later. A
+bar set at what was measured is a bar that fails half the time. They ask sixty
+worlds now and the bars sit at about half.
+
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
 
 ### What the slope-area law did
 

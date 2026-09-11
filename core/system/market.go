@@ -163,6 +163,9 @@ func middle(w *world.World) (entity.Pos, bool) {
 	}
 	if n == 0 {
 		for _, a := range w.Agents {
+			if !a.Species().Settles {
+				continue
+			}
 			d := at(a.Pos)
 			sx, sy, n = sx+d.X, sy+d.Y, n+1
 		}

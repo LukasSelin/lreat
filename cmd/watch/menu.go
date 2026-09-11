@@ -30,6 +30,11 @@ import (
 type setup struct {
 	seed   uint64
 	agents int
+	// deer is how many deer are put down in the woods around the
+	// settlement. Watching is the one place a run has them unasked: a
+	// deer in the wood is what the wood is for, and nothing that has to
+	// be reproduced is founded here.
+	deer   int
 	width  int
 	height int
 	// snug takes the map's size off the terminal instead of the width and
@@ -84,6 +89,7 @@ func (s *setup) config() world.Config {
 	if !cfg.Wrap {
 		cfg.Width, cfg.Height = s.width, s.height
 	}
+	cfg.Deer = s.deer
 	return cfg
 }
 
@@ -124,6 +130,7 @@ func defaults() setup {
 	return setup{
 		seed:   1,
 		agents: 20,
+		deer:   12,
 		// The width and height stand behind the fitting as what a map is
 		// when somebody takes it off the window's hands.
 		width:  world.DefaultWidth,
@@ -198,6 +205,13 @@ func options() []option {
 		show:   func(s *setup) string { return fmt.Sprintf("%d", s.agents) },
 		step:   func(s *setup, d int) { s.agents = clampInt(s.agents+d, 1, 500) },
 		digits: func(s *setup, n uint64) { s.agents = clampInt(int(n), 1, 500) },
+	}, {
+		group:  "the people",
+		name:   "deer",
+		help:   "how many deer are put down in the woods around the settlement; they browse the same brush the foragers pick, keep to the trees, and run from anybody who comes near",
+		show:   func(s *setup) string { return fmt.Sprintf("%d", s.deer) },
+		step:   func(s *setup, d int) { s.deer = clampInt(s.deer+d, 0, 500) },
+		digits: func(s *setup, n uint64) { s.deer = clampInt(int(n), 0, 500) },
 	}, {
 		group: "the world",
 		name:  "map",

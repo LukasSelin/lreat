@@ -109,6 +109,7 @@ func (b *builder) upper() {
 	b.class(":Workplace", "workplace", "A site trait that lends an act the tools it needs. A dwelling has all of them; the market lends a bench and a desk, the tavern a hearth.")
 
 	b.op(":verb", "verb", ":Act", ":Verb", "What kind of act this is.")
+	b.op(":actor", "actor", ":Act", ":Thing", "Who does the act: a person, unless the schema names another creature.")
 	b.op(":handles", "handles", ":Act", "", "What the act operates on: the thing it is done to or with.")
 	b.op(":at", "at", ":Act", ":Site", "Where the act happens.")
 	b.op(":atWorkplace", "at workplace", ":Act", ":Workplace", "The act is done wherever this trait holds, rather than at a named site.")
@@ -120,7 +121,7 @@ func (b *builder) upper() {
 	b.op(":requiresSkill", "requires skill", ":Act", ":Skill", "The competence the act draws on.")
 	b.op(":requiresTech", "requires technology", ":Act", ":Technology", "The discovery the act is gated on.")
 	b.op(":season", "season", ":Act", "", "The thing whose half of the year this act keeps, where the act itself handles none of it: clearing is warm-half work because a field is for grain.")
-	b.op(":affords", "affords", "", ":Material", "What a site or a holder offers: the ground what lies in it, a person what is in their pack and their purse, the market what is on its shelves.")
+	b.op(":affords", "affords", "", ":Thing", "What a site or a holder offers: the ground what lies in it and the brush a deer lives on, a person what is in their pack and their purse, the market what is on its shelves.")
 	b.op(":processOf", "process of", ":Process", "", "What the process happens to.")
 	b.op(":stageOf", "stage of", ":Stage", ":Process", "The process this stage belongs to.")
 	b.op(":changes", "changes", ":Transform", "", "What the transform acts on.")
@@ -161,14 +162,19 @@ func (b *builder) upper() {
 // it: Edible is everything edible, and Provision is under it. Every trait
 // belongs wholly to one side of the world - nothing edible is a site and
 // nothing roofed is a material - so each is anchored under the root it
-// applies to rather than left free of the trees altogether.
+// applies to rather than left free of the trees altogether. Edible is
+// anchored one step up from the rest of a material's traits, because the
+// brush a deer lives on is edible and is a thing rather than a material:
+// a material is what a person carries and trades, and what a deer eats is
+// neither.
 func (b *builder) traits() {
 	b.sub(":Workplace", ":Site")
 	groups := []struct {
 		under  string
 		traits []ontology.Trait
 	}{
-		{":Material", []ontology.Trait{ontology.Edible, ontology.Perishable, ontology.Burnable, ontology.Buildable, ontology.Heavy, ontology.Wears}},
+		{":Thing", []ontology.Trait{ontology.Edible}},
+		{":Material", []ontology.Trait{ontology.Perishable, ontology.Burnable, ontology.Buildable, ontology.Heavy, ontology.Wears}},
 		{":Site", []ontology.Trait{ontology.Living, ontology.Roofed, ontology.Owned, ontology.Public, ontology.Passable}},
 		{":Workplace", []ontology.Trait{ontology.Bench, ontology.Hearth, ontology.Forge, ontology.Desk, ontology.Company, ontology.Trade, ontology.Store}},
 	}
@@ -242,11 +248,12 @@ func (b *builder) affords() {
 	}
 }
 
-// roles are the seven core/ontology names, in the order it declares them.
+// roles are the eight core/ontology names, in the order it declares them.
 // There is no exported list of them there, so the list is here.
 var roles = []*ontology.Role{
 	&ontology.Self, &ontology.Neighbour, &ontology.Requester,
 	&ontology.Needy, &ontology.Holder, &ontology.Pupil, &ontology.Wrongdoer,
+	&ontology.Fellow,
 }
 
 func (b *builder) roles() {
@@ -284,6 +291,11 @@ func (b *builder) acts() {
 		sc := in.Schema
 
 		b.some(name, ":verb", verbIRI(sc.Verb))
+		actor := in.Actor
+		if actor == nil {
+			actor = ontology.Person
+		}
+		b.some(name, ":actor", classIRI(actor))
 		if in.Object != nil {
 			b.some(name, ":handles", classIRI(in.Object))
 		}

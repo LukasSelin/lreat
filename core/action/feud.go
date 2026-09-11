@@ -52,7 +52,7 @@ func Grudge(a *entity.Agent, w *world.World) (*entity.Agent, *entity.Bond) {
 
 // deter teaches everyone nearby that wrongs are answered in this place.
 func deter(a *entity.Agent, w *world.World) {
-	w.Nearby(a.Pos, reachRadius, func(o *entity.Agent) bool {
+	w.NearbyOf(a.Pos, reachRadius, a.Species(), func(o *entity.Agent) bool {
 		if o != a {
 			o.Caution = belief.Clamp(o.Caution + belief.CautionLearned)
 		}

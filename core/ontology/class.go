@@ -248,6 +248,20 @@ var (
 	// Person is one class. How a person stands to the actor is a Role, not
 	// a subclass: nobody is a pupil the way an oak is timber.
 	Person = New("person", Thing, 0, habit.Signature{habit.Rapport: 0.5})
+	// Deer is the first creature that is not a person. It is an actor -
+	// a schema that names it is an act deer do and nobody else - and one
+	// day a thing, when somebody hunts one. Actors are declared after
+	// Person on purpose: acts are ordered by their actor before their key,
+	// and everything a person does has to keep the slot it has.
+	Deer = New("deer", Thing, 0, habit.Signature{})
+	// Browse is the brush a deer lives on: the same stand of it a forager
+	// picks and a trapper hunts over, which is why the world keeps one
+	// count for all three. It is a thing and not a material, because a
+	// material is what a person carries, sells and builds with, and the
+	// taking of every material is an act the trees entail for people; a
+	// deer's food has to stand outside that or every settler would be
+	// entailed a browsing.
+	Browse = lack(New("browse", Thing, Edible, habit.Signature{}), 0.8)
 	// Practice is an act itself as the object of another: what is taught
 	// and studied. The ontology contains its own catalog.
 	Practice = New("practice", Thing, 0, habit.Signature{})
@@ -430,4 +444,7 @@ var (
 	Pupil = Role{"pupil", habit.Signature{habit.Unproven: 0.8, habit.Company: 0.7, habit.Charity: 0.3, habit.Rapport: 0.5, habit.Skill: 1}}
 	// Wrongdoer owes the actor for a wrong done.
 	Wrongdoer = Role{"wrongdoer", habit.Signature{habit.Unproven: 0.6, habit.Rapport: 1, habit.Caution: -0.4}}
+	// Fellow is one of the actor's own kind, out of the reach that would
+	// make it company: the moment of wanting a herd and having none.
+	Fellow = Role{"fellow", habit.Signature{habit.Lonely: 0.7, habit.Company: -0.5}}
 )

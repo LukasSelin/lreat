@@ -48,6 +48,11 @@ type Tie struct {
 type Portrait struct {
 	ID   entity.ID
 	Name string
+	// Kind is what kind of creature this is, by its species' name. A
+	// creature has a body, a mind, wants and an errand like anybody; what
+	// it has none of - a calling, a purse, a roof, anyone it knows - a
+	// card reads past.
+	Kind string
 	Age  int // in years
 	Pos  entity.Pos
 
@@ -129,7 +134,7 @@ func Look(w *world.World, id entity.ID) *Portrait {
 		return nil
 	}
 	p := &Portrait{
-		ID: a.ID, Name: a.Name, Age: clock.Years(a.Age(w.Tick)), Pos: a.Pos,
+		ID: a.ID, Name: a.Name, Kind: a.Species().Name, Age: clock.Years(a.Age(w.Tick)), Pos: a.Pos,
 		Home: a.Home, HasHome: a.HasHome, Field: a.Field, HasField: a.HasField,
 		Needs: a.Needs, Urgency: need.Urgencies(a.Needs), Personality: a.Personality,
 		Health: a.Health, Body: a.Body, Mind: a.Mind, Shelter: a.Shelter,

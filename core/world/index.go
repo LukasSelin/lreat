@@ -408,14 +408,40 @@ func (w *World) Closest(p entity.Pos, radius int, keep func(*entity.Agent) bool)
 	return w.closest(p, radius, keep)
 }
 
-// Neighbor returns the closest other agent within radius tiles of a, or nil.
-// Ties go to the earliest born, which keeps runs deterministic.
-func (w *World) Neighbor(a *entity.Agent, radius int) *entity.Agent {
-	return w.closest(a.Pos, radius, func(o *entity.Agent) bool { return o != a })
+// ClosestOf is Closest among one kind of creature: the nearest of that
+// species within radius that keep accepts, or nil. Every question of the
+// form "the nearest somebody who..." is asked of a kind, because what a
+// person wants of a neighbour a deer is not, and a deer standing in the
+// crowd would otherwise be counted as company, judged as a witness, and
+// drawn as a stranger to go and meet.
+func (w *World) ClosestOf(p entity.Pos, radius int, sp *entity.Species, keep func(*entity.Agent) bool) *entity.Agent {
+	return w.closest(p, radius, func(o *entity.Agent) bool { return o.Species() == sp && keep(o) })
 }
 
-// AgentAt returns the agent closest to p within radius, ignoring except.
+// NearbyOf is Nearby among one kind of creature.
+func (w *World) NearbyOf(p entity.Pos, radius int, sp *entity.Species, visit func(*entity.Agent) bool) {
+	w.Nearby(p, radius, func(o *entity.Agent) bool {
+		if o.Species() != sp {
+			return true
+		}
+		return visit(o)
+	})
+}
+
+// Neighbor returns the closest other agent of a's own kind within radius
+// tiles of a, or nil. Ties go to the earliest born, which keeps runs
+// deterministic.
+func (w *World) Neighbor(a *entity.Agent, radius int) *entity.Agent {
+	return w.ClosestOf(a.Pos, radius, a.Species(), func(o *entity.Agent) bool { return o != a })
+}
+
+// AgentAt returns the agent closest to p within radius of except's kind,
+// ignoring except itself; with nobody excepted it is the nearest person.
 // Ties go to the earliest born, which keeps runs deterministic.
 func (w *World) AgentAt(p entity.Pos, radius int, except *entity.Agent) *entity.Agent {
-	return w.closest(p, radius, func(o *entity.Agent) bool { return o != except })
+	sp := entity.Human
+	if except != nil {
+		sp = except.Species()
+	}
+	return w.ClosestOf(p, radius, sp, func(o *entity.Agent) bool { return o != except })
 }

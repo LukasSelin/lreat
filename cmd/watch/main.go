@@ -115,6 +115,7 @@ func main() {
 	d := defaults()
 	seed := flag.Uint64("seed", d.seed, "world seed")
 	agents := flag.Int("agents", d.agents, "starting population")
+	deer := flag.Int("deer", d.deer, "deer put down in the woods around the settlement")
 	tps := flag.Float64("tps", d.tps, "initial ticks per second")
 	width := flag.Int("width", d.width, "map width")
 	height := flag.Int("height", d.height, "map height")
@@ -130,7 +131,7 @@ func main() {
 		os.Exit(2)
 	}
 	s := setup{
-		seed: *seed, agents: *agents, tps: *tps,
+		seed: *seed, agents: *agents, deer: *deer, tps: *tps,
 		width: *width, height: *height, snug: *snug,
 		fit: !*value, temp: *temp, preset: *preset,
 		ceiling: *ceiling,
@@ -209,6 +210,7 @@ func run(screen tcell.Screen, s setup) {
 	for i := 0; i < s.agents; i++ {
 		w.Spawn(fmt.Sprintf("%s%d", names[i%len(names)], i/len(names)), w.RandomPersonality())
 	}
+	w.Populate()
 	runner := sim.New(w, s.tps)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -681,6 +683,7 @@ var palette = map[ascii.Color]tcell.Style{
 	ascii.AgentSocial: tcell.StyleDefault.Foreground(tcell.ColorFuchsia).Bold(true),
 	ascii.AgentStudy:  tcell.StyleDefault.Foreground(tcell.ColorAqua).Bold(true),
 	ascii.AgentIdle:   tcell.StyleDefault.Foreground(tcell.ColorWhite).Bold(true),
+	ascii.AgentDeer:   tcell.StyleDefault.Foreground(tcell.PaletteColor(173)).Bold(true),
 
 	// The two ramps: open country and woodland, valley floor to skyline. The
 	// land is what most of the screen is, so these are most of what the map
@@ -836,7 +839,7 @@ func (v *view) draw() {
 	for _, m := range s.Map.Agents {
 		if m.ID == v.sel {
 			if x, y, ok := win.Screen(s.Map, m.Pos); ok {
-				sc.SetContent(x, y, '@', nil, palette[ascii.AgentColor(m.Action)].Reverse(true))
+				sc.SetContent(x, y, ascii.Glyph(m), nil, palette[ascii.AgentColor(m.Action)].Reverse(true))
 			}
 			break
 		}
@@ -874,7 +877,11 @@ func (v *view) draw() {
 	// through is a year and a season, and the raw day is only useful for
 	// lining a run up against a log.
 	put(bold, "%-20s pop %-5d %s", s.Date, s.Population, state)
-	put(dim, "day %d", s.Tick)
+	if s.Creatures > 0 {
+		put(dim, "day %d  deer %d", s.Tick, s.Creatures)
+	} else {
+		put(dim, "day %d", s.Tick)
+	}
 	line++
 	for _, t := range need.Tiers() {
 		put(tcell.StyleDefault, "%-13s %s %.2f", t, bar(s.MeanNeeds[t], 12), s.MeanNeeds[t])
@@ -1129,12 +1136,17 @@ func (v *view) drawCard(x int, line *int, bottom int) {
 		put(dim, "─ #%d ─ gone", v.sel)
 		return
 	}
-	put(bold, "─ %s ─ #%d ─ age %d", p.Name, p.ID, p.Age)
-	// What an agent is good at is the nearest thing this world has to a
-	// role: nobody is given one, and one is arrived at all the same. What it
-	// believes it is good at is shown beside it, because that, and not the
-	// truth, is what it acts on.
-	put(tcell.StyleDefault, "%-11s %.2f  believes %.2f", p.Calling, p.Level, p.Efficacy[p.Calling])
+	creature := p.Kind != "" && p.Kind != "human"
+	if creature {
+		put(bold, "─ %s ─ #%d ─ %s, age %d", p.Name, p.ID, p.Kind, p.Age)
+	} else {
+		put(bold, "─ %s ─ #%d ─ age %d", p.Name, p.ID, p.Age)
+		// What an agent is good at is the nearest thing this world has to a
+		// role: nobody is given one, and one is arrived at all the same. What it
+		// believes it is good at is shown beside it, because that, and not the
+		// truth, is what it acts on.
+		put(tcell.StyleDefault, "%-11s %.2f  believes %.2f", p.Calling, p.Level, p.Efficacy[p.Calling])
+	}
 	put(healthStyle(p.Health), "%-13s %s %.2f", "health", bar(p.Health, 8), p.Health)
 	// Beside each need is how hard it is pulling: the level is what the
 	// agent has, the arrow is what that lack is worth to this particular
@@ -1142,11 +1154,17 @@ func (v *view) drawCard(x int, line *int, bottom int) {
 	for _, t := range need.Tiers() {
 		put(tcell.StyleDefault, "%-13s %s %.2f ▲%.2f", t, bar(p.Needs[t], 8), p.Needs[t], p.Urgency[t]*p.Personality[t])
 	}
-	put(dim, "shelter %.2f  wealth %.1f  rep %.1f", p.Shelter, p.Wealth, p.Reputation)
+	// A creature has no roof, no purse, no name to keep, nothing in its
+	// arms and nobody it knows: the card goes from its wants to its errand.
+	spare := bottom - *line - cardTail
+	if creature {
+		spare = 0
+	} else {
+		put(dim, "shelter %.2f  wealth %.1f  rep %.1f", p.Shelter, p.Wealth, p.Reputation)
+	}
 	// Everything from here to the errand is worth knowing and none of it is
 	// worth crowding out the thinking, which is the point of the card. On a
 	// short terminal it gives way instead of pushing that off the bottom.
-	spare := bottom - *line - cardTail
 	if carrying := goods(p); carrying != "" && spare > 0 {
 		put(dim, "carrying %s", carrying)
 		spare--

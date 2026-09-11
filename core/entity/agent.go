@@ -140,6 +140,9 @@ type Agent struct {
 	ID   ID
 	Name string
 	Born int
+	// Kind is what kind of creature this is. Nil is a person; see
+	// Species, which reads it, and species.go, which says what a kind is.
+	Kind *Species
 
 	// Luck is the agent's own stream of chance, seeded when it is born. An
 	// agent draws from this rather than from the world's one stream so that
@@ -301,7 +304,7 @@ const ordinaryBody = 1
 // spend walking out of. It is the body it was born with, grown into or given
 // back with age, condition aside.
 func (a *Agent) Endurance(tick int) float64 {
-	return a.Body.Frame() * AgeFactor(a.Age(tick))
+	return a.Body.Frame() * a.Species().Life.Factor(a.Age(tick))
 }
 
 // Vigor is the pace the agent can actually keep: its frame at this age,

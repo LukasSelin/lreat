@@ -35,6 +35,9 @@ const (
 	AgentSocial
 	AgentStudy
 	AgentIdle
+	// AgentDeer is a deer at whatever it is doing: a creature is one
+	// colour, since what it is is the whole of what a map has to say of it.
+	AgentDeer
 	// Ground and Wood are open country and woodland, each in Bands steps
 	// from the valley floor to the skyline. They must stay contiguous and in
 	// order; Ground and Wood below index them.
@@ -286,6 +289,8 @@ func AgentColor(action string) Color {
 		return AgentSocial
 	case "study":
 		return AgentStudy
+	case "browse", "bed down", "flee", "herd", "roam":
+		return AgentDeer
 	}
 	return AgentIdle
 }

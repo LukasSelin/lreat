@@ -28,8 +28,29 @@ func bipolar(x float64) float64 { return 2*need.Clamp(x) - 1 }
 // median settlement roughly doubled. The store knees are in store.go.
 const nearKnee = 6
 
-// Shared is the part of the situation that is the same for every candidate.
+// Sense is how a kind of creature reads the part of its moment that is the
+// same for every candidate: what it finds on each coordinate of the space.
+type Sense func(a *entity.Agent, w *world.World) habit.Signature
+
+// senses is the sense of each kind of creature that has one of its own; a
+// kind with none reads the moment as a person does. It is written at
+// start-up, by each creature's own file, and read from every decision.
+var senses = map[*entity.Species]Sense{}
+
+// Perceive gives a kind of creature its own way of reading a moment.
+func Perceive(sp *entity.Species, sense Sense) { senses[sp] = sense }
+
+// Shared is the part of the situation that is the same for every candidate,
+// read as the agent's kind reads it.
 func Shared(a *entity.Agent, w *world.World) habit.Signature {
+	if sense := senses[a.Species()]; sense != nil {
+		return sense(a, w)
+	}
+	return senseHuman(a, w)
+}
+
+// senseHuman is how a person reads a moment.
+func senseHuman(a *entity.Agent, w *world.World) habit.Signature {
 	var s habit.Signature
 	u := need.Urgencies(a.Needs)
 	for t := range u {
@@ -187,7 +208,8 @@ func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate 
 	// read past the near knee.
 	r.Holding(a.ID).Survey(a.Pos, a.Load(), nearKnee*a.Vigor(w.Tick))
 	defer r.Forget()
-	for i := range Catalog {
+	mine := For(a.Species())
+	for _, i := range mine {
 		a.Reach[i] = max(a.Reach[i], w.ReachFloor[i])
 	}
 	shared := Shared(a, w)
@@ -198,7 +220,8 @@ func CandidatesOn(a *entity.Agent, w *world.World, r *world.Router) []Candidate 
 	// allocated. See entity.Agent.Sizing.
 	room := sizing(a)
 	out := (*room)[:0]
-	for i, d := range Catalog {
+	for _, i := range mine {
+		d := Catalog[i]
 		if !d.Available(a, w) {
 			continue
 		}
@@ -244,6 +267,12 @@ func Rank(a *entity.Agent, w *world.World) []Candidate {
 // gave them. A slot given after that is fresh for everyone alive and is
 // seeded here the next time each of them decides.
 //
+// Only the slots of the agent's own kind are seeded; the rest are left
+// empty, as they will never be weighed. That is what keeps a person's luck
+// where it was: seeding draws from it for every coordinate of every slot
+// seeded, and a person seeding a deer's slots would be a person whose
+// every later choice had moved.
+//
 // The idiosyncrasy is what makes a settlement more than twenty copies of one
 // person. Founders seeded from the bare priors all recognise the same moment
 // as calling for the same act, so they forage together, build together, and
@@ -252,7 +281,11 @@ func Rank(a *entity.Agent, w *world.World) []Candidate {
 // luck, so it is fixed at birth and the same in any run of the same seed.
 func Imprint(a *entity.Agent) {
 	a.Room()
+	sp := a.Species()
 	for i := a.Seeded; i < len(Catalog); i++ {
+		if !Owns(sp, Catalog[i]) {
+			continue
+		}
 		prior := Catalog[i].Prior
 		a.Habits[i] = prior
 		if a.Luck != nil && BornNoise > 0 && habit.Norm(prior) >= habit.Epsilon {

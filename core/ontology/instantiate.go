@@ -17,6 +17,8 @@ type Instance struct {
 	Key          string
 	Schema       *Schema
 	Object, Site *Class
+	// Actor is who does it: nil for a person, as on the schema.
+	Actor *Class
 
 	Ticks   int
 	Skill   entity.Skill
@@ -28,7 +30,9 @@ type Instance struct {
 }
 
 // Instantiate walks the schemas over the trees and returns every act they
-// entail, sorted by key. It is deterministic: same trees, same catalog.
+// entail, in order: everything a person does first, by key, and then each
+// other actor's acts in the order the actors were declared. It is
+// deterministic: same trees, same catalog.
 func Instantiate() []Instance {
 	var out []Instance
 	for i := range Schemas {
@@ -42,8 +46,28 @@ func Instantiate() []Instance {
 			}
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
+	sort.Slice(out, func(i, j int) bool { return Ordered(&out[i], &out[j]) })
 	return out
+}
+
+// Ordered is the order the catalog is in: by actor first, people before
+// every creature declared after them, and by key within an actor. Habit
+// slots are catalog positions, so an actor added later takes its slots
+// after everything that was already there, and nothing a person does
+// moves for a deer having been thought of.
+func Ordered(a, b *Instance) bool {
+	if ra, rb := actorRank(a.Actor), actorRank(b.Actor); ra != rb {
+		return ra < rb
+	}
+	return a.Key < b.Key
+}
+
+// actorRank is where an actor came in the declaring: a person for nil.
+func actorRank(c *Class) int {
+	if c == nil {
+		return Person.id
+	}
+	return c.id
 }
 
 // objects are the classes a schema's object expands to: the leaves under
@@ -72,7 +96,7 @@ func sites(sc *Schema) []*Class {
 
 func bind(sc *Schema, obj, site *Class) Instance {
 	in := Instance{
-		Schema: sc, Object: obj, Site: site,
+		Schema: sc, Object: obj, Site: site, Actor: sc.Actor,
 		Ticks: sc.Ticks, Skill: sc.Skill, Skilled: sc.Skilled, Tech: sc.Tech, Reach0: sc.Reach0,
 		Valence: sc.Valence,
 	}
@@ -87,9 +111,14 @@ func bind(sc *Schema, obj, site *Class) Instance {
 	return in
 }
 
-// key renders verb[/name][/inputs>output | /object][@site][>role | <role].
+// key renders [actor:]verb[/name][/inputs>output | /object][@site][>role | <role].
+// The actor is named only where it is not a person, so that every key a
+// person's act ever had is the key it has.
 func key(sc *Schema, obj, site *Class) string {
 	var b strings.Builder
+	if sc.Actor != nil {
+		b.WriteString(sc.Actor.Name + ":")
+	}
 	b.WriteString(sc.Verb.String())
 	if sc.Name != "" {
 		b.WriteString("/" + sc.Name)

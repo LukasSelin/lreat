@@ -22,7 +22,7 @@ const witnessCount = 3
 func witness(a *entity.Agent, w *world.World, name string) {
 	v := ValenceOf(name)
 	seen := 0
-	w.Nearby(a.Pos, reachRadius, func(o *entity.Agent) bool {
+	w.NearbyOf(a.Pos, reachRadius, a.Species(), func(o *entity.Agent) bool {
 		if o == a {
 			return true
 		}
@@ -45,7 +45,7 @@ func remorse(a *entity.Agent, name string) {
 // whoever asks: the nearest holder of a thing is the nearest holder of it,
 // and finding them should not cost the crowd standing behind them.
 func nearestWith(a *entity.Agent, w *world.World, radius int, ok func(*entity.Agent) bool) *entity.Agent {
-	return w.Closest(a.Pos, radius, func(o *entity.Agent) bool { return o != a && ok(o) })
+	return w.ClosestOf(a.Pos, radius, a.Species(), func(o *entity.Agent) bool { return o != a && ok(o) })
 }
 
 func hasSpareFood(o *entity.Agent) bool { return o.Inventory[entity.Food] >= 1 }

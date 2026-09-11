@@ -120,7 +120,7 @@ func stranger(a *entity.Agent, w *world.World) *entity.Agent {
 	// entity.Agent.Company. Nothing leaves here but one person, so what
 	// the room holds afterwards is nobody's business.
 	near := a.Company[:0]
-	w.Nearby(a.Pos, meetRadius, func(o *entity.Agent) bool {
+	w.NearbyOf(a.Pos, meetRadius, a.Species(), func(o *entity.Agent) bool {
 		if o != a {
 			near = append(near, o)
 		}
@@ -165,7 +165,7 @@ func preferred(a *entity.Agent, w *world.World) *entity.Agent {
 	}
 	// Everybody a has never met is the same prospect to it, so the best of
 	// them is the nearest of them, and the nearest is asked for directly.
-	if o := w.Closest(a.Pos, meetRadius, func(o *entity.Agent) bool {
+	if o := w.ClosestOf(a.Pos, meetRadius, a.Species(), func(o *entity.Agent) bool {
 		return o != a && a.Look(o.ID) == nil
 	}); o != nil {
 		weigh(o)

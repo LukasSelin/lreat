@@ -3,20 +3,17 @@ package system
 import (
 	"math"
 
+	"lreat/core/action"
 	"lreat/core/entity"
 	"lreat/core/need"
 	"lreat/core/ontology"
 	"lreat/core/world"
 )
 
-// decay is the per-tick satisfaction lost for tiers that drain on their own.
-// Safety is not listed: it tracks the agent's environment instead.
-var decay = [need.Count]float64{
-	need.Physiological: 0.02,
-	need.Belonging:     0.006,
-	need.Esteem:        0.004,
-	need.Actualization: 0.003,
-}
+// What each tier loses on its own each day is the species' own, in
+// entity.Species.Decay: a person's is what was always written here, and
+// safety is not among them for anybody, since it tracks circumstances
+// instead.
 
 // HealthRate is how fast condition follows circumstance. It is slow enough
 // that health is a record of how an agent has lived, not of what it ate today.
@@ -60,12 +57,19 @@ var roofWear = func() float64 {
 // fades afterwards.
 func Decay(w *world.World) {
 	n := len(w.Agents)
+	// Frozen while the bodies are worn over goroutines: a creature's day
+	// asks the agent file who is standing near it, and the file must not
+	// be tidying itself under the asking.
+	w.Freeze(true)
 	world.InParallel(n, world.WorkersOver(n), func(i, _ int) { wear(w.Agents[i], w) })
+	w.Freeze(false)
 	w.Safety = math.Max(0, w.Safety-0.01)
 }
 
 // wear is one agent's day of Decay.
 func wear(a *entity.Agent, w *world.World) {
+	sp := a.Species()
+	decay := sp.Decay
 	for t := range decay {
 		d := decay[t]
 		if need.Tier(t) == need.Physiological {
@@ -75,6 +79,10 @@ func wear(a *entity.Agent, w *world.World) {
 			d *= a.Body.Burn()
 		}
 		a.Needs.Add(need.Tier(t), -d)
+	}
+	if !sp.Settles {
+		weather(a, w)
+		return
 	}
 
 	a.Shelter = math.Max(0, a.Shelter-roofWear*w.Mods.ShelterDecay)
@@ -115,6 +123,55 @@ func wear(a *entity.Agent, w *world.World) {
 	target := 0.5*a.Shelter + 0.35*w.Safety + 0.15*math.Min(a.Wealth/20, 1)
 	a.Needs[need.Safety] += (target - a.Needs[need.Safety]) * 0.1
 
+	starve(a)
+}
+
+// Fright is how fast a creature's safety falls when somebody is near, and
+// Settling how fast it comes back once nobody is. A person's safety follows
+// a roof and the settlement's order at a tenth a day, which is the pace
+// those things change at; a deer's fear is the sight of somebody and is
+// felt at once, or the deer is eaten before it has finished feeling it. The
+// two rates are what make the alarmed moment its own moment rather than a
+// slow lean on the calm one.
+const (
+	Fright   = 0.5
+	Settling = 0.1
+)
+
+// HerdComfort is what a day in the herd is worth to a creature's belonging.
+// A person's belonging is fed by going to see somebody; a deer's is fed by
+// standing where the others stand, so it is a little more than the tier
+// drains, and a deer that has lost its herd feels it within the month.
+const HerdComfort = 0.012
+
+// weather is a creature's day of Decay past the draining of its wants: the
+// same winter a person has, read against the trees over it rather than a
+// roof, and a safety that is the cover it stands in and whether anybody is
+// near. It has no roof to rot, no pack to spoil, no purse and no settlement
+// keeping order for it, and nothing anybody has learned comes between it
+// and the cold.
+func weather(a *entity.Agent, w *world.World) {
+	cover := action.Cover(w, a.Pos)
+	exposure := w.ChillAt(a.Pos) * (1 - cover) / a.Body.Hardy()
+	a.Needs.Add(need.Physiological, -ColdDrain*exposure)
+	condition := 0.35 + 0.45*need.Clamp(a.Needs[need.Physiological]) + 0.2*cover - ColdCondition*exposure
+	a.Health = need.Clamp(a.Health + (condition-a.Health)*HealthRate)
+	// Safe is under trees with nobody about: wholly so, and less than half
+	// so in the open. Somebody about is not safe at all, whatever the
+	// cover, and is felt at once.
+	target, rate := 0.4+0.6*cover, Settling
+	if action.Alarm(a, w) != nil {
+		target, rate = 0, Fright
+	}
+	a.Needs[need.Safety] += (target - a.Needs[need.Safety]) * rate
+	if action.InHerd(a, w) {
+		a.Needs.Add(need.Belonging, HerdComfort)
+	}
+	starve(a)
+}
+
+// starve counts the days at the bottom of the physiological tier.
+func starve(a *entity.Agent) {
 	if a.Needs[need.Physiological] <= 0.02 {
 		a.Starving++
 	} else {

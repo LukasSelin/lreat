@@ -24,6 +24,9 @@ const (
 // people who stop doing it stay confident a little after they stop.
 func Beliefs(w *world.World) {
 	for _, a := range w.Agents {
+		if !a.Species().Settles {
+			continue
+		}
 		for s := range a.Efficacy {
 			a.Efficacy[s] = belief.Clamp(belief.Update(a.Efficacy[s], a.Skills[s], ConfidenceRate))
 			if a.Efficacy[s] < ConfidenceFloor {
@@ -54,7 +57,9 @@ func contagion(w *world.World) {
 	near := make([]*entity.Agent, n)
 	w.Freeze(true)
 	world.InParallel(n, world.WorkersOver(n), func(i, _ int) {
-		near[i] = w.Neighbor(w.Agents[i], TalkRadius)
+		if w.Agents[i].Species().Settles {
+			near[i] = w.Neighbor(w.Agents[i], TalkRadius)
+		}
 	})
 	w.Freeze(false)
 	for i, a := range w.Agents {
@@ -78,16 +83,20 @@ func contagion(w *world.World) {
 // MeanNorms is the settlement's average values, for observation and tests.
 func MeanNorms(w *world.World) belief.Norms {
 	var m belief.Norms
-	if len(w.Agents) == 0 {
+	people := w.People()
+	if people == 0 {
 		return m
 	}
 	for _, a := range w.Agents {
+		if !a.Species().Settles {
+			continue
+		}
 		for i := range m {
 			m[i] += a.Norms[i]
 		}
 	}
 	for i := range m {
-		m[i] /= float64(len(w.Agents))
+		m[i] /= float64(people)
 	}
 	return m
 }

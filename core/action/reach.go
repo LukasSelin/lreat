@@ -126,15 +126,19 @@ func Inherit(child, parent *entity.Agent, w *world.World, rng *rand.Rand) {
 	w.Room()
 	child.Habits = slices.Clone(parent.Habits)
 	child.Seeded = parent.Seeded
+	// Only the slots of the child's own kind drift and are reached: the
+	// rest are empty in the parent and stay empty, and drawing a drift
+	// for them would be chance a settlement never used to spend.
+	mine := For(child.Species())
 	if rng != nil {
-		for i := range Catalog {
+		for _, i := range mine {
 			for k := range child.Habits[i] {
 				child.Habits[i][k] += rng.NormFloat64() * InheritNoise
 			}
 			habit.ClampNorm(&child.Habits[i], habit.MinNorm, habit.MaxNorm)
 		}
 	}
-	for i := range Catalog {
+	for _, i := range mine {
 		child.Reach[i] = max(w.ReachFloor[i], InheritReach*parent.Reach[i])
 	}
 	// A child is shown the country it grows up in. Without this every

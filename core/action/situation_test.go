@@ -54,7 +54,8 @@ func TestImprintCopiesPriorsOnce(t *testing.T) {
 	w := world.New(1)
 	a := blank(w, "a")
 	Imprint(a)
-	for i, d := range Catalog {
+	for _, i := range For(entity.Human) {
+		d := Catalog[i]
 		if a.Habits[i] != d.Prior || a.Reach[i] != d.Reach0 {
 			t.Fatalf("%s not imprinted", d.Name)
 		}
