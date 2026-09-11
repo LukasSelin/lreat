@@ -40,30 +40,30 @@ to be.
 
 ```
 seed  pop  died births houses fields |  phys  safe belng  estm  actl | order
-   1  131    86     32     33     38 |  0.59  0.51  0.56  0.27  0.08 |  1.00
-   2   91   193     21     45     72 |  0.72  0.59  0.33  0.10  0.04 |  1.00
-   3   89   135     21     24     70 |  0.76  0.56  0.46  0.32  0.20 |  1.00
-   4   20    56     25      4     22 |  0.76  0.63  0.72  0.22  0.35 |  1.00
-   5   44   195     56     20     35 |  0.62  0.63  0.46  0.11  0.03 |  0.98
-   6  288   314     19     78    112 |  0.60  0.57  0.51  0.18  0.08 |  1.00
-   7  239   322     43    134     30 |  0.62  0.55  0.37  0.04  0.01 |  1.00
-   8  340   539     31    172    108 |  0.58  0.56  0.47  0.08  0.08 |  0.98
-   9  187   156     26     69    105 |  0.64  0.51  0.41  0.12  0.04 |  1.00
-  10   80    79     33     23     45 |  0.70  0.53  0.70  0.34  0.07 |  1.00
-  11   97   181     27     52     47 |  0.59  0.53  0.42  0.12  0.04 |  1.00
-  12   38   186     39     32     55 |  0.56  0.55  0.48  0.05  0.05 |  0.87
-  13  138   297     40     81     34 |  0.60  0.52  0.46  0.03  0.05 |  0.99
-  14   97   114     34     23     33 |  0.58  0.51  0.50  0.31  0.03 |  0.98
-  15   32   141     48     27     32 |  0.49  0.60  0.61  0.08  0.09 |  0.79
-  16   92   111     28     45     46 |  0.63  0.59  0.46  0.17  0.02 |  1.00
-  17   74   151     15     22     56 |  0.65  0.54  0.57  0.29  0.07 |  1.00
-  18  132   395     24     65     53 |  0.66  0.60  0.45  0.16  0.05 |  1.00
-  19  231   337     23    100     76 |  0.61  0.56  0.50  0.19  0.04 |  1.00
-  20   15    54      7     10     23 |  0.34  0.39  0.17  0.20  0.01 |  0.45
-  21  184   215     43     50    156 |  0.64  0.50  0.56  0.10  0.04 |  1.00
-  22  237   177     23     88     31 |  0.67  0.52  0.40  0.26  0.05 |  1.00
-  23   97    89     15     33     57 |  0.71  0.50  0.42  0.30  0.02 |  1.00
-  24  253   231     27     73    125 |  0.60  0.49  0.64  0.10  0.04 |  1.00
+   1   74   165     19      4     33 |  0.68  0.56  0.61  0.27  0.20 |  1.00
+   2  330   421     26    111     90 |  0.64  0.47  0.47  0.15  0.05 |  1.00
+   3  115   125     20     36     32 |  0.61  0.49  0.39  0.39  0.03 |  1.00
+   4   95   134     24     18     28 |  0.64  0.52  0.56  0.19  0.14 |  0.99
+   5  237   364     42     96     93 |  0.66  0.54  0.54  0.18  0.07 |  1.00
+   6  271   196     18     91     77 |  0.63  0.54  0.42  0.09  0.06 |  1.00
+   7   95   167     20     29     67 |  0.60  0.54  0.46  0.25  0.06 |  0.99
+   8  137   303     19     63    119 |  0.55  0.57  0.49  0.20  0.01 |  1.00
+   9  115   168     16     32     55 |  0.69  0.52  0.74  0.17  0.07 |  1.00
+  10  186   280     12     53     44 |  0.64  0.54  0.33  0.30  0.04 |  1.00
+  11  192   321     11     40    108 |  0.55  0.45  0.49  0.16  0.00 |  1.00
+  12  188   199     23     63     96 |  0.61  0.53  0.56  0.14  0.05 |  1.00
+  13  245   279     16     82    115 |  0.58  0.57  0.42  0.17  0.14 |  1.00
+  14  503   220     27    152    192 |  0.67  0.52  0.50  0.11  0.10 |  1.00
+  15   94   300     25     47     71 |  0.63  0.61  0.55  0.17  0.18 |  1.00
+  16   35   130     32     18      5 |  0.55  0.59  0.53  0.12  0.13 |  0.98
+  17  146   282     30     48    126 |  0.59  0.54  0.58  0.24  0.01 |  1.00
+  18  475   250     28    180    194 |  0.64  0.52  0.49  0.16  0.06 |  1.00
+  19  257   359     32     58     68 |  0.56  0.51  0.54  0.29  0.10 |  1.00
+  20  149   140     29     93    115 |  0.66  0.59  0.59  0.05  0.00 |  1.00
+  21  193   452     51     99    121 |  0.56  0.60  0.39  0.14  0.02 |  1.00
+  22  127   320     32     45     81 |  0.60  0.54  0.45  0.15  0.04 |  1.00
+  23  128   199     29     36     30 |  0.57  0.47  0.23  0.06  0.06 |  1.00
+  24  113   175     28     83     55 |  0.64  0.66  0.27  0.13  0.03 |  1.00
 
 dwell/rest                         3418055  31.7%
 take/berries@wood                  2079692  19.3%
@@ -98,10 +98,79 @@ raise/timber+stone>market@open          95   0.0%
 move@dwelling                           79   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.58 safe 0.51 held 0.69 all 0.247 food 3.73 hungry-with-food 0.28 | lasted 23/24 extinct 0 mean 134.4 median 97 | phys 0.62 safe 0.54 belng 0.48 estm 0.17
+gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 hungry-with-food 0.27 | lasted 24/24 extinct 0 mean 187.5 median 149 | phys 0.62 safe 0.54 belng 0.48 estm 0.18
 ```
 
 ## What the last change did
+
+A great river spreads onto the ground beside it that is no higher than the
+water. It used to take every neighbour standing up to a metre above its
+channel, while the line of comment above it said "no higher" - the comment and
+the code had disagreed since the day it was written, and the code was the
+generous one.
+
+It went unnoticed for as long as the reading that picks a great river was
+wrong. A river picked by how hard it is cutting is a rill near a ridge, and a
+rill near a ridge has no flat ground beside it to give away; corrected to read
+off the flow, the rule started firing on flood plains, which is where the
+markets are, and a metre of flood took an eighth of a settlement's building
+ground with it.
+
+Counted within ten tiles of a market over eight globes, by how far the flood is
+let rise:
+
+```
+rise    water   fish   fertility   buildable   river, share of map
+1.00    149.5   127.3    232.2       240.4           7.18%
+0.50    146.0   124.6    237.8       244.1           7.05%
+0.25    142.5   121.2    242.1       247.9           6.85%
+0.00    130.1   111.2    254.2       256.4           5.68%
+```
+
+Nothing gives back half the ground the correction cost, against 272 when the
+rule was firing on ridges, and still leaves a settlement more water and more
+fish than it had then. It also brings the share of a map that comes out as
+watercourse back toward the waterShare it asks for - the banks are laid after
+the channels are counted, so whatever they add is over the top of it, and at a
+metre they were adding two thirds again.
+
+```
+before: gates: fed 0.58 safe 0.51 held 0.69 all 0.247 food 3.73 | lasted 23/24 extinct 0 mean 134.4 median 97
+after:  gates: fed 0.58 safe 0.50 held 0.69 all 0.251 food 3.61 | lasted 24/24 extinct 0 mean 187.5 median 149
+```
+
+Every settlement held its founding size, which has not happened before on this
+batch, and the gate is back within a hundredth of where master had it before
+any of this branch touched the water. The mean and the median are up by half,
+which the table above says to believe never on its own.
+
+`TestSoilGoesWithTheGround` had to be re-aimed and it is worth saying why,
+because the behaviour it guards did not change. It asked for the ground that
+was still a hillside at the end, and asked it by standing more than FloodDepth
+above the nearest water. Drain is measured to the nearest water, so what counts
+as off the flood plain moves whenever the amount of water on the map moves:
+with the banks tightened, ground the river still feeds stopped clearing the
+line and stayed in the reckoning, and the whole set came out richer. Every part
+of it that is really a hillside came out poorer - over a tenth of a fall, 0.150
+to 0.054; over a fifth, 0.150 to 0.027 - so it asks the fall now. The fall is
+what a slope is.
+
+And the two tests fixed in the commit before this one had to be fixed again,
+which is the more useful lesson. They were re-aimed to ask their question of
+twenty worlds instead of one, and the bar was set at what those twenty worlds
+happened to give: seventeen. The true rate is sixty-eight in a hundred, so a
+bar at seventeen in twenty is above the rate and fails by construction on the
+next change to the ground - which is exactly what it did, one commit later. A
+bar set at what was measured is a bar that fails half the time. They ask sixty
+worlds now and the bars sit at about half.
+
+## Earlier changes
+
+What the changes before this one did, each measured against the master of its
+own day. They are kept for the method rather than for the numbers: none of
+them is a comparison with the run above.
+
+### What the slope-area law did
 
 Which tiles are river is read by the slope-area law now, properly and on a
 published exponent. A channel is where A·S^theta is greatest - the water times
@@ -161,12 +230,6 @@ a cosine of 0.9 of the prior; over two hundred founders that runs from 0.66 to
 eight of twenty world seeds. It had been coming up heads. All three ask their
 question of a crowd now - two hundred founders, or twenty worlds - so the next
 change to the ground will not trip them.
-
-## Earlier changes
-
-What the changes before this one did, each measured against the master of its
-own day. They are kept for the method rather than for the numbers: none of
-them is a comparison with the run above.
 
 ### What the rivers did
 

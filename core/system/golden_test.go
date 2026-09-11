@@ -31,7 +31,16 @@ import (
 // When that happens, prove it the way it was proved then: sum the heights,
 // the drainage and the fertility of a few seeds on both trees and compare.
 //
-// Retaken for the slope-area law. Which tiles are river was read as the water
+// Retaken for how far a great river's flood reaches. It took every neighbour
+// standing up to a metre above its channel, while the line above it said "no
+// higher" - the comment and the code had disagreed since it was written. A
+// metre is a great deal of flood plain on flat ground, and it went unnoticed
+// while the reading that picks a great river was wrong, because the rill near
+// a ridge that reading picked has no flat ground beside it to give away. The
+// flood reaches the ground no higher than the water now, which is what the
+// comment always claimed. See bankRise in core/world/relief.go.
+//
+// Retaken before that for the slope-area law. Which tiles are river was read as the water
 // times the square root of the fall; it is the water times the fall now, which
 // is A·S, the stream power index, and the bottom of the range the channel
 // initiation literature quotes. The heads of the rivers climb: the high fifth
@@ -116,9 +125,9 @@ import (
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
 var golden = map[uint64]string{
-	1: "22516bd2f02b15ed",
-	3: "9653863a5241f177",
-	9: "73ca28e029876f5c",
+	1: "105630ba8851b9d5",
+	3: "36130a462e31a175",
+	9: "68af616b6df4af2f",
 }
 
 // digest is the hash the golden numbers are of.

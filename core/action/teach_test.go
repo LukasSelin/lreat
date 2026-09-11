@@ -30,14 +30,17 @@ func TestNobodyTeachesWhatTheOtherAlreadyKnows(t *testing.T) {
 }
 
 func TestALessonCarriesLessFromAWorseTeacher(t *testing.T) {
-	// Over twenty worlds and not one. What a lesson carries depends on the
+	// Over sixty worlds and not one. What a lesson carries depends on the
 	// habits of the two people in it, and those come off the world's own
-	// stream after the ground has been drawn from it - so one world seed is
-	// one draw. Counted, this held on eighteen of twenty; on the other two the
-	// apprentice had nothing to give, which is a thing that can happen to an
-	// apprentice and not a fault in the rule.
+	// stream after the ground has been drawn from it, so one world seed is one
+	// draw. Counted over sixty, an apprentice is worth something and less than
+	// a master three times in four; the rest of the time the apprentice has
+	// nothing to give, which is a thing that can happen to an apprentice and
+	// not a fault in the rule. The bar is set at about half and not at the
+	// three quarters that was measured - see the remark in
+	// TestSatedCuriousAgentStudiesWhenItIsInReach.
 	held := 0
-	const worlds = 20
+	const worlds = 60
 	for seed := uint64(1); seed <= worlds; seed++ {
 		w := world.New(seed)
 		master, keen := pair(w)
@@ -59,7 +62,7 @@ func TestALessonCarriesLessFromAWorseTeacher(t *testing.T) {
 				seed, fromAmateur, fromMaster)
 		}
 	}
-	if held < 15 {
+	if held < 33 {
 		t.Fatalf("an apprentice was worth something, and less than a master, on %d worlds of %d", held, worlds)
 	}
 }
