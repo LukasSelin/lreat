@@ -165,6 +165,11 @@ func (g *Grid) Routes(from entity.Pos) *Routes {
 	return g.ownRouter().Routes(from)
 }
 
+// activeLandmarks is how many landmarks a guided search reads at every
+// step: the ones that bound the walk best from where it starts. Two of
+// eight keep nearly all of what eight give, at a quarter of the reading.
+const activeLandmarks = 2
+
 // minMoveCost is the cheapest a tile can be to enter. Routing to a known
 // destination uses it to see how far the destination could possibly still be,
 // which keeps the search from spreading over ground that cannot be on the
@@ -231,7 +236,6 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 	// rest could cost. Without one the search simply spreads outward. A
 	// destination outside the window is out of reach, and the search does
 	// not start.
-	var sx, sy int
 	stopSlot := int32(-1)
 	if guided {
 		stop = g.Norm(stop)
@@ -239,7 +243,7 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 		if !ok {
 			return f
 		}
-		sx, sy, stopSlot = stop.X, stop.Y, s
+		stopSlot = s
 		// A laden walker cannot leave the ground it stands on except into
 		// the tile it is going to, so between two pieces of ground there
 		// is no way, and the search that would say so is not run. See
@@ -248,24 +252,21 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 			return f
 		}
 	}
+	// What the search knows of the walk that is left from any tile, and
+	// whether the landmarks say the destination cannot be reached at all,
+	// in which case there is nothing to open. See guess.
+	var known guess
+	if guided {
+		var none bool
+		if known, none = r.guessFor(from, stop, laden, f.x0, f.y0, span); none {
+			return f
+		}
+	}
 	toGo := func(x, y int) float64 {
 		if !guided {
 			return 0
 		}
-		dx, dy := x-sx, y-sy
-		if dx < 0 {
-			dx = -dx
-		}
-		if dy < 0 {
-			dy = -dy
-		}
-		if g.Wrap && g.W-dx < dx {
-			dx = g.W - dx // the short way round
-		}
-		if dy > dx {
-			dx = dy
-		}
-		return minMoveCost * float64(dx)
+		return known.at(x, y)
 	}
 	prefer = g.Norm(prefer)
 
@@ -333,7 +334,11 @@ func (r *Router) route(f *Routes, from, stop entity.Pos, guided bool, prefer ent
 				continue
 			}
 			f.seen[j], f.cost[j], f.prev[j], f.rank[j] = f.gen, cost, top.idx, rank
-			q = append(q, routeNode{cost: cost + toGo(cx, cy), rank: rank, idx: j})
+			left := toGo(cx, cy)
+			if math.IsInf(left, 1) {
+				continue // no way on from there, so nothing to open it for
+			}
+			q = append(q, routeNode{cost: cost + left, rank: rank, idx: j})
 			siftUp(q, len(q)-1)
 		}
 	}

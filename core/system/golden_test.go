@@ -86,10 +86,17 @@ import (
 // Retaken before that for the lapse rate: the weather falls with the height
 // of the ground, so the cold a body feels and the growing weather the ground
 // gets are read where they are rather than off the row.
+//
+// Retaken for the landmarks: a guided search now bounds the walk that is
+// left off a few landmark tables as well as the straight line, so it opens
+// fewer tiles and settles the destination at the same cost by the same
+// first step - but among routes of exactly the same cost it can settle on
+// a different one, and the one walked is where the wear falls and the
+// roads come. See world.Landmarks.
 var golden = map[uint64]string{
-	1: "85aec2b23412fa07",
-	3: "74fcf6fd0048f38d",
-	9: "39d590378ddae2f9",
+	1: "e20c27975e30f20b",
+	3: "157fc671075eeb69",
+	9: "130a5c9d123ce5a1",
 }
 
 // digest is the hash the golden numbers are of.

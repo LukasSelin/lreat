@@ -116,6 +116,9 @@ func Decide(w *world.World) {
 	// over, and batching them up only leaves cores idle: insisting on four
 	// agents per worker cost a third of the speedup when this was measured.
 	routers := w.Routers(world.WorkersFor(len(idle)))
+	// The landmarks every guided search is about to read are taken again
+	// here if they need to be, while nothing is routing. See world.Landmarks.
+	w.Grid.RefreshLandmarks(w.Tick)
 	action.Ready(w)
 	w.Freeze(true)
 	world.InParallel(len(idle), len(routers), func(i, worker int) {

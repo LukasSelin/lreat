@@ -77,6 +77,11 @@ func (g *Grid) label() {
 func (g *Grid) wet() {
 	g.regionsStale = true
 	g.waters++
+	// Water moving opens ways to a laden walker as well as shutting them:
+	// a bridge, or a tile the river has risen under, from which the water
+	// beside it may now be swum. The laden landmark tables cannot say by
+	// how much, so they are not read until they are taken again.
+	g.landmarks.ladenOK = false
 }
 
 // Waters is how many times the water has moved since the map was made: a

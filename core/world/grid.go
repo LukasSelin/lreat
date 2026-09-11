@@ -205,6 +205,10 @@ type Grid struct {
 	// callers routing one after another; anything routing at the same time as
 	// something else needs a Router of its own.
 	router *Router
+
+	// landmarks are the tables a guided search bounds the rest of the walk
+	// from. Taken by RefreshLandmarks; see landmark.go.
+	landmarks Landmarks
 }
 
 // ownRouter is the grid's router, made on first use. It is not safe to reach

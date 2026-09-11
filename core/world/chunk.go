@@ -102,11 +102,12 @@ func (g *Grid) Build(p entity.Pos, s Structure) {
 	i := g.Index(p)
 	t, c := &g.Tiles[i], &g.Chunks[g.ChunkOf(i)]
 	c.count(t, -1)
-	lent, deep := t.lends(), t.Deep()
+	lent, deep, was := t.lends(), t.Deep(), tableCost(t)
 	t.Structure = s
 	g.Kinds[i] = kindOf(t)
 	c.count(t, 1)
 	g.relend(i, lent)
+	g.landmarks.cheapened(g.ChunkOf(i), was, tableCost(t))
 	if t.Deep() != deep {
 		g.wet()
 	}
@@ -121,7 +122,7 @@ func (g *Grid) Turn(p entity.Pos, tr Terrain) {
 	// Turning ground is the one thing that changes what kind a tile is,
 	// so it is the one place the patches are kept. See patch.go.
 	g.mark(i, t, -1)
-	deep := t.Deep()
+	deep, was := t.Deep(), tableCost(t)
 	t.Terrain = tr
 	g.Kinds[i] = kindOf(t)
 	if tr != Field {
@@ -129,6 +130,7 @@ func (g *Grid) Turn(p entity.Pos, tr Terrain) {
 	}
 	c.count(t, 1)
 	g.mark(i, t, 1)
+	g.landmarks.cheapened(g.ChunkOf(i), was, tableCost(t))
 	if t.Deep() != deep {
 		g.wet()
 	}
@@ -172,6 +174,9 @@ func (g *Grid) Recount() {
 	clear(g.lenders)
 	g.repatch()
 	g.rekind()
+	// Whatever moved enough of the ground to want a recount may have
+	// moved it under the landmarks.
+	g.landmarks.moved()
 	g.wet()
 	for i := range g.Tiles {
 		g.Chunks[g.ChunkOf(i)].Height += g.Tiles[i].Height
@@ -202,7 +207,7 @@ func (g *Grid) rekind() {
 // and takes it afresh whenever the ground is remade wholesale, in Recount;
 // this is for a test that lays tiles by hand and then wants the day to
 // pass over them.
-func (g *Grid) Rekind() { g.rekind() }
+func (g *Grid) Rekind() { g.rekind(); g.landmarks.moved() }
 
 // Houses is how many houses stand on the map, and the rest likewise. Each
 // is a sum over the chunks rather than a walk over the tiles.
