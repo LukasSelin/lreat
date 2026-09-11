@@ -313,5 +313,5 @@ make/stone+timber>tool@forge             1   0.0%
 raise/timber+stone>granary@open          1   0.0%
 
 born 0.15 inherit 0.05 temp 0.15
-gates: fed 0.60 safe 0.42 held 0.65 all 0.220 food 13.23 hungry-with-food 0.27 | lasted 6/8 extinct 2 mean 217.5 median 127 | phys 0.65 safe 0.55 belng 0.62 estm 0.28
+gates: fed 0.60 safe 0.42 held 0.65 all 0.220 food 13.27 hungry-with-food 0.27 | lasted 6/8 extinct 2 mean 217.5 median 127 | phys 0.65 safe 0.55 belng 0.62 estm 0.28
 ```
