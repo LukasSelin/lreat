@@ -9,7 +9,15 @@ go run ./cmd/tune -preset globe -seeds 8 -ticks 21600
 
 It is eight seeds rather than twenty-four because a globe is a hundred and
 eighty times the ground of the valley and each seed is a single thread here,
-so the batch is half an hour where the valley's is a few minutes. It is taken
+so the batch is half an hour where the valley's is a few minutes.
+
+Eight is enough for the gates and it is not enough for the dying. Twice on this
+branch an eight-seed batch has said something about `extinct` and `lasted` that
+a twenty-four-seed batch then contradicted - once inventing a decline the
+rivers had not caused, once matching a real one by luck. A move in those two
+readings is worth nothing at this size; take twenty-four before believing one,
+which is twelve minutes and not half an hour now that a globe is made in
+fourteen seconds. It is taken
 on the same terms otherwise: sixty years, twenty founders, one settlement
 founded where the terrain scorer puts it.
 
@@ -34,12 +42,53 @@ before: gates: fed 0.69 safe 0.42 held 0.62 all 0.234 food 7.06 | lasted 6/8 ext
 after:  gates: fed 0.67 safe 0.36 held 0.59 all 0.196 food 12.99 | lasted 4/8 extinct 3 mean 75.6 median 46
 ```
 
-This is worse again, and worse in the same direction as the batch before it.
-Three settlements of eight died where one did; the mean population is a
-hundred and sixteen down on a hundred and ninety-two. Over the three changes
-on this branch the globe has gone 0.309, 0.234, 0.196 on the gate a birth has
-to pass, and 0, 1, 3 on the extinctions. Three points is a trend or it is three
-draws, and eight seeds cannot tell which.
+This is worse, and this time it was run down rather than guessed at. The batch
+above is eight seeds and eight seeds could not say why, so the same batch was
+taken at twenty-four on this commit and on the two before it, and once more on
+this commit with the exponent put back. Four runs, one variable at a time:
+
+	tree                                     extinct  lasted  gates all  median
+	plates                                     4/24   19/24     0.214      90
+	rivers                                     3/24   20/24     0.219     124
+	this commit, theta 0.5, banks off flow     3/24   16/24     0.189      61
+	this commit, as it stands                  9/24   13/24     0.185      47
+
+Read down the column and the two halves of this commit did two different
+things. Raising theta from a half to one is what triples the dying - three in
+twenty-four to nine, with the bank reading held still. Reading the banks off
+the flow instead of off the work is what costs the gate a birth has to pass -
+0.219 to 0.189 - and halves the middling settlement, while leaving the dying
+where it was.
+
+That second one is the uncomfortable half, because it is a correctness fix. The
+version that scored better was the version in which nine tenths of a globe's
+bank-flooding happened on mountainsides while the flood plains stayed dry. The
+better number was being bought with a wrong map.
+
+Both are kept. The mountains are worth a third of the settlements on a preset
+whose settlements are not yet what is being tuned, and a map that floods its
+ridges is not worth keeping for a better score.
+
+What the bank reading costs was then run down, and it is not food. Counted
+within ten tiles of the market, over the eight globes, mean per world:
+
+	                          water  fish  fertility  buildable
+	banks off the work (bug)  124.6  106.5    247.1      272.0
+	banks off the flow (fix)  149.5  127.3    232.2      240.4
+
+The fix moves the flooding off the ridges and onto the flood plains, and the
+flood plains are where the markets are - so a settlement gains twenty-five
+tiles of water and twenty-one of fish, and loses thirty-two tiles it could have
+built on, an eighth of its building ground. That is the whole of the cost, and
+it shows in the readings: `food` went up while `held` and `safe` went down. It
+is a housing problem and not a hunger one.
+
+Which points at the spreading rule rather than at the reading. A great river
+takes every neighbour standing no more than a metre above its channel, and a
+metre is a great deal of flood plain when the ground is flat. That figure was
+settled when this fired on ridges and hardly ever on a flood plain; it is doing
+far more work now that it fires where it should. Tightening it is the next
+thing to try, and it wants its own batch.
 
 What is known is that the ground and the dying do not line up. Measuring the
 fertility and the flood-plain tiles within ten of each market, before this
@@ -92,11 +141,13 @@ before the rivers: gates: fed 0.69 safe 0.56 held 0.73 all 0.309 food 8.98 | las
 after the rivers:  gates: fed 0.69 safe 0.42 held 0.62 all 0.234 food 7.06 | lasted 6/8 extinct 1 mean 191.9 median 209
 ```
 
-This is a worse run and it should be said plainly rather than absorbed. `safe`
-fell 0.14 and `gates all` 0.075, both well past what the valley's table calls
-noise, and one settlement died where none had. Seed 1 came out with nobody at
-all and seed 7 with two souls; the other six are healthy and three of them are
-the best this preset has produced.
+This read as a worse run and it was not one. Taken at eight seeds it showed
+`safe` down 0.14, `gates all` down 0.075 and one settlement dead where none had
+been, and it was written up here as a real decline. Taken again at twenty-four
+seeds afterwards, against the commit before it at the same size, the rivers
+moved nothing: four dead becoming three, and 0.214 on the gate becoming 0.219.
+The decline was the batch being too small to see through, and the write-up
+below is left standing as a caution about that rather than corrected away.
 
 The obvious explanation is wrong. It would be that the new drainage left those
 two markets dry, and it did not: both have water one tile from the square, both
