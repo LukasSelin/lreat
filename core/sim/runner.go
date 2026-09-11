@@ -7,6 +7,7 @@ package sim
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"lreat/core/action"
@@ -59,6 +60,13 @@ type Runner struct {
 	snaps chan observe.Snapshot
 	tps   float64
 	pause bool
+	// load is the last finished reading of what the run is costing, and
+	// meter the window being gathered towards the next one. It is a pointer
+	// so that a whole reading crosses to the watcher at once: nobody must
+	// ever see this window's rate beside the last one's peak, which is
+	// exactly what four separate atomic words would give them. See load.go.
+	load  atomic.Pointer[Load]
+	meter meter
 	// taken is the tick of the last snapshot. A snapshot is taken when the
 	// last one has been collected, or when it is SnapshotEvery ticks old and
 	// has not been; taking one costs a copy of the whole map, and a viewer
@@ -113,6 +121,11 @@ func (r *Runner) interval() time.Duration {
 // The snapshot channel holds one item; a slow consumer sees the latest and
 // never slows the simulation.
 func (r *Runner) tick() {
+	// What the tick costs is taken around the whole of it, snapshot
+	// included: the snapshot is not the world's work but it is the run's,
+	// and a watcher asking what it is costing to watch wants it counted.
+	// See load.go.
+	defer r.measure(time.Now())
 	for {
 		select {
 		case c := <-r.cmds:
