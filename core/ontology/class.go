@@ -268,6 +268,10 @@ var (
 	// lives on and nobody else takes. Like the brush it is a thing and not
 	// a material, and for the same reason.
 	Sward = lack(New("sward", Thing, Edible, habit.Signature{}), 0.8)
+	// Mast is the acorns and beech mast under the old trees, a boar's own
+	// living: the world keeps its count on the timber, since it is the
+	// trees that drop it, and a sounder rooting for it does not fell them.
+	Mast = lack(New("mast", Thing, Edible, habit.Signature{}), 0.8)
 	// Practice is an act itself as the object of another: what is taught
 	// and studied. The ontology contains its own catalog.
 	Practice = New("practice", Thing, 0, habit.Signature{})

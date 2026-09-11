@@ -103,6 +103,20 @@ gates: fed 0.59 safe 0.51 held 0.69 all 0.262 food 3.73 hungry-with-food 0.26 | 
 
 ## What the last change did
 
+The creatures made to last. Over sixty years on the valley the herds followed
+the woods down and were gone from a settlement of a hundred people while the
+woods still stood, boar starved walking forty tiles to strips cut before they
+arrived, and deer and boar took turns eating each other out of the one brush.
+A feeding now takes half what a forage takes and a thin stand still feeds; a
+raid is local; a boar lives on the mast under the old trees, a count kept on
+the timber that nothing else draws on, and on the sward besides, and a kind is
+released as a herd rather than scattered. Every kind was still there at sixty
+years on two valleys, one of them at a hundred and fourteen people. None of
+it is read by a run with no creatures in it, so the golden numbers and the
+batch stand.
+
+### What the creatures do to the country
+
 What the creatures do to the country: a browsing sets a young stand back, a
 wood's seed takes only among shoots so a grazed meadow stays open, a grazing
 manures the ground, and a boar turns the soil and now and then plants a wood

@@ -275,7 +275,12 @@ var Schemas = []Schema{
 	// a harvest less what a harvest is to a farmer - see takeDetail, which
 	// is a person's - so it is the hungry, near, warm-half moment of there
 	// being grain standing.
-	{Verb: Take, Actor: Boar, Object: Browse, Site: Wood, Ticks: 1, Reach0: reachEveryday},
+	// A boar roots for the mast under the old trees: a living of its own,
+	// so that a sounder and a herd of deer share a wood without one eating
+	// the other out of it. The sward at the edge of the trees is its
+	// second living.
+	{Verb: Take, Actor: Boar, Object: Mast, Site: Wood, Ticks: 1, Reach0: reachEveryday},
+	{Verb: Take, Actor: Boar, Object: Sward, Site: Open, Ticks: 1, Reach0: reachEveryday},
 	{Verb: Take, Actor: Boar, Object: Grain, Site: Field, Ticks: 1, Reach0: reachEveryday},
 	{Verb: Dwell, Actor: Boar, Name: "rest", Ticks: 1, Reach0: reachEveryday,
 		Prior: habit.Signature{

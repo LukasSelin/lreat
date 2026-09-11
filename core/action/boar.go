@@ -8,14 +8,16 @@ import (
 	"lreat/core/world"
 )
 
-// A boar roots in the wood for the same brush a deer browses, turning the
-// soil as it goes and now and then planting a wood on the open ground
-// beside it, and raids the fields: a sounder in a strip in ear takes the
+// A boar roots under the old trees for the mast, which is its own living
+// and nobody else's, turning the soil as it goes and now and then planting
+// a wood on the open ground beside it; grubs the meadow at the wood's edge
+// for the same sward a hare grazes; and raids the fields: a sounder in a strip in ear takes the
 // grain and tramples what it does not take. It wallows, bolts from anybody
 // near - though not from as far off as a deer does - keeps to its sounder,
 // and ranges.
 var (
-	Root    = feeding("root", ontology.Browse, ontology.Wood, rooted)
+	Root    = feeding("root", ontology.Mast, ontology.Wood, mastTake, rooted)
+	Grub    = feeding("grub", ontology.Sward, ontology.Open, browseTake, manured)
 	Wallow  = bedding("wallow")
 	Bolt    = fleeing("bolt")
 	Sounder = herding("sounder")
@@ -28,16 +30,24 @@ const (
 	// coming on is trampled, as a share of the age it had.
 	raidWear    = 0.02
 	raidSetback = 0.5
-	raidGain    = 0.4
+	// raidGain is less than a rooting gives: grain is a windfall, not a
+	// living, or a sounder lives off the settlement's strips and breeds on
+	// them until the guard stops it, which it did.
+	raidGain = 0.3
 	// raidLeast is how far along a strip's crop must be for a raid to be
-	// worth the walk: something has to be standing in it.
+	// worth the walk: something has to be standing in it. raidRange is how
+	// far a boar will go to a field - the fields at its own wood's edge,
+	// not the far side of the valley: at the ordinary ranging a sounder
+	// walked forty tiles to strips that were cut before it arrived, ate
+	// nothing for the walk, and starved out inside fifteen years.
 	raidLeast = 0.25
+	raidRange = 12
 )
 
 // raidSite is the nearest strip with a crop worth raiding.
 func raidSite(a *entity.Agent, w *world.World) (entity.Pos, bool) {
 	kinds := world.KindsOf(ontology.Field)
-	return w.Grid.NearestOfKind(a.Pos, ranging(a), kinds, func(p entity.Pos, t *world.Tile) bool {
+	return w.Grid.NearestOfKind(a.Pos, raidRange, kinds, func(p entity.Pos, t *world.Tile) bool {
 		return t.Is(ontology.Field) && w.Grid.Along(w.Grid.Index(p), ontology.Crop) >= raidLeast
 	})
 }
@@ -65,6 +75,7 @@ var Raid = &Def{
 
 func init() {
 	wary(entity.Boar, Root, Wallow, Bolt, Sounder, Range, feedPrior)
+	seed(Grub, reachEveryday, feedPrior)
 	// A raid is a taking of grain off a field, as the ontology composes it:
 	// hungry, short, near, and of the warm half of the year, which is when
 	// there is grain standing to be had.

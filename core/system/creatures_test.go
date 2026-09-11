@@ -52,13 +52,23 @@ func kindOf(w *world.World, sp *entity.Species) []*entity.Agent {
 // leaves the trees; a boar is forever crossing the open between the wood
 // and the fields, and a hare between the hedge and the sward.
 var habitats = map[*entity.Species]struct {
-	ground func(*world.Tile) bool
+	ground func(g *world.Grid, p entity.Pos) bool
 	inTen  int
 	feeds  string
 }{
-	entity.Deer: {func(t *world.Tile) bool { return t.Is(ontology.Wood) }, 8, "deer:take/browse@wood"},
-	entity.Boar: {func(t *world.Tile) bool { return t.Is(ontology.Wood) || t.Is(ontology.Field) }, 5, "boar:take/browse@wood"},
-	entity.Hare: {func(t *world.Tile) bool { return t.Is(ontology.Wood) || t.Is(ontology.Open) }, 8, "hare:take/sward@open"},
+	entity.Deer: {func(g *world.Grid, p entity.Pos) bool { return g.At(p).Is(ontology.Wood) }, 8, "deer:take/browse@wood"},
+	entity.Boar: {func(g *world.Grid, p entity.Pos) bool {
+		t := g.At(p)
+		return t.Is(ontology.Wood) || t.Is(ontology.Field) || (t.Is(ontology.Open) && besideWood(g, p))
+	}, 6, "boar:take/mast@wood"},
+	entity.Hare: {func(g *world.Grid, p entity.Pos) bool {
+		t := g.At(p)
+		return t.Is(ontology.Wood) || t.Is(ontology.Open)
+	}, 8, "hare:take/sward@open"},
+}
+
+func besideWood(g *world.Grid, p entity.Pos) bool {
+	return g.HasNeighbor(p, func(t *world.Tile) bool { return t.Is(ontology.Wood) })
 }
 
 func TestCreaturesKeepToTheirGroundAndEatIt(t *testing.T) {
@@ -74,7 +84,7 @@ func TestCreaturesKeepToTheirGroundAndEatIt(t *testing.T) {
 		for _, sp := range entity.Creatures {
 			for _, a := range kindOf(w, sp) {
 				of[sp]++
-				if habitats[sp].ground(w.Grid.At(a.Pos)) {
+				if habitats[sp].ground(w.Grid, a.Pos) {
 					at[sp]++
 				}
 			}

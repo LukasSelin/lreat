@@ -154,7 +154,7 @@ var Deer = &Species{
 	Needs: need.Levels{0.7, 0.5, 0.5, 1, 0.5},
 	Decay: [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Actualization: 0.001},
 	Bears: 0.5 / clock.Year,
-	Wary:  6,
+	Wary:  4,
 	Herds: 8,
 }
 
@@ -164,13 +164,14 @@ var Deer = &Species{
 var Boar = &Species{
 	Name:  "boar",
 	Life:  Life{Maturity: clock.Year, Prime: 6 * clock.Year, Lifespan: 10 * clock.Year},
-	Body:  Body{Vitality: 1.2, Metabolism: 1.3, Hardiness: 1.3},
+	Body:  Body{Vitality: 1.2, Metabolism: 1.1, Hardiness: 1.3},
 	Mind:  Mind{Plasticity: 0.3, Resolve: 1, Horizon: 1},
 	Needs: need.Levels{0.7, 0.5, 0.5, 1, 0.5},
 	Decay: [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Actualization: 0.001},
-	Bears: 0.6 / clock.Year,
-	Wary:  4,
+	Bears: 0.7 / clock.Year,
+	Wary:  3,
 	Herds: 6,
+	Edge:  0.6,
 }
 
 // Hare is the quick, short-lived, many-bearing thing of the open ground: it
@@ -183,8 +184,8 @@ var Hare = &Species{
 	Mind:  Mind{Plasticity: 0.2, Resolve: 1, Horizon: 0.6},
 	Needs: need.Levels{0.7, 0.5, 0.5, 1, 0.5},
 	Decay: [need.Count]float64{need.Physiological: 0.02, need.Belonging: 0.006, need.Actualization: 0.001},
-	Bears: 1.5 / clock.Year,
-	Wary:  5,
+	Bears: 1.0 / clock.Year,
+	Wary:  4,
 	Herds: 4,
 	Edge:  0.8,
 }

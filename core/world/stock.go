@@ -147,6 +147,7 @@ var stocks = map[*ontology.Class]func(*Grid) []float64{
 	ontology.Game:    func(g *Grid) []float64 { return g.Wild },
 	ontology.Browse:  func(g *Grid) []float64 { return g.Wild },
 	ontology.Sward:   func(g *Grid) []float64 { return g.Sward },
+	ontology.Mast:    func(g *Grid) []float64 { return g.Wood },
 	ontology.Timber:  func(g *Grid) []float64 { return g.Wood },
 	ontology.Fish:    func(g *Grid) []float64 { return g.Fish },
 }

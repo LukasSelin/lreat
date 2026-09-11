@@ -72,7 +72,7 @@ var MaxPopulation = 5000
 // nothing hunting it is bounded by its browse and by nothing else, and this
 // is here for the day the browse is not enough. It is a kind's own, so that
 // a warren at its ceiling does not stand between a doe and her fawn.
-var MaxCreatures = 500
+var MaxCreatures = 300
 
 // Room says whether the settlement may take one more. An unset ceiling - zero
 // or below - is no ceiling: nothing but the world stands between a fertile

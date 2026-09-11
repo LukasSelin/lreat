@@ -304,7 +304,7 @@ var glyphs = map[string]rune{"deer": 'd', "boar": 'b', "hare": 'h'}
 
 var actionKinds = map[string]string{
 	"browse": "deer", "bed down": "deer", "flee": "deer", "herd": "deer", "roam": "deer",
-	"root": "boar", "raid": "boar", "wallow": "boar", "bolt": "boar", "sounder": "boar", "range": "boar",
+	"root": "boar", "grub": "boar", "raid": "boar", "wallow": "boar", "bolt": "boar", "sounder": "boar", "range": "boar",
 	"graze": "hare", "crouch": "hare", "dash": "hare", "warren": "hare", "lope": "hare",
 }
 

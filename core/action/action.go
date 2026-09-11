@@ -145,7 +145,8 @@ var mechanics = map[string]*Def{
 	"deer:dwell/herd>fellow": Herd,
 	"deer:dwell/roam":        Roam,
 
-	"boar:take/browse@wood":  Root,
+	"boar:take/mast@wood":    Root,
+	"boar:take/sward@open":   Grub,
 	"boar:take/grain@field":  Raid,
 	"boar:dwell/rest":        Wallow,
 	"boar:dwell/flee":        Bolt,

@@ -133,7 +133,7 @@ func defaults() setup {
 		seed:   1,
 		agents: 20,
 		deer:   12,
-		boar:   6,
+		boar:   10,
 		hare:   12,
 		// The width and height stand behind the fitting as what a map is
 		// when somebody takes it off the window's hands.

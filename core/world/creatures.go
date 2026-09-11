@@ -32,20 +32,34 @@ var habitats = map[*entity.Species]func(g *Grid, p entity.Pos, t *Tile) bool{
 // drew. The kinds are put down in the order they are declared.
 func (w *World) Populate() {
 	for _, sp := range entity.Creatures {
+		// A kind is released as a herd and not scattered: the first is
+		// put down anywhere in its habitat within range of the square, and
+		// the rest within herd reach of the last, so that from the first
+		// day each has its kind for company. Six boar put down sixty tiles
+		// apart never found one another, belonged to nothing, and bore
+		// nothing.
+		var last entity.Pos
 		for i := 0; i < w.Config.Of(sp); i++ {
-			p, ok := w.covert(sp)
+			var p entity.Pos
+			var ok bool
+			if i == 0 {
+				p, ok = w.covert(sp, w.MarketPos, releaseRange)
+			} else {
+				p, ok = w.covert(sp, last, sp.Herds)
+			}
 			if !ok {
 				break
 			}
 			w.SpawnKind(sp, fmt.Sprintf("%s-%d", sp.Name, i+1), w.RandomPersonality(), p)
+			last = p
 		}
 	}
 }
 
-// covert is somewhere in the kind's habitat within the release range of the
-// square: a few draws at random, and the nearest such ground to the square
-// when none of them lands on any.
-func (w *World) covert(sp *entity.Species) (entity.Pos, bool) {
+// covert is somewhere in the kind's habitat within reach of a place: a few
+// draws at random, and the nearest such ground to the place when none of
+// them lands on any.
+func (w *World) covert(sp *entity.Species, near entity.Pos, reach int) (entity.Pos, bool) {
 	g := w.Grid
 	fit := habitats[sp]
 	if fit == nil {
@@ -53,12 +67,12 @@ func (w *World) covert(sp *entity.Species) (entity.Pos, bool) {
 	}
 	for try := 0; try < 40; try++ {
 		p := g.Norm(entity.Pos{
-			X: w.MarketPos.X + w.RNG.IntN(2*releaseRange+1) - releaseRange,
-			Y: w.MarketPos.Y + w.RNG.IntN(2*releaseRange+1) - releaseRange,
+			X: near.X + w.RNG.IntN(2*reach+1) - reach,
+			Y: near.Y + w.RNG.IntN(2*reach+1) - reach,
 		})
 		if g.In(p) && fit(g, p, g.At(p)) {
 			return p, true
 		}
 	}
-	return g.Nearest(w.MarketPos, releaseRange, func(p entity.Pos, t *Tile) bool { return fit(g, p, t) })
+	return g.Nearest(near, reach, func(p entity.Pos, t *Tile) bool { return fit(g, p, t) })
 }

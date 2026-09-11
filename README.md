@@ -217,10 +217,12 @@ the herd; and it rambles toward the trees. Fawns are born to fed, safe, herded
 does, take their mother's body, mind and habits with drift, and are deer. The
 settlement's books never count one - its population, its means and its
 fertility funnel are of the people - and the map draws each as a `d`. A boar
-is a deer that lets a person come nearer, roots for the same brush, and raids
-the fields: a sounder in a strip in ear eats the grain and tramples what it
-does not eat, so the strip is worn and the crop set back; the map draws one as
-a `b`. A hare grazes the sward, which is the grass standing on open ground - a
+is a deer that lets a person come nearer, lives on the mast under the old
+trees - a count kept on the timber, which is its own living and nobody else's,
+so that a sounder and a herd share a wood without one eating the other out of
+it - and on the sward at the wood's edge, and raids the fields: a sounder in a
+strip in ear eats the grain and tramples what it does not eat, so the strip is
+worn and the crop set back; the map draws one as a `b`. A hare grazes the sward, which is the grass standing on open ground - a
 stock the day's pass puts back like the fish, that nobody but a grazing
 creature takes - and lives in the hedge at the wood's edge, breeding several
 times a year; it is an `h`. None of them swims, so a river is the edge of a
@@ -238,7 +240,16 @@ next. And a boar turns the soil as it roots, lifting the ground under the
 trees the same way, and now and then plants a wood on the open ground beside
 it, since a boar carries acorns and buries most of them. So the tree line
 and the field ground are the outcome of who lives there: hares hold an edge
-open, boar push it out, and the balance is set by which kind is thriving. `watch` puts a dozen deer, half a dozen boar and a dozen hares
+open, boar push it out, and the balance is set by which kind is thriving.
+
+A feeding takes half what a forage takes and a thin stand still feeds, so a
+creature lives on less ground than a forager does and a wood a settlement has
+felled to a third of itself still carries a herd. Each kind is released as a
+herd rather than scattered, since a creature belongs to its kind and bears
+only among it. Measured over sixty years on two valleys, one of which grew to
+a hundred and fourteen people, every kind was still there at the end; what
+bounds them, with nothing hunting them yet, is the brush, the sward and a
+guard of three hundred a kind that is the machine's and not the world's. `watch` puts a dozen deer, half a dozen boar and a dozen hares
 down unasked, and its menu has a line for each; `headless` and `tune` put
 none, because the runs a settlement is measured on have no creatures in them.
 See core/entity/species.go for what a species is, core/action/creature.go for

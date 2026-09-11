@@ -17,7 +17,7 @@ import "lreat/core/clock"
 // entity.Place (believed, and often stale) and entity.Request (posted, and
 // outliving the tick) are, and what a candidate recomputed from truth is not.
 var Affords = map[*Class][]*Class{
-	Wood:    {Berries, Game, Timber, Browse},
+	Wood:    {Berries, Game, Timber, Browse, Mast},
 	Open:    {Sward},
 	Water:   {Fish},
 	Outcrop: {Stone},

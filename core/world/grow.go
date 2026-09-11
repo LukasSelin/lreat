@@ -187,9 +187,9 @@ const (
 	Fallow       = 0.0006
 	// SwardRegrowth is how much of a full sward a growing day puts back on
 	// open ground. Grass is the quickest thing the year makes: a lawn
-	// grazed to nothing is most of the way back within a year. It is the
+	// grazed to nothing is most of the way back within a season. It is the
 	// whole of what bounds a warren where nothing hunts it.
-	SwardRegrowth = 0.0015
+	SwardRegrowth = 0.002
 	// SeedTakes is how much sward open ground must carry for a wood's seed
 	// to take in it. A seed takes among shoots, and ground grazed below
 	// this has none: a warren at the edge of a wood holds the meadow open,

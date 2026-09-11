@@ -54,7 +54,8 @@ var golden = map[string]string{
 	"deer:dwell/herd>fellow": "herd",
 	"deer:dwell/roam":        "roam",
 
-	"boar:take/browse@wood":  "root",
+	"boar:take/mast@wood":    "root",
+	"boar:take/sward@open":   "grub",
 	"boar:take/grain@field":  "raid",
 	"boar:dwell/rest":        "wallow",
 	"boar:dwell/flee":        "bolt",

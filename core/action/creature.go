@@ -39,15 +39,24 @@ const (
 
 	// browseTake is what one feeding takes off the stand, and browseLeast
 	// how thin a stand may be and still be worth going to. A feeding takes
-	// what a forage takes, so a creature costs the wood what a forager does
-	// and the two are in plain competition for it; what the stand puts on
-	// in a year is then what bounds the herd.
-	browseTake  = 0.08
-	browseLeast = 0.15
+	// half what a forage takes and a thin stand still feeds, so a creature
+	// lives on less ground than a forager does: what the stand puts on in a
+	// year is still what bounds the herd, but a wood the settlement has
+	// felled to a third of itself still carries a herd. At a forage's take
+	// and a fifteenth for a stand, the herds followed the woods down and
+	// were gone from a valley of a hundred people while the woods stood.
+	browseTake  = 0.04
+	browseLeast = 0.05
+	// mastTake is what rooting takes off the timber count of an old wood:
+	// the acorns and beech mast under the trees, a boar's own living that
+	// no deer browses and no forager picks, so a sounder and a herd can
+	// share a wood without one eating the other out of it. It is a small
+	// bite, since the count is the trees and a sounder does not fell them.
+	mastTake = 0.01
 	// browseGain is what a full feeding restores. A creature eats every day
 	// it can and keeps no larder, so this is what a day's grazing is worth
 	// against the day's burn.
-	browseGain = 0.4
+	browseGain = 0.5
 	// bedGain is what bedding down restores, and it is next to nothing on
 	// purpose. A person's rest restores a little more than a day burns,
 	// which is harmless for a person, who is also walking, working and
@@ -156,7 +165,7 @@ func senseWary(a *entity.Agent, w *world.World) habit.Signature {
 // and a little off the count the ground keeps, into the belly rather than
 // into any pack. Ground with something built on it is not grazed. What the
 // feeding leaves behind it on the ground is the kind's, in leaves.
-func feeding(name string, of, site *ontology.Class, leaves func(w *world.World, i int)) *Def {
+func feeding(name string, of, site *ontology.Class, take float64, leaves func(w *world.World, i int)) *Def {
 	held := world.StockOf(of)
 	kinds := world.KindsOf(site)
 	return &Def{
@@ -175,10 +184,10 @@ func feeding(name string, of, site *ontology.Class, leaves func(w *world.World, 
 			if !ok || !t.Is(site) || t.Structure != world.None {
 				return
 			}
-			take := min(browseTake, max(0, *s))
-			*s -= take
-			a.Needs.Add(need.Physiological, browseGain*take/browseTake)
-			if leaves != nil && take > 0 {
+			took := min(take, max(0, *s))
+			*s -= took
+			a.Needs.Add(need.Physiological, browseGain*took/take)
+			if leaves != nil && took > 0 {
 				leaves(w, w.Grid.Index(a.Pos))
 			}
 		},
