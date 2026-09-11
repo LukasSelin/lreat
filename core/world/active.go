@@ -112,7 +112,7 @@ func (w *World) Wake() {
 		case was && !g.Active[i] && w.ways != nil:
 			// Nothing here asks for a road any more; see readWays, which
 			// only reads the ground that is awake.
-			g.eachIn(i, func(j int, _ *Tile) { w.ways.draw[j] = 0 })
+			w.ways.clear(i)
 		}
 	}
 	// The sweep: enough sleeping chunks a day that every one is caught up
@@ -332,6 +332,31 @@ func (g *Grid) EachActiveOver(only func(c int) bool, f func(i, c int, t *Tile)) 
 				f(i, c, &g.Tiles[i])
 			}
 		}
+	})
+}
+
+// EachActiveChunk is EachActiveOver for a pass that wants the chunk whole:
+// f is handed each awake chunk that only admits, a chunk to a goroutine
+// where enough of the ground is awake to be worth it, and may read
+// anything on the map and write anything of that chunk's and nothing
+// else. It is for a pass that keeps a fact per chunk about what it found
+// there, which a pass handed tiles one at a time cannot.
+func (g *Grid) EachActiveChunk(only func(c int) bool, f func(c int)) {
+	awake := 0
+	for c := range g.Chunks {
+		if g.Awake(c) && (only == nil || only(c)) {
+			awake++
+		}
+	}
+	workers := 1
+	if awake >= spreadFrom {
+		workers = WorkersFor(awake)
+	}
+	InParallel(len(g.Chunks), workers, func(c, _ int) {
+		if !g.Awake(c) || (only != nil && !only(c)) {
+			return
+		}
+		f(c)
 	})
 }
 
